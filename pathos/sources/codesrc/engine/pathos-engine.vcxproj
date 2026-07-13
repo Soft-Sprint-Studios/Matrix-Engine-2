@@ -23,6 +23,7 @@
     <RootNamespace>pathosengine</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>matrix-engine</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -89,7 +90,7 @@
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pathos_x64</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">matrix_x64</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pathos_x86</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pathos_x86</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pathos_x64</TargetName>
@@ -207,6 +208,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>.\;..\libs\sdl2.0\include\;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996;4305;4244;4127;4100;4481;4512;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -537,10 +539,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="icon1.ico" />
-    <None Include="resource\reckoning.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="pathos-engine.rc" />
+    <ResourceCompile Include="matrix-engine.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="matrix-engine.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

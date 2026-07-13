@@ -976,13 +976,15 @@
     <None Include="icon1.ico">
       <Filter>Header Files\Resource Files</Filter>
     </None>
-    <None Include="resource\reckoning.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="pathos-engine.rc">
+    <ResourceCompile Include="matrix-engine.rc">
       <Filter>Header Files\Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="matrix-engine.manifest">
+      <Filter>Header Files\Resource Files</Filter>
+    </Manifest>
   </ItemGroup>
 </Project>

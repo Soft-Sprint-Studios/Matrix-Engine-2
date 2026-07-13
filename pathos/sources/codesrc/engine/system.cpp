@@ -98,7 +98,7 @@ bool Sys_ShouldExit( void )
 bool Sys_Init( CArray<CString>* argsArray )
 {
 	// Create console print mutex
-	g_hPrintMutex = CreateMutex(nullptr, FALSE, "PathosConsolePrintMutex");
+	g_hPrintMutex = CreateMutex(nullptr, FALSE, "MatrixConsolePrintMutex");
 	if(nullptr != g_hPrintMutex)
 		GetLastError();
 
@@ -143,7 +143,7 @@ bool Sys_Init( CArray<CString>* argsArray )
 	// Timescale cvar
 	g_pCvarTimeScale = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_SV_ONLY, "host_timescale", "1.0", "Can be used to manipulate the time scale.\n");
 	// Max FPS cvar
-	g_pCvarFPSMax = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_SV_ONLY, "fps_max", "100", "Max framerate.\n");
+	g_pCvarFPSMax = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_SV_ONLY, "fps_max", "300", "Max framerate.\n");
 
 	// See if the default font exists
 	if(!Sys_LoadDefaultFont(nullptr))
@@ -293,7 +293,7 @@ void Sys_Shutdown( void )
 	if(ens.plogfile)
 	{
 		// Mark exit
-		ens.plogfile->Write("Pathos Engine exiting.\n");
+		ens.plogfile->Write("Matrix Engine 2 exiting.\n");
 		if(!ens.plogfile->Close())
 			Con_EPrintf("Error closing engine log file.\n");
 
@@ -564,7 +564,7 @@ bool Sys_ParseLaunchParams( const CArray<CString>* argsArray )
 
 		// Print the current date and build info
 		CString strLog;
-		strLog << "Pathos Engine";
+		strLog << "Matrix Engine 2";
 #ifdef _DEBUG
 		strLog << "(DEBUG)";
 #endif
@@ -623,7 +623,7 @@ bool Sys_ParseLaunchParams( const CArray<CString>* argsArray )
 
 		// Print the current date and build info
 		CString strLog;
-		strLog << "Pathos Engine - Build date: " << __TIME__ << " " << __DATE__ << NEWLINE;
+		strLog << "Matrix Engine 2 - Build date: " << __TIME__ << " " << __DATE__ << NEWLINE;
 		ens.pgllogfile->Write(strLog.c_str());
 	}
 
