@@ -1,0 +1,6 @@
+[submodule "pathos/sources/codesrc/utils/Matrix-2-Editor"]
+	path = pathos/sources/codesrc/utils/Matrix-2-Editor
+	url = https://github.com/Soft-Sprint-Studios/Matrix-2-Editor.git
+[submodule "pathos/sources/codesrc/utils/Matrix-2-Compiletools"]
+	path = pathos/sources/codesrc/utils/Matrix-2-Compiletools
+	url = https://github.com/Soft-Sprint-Studios/Matrix-2-Compiletools
