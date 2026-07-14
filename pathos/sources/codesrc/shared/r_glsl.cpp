@@ -1258,9 +1258,25 @@ bool CGLSLShader::ReadChunks( const Char **ppscan, shader_chunk_t** pchunkptr, U
 		{
 			// Read the special token in
 			(*ppscan) = Common::Parse((*ppscan), szToken1);
-			
+
+			if (!qstrcmp(szToken1, "$include"))
+			{
+				(*ppscan) = Common::Parse((*ppscan), szToken1);
+				CString incPath;
+				incPath << "scripts/shaders/" << szToken1;
+				Uint32 incSize = 0;
+				const byte* pInc = m_fileInterface.pfnLoadFile(incPath.c_str(), &incSize);
+				if (!pInc)
+				{
+					m_errorString << "Failed to load include file " << incPath;
+					return false;
+				}
+				chunkBuffer.append(reinterpret_cast<const Char*>(pInc), incSize);
+				chunkBuffer.append("\n", 1);
+				m_fileInterface.pfnFreeFile(pInc);
+			}
 			// If it's a branch token, read in the conditionals
-			if(!qstrcmp(szToken1, "$branch"))
+			else if (!qstrcmp(szToken1, "$branch"))
 			{
 				// Conditionals to pass to the chunk
 				glsl_branchcondition_t* pchunkconditionals = nullptr;
