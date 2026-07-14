@@ -480,14 +480,11 @@ float CalcSpecular( vec3 v_origin, vec3 v_normal, vec3 lightDir, float specularS
 	// All coordinates are in eye space
 	vec3 eyeVec = normalize( -v_origin );
 	
-	// Direction in which the triangle reflects the light
-	vec3 reflectVec = reflect( lightDir, v_normal );
+	// Halfway vector between eye vector and light source (pointing to light)
+	vec3 halfVec = normalize( -lightDir + eyeVec );
 	
-	// Cosine of the angle between the Eye vector and the Reflect vector,
-	// clamped to 0
-	//  - Looking into the reflection -> 1
-	//  - Looking elsewhere -> < 1
-	float cosAlpha = clamp( dot( eyeVec, reflectVec ), 0, 1 );	
+	// Cosine of the angle between the normal and the halfway vector
+	float cosAlpha = clamp( dot( v_normal, halfVec ), 0.0, 1.0 );
 	
 	// Currently specular color is light color times two
 	return specfactor * pow( cosAlpha, phong_exponent ) * specularStrength;
