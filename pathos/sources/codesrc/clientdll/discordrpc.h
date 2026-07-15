@@ -21,23 +21,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "includes.h"
-#include "gd_includes.h"
-#include "baseentity.h"
+#ifndef DISCORD_H
+#define DISCORD_H
 
-class CEnvCubemapOBB : public CBaseEntity
+#include "includes.h"
+
+class CCVar;
+
+class CDiscordRPC
 {
 public:
-	explicit CEnvCubemapOBB(edict_t* pedict) : CBaseEntity(pedict) {}
+	CDiscordRPC( void );
+	~CDiscordRPC( void );
 
-	virtual bool Spawn(void) override
-	{
-		m_pState->solid = SOLID_NOT;
-		m_pState->movetype = MOVETYPE_NONE;
-		m_pState->effects |= EF_NODRAW;
+public:
+	void Init( void );
+	void Shutdown( void );
+	void Frame( void );
 
-		return SetModel(m_pFields->modelname);
-	}
+	void OnLevelInit( void );
+	void UpdatePresence( const Char* pstrDetails, const Char* pstrState, const Char* pstrLargeImageKey = nullptr, const Char* pstrLargeImageText = nullptr );
+
+private:
+	bool m_isInitialized;
+	CCVar* m_pCvarEnabled;
+	CCVar* m_pCvarClientId;
+	CString m_currentClientId;
+	Int64 m_startTime;
 };
 
-LINK_ENTITY_TO_CLASS(env_cubemap_obb, CEnvCubemapOBB);
+extern CDiscordRPC g_discordRpc;
+
+#endif // DISCORD_H

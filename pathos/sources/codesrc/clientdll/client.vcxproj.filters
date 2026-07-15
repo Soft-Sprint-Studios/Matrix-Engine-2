@@ -177,6 +177,9 @@
     <ClCompile Include="..\shared\uischema.cpp">
       <Filter>Source Files\shared</Filter>
     </ClCompile>
+    <ClCompile Include="discordrpc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clientdll.h">
@@ -424,6 +427,9 @@
     </ClInclude>
     <ClInclude Include="..\shared\weapons_shared.h">
       <Filter>Header Files\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="discordrpc.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -45,6 +45,7 @@ All Rights Reserved.
 #include "shake.h"
 #include "screentext.h"
 #include "gameuielements.h"
+#include "discordrpc.h"
 
 // Declaration of gamedll enginefuncs struct
 cldll_engfuncs_t cl_engfuncs;
@@ -128,6 +129,9 @@ bool ClientDLLInit( void )
 	// Initialize entity manager
 	gEntityManager.Init();
 
+	// Initialize Discord RPC
+	g_discordRpc.Init();
+
 	// Initialize view model
 	if(!gViewModel.Init())
 		return false;
@@ -194,6 +198,9 @@ void ClientDLLShutdown( void )
 	// Shutdown entity manager
 	gEntityManager.Shutdown();
 
+	// Shutdown Discord RPC
+	g_discordRpc.Shutdown();
+
 	// Shutdown messages
 	gMessages.Shutdown();
 
@@ -249,6 +256,8 @@ void ClientFrame( void )
 	gLadder.Think();
 	// Think for motorbike
 	gMotorBike.Think();
+	// Process Discord callbacks
+	g_discordRpc.Frame();
 }
 
 //=============================================
@@ -350,6 +359,8 @@ bool ClientGameInit( void )
 	// Reset this
 	g_isLevelChangeReset = false;
 
+	g_discordRpc.OnLevelInit();
+
 	return true;
 }
 
@@ -392,6 +403,7 @@ void ClientGameReset( void )
 	{
 		// Clear buttons only if we're not doing a level change
 		CL_ResetPressedInputs();
+		g_discordRpc.UpdatePresence("In Main Menu", "Idle");
 	}
 }
 
