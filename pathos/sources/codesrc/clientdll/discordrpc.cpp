@@ -48,7 +48,7 @@ void CDiscordRPC::Init( void )
 	m_pCvarEnabled = cl_engfuncs.pfnCreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "cl_discord_enabled", "1", "Toggles Discord Rich Presence." );
 	m_pCvarClientId = cl_engfuncs.pfnCreateCVar( CVAR_STRING, (FL_CV_CLIENT|FL_CV_SAVE), "cl_discord_clientid", "1526988768144261140", "Discord Application Client ID." );
 	
-	m_startTime = std::time( nullptr );
+	m_startTime = time( nullptr );
 }
 
 void CDiscordRPC::Shutdown( void )
