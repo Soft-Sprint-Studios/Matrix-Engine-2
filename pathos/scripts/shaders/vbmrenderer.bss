@@ -689,7 +689,7 @@ vec4 AddCubemaps( float reflectivity )
 		}
 
 		vec3 reflectvector = normalize(-reflect(normalize(ps_cubevertexpos), normalize(v_normal)));
-		return GetCubemapPixel(reflectvector) * pow(reflectivity, 16) * 10.0;
+		return GetCubemapPixel(reflectvector) * pow(reflectivity, 16);
 	}
 }
 
