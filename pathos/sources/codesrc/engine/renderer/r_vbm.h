@@ -205,20 +205,6 @@ struct vbm_vlight_glvertex_t
 	byte pad[28];
 };
 
-struct ubo_modellight_t
-{
-	ubo_modellight_t()
-	{
-		memset(origin, 0, sizeof(origin));
-		memset(color, 0, sizeof(color));
-		memset(radius, 0, sizeof(radius));
-	}
-
-	Float origin[4];
-	Float color[4];
-	Float radius[4];
-};
-
 struct attrib_light
 {
 	attrib_light():
@@ -334,10 +320,8 @@ struct vbm_attribs
 		u_scope_scrsize(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_phong_exponent(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_specularfactor(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_vlight_stylestrength(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_shadertype(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_use_ubo(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_flexes(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_alphatest(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_vertexlight(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -346,10 +330,7 @@ struct vbm_attribs
 		u_d_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numdlights(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_vlight_style1(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_vlight_style2(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_vlight_style3(CGLSLShader::PROPERTY_UNAVAILABLE)
+		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE)
 		{
 			for(Uint32 i = 0; i < MAX_SHADER_BONES; i++)
 				boneindexes[i] = 0;
@@ -415,12 +396,10 @@ struct vbm_attribs
 
 	Int32 u_phong_exponent;
 	Int32 u_specularfactor;
-	Int32 u_vlight_stylestrength;
 
 	attrib_light lights[MAX_ENT_MLIGHTS];
 
 	Int32 d_shadertype;
-	Int32 d_use_ubo;
 	Int32 d_flexes;
 	Int32 d_alphatest;
 	Int32 d_vertexlight;
@@ -432,9 +411,6 @@ struct vbm_attribs
 	Int32 u_d_bumpmapping;
 	Int32 u_d_numdlights;
 	Int32 u_d_blendmultipass;
-	Int32 u_d_vlight_style1;
-	Int32 u_d_vlight_style2;
-	Int32 u_d_vlight_style3;
 
 	vbm_dlight_attribs_t dlights[MAX_BATCH_LIGHTS];
 };
@@ -808,8 +784,6 @@ private:
 	// Bounding box corners
 	Vector m_bboxCorners[8];
 
-	// Tells if UBOs are supported
-	bool m_areUBOsSupported;
 	// Tells if vertex texture fetch is supported
 	bool m_isVertexFetchSupported;
 	// Tells if flexes are used
@@ -900,12 +874,6 @@ private:
 	Float	m_gaitEstimate;
 	// Gait movement
 	Float	m_gaitMovement;
-
-private:
-	// Used for uploading modellight data to the modellight UBO
-	ubo_modellight_t m_uboModelLightData[MAX_ENT_MLIGHTS];
-	// Used for uploading to the bonematrices UBO
-	Float	m_uboBoneMatrixData[MAX_SHADER_BONES][3][4];
 };
 extern CVBMRenderer gVBMRenderer;
 extern en_material_t* VBM_FindMaterialScriptByIndex( Int32 index );

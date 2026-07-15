@@ -130,7 +130,6 @@ CVBMRenderer::CVBMRenderer( void ):
 	m_pVBMHeader(nullptr),
 	m_pExtraInfo(nullptr),
 	m_renderAlpha(0),
-	m_areUBOsSupported(false),
 	m_isVertexFetchSupported(false),
 	m_useFlexes(false),
 	m_useBlending(false),
@@ -155,7 +154,6 @@ CVBMRenderer::CVBMRenderer( void ):
 	memset(m_pInternalRotationMatrix, 0, sizeof(m_pInternalRotationMatrix));
 	memset(m_pDynamicLights, 0, sizeof(m_pDynamicLights));
 	memset(m_flexTexels, 0, sizeof(m_flexTexels));
-	memset(m_uboBoneMatrixData, 0, sizeof(m_uboBoneMatrixData));
 
 	for(Uint32 i = 0; i < MAX_TEMP_VBM_INDEXES; i++)
 		m_tempIndexes[i] = 0;
@@ -273,36 +271,13 @@ bool CVBMRenderer::InitGL( void )
 		else
 			m_isVertexFetchSupported = true;
 
-		// UBOs so far are SLOWER than using standard uniforms, so
-		// do not use them until I fix them
-#ifdef USE_UBOS
-		GLint maxUBOBindings = 0;
-		glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxUBOBindings);
-
-		if(maxUBOBindings < 3 || !R_IsExtensionSupported("GL_ARB_uniform_buffer_object"))
-		{
-			m_pShader->DisableDeterminatorState("use_ubo", TRUE);
-			m_areUBOsSupported = false;
-		}
-		else
-		{
-			m_pShader->DisableDeterminatorState("use_ubo", FALSE);
-			m_areUBOsSupported = true;
-		}
-#else
-		m_pShader->DisableDeterminatorState("use_ubo", TRUE);
-		m_areUBOsSupported = false;
-#endif
-
 		// Try and compile it
 		if(!m_pShader->Compile("vbmrenderer.bss"))
 		{
-			// Try disabling the vertex textures and UBOs
+			// Try disabling the vertex textures
 			m_pShader->DisableDeterminatorState("flex", TRUE);
-			m_pShader->DisableDeterminatorState("use_ubo", TRUE);
 
 			m_isVertexFetchSupported = false;
-			m_areUBOsSupported = false;
 
 			if(!m_pShader->Compile("vbmrenderer.bss"))
 			{
@@ -347,46 +322,33 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_vertexlight_ambient, "in_vlight_ambient", m_pShader, Sys_ErrorPopup))
 			return false;
 
-		if(!m_areUBOsSupported)
+		for(Uint32 i = 0; i < MAX_SHADER_BONES; i++)
 		{
-			for(Uint32 i = 0; i < MAX_SHADER_BONES; i++)
-			{
-				CString uniformname;
-				uniformname << "bones[" << static_cast<Int32>(i*3) << "]";
-				m_attribs.boneindexes[i] = m_pShader->InitUniform(uniformname.c_str(), CGLSLShader::UNIFORM_NOSYNC, 3);
-				if(!R_CheckShaderUniform(m_attribs.boneindexes[i], uniformname.c_str(), m_pShader, Sys_ErrorPopup))
-					return false;
-			}
-
-			for(Uint32 i = 0; i < MAX_ENT_MLIGHTS; i++)
-			{
-				CString uniformname;
-				uniformname << "lights_" << static_cast<Int32>(i) << "_origin";
-				m_attribs.lights[i].u_origin = m_pShader->InitUniform(uniformname.c_str(), CGLSLShader::UNIFORM_FLOAT3);
-				if(!R_CheckShaderUniform(m_attribs.lights[i].u_origin, uniformname.c_str(), m_pShader, Sys_ErrorPopup))
-					return false;
-
-				uniformname.clear();
-				uniformname << "lights_" << static_cast<Int32>(i) << "_color";
-				m_attribs.lights[i].u_color = m_pShader->InitUniform(uniformname.c_str(), CGLSLShader::UNIFORM_FLOAT3);
-				if(!R_CheckShaderUniform(m_attribs.lights[i].u_color, uniformname.c_str(), m_pShader, Sys_ErrorPopup))
-					return false;
-
-				uniformname.clear();
-				uniformname << "lights_" << static_cast<Int32>(i) << "_radius";
-				m_attribs.lights[i].u_radius = m_pShader->InitUniform(uniformname.c_str(), CGLSLShader::UNIFORM_FLOAT1);
-				if(!R_CheckShaderUniform(m_attribs.lights[i].u_radius, uniformname.c_str(), m_pShader, Sys_ErrorPopup))
-					return false;
-			}
+			CString uniformname;
+			uniformname << "bones[" << static_cast<Int32>(i*3) << "]";
+			m_attribs.boneindexes[i] = m_pShader->InitUniform(uniformname.c_str(), CGLSLShader::UNIFORM_NOSYNC, 3);
+			if(!R_CheckShaderUniform(m_attribs.boneindexes[i], uniformname.c_str(), m_pShader, Sys_ErrorPopup))
+				return false;
 		}
-		else
+
+		for(Uint32 i = 0; i < MAX_ENT_MLIGHTS; i++)
 		{
-			m_attribs.ub_bonematrices = m_pShader->InitUniformBufferObject("bonematrices", sizeof(Float)*MAX_SHADER_BONES*3*4);
-			if(!R_CheckShaderUniform(m_attribs.ub_bonematrices, "bonematrices", m_pShader, Sys_ErrorPopup))
+			CString uniformname;
+			uniformname << "lights_" << static_cast<Int32>(i) << "_origin";
+			m_attribs.lights[i].u_origin = m_pShader->InitUniform(uniformname.c_str(), CGLSLShader::UNIFORM_FLOAT3);
+			if(!R_CheckShaderUniform(m_attribs.lights[i].u_origin, uniformname.c_str(), m_pShader, Sys_ErrorPopup))
 				return false;
 
-			m_attribs.ub_modellights = m_pShader->InitUniformBufferObject("modellights", sizeof(m_uboModelLightData));
-			if(!R_CheckShaderUniform(m_attribs.ub_bonematrices, "modellights", m_pShader, Sys_ErrorPopup))
+			uniformname.clear();
+			uniformname << "lights_" << static_cast<Int32>(i) << "_color";
+			m_attribs.lights[i].u_color = m_pShader->InitUniform(uniformname.c_str(), CGLSLShader::UNIFORM_FLOAT3);
+			if(!R_CheckShaderUniform(m_attribs.lights[i].u_color, uniformname.c_str(), m_pShader, Sys_ErrorPopup))
+				return false;
+
+			uniformname.clear();
+			uniformname << "lights_" << static_cast<Int32>(i) << "_radius";
+			m_attribs.lights[i].u_radius = m_pShader->InitUniform(uniformname.c_str(), CGLSLShader::UNIFORM_FLOAT1);
+			if(!R_CheckShaderUniform(m_attribs.lights[i].u_radius, uniformname.c_str(), m_pShader, Sys_ErrorPopup))
 				return false;
 		}
 
@@ -415,7 +377,6 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_vorigin = m_pShader->InitUniform("v_origin", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_vright = m_pShader->InitUniform("v_right", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_caustics_interp = m_pShader->InitUniform("caust_interp", CGLSLShader::UNIFORM_NOSYNC);
-		m_attribs.u_vlight_stylestrength = m_pShader->InitUniform("vlight_stylestrength", CGLSLShader::UNIFORM_FLOAT3);
 
 		if(!R_CheckShaderUniform(m_attribs.u_flextexture, "flextexture", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_flextexturesize, "flextexture_size", m_pShader, Sys_ErrorPopup)
@@ -441,8 +402,7 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_sky_dir, "skylight_dir", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_vorigin, "v_origin", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_vright, "v_right", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_caustics_interp, "caust_interp", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_vlight_stylestrength, "vlight_stylestrength", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderUniform(m_attribs.u_caustics_interp, "caust_interp", m_pShader, Sys_ErrorPopup))
 			return false;
 
 		m_attribs.u_modelview = m_pShader->InitUniform("modelview", CGLSLShader::UNIFORM_MATRIX4);
@@ -454,14 +414,12 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_normalmatrix, "normalmatrix", m_pShader, Sys_ErrorPopup))
 			return false;
 
-		m_attribs.d_use_ubo = m_pShader->GetDeterminatorIndex("use_ubo");
 		m_attribs.d_shadertype = m_pShader->GetDeterminatorIndex("shadertype");
 		m_attribs.d_flexes = m_pShader->GetDeterminatorIndex("flex");
 		m_attribs.d_alphatest = m_pShader->GetDeterminatorIndex("alphatest");
 		m_attribs.d_vertexlight = m_pShader->GetDeterminatorIndex("vertexlight");
 
 		if(!R_CheckShaderDeterminator(m_attribs.d_shadertype, "shadertype", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderDeterminator(m_attribs.d_use_ubo, "use_ubo", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_flexes, "flex", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_alphatest, "alphatest", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_vertexlight, "vertexlight", m_pShader, Sys_ErrorPopup))
@@ -474,19 +432,13 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_d_bumpmapping = m_pShader->InitUniform("d_bumpmapping", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_numdlights = m_pShader->InitUniform("d_numdlights", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_blendmultipass = m_pShader->InitUniform("d_blendmultipass", CGLSLShader::UNIFORM_INT1);
-		m_attribs.u_d_vlight_style1 = m_pShader->InitUniform("d_vlight_style1", CGLSLShader::UNIFORM_INT1);
-		m_attribs.u_d_vlight_style2 = m_pShader->InitUniform("d_vlight_style2", CGLSLShader::UNIFORM_INT1);
-		m_attribs.u_d_vlight_style3 = m_pShader->InitUniform("d_vlight_style3", CGLSLShader::UNIFORM_INT1);
 
 		if(!R_CheckShaderUniform(m_attribs.u_d_numlights, "num_lights", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_chrome, "chrome", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_specular, "specular", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_luminance, "luminance", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_bumpmapping, "bumpmapping", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_d_blendmultipass, "blendmultipass", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_d_vlight_style1, "d_vlight_style1", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_d_vlight_style2, "d_vlight_style2", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_d_vlight_style3, "d_vlight_style3", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderUniform(m_attribs.u_d_blendmultipass, "blendmultipass", m_pShader, Sys_ErrorPopup))
 			return false;
 
 		for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
@@ -544,8 +496,6 @@ bool CVBMRenderer::InitGL( void )
 				|| !R_CheckShaderUniform(m_attribs.dlights[i].u_d_light_shadowmap, lightdeterminatorshadowmap.c_str(), m_pShader, Sys_ErrorPopup))
 				return false;
 		}
-
-		m_pShader->SetDeterminator(m_attribs.d_use_ubo, m_areUBOsSupported ? TRUE : FALSE, false);
 	}
 
 	if(m_isVertexFetchSupported)
@@ -3204,22 +3154,10 @@ bool CVBMRenderer::SetupRenderer( void )
 		Vector colorScaled;
 		Math::VectorScale(m_modelLights[i].light.color, m_modelLights[i].strength, colorScaled);
 
-		if(!m_areUBOsSupported)
-		{
-			m_pShader->SetUniform3f(m_attribs.lights[i].u_origin, vtransformed[0], vtransformed[1], vtransformed[2]);
-			m_pShader->SetUniform3f(m_attribs.lights[i].u_color, colorScaled[0], colorScaled[1], colorScaled[2]);
-			m_pShader->SetUniform1f(m_attribs.lights[i].u_radius, m_modelLights[i].light.radius);
-		}
-		else
-		{
-			Math::VectorCopy(vtransformed, m_uboModelLightData[i].origin);
-			Math::VectorCopy(colorScaled, m_uboModelLightData[i].color);
-			m_uboModelLightData[i].radius[0] = m_modelLights[i].light.radius;
-		}
+		m_pShader->SetUniform3f(m_attribs.lights[i].u_origin, vtransformed[0], vtransformed[1], vtransformed[2]);
+		m_pShader->SetUniform3f(m_attribs.lights[i].u_color, colorScaled[0], colorScaled[1], colorScaled[2]);
+		m_pShader->SetUniform1f(m_attribs.lights[i].u_radius, m_modelLights[i].light.radius);
 	}
-
-	if(m_areUBOsSupported)
-		m_pShader->SetUniformBufferObjectData(m_attribs.ub_modellights, (void*)m_uboModelLightData, sizeof(m_uboModelLightData));
 
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, m_numModelLights);
@@ -7496,10 +7434,7 @@ bool CVBMRenderer::DrawBoundingBox( void )
 	matrix[0][0] = matrix[1][1] = matrix[2][2] = 1.0;
 
 	// Set bone transform to identity
-	if(m_areUBOsSupported)
-		m_pShader->SetUniformBufferObjectData(m_attribs.ub_bonematrices, matrix, 3*sizeof(vec4_t));
-	else
-		m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
+	m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
 
 	// Set color
 	const Float* pcolor = RANDOM_COLOR_ARRAY[m_pCurrentEntity->entindex%NUM_RANDOM_COLORS];
@@ -7521,10 +7456,7 @@ bool CVBMRenderer::DrawBoundingBox( void )
 		matrix[i][3] = m_renderOrigin[i];
 
 	// Set bone transform to move by origin
-	if(m_areUBOsSupported)
-		m_pShader->SetUniformBufferObjectData(m_attribs.ub_bonematrices, matrix, 3*sizeof(vec4_t));
-	else
-		m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
+	m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
 
 	Uint32 i = 0;
 	for(; i < 3; i++)
@@ -7582,10 +7514,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 	matrix[0][3] = matrix[1][3] = matrix[2][3] = 0.0;
 
 	// Set bone transform to identity
-	if(m_areUBOsSupported)
-		m_pShader->SetUniformBufferObjectData(m_attribs.ub_bonematrices, matrix, 3*sizeof(vec4_t));
-	else
-		m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
+	m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
 
 	// Rebuild the entity's light origin each frame
 	Vector lightorigin;
@@ -7953,10 +7882,7 @@ bool CVBMRenderer::DrawAttachments( void )
 		matrix[0][0] = matrix[1][1] = matrix[2][2] = 1.0;
 
 		// Set bone transform to identity
-		if(m_areUBOsSupported)
-			m_pShader->SetUniformBufferObjectData(m_attribs.ub_bonematrices, matrix, 3*sizeof(vec4_t));
-		else
-			m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
+		m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
 
 		Vector color;
 		color.x = RANDOM_COLOR_ARRAY[i%NUM_RANDOM_COLORS][0];
@@ -8046,10 +7972,7 @@ bool CVBMRenderer::DrawHullBoundingBox( void )
 	matrix[0][0] = matrix[1][1] = matrix[2][2] = 1.0;
 
 	// Set bone transform to identity
-	if(m_areUBOsSupported)
-		m_pShader->SetUniformBufferObjectData(m_attribs.ub_bonematrices, matrix, 3*sizeof(vec4_t));
-	else
-		m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
+	m_pShader->SetUniform4fv(m_attribs.boneindexes[0], reinterpret_cast<Float *>(matrix), 3);
 
 	// Set color
 	const Float* pcolor = RANDOM_COLOR_ARRAY[m_pCurrentEntity->entindex%NUM_RANDOM_COLORS];
@@ -8249,18 +8172,8 @@ void CVBMRenderer::BatchVertex( const Vector& origin )
 //=============================================
 void CVBMRenderer::SetShaderBoneTransform( BoneTransformArray_t* pbonetransform, const byte* pboneindexes, Uint32 numbones )
 {
-	if(m_areUBOsSupported)
-	{
-		for(Uint32 i = 0; i < numbones; i++)
-			memcpy((void *)m_uboBoneMatrixData[i], (*pbonetransform)[pboneindexes[i]].matrix, sizeof(Float)*3*4);
-
-		m_pShader->SetUniformBufferObjectData(m_attribs.ub_bonematrices, m_uboBoneMatrixData, numbones*3*4*sizeof(Float));
-	}
-	else
-	{
-		for(Int32 i = 0; i < numbones; i++)
-			m_pShader->SetUniform4fv(m_attribs.boneindexes[i], (Float *)(*pbonetransform)[pboneindexes[i]].matrix, 3);
-	}
+	for(Int32 i = 0; i < numbones; i++)
+		m_pShader->SetUniform4fv(m_attribs.boneindexes[i], (Float *)(*pbonetransform)[pboneindexes[i]].matrix, 3);
 }
 
 //=============================================

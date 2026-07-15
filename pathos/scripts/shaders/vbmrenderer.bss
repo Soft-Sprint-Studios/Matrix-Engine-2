@@ -1,18 +1,9 @@
 $global_determinator shadertype 0 19
-$global_determinator use_ubo 0 1
 $global_determinator flex 0 1
 $global_determinator vertexlight 0 1
 $shader_vertex
 $begin
-
-$branch use_ubo == 1
-$begin
-#version 330
-$end
-$branch use_ubo == 0
-$begin
 #version 130
-$end
 
 uniform mat4 projection;
 uniform mat4 modelview;
@@ -22,18 +13,8 @@ uniform mat4 dlight_0_matrix;
 uniform mat4 dlight_1_matrix;
 uniform mat4 dlight_2_matrix;
 uniform mat4 dlight_3_matrix;
-$branch use_ubo == 1
-$begin
-layout (std140) uniform bonematrices
-{
-	vec4 bones[96];
-};
-$end
 
-$branch use_ubo == 0
-$begin
 uniform vec4 bones[96];
-$end
 
 uniform vec3 v_origin;
 uniform vec3 v_right;
@@ -256,14 +237,7 @@ $invalid_state 2 vertexlight 1 1 shadertype 3 11
 $invalid_state 2 vertexlight 1 1 shadertype 13 13
 $invalid_state 2 vertexlight 1 1 shadertype 16 17
 $begin
-$branch use_ubo == 1
-$begin
-#version 330
-$end
-$branch use_ubo == 0
-$begin
 #version 130
-$end
 #extension GL_ARB_texture_rectangle : enable
 
 uniform sampler2D texture0;
@@ -292,61 +266,29 @@ uniform float caust_interp;
 uniform float scope_scale;
 uniform vec2 scope_scrsize;
 
-$branch use_ubo == 0
-$begin
-	uniform vec3 lights_0_origin;
-	uniform vec3 lights_0_color;
-	uniform float lights_0_radius;
+uniform vec3 lights_0_origin;
+uniform vec3 lights_0_color;
+uniform float lights_0_radius;
 
-	uniform vec3 lights_1_origin;
-	uniform vec3 lights_1_color;
-	uniform float lights_1_radius;
+uniform vec3 lights_1_origin;
+uniform vec3 lights_1_color;
+uniform float lights_1_radius;
 
-	uniform vec3 lights_2_origin;
-	uniform vec3 lights_2_color;
-	uniform float lights_2_radius;
+uniform vec3 lights_2_origin;
+uniform vec3 lights_2_color;
+uniform float lights_2_radius;
 
-	uniform vec3 lights_3_origin;
-	uniform vec3 lights_3_color;
-	uniform float lights_3_radius;
+uniform vec3 lights_3_origin;
+uniform vec3 lights_3_color;
+uniform float lights_3_radius;
 
-	uniform vec3 lights_4_origin;
-	uniform vec3 lights_4_color;
-	uniform float lights_4_radius;
+uniform vec3 lights_4_origin;
+uniform vec3 lights_4_color;
+uniform float lights_4_radius;
 
-	uniform vec3 lights_5_origin;
-	uniform vec3 lights_5_color;
-	uniform float lights_5_radius;
-$end
-$branch use_ubo == 1
-$begin
-layout (std140) uniform modellights
-{
-	vec4 lights_0_origin;
-	vec4 lights_0_color;
-	vec4 lights_0_radius;
-
-	vec4 lights_1_origin;
-	vec4 lights_1_color;
-	vec4 lights_1_radius;
-
-	vec4 lights_2_origin;
-	vec4 lights_2_color;
-	vec4 lights_2_radius;
-
-	vec4 lights_3_origin;
-	vec4 lights_3_color;
-	vec4 lights_3_radius;
-
-	vec4 lights_4_origin;
-	vec4 lights_4_color;
-	vec4 lights_4_radius;
-
-	vec4 lights_5_origin;
-	vec4 lights_5_color;
-	vec4 lights_5_radius;
-};
-$end
+uniform vec3 lights_5_origin;
+uniform vec3 lights_5_color;
+uniform float lights_5_radius;
 
 uniform vec3 dlight_0_origin;
 uniform float dlight_0_radius;
@@ -767,19 +709,10 @@ void main()
 	vec3 mlight_color;
 	float mlight_radius;
 	if (d_num_lights >= 1)
-	{		
-		$branch use_ubo == 1
-		$begin
-			mlight_origin = lights_0_origin.xyz;
-			mlight_color = lights_0_color.xyz;
-			mlight_radius = lights_0_radius.x;
-		$end
-		$branch use_ubo == 0
-		$begin
-			mlight_origin = lights_0_origin;
-			mlight_color = lights_0_color;
-			mlight_radius = lights_0_radius;
-		$end
+	{
+		mlight_origin = lights_0_origin;
+		mlight_color = lights_0_color;
+		mlight_radius = lights_0_radius;
 		
 		lightColor = AddModelLight(mlight_origin, mlight_color, mlight_radius, ps_vertexpos, v_normal, specularFactor);
 		
@@ -791,18 +724,9 @@ void main()
 	}
 	if (d_num_lights >= 2)
 	{
-		$branch use_ubo == 1
-		$begin
-			mlight_origin = lights_1_origin.xyz;
-			mlight_color = lights_1_color.xyz;
-			mlight_radius = lights_1_radius.x;
-		$end
-		$branch use_ubo == 0
-		$begin
-			mlight_origin = lights_1_origin;
-			mlight_color = lights_1_color;
-			mlight_radius = lights_1_radius;
-		$end
+		mlight_origin = lights_1_origin;
+		mlight_color = lights_1_color;
+		mlight_radius = lights_1_radius;
 		
 		lightColor = AddModelLight(mlight_origin, mlight_color, mlight_radius, ps_vertexpos, v_normal, specularFactor);
 		
@@ -814,18 +738,9 @@ void main()
 	}
 	if (d_num_lights >= 3)
 	{
-		$branch use_ubo == 1
-		$begin
-			mlight_origin = lights_2_origin.xyz;
-			mlight_color = lights_2_color.xyz;
-			mlight_radius = lights_2_radius.x;
-		$end
-		$branch use_ubo == 0
-		$begin
-			mlight_origin = lights_2_origin;
-			mlight_color = lights_2_color;
-			mlight_radius = lights_2_radius;
-		$end
+		mlight_origin = lights_2_origin;
+		mlight_color = lights_2_color;
+		mlight_radius = lights_2_radius;
 		
 		lightColor = AddModelLight(mlight_origin, mlight_color, mlight_radius, ps_vertexpos, v_normal, specularFactor);
 		
@@ -837,18 +752,9 @@ void main()
 	}
 	if (d_num_lights >= 4)
 	{
-		$branch use_ubo == 1
-		$begin
-			mlight_origin = lights_3_origin.xyz;
-			mlight_color = lights_3_color.xyz;
-			mlight_radius = lights_3_radius.x;
-		$end
-		$branch use_ubo == 0
-		$begin
-			mlight_origin = lights_3_origin;
-			mlight_color = lights_3_color;
-			mlight_radius = lights_3_radius;
-		$end
+		mlight_origin = lights_3_origin;
+		mlight_color = lights_3_color;
+		mlight_radius = lights_3_radius;
 		
 		lightColor = AddModelLight(mlight_origin, mlight_color, mlight_radius, ps_vertexpos, v_normal, specularFactor);
 		
@@ -860,18 +766,9 @@ void main()
 	}
 	if (d_num_lights >= 5)
 	{
-		$branch use_ubo == 1
-		$begin
-			mlight_origin = lights_4_origin.xyz;
-			mlight_color = lights_4_color.xyz;
-			mlight_radius = lights_4_radius.x;
-		$end
-		$branch use_ubo == 0
-		$begin
-			mlight_origin = lights_4_origin;
-			mlight_color = lights_4_color;
-			mlight_radius = lights_4_radius;
-		$end
+		mlight_origin = lights_4_origin;
+		mlight_color = lights_4_color;
+		mlight_radius = lights_4_radius;
 		
 		lightColor = AddModelLight(mlight_origin, mlight_color, mlight_radius, ps_vertexpos, v_normal, specularFactor);
 		
@@ -883,18 +780,9 @@ void main()
 	}
 	if (d_num_lights == 6)
 	{
-		$branch use_ubo == 1
-		$begin
-			mlight_origin = lights_5_origin.xyz;
-			mlight_color = lights_5_color.xyz;
-			mlight_radius = lights_5_radius.x;
-		$end
-		$branch use_ubo == 0
-		$begin
-			mlight_origin = lights_5_origin;
-			mlight_color = lights_5_color;
-			mlight_radius = lights_5_radius;
-		$end
+		mlight_origin = lights_5_origin;
+		mlight_color = lights_5_color;
+		mlight_radius = lights_5_radius;
 		
 		lightColor = AddModelLight(mlight_origin, mlight_color, mlight_radius, ps_vertexpos, v_normal, specularFactor);
 		
