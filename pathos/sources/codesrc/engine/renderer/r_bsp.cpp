@@ -2833,20 +2833,17 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 		}
 
 		// Remember the texture unit
-		cubemapUnit = textureIndex;
-		enableNormal = true;
-		textureIndex++;
-
-		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
+		cubemapUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
 		R_BindCubemapTexture(GL_TEXTURE0_ARB + cubemapUnit, pcubemapinfo->palloc->gl_index);
+		enableNormal = true;
 
 		if(pprevcubemap)
 		{
 			m_pShader->SetUniform1f(m_attribs.u_interpolant, gCubemaps.GetInterpolant());
 			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_INTERP);
 
-			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_baselightmap);
-			R_BindCubemapTexture(GL_TEXTURE0_ARB + textureIndex, pprevcubemap->palloc->gl_index);
+			Uint32 prevUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap_prev);
+			R_BindCubemapTexture(GL_TEXTURE0_ARB + prevUnit, pprevcubemap->palloc->gl_index);
 		}
 		else
 		{

@@ -33,6 +33,7 @@ All Rights Reserved.
 #include "r_dlights.h"
 #include "r_water.h"
 #include "r_decals.h"
+#include "r_cubemaps.h"
 #include "cl_utils.h"
 #include "file_interface.h"
 #include "file.h"
@@ -433,13 +434,31 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_d_numdlights = m_pShader->InitUniform("d_numdlights", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_blendmultipass = m_pShader->InitUniform("d_blendmultipass", CGLSLShader::UNIFORM_INT1);
 
-		if(!R_CheckShaderUniform(m_attribs.u_d_numlights, "num_lights", m_pShader, Sys_ErrorPopup)
+		m_attribs.u_cubemap = m_pShader->InitUniform("cubemap", CGLSLShader::UNIFORM_SAMPLERCUBE);
+		m_attribs.u_cubemap_prev = m_pShader->InitUniform("cubemap_prev", CGLSLShader::UNIFORM_SAMPLERCUBE);
+		m_attribs.u_cubemapstrength = m_pShader->InitUniform("cubemapstrength", CGLSLShader::UNIFORM_FLOAT1);
+		m_attribs.u_modelmatrix = m_pShader->InitUniform("modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
+		m_attribs.u_inv_modelmatrix = m_pShader->InitUniform("inv_modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
+		m_attribs.u_interpolant = m_pShader->InitUniform("interpolant", CGLSLShader::UNIFORM_FLOAT1);
+		m_attribs.u_d_cubemaps = m_pShader->InitUniform("d_cubemaps", CGLSLShader::UNIFORM_INT1);
+
+		if (!R_CheckShaderUniform(m_attribs.u_d_numlights, "num_lights", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_chrome, "chrome", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_specular, "specular", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_luminance, "luminance", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_bumpmapping, "bumpmapping", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_d_blendmultipass, "blendmultipass", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderUniform(m_attribs.u_d_blendmultipass, "blendmultipass", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cubemap, "cubemap", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cubemap_prev, "cubemap_prev", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cubemapstrength, "cubemapstrength", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_modelmatrix, "modelmatrix", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_inv_modelmatrix, "inv_modelmatrix", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_interpolant, "interpolant", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_d_cubemaps, "d_cubemaps", m_pShader, Sys_ErrorPopup))
 			return false;
+
+		m_pShader->DisableSync(m_attribs.u_modelmatrix);
+		m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
 
 		for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
 		{
@@ -3164,6 +3183,7 @@ bool CVBMRenderer::SetupRenderer( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_specular, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
+	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
 	m_pShader->EnableAttribute(m_attribs.a_normal);
 	m_pShader->EnableAttribute(m_attribs.a_tangent);
@@ -3237,13 +3257,16 @@ bool CVBMRenderer::SetupRenderer( void )
 //
 //
 //=============================================
-bool CVBMRenderer::RestoreRenderer( void )
+bool CVBMRenderer::RestoreRenderer(void)
 {
 	m_pShader->SetUniform1i(m_attribs.u_d_specular, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
+	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
+	m_pShader->DisableSync(m_attribs.u_modelmatrix);
+	m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
 
-	if(!m_pShader->SetDeterminator(m_attribs.d_flexes, FALSE))
+	if (!m_pShader->SetDeterminator(m_attribs.d_flexes, FALSE))
 		return false;
 
 	m_pShader->DisableAttribute(m_attribs.a_flexcoord);
@@ -3525,6 +3548,7 @@ bool CVBMRenderer::DrawStyles( bool specularPass, bool transparentPass )
 	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
+	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
 	// If doing specular pass, these are already done by DrawFinalSpecular
 	if(!specularPass)
@@ -3791,16 +3815,66 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		R_BindRectangleTexture(GL_TEXTURE0_ARB + textureIndex, m_pScreenTexture->palloc->gl_index);
 	}
 
-	if(pmaterial->ptextures[MT_TX_SPECULAR] && g_pCvarSpecular->GetValue() > 0)
+	if (pmaterial->ptextures[MT_TX_SPECULAR] && g_pCvarSpecular->GetValue() > 0)
 	{
-		m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
+		m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp * g_pCvarPhongExponent->GetValue());
 		m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
 
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
 	}
 
-	if(pmaterial->ptextures[MT_TX_LUMINANCE])
+	cubemapinfo_t* pcubemapinfo = nullptr;
+	cubemapinfo_t* pprevcubemapinfo = nullptr;
+	if (g_pCvarCubemaps->GetValue() > 0 && (pmaterial->flags & TX_FL_CUBEMAPS) && pmaterial->ptextures[MT_TX_SPECULAR])
+	{
+		pcubemapinfo = gCubemaps.GetIdealCubemap();
+		if (gCubemaps.GetInterpolant() != 1.0)
+			pprevcubemapinfo = gCubemaps.GetPrevCubemap();
+	}
+
+	if (pcubemapinfo)
+	{
+		m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength * m_renderAlpha);
+
+		Int32 cubemapUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
+		R_BindCubemapTexture(GL_TEXTURE0_ARB + cubemapUnit, pcubemapinfo->palloc->gl_index);
+
+		if (pprevcubemapinfo)
+		{
+			m_pShader->SetUniform1f(m_attribs.u_interpolant, gCubemaps.GetInterpolant());
+			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_INTERP);
+
+			Int32 prevUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap_prev);
+			R_BindCubemapTexture(GL_TEXTURE0_ARB + prevUnit, pprevcubemapinfo->palloc->gl_index);
+		}
+		else
+		{
+			m_pShader->SetUniform1f(m_attribs.u_interpolant, 0.0);
+			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_ON);
+		}
+
+		m_pShader->EnableSync(m_attribs.u_modelmatrix);
+		m_pShader->EnableSync(m_attribs.u_inv_modelmatrix);
+
+		CMatrix modelMatrix;
+		modelMatrix.LoadIdentity();
+		modelMatrix.Rotate(90, 1, 0, 0);
+		modelMatrix.Rotate(-90, 0, 0, 1);
+		modelMatrix.Scale(-1.0, 1.0, 1.0);
+		modelMatrix.Translate(-rns.view.v_origin[0], -rns.view.v_origin[1], -rns.view.v_origin[2]);
+
+		m_pShader->SetUniformMatrix4fv(m_attribs.u_modelmatrix, modelMatrix.GetMatrix());
+		m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
+
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+	}
+	else
+	{
+		m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
+	}
+
+	if (pmaterial->ptextures[MT_TX_LUMINANCE])
 	{
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_lumtexture);
 		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_LUMINANCE]->palloc->gl_index);
@@ -3837,9 +3911,16 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 
 	R_ValidateShader(m_pShader);
 
-	m_pShader->DrawElements(GL_TRIANGLES, pmesh->num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(m_pVBMHeader->ibooffset+pmesh->start_index));
+	m_pShader->DrawElements(GL_TRIANGLES, pmesh->num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(m_pVBMHeader->ibooffset + pmesh->start_index));
 
-	if(pmaterial->flags & TX_FL_NO_CULLING)
+	if (pcubemapinfo)
+	{
+		glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		m_pShader->DisableSync(m_attribs.u_modelmatrix);
+		m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
+	}
+
+	if (pmaterial->flags & TX_FL_NO_CULLING)
 		glEnable(GL_CULL_FACE);
 
 	// Restore default color if fullbright had a custom color
@@ -3875,6 +3956,7 @@ bool CVBMRenderer::DrawLights( bool specularPass, bool transparentPass )
 	m_pShader->SetUniform1i(m_attribs.u_d_specular, specularPass);
 	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
+	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 
@@ -4314,8 +4396,9 @@ bool CVBMRenderer::DrawFinal ( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
+	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
-	if(!m_useBlending)
+	if (!m_useBlending)
 	{
 		glEnable(GL_BLEND);
 		glDepthFunc(GL_EQUAL);
@@ -4538,10 +4621,130 @@ bool CVBMRenderer::DrawFinal ( void )
 	//
 	// Render meshes with specular highlights
 	//
-	if(hasSpecular && g_pCvarSpecular->GetValue() > 0)
+	if (hasSpecular && g_pCvarSpecular->GetValue() > 0)
 	{
-		if(!DrawFinalSpecular(false))
+		if (!DrawFinalSpecular(false))
 			return false;
+	}
+
+	// Draw any cubemaps
+	cubemapinfo_t* pcubemapinfo = nullptr;
+	if (g_pCvarCubemaps->GetValue() > 0)
+		pcubemapinfo = gCubemaps.GetIdealCubemap();
+
+	if (pcubemapinfo && g_pCvarCubemaps->GetValue() > 0)
+	{
+		glBlendFunc(GL_ONE, GL_ONE);
+
+		m_pShader->EnableAttribute(m_attribs.a_normal);
+		m_pShader->EnableAttribute(m_attribs.a_texcoord1);
+		if (!m_pShader->SetDeterminator(m_attribs.d_shadertype, vbm_cubeonly))
+			return false;
+
+		Float interp = gCubemaps.GetInterpolant();
+		cubemapinfo_t* pprevcubemap = gCubemaps.GetPrevCubemap();
+		if (interp != 1.0 && pprevcubemap)
+		{
+			m_pShader->SetUniform1f(m_attribs.u_interpolant, interp);
+			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_INTERP);
+		}
+		else
+		{
+			m_pShader->SetUniform1f(m_attribs.u_interpolant, 0.0);
+			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_ON);
+		}
+
+		m_pShader->EnableSync(m_attribs.u_modelmatrix);
+		m_pShader->EnableSync(m_attribs.u_inv_modelmatrix);
+
+		CMatrix modelMatrix;
+		modelMatrix.LoadIdentity();
+		modelMatrix.Rotate(90, 1, 0, 0);
+		modelMatrix.Rotate(-90, 0, 0, 1);
+		modelMatrix.Scale(-1.0, 1.0, 1.0);
+		modelMatrix.Translate(-rns.view.v_origin[0], -rns.view.v_origin[1], -rns.view.v_origin[2]);
+
+		m_pShader->SetUniformMatrix4fv(m_attribs.u_modelmatrix, modelMatrix.GetMatrix());
+		m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
+
+		m_pShader->ResetSamplerIndex(m_firstTextureUnit);
+
+		Uint32 outer_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
+		R_BindCubemapTexture(GL_TEXTURE0_ARB + outer_textureunit, pcubemapinfo->palloc->gl_index);
+
+		if (interp != 1.0 && pprevcubemap)
+		{
+			outer_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap_prev);
+			R_BindCubemapTexture(GL_TEXTURE0_ARB + outer_textureunit, pprevcubemap->palloc->gl_index);
+		}
+
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+		for (Uint32 i = 0; i < m_numDrawSubmodels; i++)
+		{
+			m_pVBMSubModel = m_pSubmodelDrawList[i];
+
+			for (Int32 j = 0; j < m_pVBMSubModel->nummeshes; j++)
+			{
+				const vbmmesh_t* pmesh = m_pVBMSubModel->getMesh(m_pVBMHeader, j);
+				const vbmtexture_t* ptexture = m_pVBMHeader->getTexture(pskinref[pmesh->skinref]);
+
+				en_material_t* pmaterial = pTextureManager->FindMaterialScriptByIndex(ptexture->index);
+				if (!pmaterial)
+					continue;
+
+				if (!pmaterial->ptextures[MT_TX_SPECULAR])
+					continue;
+
+				if (!(pmaterial->flags & TX_FL_CUBEMAPS))
+					continue;
+
+				m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength);
+
+				Int32 inner_textureunit = m_firstTextureUnit + 2;
+				m_pShader->ResetSamplerIndex(inner_textureunit);
+
+				inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
+				R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+
+				if (pmaterial->ptextures[MT_TX_NORMALMAP] && g_pCvarBumpMaps->GetValue() > 0)
+				{
+					inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_normalmap);
+					R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_NORMALMAP]->palloc->gl_index);
+
+					m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, true);
+					m_pShader->EnableAttribute(m_attribs.a_tangent);
+				}
+				else
+				{
+					m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, false);
+					m_pShader->DisableAttribute(m_attribs.a_tangent);
+				}
+
+				if (!m_pShader->PerformPreRenderChecks())
+					return false;
+
+				if (pmesh->numbones)
+					SetShaderBoneTransform(m_pWeightBoneTransform, pmesh->getBones(m_pVBMHeader), pmesh->numbones);
+
+				R_ValidateShader(m_pShader);
+
+				m_pShader->DrawElements(GL_TRIANGLES, pmesh->num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(m_pVBMHeader->ibooffset + pmesh->start_index));
+			}
+		}
+
+		R_ClearBinds(m_firstTextureUnit);
+
+		glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+		m_pShader->DisableAttribute(m_attribs.a_normal);
+		m_pShader->DisableAttribute(m_attribs.a_texcoord1);
+		m_pShader->DisableAttribute(m_attribs.a_tangent);
+		m_pShader->DisableSync(m_attribs.u_modelmatrix);
+		m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
+
+		m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
+		m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 	}
 
 	// No further stuff is needed in this case
@@ -4615,6 +4818,7 @@ bool CVBMRenderer::DrawFinal ( void )
 			return false;
 
 		m_pShader->SetUniform1i(m_attribs.u_d_numlights, m_numModelLights);
+		m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
 		m_pShader->EnableAttribute(m_attribs.a_texcoord1);
 		m_pShader->EnableAttribute(m_attribs.a_normal);
@@ -4641,7 +4845,7 @@ bool CVBMRenderer::DrawFinal ( void )
 
 		for (Uint32 i = 0; i < m_numDrawSubmodels; i++)
 		{
-			m_pVBMSubModel = m_pSubmodelDrawList[i];
+				m_pVBMSubModel = m_pSubmodelDrawList[i];
 
 			for (Int32 j = 0; j < m_pVBMSubModel->nummeshes; j++) 
 			{
@@ -4689,10 +4893,130 @@ bool CVBMRenderer::DrawFinal ( void )
 			return false;
 		
 		// Draw specular highlights at the very end
-		if(hasSpecular && g_pCvarSpecular->GetValue() > 0)
+		if (hasSpecular && g_pCvarSpecular->GetValue() > 0)
 		{
-			if(!DrawFinalSpecular(true))
+			if (!DrawFinalSpecular(true))
 				return false;
+		}
+
+		// Draw cubemaps for transparents
+		cubemapinfo_t* ptranscubemapinfo = nullptr;
+		if (g_pCvarCubemaps->GetValue() > 0)
+			ptranscubemapinfo = gCubemaps.GetIdealCubemap();
+
+		if (ptranscubemapinfo && g_pCvarCubemaps->GetValue() > 0)
+		{
+			glBlendFunc(GL_ONE, GL_ONE);
+
+			m_pShader->EnableAttribute(m_attribs.a_normal);
+			m_pShader->EnableAttribute(m_attribs.a_texcoord1);
+			if (!m_pShader->SetDeterminator(m_attribs.d_shadertype, vbm_cubeonly))
+				return false;
+
+			Float interp = gCubemaps.GetInterpolant();
+			cubemapinfo_t* pprevcubemap = gCubemaps.GetPrevCubemap();
+			if (interp != 1.0 && pprevcubemap)
+			{
+				m_pShader->SetUniform1f(m_attribs.u_interpolant, interp);
+				m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_INTERP);
+			}
+			else
+			{
+				m_pShader->SetUniform1f(m_attribs.u_interpolant, 0.0);
+				m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_ON);
+			}
+
+			m_pShader->EnableSync(m_attribs.u_modelmatrix);
+			m_pShader->EnableSync(m_attribs.u_inv_modelmatrix);
+
+			CMatrix modelMatrix;
+			modelMatrix.LoadIdentity();
+			modelMatrix.Rotate(90, 1, 0, 0);
+			modelMatrix.Rotate(-90, 0, 0, 1);
+			modelMatrix.Scale(-1.0, 1.0, 1.0);
+			modelMatrix.Translate(-rns.view.v_origin[0], -rns.view.v_origin[1], -rns.view.v_origin[2]);
+
+			m_pShader->SetUniformMatrix4fv(m_attribs.u_modelmatrix, modelMatrix.GetMatrix());
+			m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
+
+			m_pShader->ResetSamplerIndex(m_firstTextureUnit);
+
+			Uint32 outer_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
+			R_BindCubemapTexture(GL_TEXTURE0_ARB + outer_textureunit, ptranscubemapinfo->palloc->gl_index);
+
+			if (interp != 1.0 && pprevcubemap)
+			{
+				outer_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap_prev);
+				R_BindCubemapTexture(GL_TEXTURE0_ARB + outer_textureunit, pprevcubemap->palloc->gl_index);
+			}
+
+			glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+			for (Uint32 i = 0; i < m_numDrawSubmodels; i++)
+			{
+				m_pVBMSubModel = m_pSubmodelDrawList[i];
+
+				for (Int32 j = 0; j < m_pVBMSubModel->nummeshes; j++)
+				{
+					const vbmmesh_t* pmesh = m_pVBMSubModel->getMesh(m_pVBMHeader, j);
+					const vbmtexture_t* ptexture = m_pVBMHeader->getTexture(pskinref[pmesh->skinref]);
+
+					en_material_t* pmaterial = pTextureManager->FindMaterialScriptByIndex(ptexture->index);
+					if (!pmaterial)
+						continue;
+
+					if (!pmaterial->ptextures[MT_TX_SPECULAR])
+						continue;
+
+					if (!(pmaterial->flags & TX_FL_CUBEMAPS))
+						continue;
+
+					m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength * m_renderAlpha);
+
+					Int32 inner_textureunit = m_firstTextureUnit + 2;
+					m_pShader->ResetSamplerIndex(inner_textureunit);
+
+					inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
+					R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+
+					if (pmaterial->ptextures[MT_TX_NORMALMAP] && g_pCvarBumpMaps->GetValue() > 0)
+					{
+						inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_normalmap);
+						R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_NORMALMAP]->palloc->gl_index);
+
+						m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, true);
+						m_pShader->EnableAttribute(m_attribs.a_tangent);
+					}
+					else
+					{
+						m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, false);
+						m_pShader->DisableAttribute(m_attribs.a_tangent);
+					}
+
+					if (!m_pShader->PerformPreRenderChecks())
+						return false;
+
+					if (pmesh->numbones)
+						SetShaderBoneTransform(m_pWeightBoneTransform, pmesh->getBones(m_pVBMHeader), pmesh->numbones);
+
+					R_ValidateShader(m_pShader);
+
+					m_pShader->DrawElements(GL_TRIANGLES, pmesh->num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(m_pVBMHeader->ibooffset + pmesh->start_index));
+				}
+			}
+
+			R_ClearBinds(m_firstTextureUnit);
+
+			glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+			m_pShader->DisableAttribute(m_attribs.a_normal);
+			m_pShader->DisableAttribute(m_attribs.a_texcoord1);
+			m_pShader->DisableAttribute(m_attribs.a_tangent);
+			m_pShader->DisableSync(m_attribs.u_modelmatrix);
+			m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
+
+			m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
+			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 		}
 
 		// For wireframe
@@ -4733,8 +5057,9 @@ bool CVBMRenderer::DrawFinalSpecular( bool transparentPass )
 
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, m_numModelLights);
 	m_pShader->SetUniform1i(m_attribs.u_d_specular, TRUE);
+	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
-	if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, vbm_speconly, false))
+	if (!m_pShader->SetDeterminator(m_attribs.d_shadertype, vbm_speconly, false))
 		return false;
 
 	m_pShader->EnableSync(m_attribs.u_sky_ambient);

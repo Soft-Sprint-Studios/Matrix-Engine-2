@@ -61,7 +61,8 @@ enum vbm_shtype
 	vbm_texonly_holes,
 	vbm_texonly_holes_fog,
 	vbm_vlight_only,
-	vbm_vlight_only_specular
+	vbm_vlight_only_specular,
+	vbm_cubeonly
 };
 
 enum vbm_blendmultipass_t
@@ -277,7 +278,7 @@ struct vbm_dlight_attribs_t
 
 struct vbm_attribs
 {
-	vbm_attribs():
+	vbm_attribs() :
 		a_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_tangent(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_normal(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -330,11 +331,18 @@ struct vbm_attribs
 		u_d_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numdlights(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE)
-		{
-			for(Uint32 i = 0; i < MAX_SHADER_BONES; i++)
-				boneindexes[i] = 0;
-		}
+		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_cubemap(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_cubemap_prev(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_cubemapstrength(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_modelmatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_inv_modelmatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_interpolant(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_d_cubemaps(CGLSLShader::PROPERTY_UNAVAILABLE)
+	{
+		for (Uint32 i = 0; i < MAX_SHADER_BONES; i++)
+			boneindexes[i] = 0;
+	}
 
 	Int32 a_origin;
 	Int32 a_tangent;
@@ -411,6 +419,14 @@ struct vbm_attribs
 	Int32 u_d_bumpmapping;
 	Int32 u_d_numdlights;
 	Int32 u_d_blendmultipass;
+
+	Int32 u_cubemap;
+	Int32 u_cubemap_prev;
+	Int32 u_cubemapstrength;
+	Int32 u_modelmatrix;
+	Int32 u_inv_modelmatrix;
+	Int32 u_interpolant;
+	Int32 u_d_cubemaps;
 
 	vbm_dlight_attribs_t dlights[MAX_BATCH_LIGHTS];
 };
