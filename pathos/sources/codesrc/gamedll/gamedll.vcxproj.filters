@@ -216,6 +216,9 @@
     <ClCompile Include="envcubemap.cpp">
       <Filter>Source Files\entities\env</Filter>
     </ClCompile>
+    <ClCompile Include="envcubemapobb.cpp">
+      <Filter>Source Files\entities\env</Filter>
+    </ClCompile>
     <ClCompile Include="envdecal.cpp">
       <Filter>Source Files\entities\env</Filter>
     </ClCompile>

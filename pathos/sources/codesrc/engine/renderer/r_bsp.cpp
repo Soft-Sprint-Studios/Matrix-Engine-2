@@ -251,6 +251,10 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_cubemap = m_pShader->InitUniform("cubemap", CGLSLShader::UNIFORM_SAMPLERCUBE);
 		m_attribs.u_cubemap_prev = m_pShader->InitUniform("cubemap_prev", CGLSLShader::UNIFORM_SAMPLERCUBE);
 
+		m_attribs.u_cube_min = m_pShader->InitUniform("u_cube_min", CGLSLShader::UNIFORM_FLOAT3);
+		m_attribs.u_cube_max = m_pShader->InitUniform("u_cube_max", CGLSLShader::UNIFORM_FLOAT3);
+		m_attribs.u_cube_origin = m_pShader->InitUniform("u_cube_origin", CGLSLShader::UNIFORM_FLOAT3);
+
 		m_attribs.u_fogcolor = m_pShader->InitUniform("fogcolor", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_fogparams = m_pShader->InitUniform("fogparams", CGLSLShader::UNIFORM_FLOAT2);
 
@@ -260,6 +264,9 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_causticsm1, "caustics_m1", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_causticsm2, "caustics_m2", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_interpolant, "interpolant", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cube_min, "u_cube_min", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cube_max, "u_cube_max", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cube_origin, "u_cube_origin", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_vorigin, "v_origin", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_vright, "v_right", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_uvoffset, "uvoffset", m_pShader, Sys_ErrorPopup)
@@ -2170,6 +2177,20 @@ bool CBSPRenderer::DrawFirst( void )
 				m_pShader->SetUniformMatrix4fv(m_attribs.u_modelmatrix, modelMatrix.GetMatrix());
 				m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
 				m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength);
+
+				// Parallax correction
+				if (pcubemapinfo->use_parallax)
+				{
+					Vector cam = rns.view.v_origin;
+					m_pShader->SetUniform3f(m_attribs.u_cube_min, pcubemapinfo->box_mins.x - cam.x, pcubemapinfo->box_mins.y - cam.y, pcubemapinfo->box_mins.z - cam.z);
+					m_pShader->SetUniform3f(m_attribs.u_cube_max, pcubemapinfo->box_maxs.x - cam.x, pcubemapinfo->box_maxs.y - cam.y, pcubemapinfo->box_maxs.z - cam.z);
+					m_pShader->SetUniform3f(m_attribs.u_cube_origin, pcubemapinfo->origin.x - cam.x, pcubemapinfo->origin.y - cam.y, pcubemapinfo->origin.z - cam.z);
+				}
+				else
+				{
+					m_pShader->SetUniform3f(m_attribs.u_cube_min, 0, 0, 0);
+					m_pShader->SetUniform3f(m_attribs.u_cube_max, 0, 0, 0);
+				}
 
 				glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 			}

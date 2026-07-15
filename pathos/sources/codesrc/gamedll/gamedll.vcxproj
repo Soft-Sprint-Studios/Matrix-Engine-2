@@ -350,6 +350,7 @@
     <ClCompile Include="envblur.cpp" />
     <ClCompile Include="envcable.cpp" />
     <ClCompile Include="envcubemap.cpp" />
+    <ClCompile Include="envcubemapobb.cpp" />
     <ClCompile Include="envdecal.cpp" />
     <ClCompile Include="envdlight.cpp" />
     <ClCompile Include="envelight.cpp" />

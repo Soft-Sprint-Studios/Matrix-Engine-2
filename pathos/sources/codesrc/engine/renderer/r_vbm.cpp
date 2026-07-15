@@ -437,6 +437,11 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_cubemap = m_pShader->InitUniform("cubemap", CGLSLShader::UNIFORM_SAMPLERCUBE);
 		m_attribs.u_cubemap_prev = m_pShader->InitUniform("cubemap_prev", CGLSLShader::UNIFORM_SAMPLERCUBE);
 		m_attribs.u_cubemapstrength = m_pShader->InitUniform("cubemapstrength", CGLSLShader::UNIFORM_FLOAT1);
+
+		m_attribs.u_cube_min = m_pShader->InitUniform("u_cube_min", CGLSLShader::UNIFORM_FLOAT3);
+		m_attribs.u_cube_max = m_pShader->InitUniform("u_cube_max", CGLSLShader::UNIFORM_FLOAT3);
+		m_attribs.u_cube_origin = m_pShader->InitUniform("u_cube_origin", CGLSLShader::UNIFORM_FLOAT3);
+
 		m_attribs.u_modelmatrix = m_pShader->InitUniform("modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_inv_modelmatrix = m_pShader->InitUniform("inv_modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_interpolant = m_pShader->InitUniform("interpolant", CGLSLShader::UNIFORM_FLOAT1);
@@ -451,6 +456,9 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_cubemap, "cubemap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cubemap_prev, "cubemap_prev", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cubemapstrength, "cubemapstrength", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cube_min, "u_cube_min", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cube_max, "u_cube_max", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_cube_origin, "u_cube_origin", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_modelmatrix, "modelmatrix", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_inv_modelmatrix, "inv_modelmatrix", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_interpolant, "interpolant", m_pShader, Sys_ErrorPopup)
@@ -3867,6 +3875,20 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_modelmatrix, modelMatrix.GetMatrix());
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
 
+		// Parallax correction
+		if (pcubemapinfo->use_parallax)
+		{
+			Vector cam = rns.view.v_origin;
+			m_pShader->SetUniform3f(m_attribs.u_cube_min, pcubemapinfo->box_mins.x - cam.x, pcubemapinfo->box_mins.y - cam.y, pcubemapinfo->box_mins.z - cam.z);
+			m_pShader->SetUniform3f(m_attribs.u_cube_max, pcubemapinfo->box_maxs.x - cam.x, pcubemapinfo->box_maxs.y - cam.y, pcubemapinfo->box_maxs.z - cam.z);
+			m_pShader->SetUniform3f(m_attribs.u_cube_origin, pcubemapinfo->origin.x - cam.x, pcubemapinfo->origin.y - cam.y, pcubemapinfo->origin.z - cam.z);
+		}
+		else
+		{
+			m_pShader->SetUniform3f(m_attribs.u_cube_min, 0, 0, 0);
+			m_pShader->SetUniform3f(m_attribs.u_cube_max, 0, 0, 0);
+		}
+
 		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	}
 	else
@@ -4667,6 +4689,20 @@ bool CVBMRenderer::DrawFinal ( void )
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_modelmatrix, modelMatrix.GetMatrix());
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
 
+		// Parallax correction
+		if (pcubemapinfo->use_parallax)
+		{
+			Vector cam = rns.view.v_origin;
+			m_pShader->SetUniform3f(m_attribs.u_cube_min, pcubemapinfo->box_mins.x - cam.x, pcubemapinfo->box_mins.y - cam.y, pcubemapinfo->box_mins.z - cam.z);
+			m_pShader->SetUniform3f(m_attribs.u_cube_max, pcubemapinfo->box_maxs.x - cam.x, pcubemapinfo->box_maxs.y - cam.y, pcubemapinfo->box_maxs.z - cam.z);
+			m_pShader->SetUniform3f(m_attribs.u_cube_origin, pcubemapinfo->origin.x - cam.x, pcubemapinfo->origin.y - cam.y, pcubemapinfo->origin.z - cam.z);
+		}
+		else
+		{
+			m_pShader->SetUniform3f(m_attribs.u_cube_min, 0, 0, 0);
+			m_pShader->SetUniform3f(m_attribs.u_cube_max, 0, 0, 0);
+		}
+
 		m_pShader->ResetSamplerIndex(m_firstTextureUnit);
 
 		Uint32 outer_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
@@ -4938,6 +4974,20 @@ bool CVBMRenderer::DrawFinal ( void )
 
 			m_pShader->SetUniformMatrix4fv(m_attribs.u_modelmatrix, modelMatrix.GetMatrix());
 			m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
+
+			// Parallax correction
+			if (ptranscubemapinfo->use_parallax)
+			{
+				Vector cam = rns.view.v_origin;
+				m_pShader->SetUniform3f(m_attribs.u_cube_min, ptranscubemapinfo->box_mins.x - cam.x, ptranscubemapinfo->box_mins.y - cam.y, ptranscubemapinfo->box_mins.z - cam.z);
+				m_pShader->SetUniform3f(m_attribs.u_cube_max, ptranscubemapinfo->box_maxs.x - cam.x, ptranscubemapinfo->box_maxs.y - cam.y, ptranscubemapinfo->box_maxs.z - cam.z);
+				m_pShader->SetUniform3f(m_attribs.u_cube_origin, ptranscubemapinfo->origin.x - cam.x, ptranscubemapinfo->origin.y - cam.y, ptranscubemapinfo->origin.z - cam.z);
+			}
+			else
+			{
+				m_pShader->SetUniform3f(m_attribs.u_cube_min, 0, 0, 0);
+				m_pShader->SetUniform3f(m_attribs.u_cube_max, 0, 0, 0);
+			}
 
 			m_pShader->ResetSamplerIndex(m_firstTextureUnit);
 
