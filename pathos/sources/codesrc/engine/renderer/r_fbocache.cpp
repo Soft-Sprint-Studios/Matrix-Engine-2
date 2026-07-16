@@ -158,13 +158,16 @@ CFBOCache::cache_fbo_t* CFBOCache::Alloc(Uint32 width, Uint32 height, bool depth
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 	assert(pTextureManager != nullptr);
 
+	GLenum internalFormat = rns.usehdr ? GL_RGBA16F : GL_RGBA;
+	GLenum type = rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE;
+
 	GLint textureBound;
 	glGetIntegerv(GL_TEXTURE_BINDING_2D, &textureBound);
 
 	// Create screen texture
 	pnew->fbo.ptexture1 = pTextureManager->GenTextureIndex(RS_WINDOW_LEVEL);
 	glBindTexture(GL_TEXTURE_2D, pnew->fbo.ptexture1->gl_index);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pnew->width, pnew->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, pnew->width, pnew->height, 0, GL_RGBA, type, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

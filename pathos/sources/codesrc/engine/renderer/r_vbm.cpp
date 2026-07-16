@@ -1535,8 +1535,7 @@ bool CVBMRenderer::DrawModel( Int32 flags, cl_entity_t* pentity )
 		if(!(flags & VBM_SETUPBONES) && m_pCvarDrawModels->GetValue() >= 1 && (m_pVBMHeader->flags & VBM_HAS_SCOPE_TEXTURE))
 		{
 			m_pScreenTexture = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true);
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenTexture->palloc->gl_index, true);
-			glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+			R_GrabScreenToTexture(m_pScreenTexture->palloc, rns.screenwidth, rns.screenheight, true);
 			R_BindRectangleTexture(GL_TEXTURE0_ARB, 0);
 		}
 	}

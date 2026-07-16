@@ -340,6 +340,13 @@ bool R_Init( void )
 	// Init decal class
 	gDecals.Init();
 
+	if (rns.usehdr)
+	{
+		gGLExtF.glClampColor(GL_CLAMP_VERTEX_COLOR_ARB, GL_FALSE);
+		gGLExtF.glClampColor(GL_CLAMP_FRAGMENT_COLOR_ARB, GL_FALSE);
+		gGLExtF.glClampColor(GL_CLAMP_READ_COLOR_ARB, GL_FALSE);
+	}
+
 	return true;
 }
 
@@ -514,6 +521,7 @@ bool R_InitGL( void )
 	rns.screenheight = gWindow.GetHeight();
 	rns.fboblitsupported = R_IsExtensionSupported("GL_EXT_framebuffer_blit");
 	rns.fboused = gWindow.AreFBOsEnabled();
+	rns.usehdr = gWindow.IsHDREnabled();
 
 	// Restore full-size lightmap data
 	if(cls.cl_state == CLIENT_ACTIVE)
@@ -562,6 +570,13 @@ bool R_InitGL( void )
 
 	// Set whether MSAA is enabled
 	rns.msaa = gWindow.IsMSAAEnabled();
+
+	// Create main screen FBO
+	if (rns.fboused && rns.usehdr)
+	{
+		if (!R_InitMainScreenFBO())
+			return false;
+	}
 
 	// Create basic draw instance
 	CBasicDraw* pDraw = CBasicDraw::CreateInstance();
@@ -714,6 +729,8 @@ void R_ShutdownGL( void )
 	cls.dllfuncs.pfnGLClear();
 
 	R_ClearQueryObjects();
+	if (rns.usehdr)
+		R_DeleteMainScreenFBO();
 }
 
 //====================================
@@ -2343,8 +2360,14 @@ bool R_DrawScene( void )
 	// Draw any renderpasses
 	if(!rns.view.params.nodraw)
 	{
+		if (rns.fboused && rns.usehdr)
+			R_BindFBO(nullptr);
+
 		if(!R_DrawRenderPasses())
 			return false;
+
+		if (rns.fboused && rns.usehdr)
+			R_BindFBO(&rns.mainfbo);
 	}
 
 	// Set this so engine knows it's
@@ -3845,6 +3868,172 @@ void R_SetLightmapTexture( Uint32 glindex, Uint32 width, Uint32 height, bool isv
 		break;
 	}
 
+}
+
+//====================================
+//
+//====================================
+bool R_InitMainScreenFBO(void)
+{
+	assert(rns.fboused && rns.usehdr);
+
+	CTextureManager* pTextureManager = CTextureManager::GetInstance();
+	assert(pTextureManager != nullptr);
+
+	GLsizei nbSamples = 0;
+	if (rns.msaa)
+	{
+		Int32 index = gWindow.GetCurrentMSAASetting();
+		nbSamples = gWindow.GetMSAASetting(index);
+	}
+
+	//
+	// Main renderbuffer
+	//
+	gGLExtF.glGenRenderbuffers(1, &rns.mainfbo.rboid1);
+	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid1);
+	if (nbSamples > 0)
+		gGLExtF.glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_RGBA16F, rns.screenwidth, rns.screenheight);
+	else
+		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16F, rns.screenwidth, rns.screenheight);
+
+	//
+	// Depth buffer
+	//
+	gGLExtF.glGenRenderbuffers(1, &rns.mainfbo.rboid2);
+	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid2);
+	if (nbSamples > 0)
+		gGLExtF.glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_DEPTH_COMPONENT24, rns.screenwidth, rns.screenheight);
+	else
+		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rns.screenwidth, rns.screenheight);
+
+	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	//
+	// Third renderbuffer used by glow aura
+	//
+	gGLExtF.glGenRenderbuffers(1, &rns.mainfbo.rboid3);
+	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid3);
+	if (nbSamples > 0)
+		gGLExtF.glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_RGBA16F, rns.screenwidth, rns.screenheight);
+	else
+		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16F, rns.screenwidth, rns.screenheight);
+
+	gGLExtF.glGenFramebuffers(1, &rns.mainfbo.fboid);
+	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, rns.mainfbo.fboid);
+	gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rns.mainfbo.rboid1);
+	gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, rns.mainfbo.rboid3);
+	gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rns.mainfbo.rboid2);
+
+	GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (eStatus != GL_FRAMEBUFFER_COMPLETE)
+	{
+		gGLExtF.glDeleteFramebuffers(1, &rns.mainfbo.fboid);
+
+		Sys_ErrorPopup("%s - Main screen FBO creation failed. Code returned: %d.\n", __FUNCTION__, glGetError());
+		return false;
+	}
+
+	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	return true;
+}
+
+//====================================
+//
+//====================================
+void R_DeleteMainScreenFBO(void)
+{
+	assert(rns.fboused && rns.usehdr);
+
+	if (rns.mainfbo.fboid)
+		gGLExtF.glDeleteFramebuffers(1, &rns.mainfbo.fboid);
+
+	if (rns.mainfbo.rboid1)
+		gGLExtF.glDeleteRenderbuffers(1, &rns.mainfbo.rboid1);
+
+	if (rns.mainfbo.rboid2)
+		gGLExtF.glDeleteRenderbuffers(1, &rns.mainfbo.rboid2);
+
+	if (rns.mainfbo.rboid3)
+		gGLExtF.glDeleteRenderbuffers(1, &rns.mainfbo.rboid3);
+
+	rns.mainfbo = fbobind_t();
+}
+
+//====================================
+//
+//====================================
+void R_BindMainScreenFBO(void)
+{
+	assert(rns.fboused && rns.usehdr);
+	assert(rns.pboundfbo == nullptr);
+
+	// Reset to no FBO
+	R_BindFBO(&rns.mainfbo);
+
+	// Make sure this gets set
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+	// Enable multisampling if set
+	if (rns.msaa)
+		glEnable(GL_MULTISAMPLE);
+}
+
+//====================================
+//
+//====================================
+void R_PerformMainScreenBlit(void)
+{
+	assert(rns.fboused && rns.usehdr);
+	assert(rns.pboundfbo != nullptr);
+	assert(rns.pboundfbo == &rns.mainfbo);
+
+	// Blit from main FBO to main renderbuffer or intermediate
+	gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, rns.mainfbo.fboid);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+
+	gGLExtF.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	gGLExtF.glBlitFramebuffer(0, 0, rns.screenwidth, rns.screenheight, 0, 0, rns.screenwidth, rns.screenheight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	if (rns.msaa)
+		glDisable(GL_MULTISAMPLE);
+
+	R_BindFBO(nullptr);
+}
+
+void R_GrabScreenToTexture(en_texalloc_t* palloc, Uint32 width, Uint32 height, bool isRectangle)
+{
+	GLenum target = isRectangle ? GL_TEXTURE_RECTANGLE : GL_TEXTURE_2D;
+	if (rns.msaa && rns.pboundfbo && rns.pboundfbo->rboid1)
+	{
+		CFBOCache::cache_fbo_t* pTempFBO = gFBOCache.Alloc(width, height, false);
+		gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, rns.pboundfbo->fboid);
+		gGLExtF.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pTempFBO->fbo.fboid);
+		gGLExtF.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, pTempFBO->fbo.fboid);
+
+		if (isRectangle) 
+			R_BindRectangleTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+		else 
+			R_Bind2DTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+
+		glCopyTexImage2D(target, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, width, height, 0);
+
+		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, rns.pboundfbo->fboid);
+		gFBOCache.Free(pTempFBO);
+	}
+	else
+	{
+		if (isRectangle) 
+			R_BindRectangleTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+		else
+			R_Bind2DTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+		glCopyTexImage2D(target, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, width, height, 0);
+	}
 }
 
 //====================================
@@ -5557,12 +5746,20 @@ void Cmd_TimeRefresh( void )
 
 	for(Uint32 i = 0; i < 128; i++)
 	{
+		// Bind FBO if we use HDR
+		if (rns.fboused && rns.usehdr)
+			R_BindMainScreenFBO();
+
 		glViewport(0, 0, rns.screenwidth, rns.screenheight);
 		glClearColor(GL_ZERO, GL_ZERO, GL_ZERO, GL_ZERO);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 		rns.view.params.v_angles[YAW] = (static_cast<Float>(i)/128.0f) * 360.0f;
 		R_Draw(rns.view.params);
+
+		// Blit from main FBO to back buffer
+		if (rns.fboused && rns.usehdr)
+			R_PerformMainScreenBlit();
 
 		// Increment frame counter
 		rns.framecount++;

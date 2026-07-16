@@ -240,7 +240,7 @@ bool CMirrorManager::AllocTextures( cl_mirror_t *pmirror )
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, MIRROR_FBO_SIZE, MIRROR_FBO_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, MIRROR_FBO_SIZE, MIRROR_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
 
 		gGLExtF.glGenFramebuffers(1, &pmirror->pfbo->fboid);
 		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pmirror->pfbo->fboid);
@@ -583,7 +583,7 @@ void CMirrorManager::FinishMirrorPass( void )
 	if(!rns.fboused || !m_pCurrentMirror->pfbo)
 	{
 		R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentMirror->ptexture->gl_index);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, MIRROR_RTT_SIZE, MIRROR_RTT_SIZE, 0);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, MIRROR_RTT_SIZE, MIRROR_RTT_SIZE, 0);
 	}
 
 	rns.usevisorigin = false;

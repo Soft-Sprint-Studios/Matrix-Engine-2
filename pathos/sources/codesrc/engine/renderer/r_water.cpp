@@ -1278,7 +1278,7 @@ bool CWaterShader::CreateRenderToTexture( cl_water_t* pwater )
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
 
 			gGLExtF.glGenFramebuffers(1, &pwater->prefractfbo->fboid);
 			gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pwater->prefractfbo->fboid);
@@ -1306,7 +1306,7 @@ bool CWaterShader::CreateRenderToTexture( cl_water_t* pwater )
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
 
 			gGLExtF.glGenFramebuffers(1, &pwater->preflectfbo->fboid);
 			gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pwater->preflectfbo->fboid);
@@ -1716,7 +1716,7 @@ void CWaterShader::FinishRefract( void )
 	if(!rns.fboused || !m_pCurrentWater->prefractfbo)
 	{
 		R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentWater->prefract_texture->gl_index);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, WATER_RTT_SIZE, WATER_RTT_SIZE, 0);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, WATER_RTT_SIZE, WATER_RTT_SIZE, 0);
 	}
 }
 
@@ -1789,7 +1789,7 @@ void CWaterShader::FinishReflect( void )
 	if(!rns.fboused || !m_pCurrentWater->preflectfbo)
 	{
 		R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentWater->preflect_texture->gl_index);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, WATER_RTT_SIZE, WATER_RTT_SIZE, 0);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, WATER_RTT_SIZE, WATER_RTT_SIZE, 0);
 	}
 
 	rns.usevisorigin = false;
@@ -1963,8 +1963,7 @@ bool CWaterShader::DrawWater( bool skybox )
 			if (!pRTT)
 				pRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true);
 
-			R_BindRectangleTexture(GL_TEXTURE0+rectangleUnit, pRTT->index, true);
-			glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+			R_GrabScreenToTexture(pRTT->palloc, rns.screenwidth, rns.screenheight, true);
 		}
 		else
 		{

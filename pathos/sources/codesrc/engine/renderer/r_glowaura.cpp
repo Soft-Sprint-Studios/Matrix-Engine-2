@@ -240,10 +240,9 @@ bool CGlowAura::DrawSolid( void )
 	}
 
 	// Save it to the white RTT
-	m_pWhiteRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true);
+	m_pWhiteRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, rns.usehdr ? GL_RGBA16F : GL_RGBA);
 
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pWhiteRTT->palloc->gl_index, true);
-	glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+	R_GrabScreenToTexture(m_pWhiteRTT->palloc, rns.screenwidth, rns.screenheight, true);
 
 	return true;
 }
@@ -298,10 +297,9 @@ bool CGlowAura::DrawColors( void )
 	glDisable(GL_POLYGON_OFFSET_FILL);	
 
 	// Save it to the color RTT
-	m_pColorsRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true);
+	m_pColorsRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, rns.usehdr ? GL_RGBA16F : GL_RGBA);
 
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pColorsRTT->palloc->gl_index, true);
-	glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+	R_GrabScreenToTexture(m_pColorsRTT->palloc, rns.screenwidth, rns.screenheight, true);
 
 	return true;
 }
@@ -328,8 +326,7 @@ bool CGlowAura::BlurTexture( void )
 
 	// Allocate the blur 1 target and fetch to it
 	m_pBlurRTT = gRTTCache.Alloc(AURA_RESOLUTION, AURA_RESOLUTION);
-	R_Bind2DTexture(GL_TEXTURE0_ARB, m_pBlurRTT->palloc->gl_index);
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, AURA_RESOLUTION, AURA_RESOLUTION, 0);
+	R_GrabScreenToTexture(m_pWhiteRTT->palloc, rns.screenwidth, rns.screenheight, true);
 
 	glViewport(0, 0, AURA_RESOLUTION, AURA_RESOLUTION);
 
@@ -349,8 +346,7 @@ bool CGlowAura::BlurTexture( void )
 	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
 
 	// Fetch to the RTT
-	R_Bind2DTexture(GL_TEXTURE0_ARB, m_pBlurRTT->palloc->gl_index);
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, AURA_RESOLUTION, AURA_RESOLUTION, 0);
+	R_GrabScreenToTexture(m_pColorsRTT->palloc, rns.screenwidth, rns.screenheight, true);
 
 	//
 	// Blur the resized texture horizontally
@@ -366,8 +362,7 @@ bool CGlowAura::BlurTexture( void )
 	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
 
 	// Bind it to the blur1 target
-	R_Bind2DTexture(GL_TEXTURE0_ARB, m_pBlurRTT->palloc->gl_index);
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, AURA_RESOLUTION, AURA_RESOLUTION, 0);
+	R_GrabScreenToTexture(m_pBlurRTT->palloc, AURA_RESOLUTION, AURA_RESOLUTION, false);
 
 	return true;
 }
@@ -439,9 +434,8 @@ bool CGlowAura::DrawAuras( void )
 	if(!m_iNumEntities)
 		return true;
 
-	m_pScreenRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index, true);
-	glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+	m_pScreenRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, rns.usehdr ? GL_RGBA16F : GL_RGBA);
+	R_GrabScreenToTexture(m_pScreenRTT->palloc, rns.screenwidth, rns.screenheight, true);
 
 	glDepthMask(GL_FALSE);
 	glDepthFunc(GL_LEQUAL);

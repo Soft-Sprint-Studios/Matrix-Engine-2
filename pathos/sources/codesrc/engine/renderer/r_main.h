@@ -279,6 +279,7 @@ struct renderer_state_t
 		usevisorigin(false),
 		validateshaders(false),
 		msaa(false),
+		usehdr(false),
 		fboblitsupported(false),
 		hasdaystagedata(false),
 		pvisbuffer(nullptr),
@@ -369,6 +370,8 @@ struct renderer_state_t
 	bool validateshaders;
 	// true if using MSAA
 	bool msaa;
+	// true if HDR is enabled
+	bool usehdr;
 	// true if fbo blit is supported
 	bool fboblitsupported;
 	// true if we have relevant daystage data
@@ -569,6 +572,12 @@ extern bool R_PerformPendingShaderLoads( void );
 extern Vector R_GetLightingForPosition( const Vector& position, const Vector& defaultcolor );
 
 extern void R_SetLightmapTexture( Uint32 glindex, Uint32 width, Uint32 height, bool isvectormap, color32_t* pdata, Uint32& resultsize );
+
+extern bool R_InitMainScreenFBO(void);
+extern void R_DeleteMainScreenFBO(void);
+extern void R_PerformMainScreenBlit(void);
+extern void R_BindMainScreenFBO(void);
+extern void R_GrabScreenToTexture(en_texalloc_t* palloc, Uint32 width, Uint32 height, bool isRectangle);
 
 extern void Cmd_PasteDecal( void );
 extern void Cmd_CreateSprite( void );

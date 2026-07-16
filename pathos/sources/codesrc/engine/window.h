@@ -116,6 +116,7 @@ public:
 	bool IsMSAAEnabled( void ) const { return m_bIsMSAAEnabled; }
 	bool AreFBOsSupported(void) const { return m_areFBOsSupported; }
 	bool AreFBOsEnabled(void) const { return m_areFBOsEnabled; }
+	bool IsHDREnabled(void) const { return m_isHDREnabled; }
 
 private:
 	Int32			m_iDisplayDevice;
@@ -124,6 +125,7 @@ private:
 	bool			m_bIsMSAAEnabled;
 	bool			m_areFBOsSupported;
 	bool			m_areFBOsEnabled;
+	bool			m_isHDREnabled;
 
 private:
 	// TRUE if the window is in focus

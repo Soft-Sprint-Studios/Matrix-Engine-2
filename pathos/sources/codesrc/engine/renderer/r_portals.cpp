@@ -651,7 +651,7 @@ void CPortalManager::FinishPortalPass( void )
 	else
 	{
 		R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pCurrentPortal->ptexture->gl_index, true);
-		glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.view.params.screenwidth, rns.view.params.screenheight, 0);
+		glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, rns.view.params.screenwidth, rns.view.params.screenheight, 0);
 	}
 
 	// Get the aiment

@@ -430,8 +430,7 @@ bool CBlackHoleRenderer::DrawBlackHoles( void )
 			continue;
 
 		// Get current screen contents
-		R_BindRectangleTexture(GL_TEXTURE0_ARB, pTexture->palloc->gl_index, true);
-		glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.view.viewsize_x, rns.view.viewsize_y, 0);
+		R_GrabScreenToTexture(pTexture->palloc, rns.view.viewsize_x, rns.view.viewsize_y, true);
 
 		// Calculate uniform values
 		Float distance = (rns.view.v_origin-origin).Length();

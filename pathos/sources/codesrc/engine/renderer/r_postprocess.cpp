@@ -322,8 +322,7 @@ void CPostProcess :: FetchScreen( rtt_texture_t** ptarget )
 	if((*ptarget) == nullptr)
 		(*ptarget) = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true);
 
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, (*ptarget)->palloc->gl_index, true);
-	glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+	R_GrabScreenToTexture((*ptarget)->palloc, rns.screenwidth, rns.screenheight, true);
 }
 
 //=============================================
@@ -431,8 +430,7 @@ bool CPostProcess :: DrawMotionBlur( void )
 	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
 
 	// Copy to the blur rectangle now
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pBlurScreenTexture->gl_index, true);
-	glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+	R_GrabScreenToTexture(m_pBlurScreenTexture, rns.screenwidth, rns.screenheight, true);
 
 	return true;
 }
@@ -825,8 +823,7 @@ bool CPostProcess :: DrawBloom( void )
 //=============================================
 void CPostProcess :: ClearMotionBlur( void )
 {
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pBlurScreenTexture->gl_index, true);
-	glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+	R_GrabScreenToTexture(m_pBlurScreenTexture, rns.screenwidth, rns.screenheight, true);
 
 	m_isFirstFrame = false;
 }

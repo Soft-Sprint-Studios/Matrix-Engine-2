@@ -289,7 +289,7 @@ bool CMonitorManager::CreateMonitorTextures( cl_monitor_t* pmonitor )
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pmonitor->xresolution, pmonitor->yresolution, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, pmonitor->xresolution, pmonitor->yresolution, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
 
 		gGLExtF.glGenRenderbuffers(1, &pmonitor->pfbo->rboid1);
 		gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
@@ -699,7 +699,7 @@ void CMonitorManager::FinishMonitorPass( void )
 	if(!rns.fboused || !m_pCurrentMonitor->pfbo)
 	{
 		R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentMonitor->ptexture->gl_index);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_pCurrentMonitor->xresolution, m_pCurrentMonitor->yresolution, 0);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, m_pCurrentMonitor->xresolution, m_pCurrentMonitor->yresolution, 0);
 	}
 
 	// Get the aiment

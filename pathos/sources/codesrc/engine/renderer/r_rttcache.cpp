@@ -167,6 +167,15 @@ void CRenderToTextureCache :: CreateTexture( rtt_texture_t* ptexture, rs_level_t
 	GLenum target = ptexture->rectangle ? GL_TEXTURE_RECTANGLE : GL_TEXTURE_2D;
 	ptexture->palloc = CTextureManager::GetInstance()->GenTextureIndex(level);
 
+	GLenum internalFormat = ptexture->internalformat;
+	GLenum type = GL_UNSIGNED_BYTE;
+
+	if (rns.usehdr && internalFormat == GL_RGBA)
+	{
+		internalFormat = GL_RGBA16F;
+		type = GL_HALF_FLOAT;
+	}
+
 	GLint textureBound;
 	if(!ptexture->rectangle)
 		glGetIntegerv(GL_TEXTURE_BINDING_2D, &textureBound);
@@ -178,7 +187,7 @@ void CRenderToTextureCache :: CreateTexture( rtt_texture_t* ptexture, rs_level_t
 	glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, ptexture->rectangle ? GL_NEAREST : GL_LINEAR);
 	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, ptexture->rectangle ? GL_NEAREST : GL_LINEAR);
-	glTexImage2D(target, 0, ptexture->internalformat, ptexture->width, ptexture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(target, 0, internalFormat, ptexture->width, ptexture->height, 0, GL_RGBA, type, nullptr);
 
 	glBindTexture(target, textureBound);
 }

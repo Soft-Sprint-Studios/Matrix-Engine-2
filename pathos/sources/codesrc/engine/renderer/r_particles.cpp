@@ -3555,8 +3555,7 @@ bool CParticleEngine::DrawParticles( prt_render_pass_e pass )
 			}
 
 			// Save the screen texture
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, prttscreentexture->palloc->gl_index, true);
-			glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.view.viewsize_x, rns.view.viewsize_y, 0);
+			R_GrabScreenToTexture(prttscreentexture->palloc, rns.view.viewsize_x, rns.view.viewsize_y, true);
 
 			// Clear the color buffer and begin rendering
 			glClearColor(0.5, 0.5, 0.5, GL_ZERO);
@@ -3610,8 +3609,7 @@ bool CParticleEngine::DrawParticles( prt_render_pass_e pass )
 			glDisable(GL_BLEND);
 
 			// Grab the contents of the screen
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, prttdistorttexture->palloc->gl_index, true);
-			glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, 0, 0, rns.screenwidth, rns.screenheight, 0);
+			R_GrabScreenToTexture(prttdistorttexture->palloc, rns.screenwidth, rns.screenheight, true);
 
 			// Disable everything special
 			if(!m_pShader->SetDeterminator(m_attribs.d_numpointlights, 0, false)
