@@ -432,6 +432,7 @@ public:
 	// Uniform float assignment variations
 	inline void SetUniform4f( Int32 index, Float x, Float y, Float z, Float w );
 	inline void SetUniform4fv( Int32 index, const Float *v, Uint32 num );
+	inline void SetUniform3fv(Int32 index, const Float* v, Uint32 num);
 	inline void SetUniform3f( Int32 index, Float x, Float y, Float z );
 	inline void SetUniform2f( Int32 index, Float x, Float y );
 	inline void SetUniform1f( Int32 index, Float x );

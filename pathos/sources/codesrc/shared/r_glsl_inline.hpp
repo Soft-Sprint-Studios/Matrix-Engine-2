@@ -401,6 +401,71 @@ inline void CGLSLShader::SetUniform4fv(Int32 index, const Float* v, Uint32 num)
 }
 
 //=============================================
+// @brief Sets the values of the uniform for num elements
+//
+// @param index Index of the uniform
+// @param v Pointer to the array of floats
+// @param num Number of float3s to upload
+//=============================================
+inline void CGLSLShader::SetUniform3fv(Int32 index, const Float* v, Uint32 num)
+{
+	if (index == PROPERTY_UNAVAILABLE)
+		return;
+
+	assert(index >= 0 && index < m_uniformsArray.size());
+	glsl_uniform_t* puniform = &m_uniformsArray[index];
+
+	if (num > puniform->elementcount)
+		return;
+
+	bool update = false;
+	if (puniform->type != UNIFORM_NOSYNC)
+	{
+		assert(puniform->stride == 3);
+
+		Uint32 i = 0;
+		for (; i < puniform->elementcount; i++)
+		{
+			Float* pvalues = &puniform->currentvalues[puniform->stride * i];
+			const Float* pinput = &v[puniform->stride * i];
+
+			if (pvalues[0] != pinput[0] || pvalues[1] != pinput[1] || pvalues[2] != pinput[2])
+				break;
+		}
+
+		if (i != puniform->elementcount)
+		{
+			memcpy(&puniform->currentvalues[0], v, sizeof(Float) * puniform->stride * puniform->elementcount);
+			update = true;
+		}
+	}
+
+	if (!update && puniform->sync)
+		return;
+
+	if (puniform->indexes[m_shaderIndex] == PROPERTY_UNAVAILABLE)
+		return;
+
+	if (m_isActive)
+	{
+		if (puniform->type != UNIFORM_NOSYNC)
+		{
+			const Float* pvalues = &puniform->currentvalues[0];
+			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * puniform->elementcount * m_shaderIndex;
+			if (memcmp(ptargetvalues, pvalues, sizeof(Float) * puniform->stride * puniform->elementcount) != 0)
+			{
+				m_glExtF.glUniform3fv(puniform->indexes[m_shaderIndex], num, v);
+				memcpy(ptargetvalues, pvalues, sizeof(Float) * puniform->stride * puniform->elementcount);
+			}
+		}
+		else
+		{
+			m_glExtF.glUniform3fv(puniform->indexes[m_shaderIndex], num, v);
+		}
+	}
+}
+
+//=============================================
 // @brief Enables syncing on a uniform
 //
 // @param index Index of the uniform
