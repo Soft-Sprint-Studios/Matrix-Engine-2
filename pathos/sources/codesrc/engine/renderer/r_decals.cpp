@@ -538,8 +538,8 @@ decalgroupentry_t* CDecalManager::GetOrCreateDynamicEntry(const Char* pstrName)
 	decalgroupentry_t* pnew = new decalgroupentry_t();
 	pnew->name = pstrName;
 	pnew->ptexture = ptexture;
-	pnew->xsize = ptexture->width / 4;
-	pnew->ysize = ptexture->height / 4;
+	pnew->xsize = ptexture->width / 2;
+	pnew->ysize = ptexture->height / 2;
 
 	m_dynamicEntriesList.add(pnew);
 	return pnew;
