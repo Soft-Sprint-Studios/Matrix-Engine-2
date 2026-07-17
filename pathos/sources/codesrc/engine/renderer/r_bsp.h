@@ -510,6 +510,9 @@ public:
 	// Returns the lightmap height
 	Uint32 GetLightmapHeight( Uint32 index ) { if(index < MAX_SURFACE_STYLES) return m_lightmapHeights[index]; else return 0; }
 
+	// Loads a map texture
+	en_material_t* LoadMapTexture( class CWADTextureResource& wadTextures, const CArray<CString>& wadFilesList, const Char* pstrtexturename );
+
 	// Performs think functions
 	void Think( void );
 
@@ -520,8 +523,6 @@ private:
 	void LoadChromeTexture( void );
 	// Loads in-memory textures
 	void LoadTextures( void );
-	// Loads a map texture
-	en_material_t* LoadMapTexture( CWADTextureResource& wadTextures, const CArray<CString>& wadFilesList, const Char* pstrtexturename );
 
 	// Draws the world and brush entities
 	bool DrawWorld( void );

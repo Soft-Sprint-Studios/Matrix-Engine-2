@@ -95,9 +95,14 @@ private:
 	// Applies decal to VBM entities in packet list
 	void DecalPacketVBMEntities( cached_decal_t& decal );
 
+	// Helper to load or create dynamic entries from world/WAD paths
+	decalgroupentry_t* GetOrCreateDynamicEntry(const Char* pstrName);
+
 private:
 	// List of cached decals
 	CLinkedList<cached_decal_t> m_cachedDecalsList;
+	// List of dynamically created entries
+	CLinkedList<decalgroupentry_t*> m_dynamicEntriesList;
 
 	// Array of bogus decal positions
 	CLinkedList<Vector> m_bogusDecalsList;

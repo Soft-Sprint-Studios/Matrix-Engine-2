@@ -516,7 +516,7 @@ void CTextureManager::CreateDummyTexture( void )
 			{
 				*pdest++ = 255;
 				*pdest++ = 0;
-				*pdest++ = 0;
+				*pdest++ = 255;
 			}
 
 			*pdest++ = 255;

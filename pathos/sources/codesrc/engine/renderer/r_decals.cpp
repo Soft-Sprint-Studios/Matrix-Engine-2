@@ -30,6 +30,7 @@ All Rights Reserved.
 #include "cl_msg.h"
 #include "cache_model.h"
 #include "r_vbm.h"
+#include "r_wadtextures.h"
 
 //
 // Thanks to BUzer for the decal cutting logic
@@ -121,6 +122,17 @@ void CDecalManager::ClearGame( void )
 {
 	if(!m_cachedDecalsList.empty())
 		m_cachedDecalsList.clear();
+
+	if (!m_dynamicEntriesList.empty())
+	{
+		m_dynamicEntriesList.begin();
+		while (!m_dynamicEntriesList.end())
+		{
+			delete m_dynamicEntriesList.get();
+			m_dynamicEntriesList.next();
+		}
+		m_dynamicEntriesList.clear();
+	}
 
 	m_decalList.Clear();
 
@@ -321,6 +333,9 @@ void CDecalManager::CreateCached( void )
 			else
 				pentry = m_decalList.GetByName(cachedecal.name.c_str());
 
+			if (!pentry)
+				pentry = GetOrCreateDynamicEntry(cachedecal.name.c_str());
+
 			if(!pentry)
 			{
 				CString msg;
@@ -502,6 +517,37 @@ void CDecalManager::DecalPacketVBMEntities( cached_decal_t& decal )
 //====================================
 //
 //====================================
+decalgroupentry_t* CDecalManager::GetOrCreateDynamicEntry(const Char* pstrName)
+{
+	m_dynamicEntriesList.begin();
+	while (!m_dynamicEntriesList.end())
+	{
+		decalgroupentry_t* pentry = m_dynamicEntriesList.get();
+		if (!qstrcmp(pentry->name, pstrName))
+			return pentry;
+		m_dynamicEntriesList.next();
+	}
+
+	CArray<CString> wadFilesList;
+	if (ens.pworld && ens.pworld->pentdata)
+		Common::GetWADList(ens.pworld->pentdata, wadFilesList);
+
+	en_material_t* pmaterial = gBSPRenderer.LoadMapTexture(*ens.pwadresource, wadFilesList, pstrName);
+	en_texture_t* ptexture = pmaterial->ptextures[MT_TX_DIFFUSE];
+
+	decalgroupentry_t* pnew = new decalgroupentry_t();
+	pnew->name = pstrName;
+	pnew->ptexture = ptexture;
+	pnew->xsize = ptexture->width / 4;
+	pnew->ysize = ptexture->height / 4;
+
+	m_dynamicEntriesList.add(pnew);
+	return pnew;
+}
+
+//====================================
+//
+//====================================
 void CDecalManager::LoadTexture( decalgroupentry_t *pentry )
 {
 	if(pentry->ptexture)
@@ -563,6 +609,16 @@ void CDecalManager::PrecacheGroup( const Char *szgroupname )
 //====================================
 void CDecalManager::PrecacheTexture( const Char *sztexturename )
 {
+	// If it's already cached dynamically, do nothing
+	m_dynamicEntriesList.begin();
+	while (!m_dynamicEntriesList.end())
+	{
+		decalgroupentry_t* pentry = m_dynamicEntriesList.get();
+		if (!qstrcmp(pentry->name, sztexturename))
+			return;
+		m_dynamicEntriesList.next();
+	}
+
 	Uint32 nbGroups = m_decalList.GetNbGroups();
 	for(Uint32 i = 0; i < nbGroups; i++)
 	{
@@ -578,6 +634,7 @@ void CDecalManager::PrecacheTexture( const Char *sztexturename )
 			{
 				if(!pentry->ptexture)
 					LoadTexture(pentry);
+				return;
 			}
 		}
 	}
