@@ -336,13 +336,6 @@ void CL_ResetGame( void )
 	if(!cls.modelmaterialfilesnamemaparray.empty())
 		cls.modelmaterialfilesnamemaparray.clear();
 
-	// Make sure this is deleted
-	if(ens.pwadresource)
-	{
-		delete ens.pwadresource;
-		ens.pwadresource = nullptr;
-	}
-
 	// Clear model lights
 	for(Uint32 i = 0; i < MAX_ENTITY_LIGHTS; i++)
 		cls.entitylights[i] = entitylight_t();
@@ -693,13 +686,6 @@ bool CL_InitGame( void )
 	{
 		if(!SV_InitGame())
 			return false;
-	}
-
-	// Delete wad resource after launch
-	if(ens.pwadresource)
-	{
-		delete ens.pwadresource;
-		ens.pwadresource = nullptr;
 	}
 
 	// Force a re-read of client messages

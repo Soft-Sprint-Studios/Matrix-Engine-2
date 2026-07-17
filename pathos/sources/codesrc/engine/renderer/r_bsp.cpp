@@ -369,13 +369,6 @@ bool CBSPRenderer::InitGL( void )
 		// Create VBO
 		InitVBO();
 
-		// Delete WAD resource
-		if(ens.pwadresource)
-		{
-			delete ens.pwadresource;
-			ens.pwadresource = nullptr;
-		}
-
 		// Rebind decal VBO
 		m_pDecalVBO->RebindGL();
 	}

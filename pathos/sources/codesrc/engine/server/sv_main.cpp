@@ -986,13 +986,6 @@ bool SV_SpawnGame( const Char* pstrLevelName, const Char* pstrSaveFile, const Ch
 	CArray<CString> mapWADList;
 	Common::GetWADList(ens.pworld->pentdata, mapWADList);
 
-	// Make sure there's not one already present
-	if(ens.pwadresource)
-	{
-		delete ens.pwadresource;
-		ens.pwadresource = nullptr;
-	}
-
 	// Allocate new object
 	ens.pwadresource = new CWADTextureResource();
 	if(ens.pwadresource->Init(

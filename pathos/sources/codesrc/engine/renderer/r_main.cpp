@@ -935,6 +935,13 @@ void R_ResetGame( void )
 	// Clean up the restore file if present
 	ALD_ClearGame();
 
+	// Delete WAD resource
+	if (ens.pwadresource)
+	{
+		delete ens.pwadresource;
+		ens.pwadresource = nullptr;
+	}
+
 	// Tell texloader to release all game-level resources
 	pTextureManager->DeleteTextures(RS_GAME_LEVEL, false);
 	pTextureManager->DeleteMaterials(RS_GAME_LEVEL);
