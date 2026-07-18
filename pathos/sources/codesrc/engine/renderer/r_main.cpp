@@ -4017,6 +4017,9 @@ void R_PerformMainScreenBlit(void)
 	R_BindFBO(nullptr);
 }
 
+//====================================
+//
+//====================================
 void R_GrabScreenToTexture(en_texalloc_t* palloc, Uint32 width, Uint32 height, bool isRectangle)
 {
 	GLenum target = isRectangle ? GL_TEXTURE_RECTANGLE : GL_TEXTURE_2D;
