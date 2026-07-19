@@ -333,11 +333,14 @@ struct vbm_attribs
 		u_d_numdlights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cubemap(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_cubemap_prev(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cubemapstrength(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_min(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_max(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_cubemap_prev(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_cube_prev_min(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_cube_prev_max(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_cube_prev_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_modelmatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_inv_modelmatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_interpolant(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -427,10 +430,13 @@ struct vbm_attribs
 	Int32 u_cubemap_prev;
 	Int32 u_cubemapstrength;
 
-	// Parallax correction
 	Int32 u_cube_min;
 	Int32 u_cube_max;
 	Int32 u_cube_origin;
+
+	Int32 u_cube_prev_min;
+	Int32 u_cube_prev_max;
+	Int32 u_cube_prev_origin;
 
 	Int32 u_modelmatrix;
 	Int32 u_inv_modelmatrix;
