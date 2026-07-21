@@ -1,0 +1,75 @@
+name: Build Matrix Engine 2
+
+permissions:
+  contents: write
+  actions: write
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-windows:
+    name: Build - Windows x64 (Release)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Solution
+        run: |
+          msbuild pathos/sources/codesrc/matrix-engine.sln /p:Configuration=Release /p:Platform=x64
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-engine-x64-Release
+          path: |
+            matrix_x64.exe
+            pathos/dlls/client_x64.dll
+            pathos/dlls/game_x64.dll
+
+  create-release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Create Release
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows x64 Release
+        uses: actions/download-artifact@v4
+        with:
+          name: matrix-engine-x64-Release
+          path: artifacts/windows-x64
+
+      - name: Create archives
+        run: |
+          mkdir -p release
+          cd artifacts
+          zip -r ../release/windows-x64.zip windows-x64
+
+      - name: Recreate release tag
+        run: |
+          git tag -f automated-release
+          git push origin automated-release --force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: automated-release
+          name: Automated Release
+          body: |
+            Build Date: ${{ github.event.head_commit.timestamp }}
+          files: |
+            release/windows-x64.zip
