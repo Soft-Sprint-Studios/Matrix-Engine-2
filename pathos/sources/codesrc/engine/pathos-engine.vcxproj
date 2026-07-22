@@ -208,7 +208,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>.\;..\libs\sdl2.0\include\;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\libs\sdl2.0\include\;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\sentry\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996;4305;4244;4127;4100;4481;4512;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -219,7 +219,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>x64\Release</AdditionalLibraryDirectories>
-      <AdditionalDependencies>user32.lib;opengl32.lib;glu32.lib;shell32.lib;gdi32.lib;..\x64\Release\SDL2.lib;..\x64\Release\SDL2Main.lib;..\x64\Release\freetype253.lib;..\libs\enet\enet64.lib;..\libs\openal\libs\Win64\openal32.lib;..\libs\detours\lib.X64\detours.lib;..\x64\Release\libogg_static.lib;..\x64\Release\libvorbisfile_static.lib;..\x64\Release\libvorbis_static.lib;winmm.lib;ws2_32.lib;gdiplus.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>user32.lib;opengl32.lib;glu32.lib;shell32.lib;gdi32.lib;..\x64\Release\SDL2.lib;..\x64\Release\SDL2Main.lib;..\x64\Release\freetype253.lib;..\libs\enet\enet64.lib;..\libs\openal\libs\Win64\openal32.lib;..\libs\detours\lib.X64\detours.lib;..\libs\sentry\libs\sentry.lib;..\x64\Release\libogg_static.lib;..\x64\Release\libvorbisfile_static.lib;..\x64\Release\libvorbis_static.lib;winmm.lib;ws2_32.lib;gdiplus.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateMapFile>true</GenerateMapFile>
       <DelayLoadDLLs>OpenAL32.dll;SDL2.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
@@ -312,6 +312,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MaxSpeed</Optimization>
     </ClCompile>
     <ClCompile Include="rygsdxtc\stb_dxt.cpp" />
+    <ClCompile Include="sys_sentry.cpp" />
     <ClCompile Include="server\sv_entities.cpp" />
     <ClCompile Include="server\sv_main.cpp" />
     <ClCompile Include="server\sv_world.cpp" />
@@ -477,6 +478,7 @@
     <ClInclude Include="renderer\r_vbm.h" />
     <ClInclude Include="renderer\r_water.h" />
     <ClInclude Include="rygsdxtc\stb_dxt.h" />
+    <ClInclude Include="sys_sentry.h" />
     <ClInclude Include="server\sv_entities.h" />
     <ClInclude Include="server\sv_main.h" />
     <ClInclude Include="server\sv_world.h" />

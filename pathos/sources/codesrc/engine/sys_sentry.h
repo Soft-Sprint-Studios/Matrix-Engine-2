@@ -21,41 +21,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef DISCORD_H
-#define DISCORD_H
-
-#include "includes.h"
-
-class CCVar;
+#ifndef SYS_SENTRY_H
+#define SYS_SENTRY_H
 
 /*
 =======================
-CDiscordRPC
+CSysSentryManager
 
 =======================
 */
-class CDiscordRPC
+class CSysSentryManager
 {
 public:
-	CDiscordRPC( void );
-	~CDiscordRPC( void );
+	CSysSentryManager( void );
+	~CSysSentryManager( void );
 
 public:
-	void Init( void );
+	bool Init( void );
 	void Shutdown( void );
-	void Frame( void );
-
-	void OnLevelInit( void );
-	void UpdatePresence( const Char* pstrDetails, const Char* pstrState, const Char* pstrLargeImageKey = nullptr, const Char* pstrLargeImageText = nullptr );
 
 private:
 	bool m_isInitialized;
-	CCVar* m_pCvarEnabled;
-	CCVar* m_pCvarClientId;
-	CString m_currentClientId;
-	Int64 m_startTime;
 };
 
-extern CDiscordRPC g_discordRpc;
+extern CSysSentryManager gSentry;
 
-#endif // DISCORD_H
+#endif //SYS_SENTRY_H

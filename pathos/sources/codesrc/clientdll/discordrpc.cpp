@@ -30,6 +30,10 @@
 
 CDiscordRPC g_discordRpc;
 
+//=============================================
+// @brief Constructor
+//
+//=============================================
 CDiscordRPC::CDiscordRPC( void ) :
 	m_isInitialized( false ),
 	m_pCvarEnabled( nullptr ),
@@ -38,11 +42,19 @@ CDiscordRPC::CDiscordRPC( void ) :
 {
 }
 
+//=============================================
+// @brief Destructor
+//
+//=============================================
 CDiscordRPC::~CDiscordRPC( void )
 {
 	Shutdown();
 }
 
+//=============================================
+//
+//
+//=============================================
 void CDiscordRPC::Init( void )
 {
 	m_pCvarEnabled = cl_engfuncs.pfnCreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "cl_discord_enabled", "1", "Toggles Discord Rich Presence." );
@@ -51,6 +63,10 @@ void CDiscordRPC::Init( void )
 	m_startTime = time( nullptr );
 }
 
+//=============================================
+//
+//
+//=============================================
 void CDiscordRPC::Shutdown( void )
 {
 	if ( m_isInitialized )
@@ -61,6 +77,10 @@ void CDiscordRPC::Shutdown( void )
 	}
 }
 
+//=============================================
+//
+//
+//=============================================
 void CDiscordRPC::Frame( void )
 {
 	if ( !m_pCvarEnabled || !m_pCvarClientId )
@@ -106,6 +126,10 @@ void CDiscordRPC::Frame( void )
 	}
 }
 
+//=============================================
+//
+//
+//=============================================
 void CDiscordRPC::OnLevelInit(void)
 {
 	const cache_model_t* pmodel = cl_engfuncs.pfnGetModel(WORLD_MODEL_INDEX);
@@ -135,6 +159,10 @@ void CDiscordRPC::OnLevelInit(void)
 	}
 }
 
+//=============================================
+//
+//
+//=============================================
 void CDiscordRPC::UpdatePresence( const Char* pstrDetails, const Char* pstrState, const Char* pstrLargeImageKey, const Char* pstrLargeImageText )
 {
 	if ( !m_isInitialized )

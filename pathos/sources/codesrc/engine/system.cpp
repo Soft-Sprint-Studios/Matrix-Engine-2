@@ -54,6 +54,7 @@ state variables and functionality.
 #include "r_main.h"
 #include "dllexports.h"
 #include "filewriterthread.h"
+#include "sys_sentry.h"
 
 #if defined WIN32 && _64BUILD
 #include <detours.h>
@@ -97,6 +98,9 @@ bool Sys_ShouldExit( void )
 //=============================================
 bool Sys_Init( CArray<CString>* argsArray )
 {
+	// Initialize Sentry first
+	gSentry.Init();
+
 	// Create console print mutex
 	g_hPrintMutex = CreateMutex(nullptr, FALSE, "MatrixConsolePrintMutex");
 	if(nullptr != g_hPrintMutex)
@@ -314,6 +318,9 @@ void Sys_Shutdown( void )
 
 	if(g_hPrintMutex)
 		CloseHandle(g_hPrintMutex);
+
+	// Shut down Sentry
+	gSentry.Shutdown();
 
 	// Close file writer thread
 	FWT_Shutdown();
