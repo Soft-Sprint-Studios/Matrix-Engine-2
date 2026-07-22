@@ -98,9 +98,6 @@ bool Sys_ShouldExit( void )
 //=============================================
 bool Sys_Init( CArray<CString>* argsArray )
 {
-	// Initialize Sentry first
-	gSentry.Init();
-
 	// Create console print mutex
 	g_hPrintMutex = CreateMutex(nullptr, FALSE, "MatrixConsolePrintMutex");
 	if(nullptr != g_hPrintMutex)
@@ -164,6 +161,8 @@ bool Sys_Init( CArray<CString>* argsArray )
 	gText.Init();
 	// Initialize the console
 	gConsole.Init();
+	// Initialize Sentry
+	gSentry.Init();
 	// Intialize model cache
 	gModelCache.Init();
 

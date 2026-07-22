@@ -60,7 +60,7 @@ bool CSysSentryManager::Init( void )
 	if (m_isInitialized)
 		return true;
 
-	g_pCvarSentryEnabled = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "sv_sentry", "1", "Toggle Sentry crash reporting.");
+	g_pCvarSentryEnabled = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "sentry", "1", "Toggle Sentry crash reporting.");
 	g_pCvarSentryDSN = gConsole.CreateCVar(CVAR_STRING, (FL_CV_CLIENT | FL_CV_SAVE), "sentry_dsn", "https://f737baca1820d6922ef0da6f0d4aabca@o4505736231124992.ingest.us.sentry.io/4511779312631808", "Sentry DSN string.");
 
 	if (g_pCvarSentryEnabled->GetValue() < 1)
@@ -91,7 +91,6 @@ bool CSysSentryManager::Init( void )
 		return false;
 	}
 
-	Con_Printf("Sentry crash reporting initialized.\n");
 	m_isInitialized = true;
 	return true;
 }
