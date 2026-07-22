@@ -4068,6 +4068,7 @@ void R_GrabScreenToTexture(en_texalloc_t* palloc, Uint32 width, Uint32 height, b
 			R_BindRectangleTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
 		else
 			R_Bind2DTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+
 		glCopyTexImage2D(target, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, width, height, 0);
 	}
 }
