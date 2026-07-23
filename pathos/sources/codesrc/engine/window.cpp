@@ -354,7 +354,7 @@ bool CWindow::Init( void )
 		}
 
 		// Make sure to reset this
-		ens.requestedFBOSetting = -1;
+		ens.requestedHDRSetting = -1;
 	}
 	else
 	{
