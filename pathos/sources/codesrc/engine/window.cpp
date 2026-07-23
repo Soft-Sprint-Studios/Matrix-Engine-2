@@ -41,6 +41,7 @@ CWindow::CWindow( void ):
 	m_bIsMSAAEnabled(false),
 	m_areFBOsSupported(false),
 	m_areFBOsEnabled(false),
+	m_isHDREnabled(false),
 	m_bWindowActive(false),
 	m_bWindowInitialized(false),
 	m_pSDLWindow(nullptr),
