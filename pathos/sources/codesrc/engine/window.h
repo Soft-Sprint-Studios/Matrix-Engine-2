@@ -92,7 +92,7 @@ public:
 	const Char* GetDisplayDeviceName( Int32 index ) const;
 	Int32 GetCurrentDeviceIndex( void ) const;
 
-	bool GetOpenGLInfo( Int32& maxMSAA, bool& fboSupported );
+	bool GetOpenGLInfo(Int32& maxMSAA, bool& fboSupported, bool& hdrSupported );
 
 	bool IsFullScreen( void ) const { return m_bFullScreen; }
 	bool IsVerticalSyncEnabled( void ) { return m_bVerticalSync; }

@@ -75,7 +75,7 @@ CWindow::~CWindow( void )
 // Class: CWindow
 // Function: Init
 //=============================================
-bool CWindow::GetOpenGLInfo(Int32& maxMSAA, bool& fboSupported)
+bool CWindow::GetOpenGLInfo(Int32& maxMSAA, bool& fboSupported, bool& hdrSupported)
 {
 	// Create the temporary window
 	SDL_Window* pTempWindow = SDL_CreateWindow(ens.gametitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
@@ -100,13 +100,22 @@ bool CWindow::GetOpenGLInfo(Int32& maxMSAA, bool& fboSupported)
 		return false;
 	}
 
+	bool checkHDRExtensions = false;
+	PFNGLCLAMPCOLORPROC glClampColor = reinterpret_cast<PFNGLCLAMPCOLORPROC>(wglGetProcAddress("glClampColor"));
+	if (glClampColor)
+		checkHDRExtensions = true;
+
 	GLint numExtensions;
 	glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
 
 	// reset to default
 	fboSupported = false;
+	hdrSupported = false;
 
 	bool msaaSupported = false;
+	bool fboMSAASupported = false;
+	bool fboBlitSupported = false;
+	bool halfFloatPixelSupported = false;
 
 	Int32 i = 0;
 	for (; i < numExtensions; i++)
@@ -125,6 +134,27 @@ bool CWindow::GetOpenGLInfo(Int32& maxMSAA, bool& fboSupported)
 			fboSupported = true;
 			continue;
 		}
+
+		if (checkHDRExtensions)
+		{
+			if (!fboMSAASupported && !qstrcicmp(pstrExtension, "GL_EXT_framebuffer_multisample"))
+			{
+				fboMSAASupported = true;
+				continue;
+			}
+
+			if (!fboBlitSupported && !qstrcicmp(pstrExtension, "GL_EXT_framebuffer_blit"))
+			{
+				fboBlitSupported = true;
+				continue;
+			}
+
+			if (!halfFloatPixelSupported && !qstrcicmp(pstrExtension, "GL_ARB_half_float_pixel"))
+			{
+				halfFloatPixelSupported = true;
+				continue;
+			}
+		}
 	}
 
 	if (msaaSupported)
@@ -142,6 +172,9 @@ bool CWindow::GetOpenGLInfo(Int32& maxMSAA, bool& fboSupported)
 		// No MSAA
 		maxMSAA = 0;
 	}
+
+	if (fboMSAASupported && fboBlitSupported && halfFloatPixelSupported)
+		hdrSupported = true;
 
 	SDL_GL_DeleteContext(tempContext);
 	SDL_DestroyWindow(pTempWindow);
@@ -253,7 +286,8 @@ bool CWindow::Init( void )
 
 	// Set up multisampling
 	Int32 maxMultiSample = 0;
-	if (!GetOpenGLInfo(maxMultiSample, m_areFBOsSupported))
+	bool isHDRSupported = false;
+	if (!GetOpenGLInfo(maxMultiSample, m_areFBOsSupported, isHDRSupported))
 	{
 		Sys_ErrorPopup("Failed to fetch required OpenGL parameters at startup.");
 		return false;
