@@ -630,8 +630,7 @@ vec4 AddBaseLight( sampler2D ambLightmap, vec4 diffuseColor, vec3 lightDir, vec3
 		if(d_luminance == 1)
 			lightmapColor.xyz += texture(luminance, ps_texcoord).xyz;
 
-		return clamp(lightmapColor, 0, 1); // To prevent multipass inconsistencies
-		//return lightmapColor;
+		return lightmapColor;
 	}
 	else
 	{
@@ -642,8 +641,7 @@ vec4 AddBaseLight( sampler2D ambLightmap, vec4 diffuseColor, vec3 lightDir, vec3
 		if(d_luminance == 1)
 			finalColor.xyz += texture(luminance, ps_texcoord).xyz;
 
-		return clamp(finalColor, 0, 1); // To prevent multipass inconsistencies
-		//return finalColor;
+		return finalColor;
 	}
 }
 

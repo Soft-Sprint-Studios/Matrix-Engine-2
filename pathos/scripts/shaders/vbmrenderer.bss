@@ -1080,7 +1080,6 @@ void main()
 	// Normal single pass rendering
 	$branch shadertype == 0 || shadertype == 1
 	$begin
-		finalColor = clamp(finalColor, 0.0, 1.0); // To prevent multipass inconsistencies
 		vec4 textureColor = texture(texture0, ps_texcoord1);
 		finalColor = finalColor*textureColor + specularColor;
 		finalColor.xyz *= 2;
