@@ -21,8 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef TRACE_DISP_H
-#define TRACE_DISP_H
+#ifndef DISPTRACE_H
+#define DISPTRACE_H
 
 struct mcdheader_t;
 struct brushmodel_t;
@@ -34,4 +34,4 @@ extern void TR_BuildDisplacementMCD( const brushmodel_t& model );
 extern void TR_FreeDisplacementMCD( void );
 extern bool TR_TraceDisplacementMCD( const Vector& start, const Vector& end, const Vector& mins, const Vector& maxs, trace_t& trace );
 
-#endif // TRACE_DISP_H
+#endif // DISPTRACE_H
