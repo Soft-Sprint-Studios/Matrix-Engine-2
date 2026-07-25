@@ -897,6 +897,17 @@ void CBSPRenderer::InitVBO( void )
 		if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 			continue;
 
+		if (psurface->displacement_id != -1)
+		{
+			mdispinfo_t* pinfo = &ens.pworld->pdispinfo[psurface->displacement_id];
+			Uint32 side = (1 << pinfo->power) + 1;
+			numWorldVertexes += (side * side);
+			numIndexes += (side - 1) * (side - 1) * 6;
+
+			// Dont continue with normal BSP rendering
+			continue;
+		}
+
 		numWorldVertexes += psurface->numedges;
 		numIndexes += 3+(psurface->numedges-3)*3;
 	}
@@ -974,6 +985,123 @@ void CBSPRenderer::InitVBO( void )
 
 			// Link it to the texture
 			pbspsurface->ptexture = &m_texturesArray[ptexture->infoindex];
+
+			// If we are displacement
+			if (psurface->displacement_id != -1)
+			{
+				mdispinfo_t* pdisp = &ens.pworld->pdispinfo[psurface->displacement_id];
+				Uint32 side = (1 << pdisp->power) + 1;
+				Uint32 v_base = curVertexIndex;
+				pbspsurface->start_index = curIndex;
+
+				Vector faceNormal;
+				Math::VectorCopy(psurface->pplane->normal, faceNormal);
+				if (psurface->flags & SURF_PLANEBACK)
+				{
+					Math::VectorScale(faceNormal, -1.0f, faceNormal);
+				}
+
+				Vector corners[4];
+				for (Uint32 c = 0; c < 4; c++)
+				{
+					corners[c] = Vector(pdisp->corners[c][0], pdisp->corners[c][1], pdisp->corners[c][2]);
+				}
+
+				Int32 start_index = 0;
+				Float min_dist = MAX_FLOAT_VALUE;
+				Vector startPos(pdisp->start_position[0], pdisp->start_position[1], pdisp->start_position[2]);
+				for (Int32 c = 0; c < 4; c++)
+				{
+					Vector diff;
+					Math::VectorSubtract(corners[c], startPos, diff);
+					Float dist = sqrt(Math::DotProduct(diff, diff));
+					if (dist < min_dist)
+					{
+						min_dist = dist;
+						start_index = c;
+					}
+				}
+
+				if (start_index != 0)
+				{
+					Vector temp[4];
+					for (Int32 c = 0; c < 4; c++)
+						Math::VectorCopy(corners[(start_index + c) % 4], temp[c]);
+					for (Int32 c = 0; c < 4; c++)
+						Math::VectorCopy(temp[c], corners[c]);
+				}
+
+				for (Uint32 y = 0; y < side; y++)
+				{
+					for (Uint32 x = 0; x < side; x++)
+					{
+						Float fr_x = static_cast<Float>(x) / (side - 1);
+						Float fr_y = static_cast<Float>(y) / (side - 1);
+
+						Vector top, bot, pos;
+						Math::VectorAdd(corners[0], (corners[1] - corners[0]) * fr_x, top);
+						Math::VectorAdd(corners[3], (corners[2] - corners[3]) * fr_x, bot);
+						Math::VectorAdd(top, (bot - top) * fr_y, pos);
+
+						Int32 v_idx = pdisp->vert_start + (y * side + x);
+						Vector displaced_pos;
+						Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].dist, faceNormal, displaced_pos);
+
+						bsp_vertex_t& v = pvertexes[curVertexIndex++];
+						v.origin[0] = displaced_pos.x;
+						v.origin[1] = displaced_pos.y;
+						v.origin[2] = displaced_pos.z;
+						v.origin[3] = 1.0f;
+						v.normal = faceNormal;
+
+						v.texcoord[0] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[0]) + psurface->ptexinfo->vecs[0][3]) / psurface->ptexinfo->ptexture->width;
+						v.texcoord[1] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[1]) + psurface->ptexinfo->vecs[1][3]) / psurface->ptexinfo->ptexture->height;
+
+						for (Uint32 l = 0; l < MAX_SURFACE_STYLES; l++)
+						{
+							v.lmapcoord[l][0] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[0]) + psurface->ptexinfo->vecs[0][3] - psurface->texturemins[0] + pbspsurface->light_s[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f)) / (m_lightmapWidths[l] * psurface->lightmapdivider);
+							v.lmapcoord[l][1] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[1]) + psurface->ptexinfo->vecs[1][3] - psurface->texturemins[1] + pbspsurface->light_t[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f)) / (m_lightmapHeights[l] * psurface->lightmapdivider);
+						}
+					}
+				}
+
+				for (Uint32 y = 0; y < side - 1; y++)
+				{
+					for (Uint32 x = 0; x < side - 1; x++)
+					{
+						pindexes[curIndex++] = v_base + (y * side + x);
+						pindexes[curIndex++] = v_base + ((y + 1) * side + (x + 1));
+						pindexes[curIndex++] = v_base + ((y + 1) * side + x);
+
+						pindexes[curIndex++] = v_base + (y * side + x);
+						pindexes[curIndex++] = v_base + (y * side + (x + 1));
+						pindexes[curIndex++] = v_base + ((y + 1) * side + (x + 1));
+					}
+				}
+
+				pbspsurface->end_index = curIndex;
+				pbspsurface->num_indexes = curIndex - pbspsurface->start_index;
+
+				Vector mins = NULL_MINS;
+				Vector maxs = NULL_MAXS;
+				for (Uint32 k = 0; k < pbspsurface->num_indexes; k++)
+				{
+					bsp_vertex_t* pvertex = &pvertexes[pindexes[pbspsurface->start_index + k]];
+					for (Int32 l = 0; l < 3; l++)
+					{
+						if (mins[l] > pvertex->origin[l])
+							mins[l] = pvertex->origin[l] - 1;
+						if (maxs[l] < pvertex->origin[l])
+							maxs[l] = pvertex->origin[l] + 1;
+					}
+				}
+
+				Math::VectorCopy(mins, pbspsurface->mins);
+				Math::VectorCopy(maxs, pbspsurface->maxs);
+
+				// Dont continue with normal BSP rendering
+				continue;
+			}
 
 			for(Uint32 k = 0; k < psurface->numedges; k++)
 			{

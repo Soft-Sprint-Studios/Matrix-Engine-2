@@ -21,6 +21,7 @@ All Rights Reserved.
 #include "mcdtrace.h"
 #include "sv_world.h"
 #include "collision_shared.h"
+#include "disptrace.h"
 
 // Hull mins for tracehull
 Vector HULL_MINS[MAX_MAP_HULLS] = {
@@ -418,6 +419,11 @@ hull_types_t TR_GetHullType( const Vector& mins, const Vector& maxs, hull_types_
 //=============================================
 void TR_PlayerTraceSingleEntity( const entity_state_t& entity, entity_vbmhulldata_t* pvbmhulldata, const mcdheader_t* pmcdheader, const Vector& start, const Vector& end, hull_types_t hulltype, Int32 traceflags, const Vector& player_mins, const Vector& player_maxs, trace_t& outtrace )
 {
+	if (entity.entindex == WORLDSPAWN_ENTITY_INDEX && g_pWorldDisplacementMCD)
+	{
+		TR_TraceDisplacementMCD(start, end, player_mins, player_maxs, outtrace);
+	}
+
 	Vector offset;
 	Vector mins;
 	Vector maxs;

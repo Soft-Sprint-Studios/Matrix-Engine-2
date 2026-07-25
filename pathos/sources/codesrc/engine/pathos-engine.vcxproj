@@ -270,6 +270,7 @@
     <ClCompile Include="client\cl_tempentities.cpp" />
     <ClCompile Include="client\cl_utils.cpp" />
     <ClCompile Include="console.cpp" />
+    <ClCompile Include="disptrace.cpp" />
     <ClCompile Include="dllexports.cpp" />
     <ClCompile Include="edictmanager.cpp" />
     <ClCompile Include="enginefuncs.cpp" />
@@ -435,6 +436,7 @@
     <ClInclude Include="client\cl_utils.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="console.h" />
+    <ClInclude Include="disptrace.h" />
     <ClInclude Include="dllexports.h" />
     <ClInclude Include="edictmanager.h" />
     <ClInclude Include="enginefuncs.h" />

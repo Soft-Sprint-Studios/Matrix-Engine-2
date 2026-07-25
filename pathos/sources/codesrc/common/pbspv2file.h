@@ -75,6 +75,9 @@ enum pbspv2_lumps_t
 	// This lump is available if header->flags has PBSPV2_FL_HAS_LIGHTGRID_DATA set
 	PBSPV2_LUMP_LIGHTGRID_DATA,
 
+	// This lump is available if header->flags has PBSPV2_FL_HAS_DISPLACEMENT set
+	PBSPV2_LUMP_DISPLACEMENTS,
+
 	// MUST BE LAST
 	PBSPV2_NB_LUMPS // Don't actually use this anywhere if possible
 };
@@ -87,7 +90,8 @@ enum pbspv2_flags_t
 	PBSPV2_FL_NONE					= 0,
 	PBSPV2_FL_HAS_SMOOTHING_GROUPS	= (1<<0),
 	PBSPV2_FL_HAS_VERTEX_LIGHTING	= (1<<1),
-	PBSPV2_FL_HAS_LIGHTGRID_DATA	= (1<<2)
+	PBSPV2_FL_HAS_LIGHTGRID_DATA	= (1<<2),
+	PBSPV2_FL_HAS_DISPLACEMENT		= (1<<3)
 };
 
 //
@@ -406,6 +410,27 @@ struct dlightgridsample_t
 
 	byte styles[PBSPV2_MAX_LIGHTMAPS];
     Int32 rawsampleoffset;
+};
+
+struct dpbspv2dispheader_t
+{
+	Int32 num_disp_infos;
+	Int32 num_disp_verts;
+	Int32 num_faces;
+};
+
+struct dpbspv2dispinfo_t
+{
+	Int32 face_index;
+	Int32 power;
+	Int32 vert_start;
+	Float start_position[3];
+	Float corners[4][3];
+};
+
+struct dpbspv2dispvert_t
+{
+	Float dist;
 };
 
 #endif //PBSPV2FILE_H

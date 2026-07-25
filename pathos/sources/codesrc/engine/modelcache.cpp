@@ -28,6 +28,7 @@ All Rights Reserved.
 #include "bsp_shared.h"
 #include "crc32.h"
 #include "mcdformat.h"
+#include "disptrace.h"
 
 // Object declaration
 CModelCache gModelCache;
@@ -99,6 +100,8 @@ void CModelCache::ClearCache( void )
 {
 	if(m_modelCacheArray.empty())
 		return;
+
+	TR_FreeDisplacementMCD();
 
 	for(Uint32 i = 0; i < m_modelCacheArray.size(); i++)
 	{
@@ -450,6 +453,8 @@ cache_model_t* CModelCache::LoadBSPModel( const Char* pstrFilename, const byte* 
 	// Setup the submodels too
 	SetupBSPSubmodels(*pmodel, pstrFilename);
 
+	TR_BuildDisplacementMCD(*pmodel);
+
 	// Free up the temp model
 	pmodel->freedata = false;
 	delete pmodel;
@@ -523,6 +528,10 @@ void CModelCache::SetupBSPSubmodels( brushmodel_t& model, const Char* loadName )
 		pnewmodel->nummarksurfaces = model.nummarksurfaces;
 		pnewmodel->pentdata = model.pentdata;
 		pnewmodel->entdatasize = model.entdatasize;
+		pnewmodel->pdispinfo = model.pdispinfo;
+		pnewmodel->numdispinfo = model.numdispinfo;
+		pnewmodel->pdispverts = model.pdispverts;
+		pnewmodel->numdispverts = model.numdispverts;
 
 		memcpy(pnewmodel->hulls, model.hulls, sizeof(hull_t)*MAX_MAP_HULLS);
 		pnewmodel->freedata = (i == 0) ? true : false;

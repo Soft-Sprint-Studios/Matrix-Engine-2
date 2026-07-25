@@ -435,6 +435,9 @@
     <ClCompile Include="sys_sentry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="disptrace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
@@ -975,6 +978,9 @@
       <Filter>Header Files\shared</Filter>
     </ClInclude>
     <ClInclude Include="sys_sentry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="disptrace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

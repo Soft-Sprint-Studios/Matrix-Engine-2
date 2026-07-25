@@ -99,6 +99,20 @@ struct medge_t
 	Uint32 cachededgeoffset;
 };
 
+struct mdispinfo_t
+{
+	Int32 face_index;
+	Int32 power;
+	Int32 vert_start;
+	Float start_position[3];
+	Float corners[4][3];
+};
+
+struct mdispvert_t
+{
+	Float dist;
+};
+
 struct mtexture_t
 {
 	mtexture_t():
@@ -239,7 +253,8 @@ struct msurface_t
 		ptexinfo(nullptr),
 		lightoffset(0),
 		lightoffset_water(0),
-		infoindex(-1)
+		infoindex(-1),
+		displacement_id(-1)
 	{
 		memset(texturemins, 0, sizeof(texturemins));
 		memset(base_texturemins, 0, sizeof(base_texturemins));
@@ -313,6 +328,9 @@ struct msurface_t
 
 	// info index for rendering
 	Int32 infoindex;
+
+	// Displacement ID
+	Int32 displacement_id;
 };
 
 struct mclipnode_t
@@ -521,7 +539,11 @@ struct brushmodel_t
 		vertexlightdatasize(0),
 		lightmaplayercount(0),
 		pentdata(nullptr),
-		entdatasize(0)
+		entdatasize(0),
+		pdispinfo(nullptr),
+		numdispinfo(0),
+		pdispverts(nullptr),
+		numdispverts(0)
 	{
 		for(Uint32 i = 0; i < NB_SURF_LIGHTMAP_LAYERS; i++)
 		{
@@ -581,6 +603,10 @@ struct brushmodel_t
 				delete[] hulls[0].pclipnodes;
 			if(plightgrid)
 				delete plightgrid;
+			if (pdispinfo)
+				delete[] pdispinfo;
+			if (pdispverts)
+				delete[] pdispverts;
 
 			for(Uint32 i = 0; i < NB_SURF_LIGHTMAP_LAYERS; i++)
 			{
@@ -732,5 +758,12 @@ struct brushmodel_t
 	// entities
 	Char* pentdata;
 	Uint32 entdatasize;
+
+	// Displacement stuff
+	mdispinfo_t* pdispinfo;
+	Uint32 numdispinfo;
+
+	mdispvert_t* pdispverts;
+	Uint32 numdispverts;
 };
 #endif //BRUSHMODEL_SHARED_H

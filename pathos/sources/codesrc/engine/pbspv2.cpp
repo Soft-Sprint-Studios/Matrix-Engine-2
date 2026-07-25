@@ -80,6 +80,16 @@ brushmodel_t* PBSPV2_Load( const byte* pfile, const dpbspv2header_t* pheader, co
 		}
 	}
 
+	// If PBSPV2_FL_HAS_DISPLACEMENT is set, then load in displacement data
+	if (pheader->flags & PBSPV2_FL_HAS_DISPLACEMENT)
+	{
+		if (!PBSPV2_LoadDisplacements(pfile, (*pmodel), pheader->lumps[PBSPV2_LUMP_DISPLACEMENTS]))
+		{
+			delete pmodel;
+			return nullptr;
+		}
+	}
+
 	return pmodel;
 }
 
@@ -1133,5 +1143,65 @@ bool PBSPV2_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dpb
 		}
 	}
 	
+	return true;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+bool PBSPV2_LoadDisplacements(const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump)
+{
+	if (!lump.size)
+		return true;
+
+	if (lump.size < sizeof(dpbspv2dispheader_t))
+	{
+		Con_EPrintf("%s - Lump size is too small for header in '%s'.\n", __FUNCTION__, model.name.c_str());
+		return false;
+	}
+
+	const byte* pbuffer = pfile + lump.offset;
+	const dpbspv2dispheader_t* pdispheader = reinterpret_cast<const dpbspv2dispheader_t*>(pbuffer);
+
+	Uint32 count_infos = pdispheader->num_disp_infos;
+	Uint32 count_verts = pdispheader->num_disp_verts;
+	Uint32 count_faces = pdispheader->num_faces;
+
+	Uint32 expected_size = sizeof(dpbspv2dispheader_t) + (count_infos * sizeof(dpbspv2dispinfo_t)) + (count_verts * sizeof(dpbspv2dispvert_t)) + (count_faces * sizeof(Int32));
+
+	// Check if sizes are correct
+	if (lump.size != expected_size)
+	{
+		Con_EPrintf("%s - Inconsistent displacement lump size in '%s'. Expected %u, got %u.\n", __FUNCTION__, model.name.c_str(), expected_size, lump.size);
+		return false;
+	}
+
+	const dpbspv2dispinfo_t* pinfos = reinterpret_cast<const dpbspv2dispinfo_t*>(pbuffer + sizeof(dpbspv2dispheader_t));
+	model.pdispinfo = new mdispinfo_t[count_infos];
+	model.numdispinfo = count_infos;
+	for (Uint32 i = 0; i < count_infos; i++)
+	{
+		model.pdispinfo[i].face_index = pinfos[i].face_index;
+		model.pdispinfo[i].power = pinfos[i].power;
+		model.pdispinfo[i].vert_start = pinfos[i].vert_start;
+		Math::VectorCopy(pinfos[i].start_position, model.pdispinfo[i].start_position);
+		for (Uint32 c = 0; c < 4; c++)
+		{
+			Math::VectorCopy(pinfos[i].corners[c], model.pdispinfo[i].corners[c]);
+		}
+	}
+
+	const dpbspv2dispvert_t* pverts = reinterpret_cast<const dpbspv2dispvert_t*>(pbuffer + sizeof(dpbspv2dispheader_t) + (count_infos * sizeof(dpbspv2dispinfo_t)));
+	model.pdispverts = new mdispvert_t[count_verts];
+	model.numdispverts = count_verts;
+	for (Uint32 i = 0; i < count_verts; i++)
+		model.pdispverts[i].dist = pverts[i].dist;
+
+	const Int32* pmaps = reinterpret_cast<const Int32*>(pbuffer + sizeof(dpbspv2dispheader_t) + (count_infos * sizeof(dpbspv2dispinfo_t)) + (count_verts * sizeof(dpbspv2dispvert_t)));
+	Uint32 limit = (count_faces < model.numsurfaces) ? count_faces : model.numsurfaces;
+	for (Uint32 i = 0; i < limit; i++)
+		model.psurfaces[i].displacement_id = pmaps[i];
+
 	return true;
 }
