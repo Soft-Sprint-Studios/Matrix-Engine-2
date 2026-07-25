@@ -161,10 +161,6 @@ CCubemapManager
 class CCubemapManager
 {
 public:
-	// Cubemap interpolation time
-	static const Float CUBEMAP_INTERP_TIME;
-
-public:
 	CCubemapManager( void );
 	~CCubemapManager();
 
@@ -227,6 +223,9 @@ private:
 	Float m_flInterpolant;
 	// Last time the ideal cubemap changed
 	Float m_flLastChangeTime;
+
+	// Cubemap Interp Time cvar
+	CCVar* m_pCvarCubeInterpTime;
 
 private:
 	// Cubemap resolutions arrays

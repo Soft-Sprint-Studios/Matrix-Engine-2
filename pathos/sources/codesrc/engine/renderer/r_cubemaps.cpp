@@ -14,6 +14,7 @@ All Rights Reserved.
 #include "cl_main.h"
 #include "r_main.h"
 #include "r_cubemaps.h"
+#include "console.h"
 #include "commands.h"
 #include "texturemanager.h"
 #include "system.h"
@@ -42,9 +43,6 @@ Uint32 CCubemapManager::g_cubemapResolutions[NUM_CUBEMAP_SIZES][2] =
 	{ 1024, 1024 }
 };
 
-// Cubemap interpolation time
-const Float CCubemapManager::CUBEMAP_INTERP_TIME = 0.5;
-
 // Class definition
 CCubemapManager gCubemaps;
 
@@ -56,7 +54,8 @@ CCubemapManager::CCubemapManager( void ) :
 	m_pIdealCubemap(nullptr),
 	m_pPrevCubemap(nullptr),
 	m_flInterpolant(0),
-	m_flLastChangeTime(0)
+	m_flLastChangeTime(0),
+	m_pCvarCubeInterpTime(nullptr)
 {
 }
 
@@ -75,6 +74,7 @@ CCubemapManager::~CCubemapManager()
 bool CCubemapManager::Init( void )
 {
 	gCommands.CreateCommand("r_buildcubemaps", Cmd_BuildCubemaps, "Generates cubemaps for a map.");
+	m_pCvarCubeInterpTime = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_cubemaps_interptime", "0.5", "Cubemap Interpolation Time.");
 	return true;
 }
 
@@ -304,10 +304,10 @@ void CCubemapManager::Update( const Vector& v_origin )
 	// Calculate interpolation
 	if(m_flInterpolant != 1.0 && m_flLastChangeTime != rns.time)
 	{
-		if(m_flLastChangeTime + CUBEMAP_INTERP_TIME > rns.time)
+		if(m_flLastChangeTime + m_pCvarCubeInterpTime->GetValue() > rns.time)
 		{
 			Float timeFrac = rns.time - m_flLastChangeTime;
-			m_flInterpolant = timeFrac/CUBEMAP_INTERP_TIME;
+			m_flInterpolant = timeFrac / m_pCvarCubeInterpTime->GetValue();
 		}
 		else
 			m_flInterpolant = 1.0;
