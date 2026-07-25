@@ -380,6 +380,10 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 		dt = dt / psurf->base_samplesize;
 
 		color24_t* plightmap = psurf->psamples[SURF_LIGHTMAP_DEFAULT];
+
+		if (!plightmap)
+			continue;
+
 		plightmap += dt * ((psurf->base_extents[0] / psurf->base_samplesize)+1) + ds;
 
 		Float flIntensity = (plightmap->r + plightmap->g + plightmap->b)/3;
