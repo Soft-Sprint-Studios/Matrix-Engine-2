@@ -140,29 +140,6 @@ void TR_BuildDisplacementMCD( const brushmodel_t& model )
 			corners[c] = Vector(info.corners[c][0], info.corners[c][1], info.corners[c][2]);
 		}
 
-		Int32 start_index = 0;
-		Float min_dist = MAX_FLOAT_VALUE;
-		Vector startPos(info.start_position[0], info.start_position[1], info.start_position[2]);
-		for (Int32 c = 0; c < 4; c++)
-		{
-			Vector diff = corners[c] - startPos;
-			Float dist = sqrt(Math::DotProduct(diff, diff));
-			if (dist < min_dist)
-			{
-				min_dist = dist;
-				start_index = c;
-			}
-		}
-
-		if (start_index != 0)
-		{
-			Vector temp[4];
-			for (Int32 c = 0; c < 4; c++)
-				Math::VectorCopy(corners[(start_index + c) % 4], temp[c]);
-			for (Int32 c = 0; c < 4; c++)
-				Math::VectorCopy(temp[c], corners[c]);
-		}
-
 		for (Uint32 y = 0; y < side; y++)
 		{
 			for (Uint32 x = 0; x < side; x++)

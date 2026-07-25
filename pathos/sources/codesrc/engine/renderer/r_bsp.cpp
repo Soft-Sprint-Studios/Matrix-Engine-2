@@ -1007,30 +1007,6 @@ void CBSPRenderer::InitVBO( void )
 					corners[c] = Vector(pdisp->corners[c][0], pdisp->corners[c][1], pdisp->corners[c][2]);
 				}
 
-				Int32 start_index = 0;
-				Float min_dist = MAX_FLOAT_VALUE;
-				Vector startPos(pdisp->start_position[0], pdisp->start_position[1], pdisp->start_position[2]);
-				for (Int32 c = 0; c < 4; c++)
-				{
-					Vector diff;
-					Math::VectorSubtract(corners[c], startPos, diff);
-					Float dist = sqrt(Math::DotProduct(diff, diff));
-					if (dist < min_dist)
-					{
-						min_dist = dist;
-						start_index = c;
-					}
-				}
-
-				if (start_index != 0)
-				{
-					Vector temp[4];
-					for (Int32 c = 0; c < 4; c++)
-						Math::VectorCopy(corners[(start_index + c) % 4], temp[c]);
-					for (Int32 c = 0; c < 4; c++)
-						Math::VectorCopy(temp[c], corners[c]);
-				}
-
 				for (Uint32 y = 0; y < side; y++)
 				{
 					for (Uint32 x = 0; x < side; x++)

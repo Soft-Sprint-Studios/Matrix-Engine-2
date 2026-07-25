@@ -1185,7 +1185,7 @@ bool PBSPV2_LoadDisplacements(const byte* pfile, brushmodel_t& model, const dpbs
 		model.pdispinfo[i].face_index = pinfos[i].face_index;
 		model.pdispinfo[i].power = pinfos[i].power;
 		model.pdispinfo[i].vert_start = pinfos[i].vert_start;
-		Math::VectorCopy(pinfos[i].start_position, model.pdispinfo[i].start_position);
+
 		for (Uint32 c = 0; c < 4; c++)
 		{
 			Math::VectorCopy(pinfos[i].corners[c], model.pdispinfo[i].corners[c]);

@@ -424,7 +424,6 @@ struct dpbspv2dispinfo_t
 	Int32 face_index;
 	Int32 power;
 	Int32 vert_start;
-	Float start_position[3];
 	Float corners[4][3];
 };
 
