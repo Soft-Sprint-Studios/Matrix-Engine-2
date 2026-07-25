@@ -429,6 +429,7 @@ struct dpbspv2dispinfo_t
 
 struct dpbspv2dispvert_t
 {
+	Float vector[3];
 	Float dist;
 
 	// Unused

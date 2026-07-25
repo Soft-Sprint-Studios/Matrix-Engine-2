@@ -1021,7 +1021,7 @@ void CBSPRenderer::InitVBO( void )
 
 						Int32 v_idx = pdisp->vert_start + (y * side + x);
 						Vector displaced_pos;
-						Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].dist, faceNormal, displaced_pos);
+						Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].dist, ens.pworld->pdispverts[v_idx].vector, displaced_pos);
 
 						bsp_vertex_t& v = pvertexes[curVertexIndex++];
 						v.origin[0] = displaced_pos.x;
