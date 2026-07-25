@@ -1196,7 +1196,10 @@ bool PBSPV2_LoadDisplacements(const byte* pfile, brushmodel_t& model, const dpbs
 	model.pdispverts = new mdispvert_t[count_verts];
 	model.numdispverts = count_verts;
 	for (Uint32 i = 0; i < count_verts; i++)
+	{
 		model.pdispverts[i].dist = pverts[i].dist;
+		model.pdispverts[i].alpha = pverts[i].alpha;
+	}
 
 	const Int32* pmaps = reinterpret_cast<const Int32*>(pbuffer + sizeof(dpbspv2dispheader_t) + (count_infos * sizeof(dpbspv2dispinfo_t)) + (count_verts * sizeof(dpbspv2dispvert_t)));
 	Uint32 limit = (count_faces < model.numsurfaces) ? count_faces : model.numsurfaces;

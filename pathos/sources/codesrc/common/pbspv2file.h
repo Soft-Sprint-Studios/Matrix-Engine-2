@@ -430,6 +430,9 @@ struct dpbspv2dispinfo_t
 struct dpbspv2dispvert_t
 {
 	Float dist;
+
+	// Unused
+	Float alpha;
 };
 
 #endif //PBSPV2FILE_H

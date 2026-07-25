@@ -110,6 +110,9 @@ struct mdispinfo_t
 struct mdispvert_t
 {
 	Float dist;
+
+	// Unused
+	Float alpha;
 };
 
 struct mtexture_t
