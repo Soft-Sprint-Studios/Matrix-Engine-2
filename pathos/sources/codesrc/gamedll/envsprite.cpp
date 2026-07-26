@@ -90,8 +90,11 @@ bool CEnvSprite::Spawn( void )
 	{
 		if(m_pState->angles[1] != m_pState->angles[2])
 		{
-			m_pState->angles[2] = m_pState->angles[1];
-			m_pState->angles[1] = 0;
+			Vector angles = m_pState->angles;
+			angles[2] = m_pState->angles[1];
+			angles[1] = 0;
+
+			SetAngles(angles);
 		}
 	}
 
@@ -336,8 +339,9 @@ void CEnvSprite::Expand( Float scalespeed, Float fadespeed )
 void CEnvSprite::SpriteInit( const Char* pstrSpriteName, const Vector& origin )
 {
 	m_pFields->modelname = gd_engfuncs.pfnAllocString(pstrSpriteName);
-	m_pState->origin = origin;
 	m_pState->spawnflags |= FL_KEEP_SERVER;
+
+	SetOrigin(origin);
 
 	// Call spawn function
 	Spawn();

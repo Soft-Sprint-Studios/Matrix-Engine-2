@@ -56,6 +56,27 @@ enum entity_flags_t
 	FL_ENTITY_DIRECTIONAL_USE	= (1<<7)
 };
 
+struct parentmove_saveentry_t
+{
+	parentmove_saveentry_t():
+		pdata(nullptr),
+		elementsize(0),
+		blockcount(0)
+	{
+	}
+
+	~parentmove_saveentry_t()
+	{
+		if(pdata)
+			delete[] pdata;
+	}
+
+	entity_data_desc_t desc;
+	byte* pdata;
+	Uint32 elementsize;
+	Uint32 blockcount;
+};
+
 #ifdef _DEBUG
 typedef void (CBaseEntity::*THINKFNPTR)( void );
 typedef void (CBaseEntity::*INTERACTFNPTR)( CBaseEntity* pOther );
@@ -134,6 +155,8 @@ public:
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value );
 	// Initializes parenting
 	virtual void InitParenting( void );
+	// Detaches entity from it's parent
+	virtual void DetachFromParent( void );
 	// Sets the entity to be removed
 	virtual void FlagForRemoval( void );
 
@@ -356,6 +379,34 @@ public:
 
 	// Called by NPC on scripted_sequence animation change
 	virtual void OnScriptedAnimationStart( scripted_sequence_anim_t scriptanim ) { STUBWARNING; };
+
+	// TRUE if entity can be a parent of another
+	virtual bool CanEntityBeParent( void ) const { return false; }
+	// TRUE if entity can be parented by another
+	virtual bool CanEntityBeParented( void ) const { return false; }
+	// Called when entity is about to be rotated or moved by a parent entity
+	virtual void BeginParentMovement( CBaseEntity* pParent );
+	// Called when entity is rotated by a parent
+	virtual void RotateEntityByParent( CBaseEntity* pRotatorParent, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& rotatorAngularMove ) { };
+	// Called when entity is moved by a parent
+	virtual void MoveEntityByParent( CBaseEntity* pParent, const Vector& parentMovement ) { };
+	// Called when a parent's movement/rotation is completed
+	virtual void OnParentMovementDone( CBaseEntity* pParent );
+	// Called when a move/rotation fails and we need the entity to restore relevant variables
+	virtual void UndoParentMovement( CBaseEntity* pParent );
+	// Called when a parent has SetAngles called on it
+	virtual void OnParentEntitySetAngles( CBaseEntity* pSetParent, const Vector& parentOrigin, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange ) { };
+	// Called when a parent has SetOrigin called on it
+	virtual void OnParentEntitySetOrigin( CBaseEntity* pSetParent, const Vector& parentPrevOrigin, const Vector& parentCurOrigin ) { };
+	// Called when a parent has SetOrigin called on it
+	virtual void OnParentChildFreed( CBaseEntity* pChildEntity ) { };
+	// Add a field to be restored upon parent move
+	void AddParentMoveRestoreField( entity_data_desc_t desc, const byte* pdataptr, Uint32 elementsize, Uint32 blockcount );
+
+	// Called when the entity has SetAngles called on it
+	virtual void OnEntitySetAngles( const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange, bool realignEntity ) { };
+	// Called when the entity has SetOrigin called on it
+	virtual void OnEntitySetOrigin( const Vector& prevOrigin, const Vector& curOrigin, bool realignEntity ) { };
 
 public:
 	//
@@ -871,12 +922,27 @@ public:
 	// Returns the entity's origin
 	inline const Vector& GetOrigin( void ) const;
 	// Sets the entity's origin
-	inline void SetOrigin( const Vector& origin );
+	inline void SetOrigin( const Vector& origin, bool realignEntity = false );
 
 	// Returns the entity's angles
 	inline const Vector& GetAngles( void ) const;
 	// Sets the entity's angles
-	inline void SetAngles( const Vector& angles );
+	inline void SetAngles( const Vector& angles, bool realignEntity = false );
+
+	// Returns the entity's pitch value
+	inline const Float GetPitch( void ) const;
+	// Sets the entity's pitch value
+	inline void SetPitch( Float value, bool realignEntity = false );
+
+	// Returns the entity's yaw value
+	inline const Float GetYaw( void ) const;
+	// Sets the entity's yaw value
+	inline void SetYaw( Float value, bool realignEntity = false );
+
+	// Returns the entity's roll value
+	inline const Float GetRoll( void ) const;
+	// Sets the entity's roll value
+	inline void SetRoll( Float value, bool realignEntity = false );
 
 	// Returns the entity's velocity
 	inline const Vector& GetVelocity( void ) const;
@@ -892,6 +958,11 @@ public:
 	inline const Vector& GetBaseVelocity( void ) const;
 	// Sets the entity's base velocity
 	inline void SetBaseVelocity( const Vector& basevelocity );
+
+	// Returns the entity's movement direction
+	inline const Vector& GetMovementDirection( void ) const;
+	// Sets the entity's movement direction
+	inline void SetMovementDirection( const Vector& movedir );
 
 	// Sets the entity's flag
 	inline void SetFlags( Uint64 flagbits );
@@ -1195,9 +1266,9 @@ public:
 	// Saves all data for the entity
 	void SaveEntityClassData( bool istransitionsave );
 	// Reads entity class data
-	bool ReadEntityClassData( const Char* fieldname, const byte* pdata, Uint32 datasize, Uint32 blockindex, bool istransferglobalentity );
+	bool ReadEntityClassData( const Char* fieldname, const byte* pdata, Uint32 datasize, Uint32 blockindex, bool istransferglobalentity, entity_data_desc_t* pfield = nullptr );
 	// Prepare arrays for reading saves
-	bool PrepareEntityClassData( const Char* fieldname, Uint32 numblocks, bool istransferglobalentity );
+	bool PrepareEntityClassData( const Char* fieldname, Uint32 numblocks, bool istransferglobalentity, entity_data_desc_t* pfield = nullptr );
 
 public:
 	// Retreive class data for an edict
@@ -1250,6 +1321,8 @@ public:
 protected:
 	// Save data info for particular entity
 	CLinkedList<entity_data_desc_t> m_saveFieldsList;
+	// Fields saved before move by parent
+	CLinkedList<parentmove_saveentry_t> m_parentMoveSavedFields;
 	// Entity state ptr
 	entity_state_t* m_pState;
 	// Entity fields ptr

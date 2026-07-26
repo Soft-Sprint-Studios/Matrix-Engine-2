@@ -54,6 +54,7 @@ public:
 	virtual void SendInitMessage( const CBaseEntity* pPlayer ) override;
 	virtual Int32 GetEntityFlags( void ) override { return CAnimatingEntity::GetEntityFlags() & ~FL_ENTITY_TRANSITION; }
 	virtual bool ShouldOverrideKeyValue( const Char* pstrKeyValue ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	static CTriggerCameraModel* CreateCameraModel( const CBaseEntity* pOwner, Float bendTime, const Char* pstrRestSequence, const Char* pstrEntrySequence, const Char* pstrLoopSequence, const Char* pstrTriggerSequence );

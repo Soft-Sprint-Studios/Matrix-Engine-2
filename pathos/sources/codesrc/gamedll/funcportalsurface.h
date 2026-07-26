@@ -36,7 +36,8 @@ public:
 	virtual bool IsFuncPortalSurfaceEntity( void ) const override { return true; }
 	virtual const CBaseEntity* GetEnvPosPortalEntity( void ) const override;
 	virtual void InitEntity( void ) override;
-	
+	virtual bool CanEntityBeParented( void ) const override { return true; }
+
 public:
 	static void ClearPortalSurfaceList( void );
 	static void AddPortalSurfaceEntity( CBaseEntity* pMonitor );

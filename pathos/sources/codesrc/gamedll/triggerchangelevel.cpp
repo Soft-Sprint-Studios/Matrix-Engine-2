@@ -106,7 +106,7 @@ bool CTriggerChangeLevel::Spawn( void )
 	m_pState->effects |= EF_NODRAW;
 
 	// Link it
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 
 	// Set to trigger on touch if not trigger only
 	if(!HasSpawnFlag(FL_TRIGGER_ONLY))

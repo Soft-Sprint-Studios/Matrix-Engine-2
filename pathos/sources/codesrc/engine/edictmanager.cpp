@@ -370,6 +370,39 @@ void CEdictManager::FreeEdict( edict_t* pedict, edict_removed_t freeMode )
 		}
 	}
 
+	// Remove from parent's list if we have any
+	if(pedict->state.parent != NO_ENTITY_INDEX)
+	{
+		edict_t* pparent = SV_GetEdictByIndex(pedict->state.parent);
+		if(pparent && !pparent->free && pparent->pprivatedata)
+		{
+			svs.dllfuncs.pfnOnParentChildFreed(pedict, pparent);
+
+			for(Uint32 i = 0; i < pparent->state.children.size(); i++)
+			{
+				if(pparent->state.children[i] == pedict->entindex)
+				{
+					pparent->state.children.erase(i);
+					break;
+				}
+			}
+		}
+	}
+
+	// Remove children also, if any
+	if(!pedict->state.children.empty())
+	{
+		for(Uint32 i = 0; i < pedict->state.children.size(); i++)
+		{
+			entindex_t entindex = pedict->state.children[i];
+			edict_t* pchildedict = SV_GetEdictByIndex(entindex);
+			if(!pchildedict || pchildedict->free)
+				continue;
+
+			FreeEdict(pchildedict, freeMode);
+		}
+	}
+
 	// clear private data with game dll
 	if(pedict->pprivatedata)
 	{

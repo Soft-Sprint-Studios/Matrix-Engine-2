@@ -196,7 +196,7 @@ void CNPCSentry::SentryDeath( void )
 		SetAnimation(TURRET_ANIM_DIE);
 
 		m_pState->solid = SOLID_NOT;
-		m_pState->angles.y = Math::AngleMod(m_pState->angles.y + Common::RandomFloat(0, 120));
+		SetYaw(Math::AngleMod(m_pState->angles.y + Common::RandomFloat(0, 120)));
 		m_pState->deadstate = DEADSTATE_DEAD;
 	}
 

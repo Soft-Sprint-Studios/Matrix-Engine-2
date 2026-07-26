@@ -38,7 +38,7 @@ CFuncIllusionary::~CFuncIllusionary( void )
 bool CFuncIllusionary::Spawn( void )
 {
 	if(!HasSpawnFlag(FL_TAKE_ANGLES))
-		m_pState->angles = ZERO_VECTOR;
+		SetAngles(ZERO_VECTOR);
 	
 	m_pState->movetype = MOVETYPE_NONE;
 	m_pState->solid = SOLID_NOT;

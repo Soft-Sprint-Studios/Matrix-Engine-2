@@ -382,7 +382,7 @@ void CFuncButton::ButtonTouch( CBaseEntity* pOther )
 void CFuncButton::SetSpawnProperties( void )
 {
 	// Set movement direction
-	Util::SetMoveDirection(*m_pState);
+	Util::SetMoveDirection(this);
 
 	m_pState->solid = SOLID_BSP;
 

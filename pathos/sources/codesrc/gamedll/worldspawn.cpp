@@ -68,7 +68,7 @@ bool CWorldSpawn::Spawn( void )
 
 	// NOTE: Model is already set in SV_SpawnGame
 	// Set origin via interface
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 
 	m_pState->solid = SOLID_BSP;
 	m_pState->movetype = MOVETYPE_PUSH;
@@ -198,6 +198,6 @@ bool CWorldSpawn::KeyValue( const keyvalue_t& kv )
 bool CWorldSpawn::Restore( void )
 {
 	// Set origin via interface
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 	return true;
 }

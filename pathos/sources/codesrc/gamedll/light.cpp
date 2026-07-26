@@ -115,7 +115,7 @@ bool CLight::KeyValue( const keyvalue_t& kv )
 	}
 	else if(!qstrcmp(kv.keyname, "pitch"))
 	{
-		m_pState->angles.x = SDL_atof(kv.value);
+		SetPitch(SDL_atof(kv.value));
 		return true;
 	}
 	else if(!qstrcmp(kv.keyname, "interp"))

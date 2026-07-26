@@ -417,6 +417,13 @@ void CEntityManager::Entity_EnvELight( const entitydata_t& entity, entindex_t& e
 		return;
 	}
 
+	pvalue = ValueForKey(entity, "parent");
+	if(pvalue)
+	{
+		// Entities with a parent are handled by the engine
+		return;
+	}
+
 	if(m_entitiesArray.size() == MAX_SERVER_ENTITIES)
 	{
 		cl_engfuncs.pfnCon_Printf("%s - Exceeded MAX_SERVER_ENTITIES.\n", __FUNCTION__);
@@ -473,6 +480,13 @@ void CEntityManager::Entity_EnvModel( const entitydata_t& entity, entindex_t& en
 	if(pvalue)
 	{
 		// Entities with a targetname are handled by the engine
+		return;
+	}
+
+	pvalue = ValueForKey(entity, "parent");
+	if(pvalue)
+	{
+		// Entities with a parent are handled by the engine
 		return;
 	}
 

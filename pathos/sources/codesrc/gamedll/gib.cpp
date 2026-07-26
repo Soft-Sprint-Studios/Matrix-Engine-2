@@ -130,8 +130,8 @@ void CGib::BounceTouch( CBaseEntity* pOther )
 {
 	if(m_pState->flags & FL_ONGROUND)
 	{
-		m_pState->angles[0] = 0;
-		m_pState->angles[2] = 0;
+		SetPitch(0);
+		SetRoll(0);
 
 		m_pState->velocity = m_pState->velocity*0.9;
 

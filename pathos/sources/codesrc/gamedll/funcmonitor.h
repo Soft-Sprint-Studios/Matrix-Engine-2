@@ -35,6 +35,7 @@ public:
 	virtual bool IsFuncMonitorEntity( void ) const override { return true; }
 	virtual const CBaseEntity* GetCameraEntity( void ) const override;
 	virtual void InitEntity( void ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 	
 public:
 	static void ClearMonitorList( void );

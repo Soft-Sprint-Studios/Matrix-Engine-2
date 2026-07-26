@@ -493,17 +493,17 @@ void CFuncTrackTrain::Find( void )
 	lookPosition.z += m_height;
 
 	Vector vecdir = (lookPosition-nextPosition).Normalize();
-	m_pState->angles = Math::VectorToAngles(vecdir);
+	SetAngles(Math::VectorToAngles(vecdir));
 
 	// Fix angle
-	m_pState->angles.y += 180;
+	SetYaw(m_pState->angles.y + 180);
 
 	// Clear pitch if set to
 	if(HasSpawnFlag(FL_NO_PITCH))
-		m_pState->angles.x = 0;
+		SetPitch(0);
 
 	// Set origin and link us up
-	gd_engfuncs.pfnSetOrigin(m_pEdict, nextPosition);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, nextPosition, false);
 
 	SetNextThink(m_pState->ltime + 0.1, false);
 	SetThink(&CFuncTrackTrain::Next);

@@ -71,7 +71,8 @@ bool CSparkShower::Spawn( void )
 	m_pState->gravity = 0.5;
 	m_pState->effects |= EF_NODRAW;
 	m_pState->speed = Common::RandomFloat(0.5, 1.5);
-	m_pState->angles.Clear();
+
+	SetAngles(ZERO_VECTOR);
 
 	SetThink(&CSparkShower::SparkThink);
 	m_pState->nextthink = g_pGameVars->time + 0.1;

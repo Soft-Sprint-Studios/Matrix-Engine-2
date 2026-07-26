@@ -70,15 +70,9 @@ CFuncDoor::CFuncDoor( edict_t* pedict ):
 	m_forcedToClose(false),
 	m_isBlocked(false),
 	m_isSilent(false),
-	m_nextLockedSoundTime(0),
-	m_numSlaveDoors(0),
-	m_numRelatedDoors(0)
+	m_isOwnedChildDoor(false),
+	m_nextLockedSoundTime(0)
 {
-	for(Uint32 i = 0; i < MAX_SLAVE_DOORS; i++)
-		m_pSlaveDoors[i] = nullptr;
-	
-	for(Uint32 i = 0; i < MAX_RELATED_DOORS; i++)
-		m_pRelatedDoors[i] = nullptr;
 }
 
 //=============================================
@@ -103,10 +97,7 @@ void CFuncDoor::DeclareSaveFields( void )
 	DeclareSaveField(DEFINE_DATA_FIELD(CFuncDoor, m_isSilent, EFIELD_BOOLEAN));
 	DeclareSaveField(DEFINE_DATA_FIELD(CFuncDoor, m_activatorOrigin, EFIELD_COORD));
 	DeclareSaveField(DEFINE_DATA_FIELD(CFuncDoor, m_nextLockedSoundTime, EFIELD_TIME));
-	DeclareSaveField(DEFINE_DATA_FIELD_ARRAY(CFuncDoor, m_pSlaveDoors, EFIELD_ENTPOINTER, MAX_SLAVE_DOORS));
-	DeclareSaveField(DEFINE_DATA_FIELD(CFuncDoor, m_numSlaveDoors, EFIELD_UINT32));
-	DeclareSaveField(DEFINE_DATA_FIELD_ARRAY(CFuncDoor, m_pRelatedDoors, EFIELD_ENTPOINTER, MAX_SLAVE_DOORS));
-	DeclareSaveField(DEFINE_DATA_FIELD(CFuncDoor, m_numRelatedDoors, EFIELD_UINT32));
+	DeclareSaveField(DEFINE_DATA_FIELD(CFuncDoor, m_relatedDoorsArray, EFIELD_CARRAY_EHANDLE));
 }
 
 //=============================================
@@ -262,7 +253,7 @@ void CFuncDoor::SetMovementVectors( void )
 	// Swap origins if starting open
 	if(HasSpawnFlag(FL_START_OPEN))
 	{
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position2);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position2, false);
 		m_position2 = m_position1;
 		m_position1 = m_pState->origin;
 	}
@@ -275,7 +266,7 @@ void CFuncDoor::SetMovementVectors( void )
 void CFuncDoor::SetSpawnProperties( void )
 {
 	// Set move direction
-	Util::SetMoveDirection(*m_pState);
+	Util::SetMoveDirection(this);
 
 	if(HasSpawnFlag(FL_NOT_SOLID))
 		m_pState->solid = SOLID_NOT;
@@ -317,15 +308,7 @@ void CFuncDoor::InitEntity( void )
 
 			// Set this as the parent door
 			if(pOther->IsFuncDoorEntity() && Math::VectorCompare(pOther->GetOrigin(), m_pState->origin))
-			{
-				if(m_numSlaveDoors >= MAX_SLAVE_DOORS)
-					break;
-
-				m_pSlaveDoors[m_numSlaveDoors] = reinterpret_cast<CFuncDoor*>(pOther);
-				m_numSlaveDoors++;
-
 				pOther->SetParentDoor(this);
-			}
 		}
 	}
 
@@ -348,26 +331,12 @@ void CFuncDoor::InitEntity( void )
 		if(qstrcmp(pstrClassName, pOther->GetClassName()))
 			continue;
 
-		// Check that it's not a slave door
-		Uint32 j = 0;
-		for(; j < m_numSlaveDoors; j++)
-		{
-			if(m_pSlaveDoors[j] == pOther)
-				break;
-		}
-
-		if(j != m_numSlaveDoors)
+		// Ensure this isnt' a child of us
+		if(pOther->GetParent() == this)
 			continue;
 
-		if(m_numRelatedDoors == MAX_RELATED_DOORS)
-		{
-			Util::EntityConPrintf(m_pEdict, "Exceeded MAX_RELATED_DOORS.\n");
-			break;
-		}
-
 		// Add as related door
-		m_pRelatedDoors[m_numRelatedDoors] = reinterpret_cast<CFuncDoor*>(pOther);
-		m_numRelatedDoors++;
+		m_relatedDoorsArray.push_back(pOther);
 	}
 }
 
@@ -383,19 +352,20 @@ void CFuncDoor::SetParentDoor( CFuncDoor* pParent )
 	// Use existing parenting for this
 	SetParent(pParent);
 
-	// Set to track angles of parent
-	m_pState->effects |= EF_TRACKANGLES;
+	// Mark as being an owned door
+	m_isOwnedChildDoor = true;
 
 	// Disable block and touch functions
 	SetTouch(nullptr);
 	SetBlocked(nullptr);
+	SetUse(nullptr);
 }
 
 //=============================================
 // @brief
 //
 //=============================================
-void CFuncDoor::RealignRelatedDoor( CFuncDoor* pDoor )
+void CFuncDoor::RealignRelatedDoor( CBaseEntity* pDoor )
 {
 	pDoor->SetOrigin(m_pState->origin);
 	pDoor->SetVelocity(ZERO_VECTOR);
@@ -407,10 +377,6 @@ void CFuncDoor::RealignRelatedDoor( CFuncDoor* pDoor )
 //=============================================
 void CFuncDoor::CallBlocked( CBaseEntity* pOther )
 {
-	// If parented, don't bother
-	if(m_pState->parent != NO_ENTITY_INDEX)
-		return;
-
 	// Set this so we don't try to check for npcs when going back
 	m_isBlocked = true;
 
@@ -434,11 +400,13 @@ void CFuncDoor::CallBlocked( CBaseEntity* pOther )
 	}
 
 	// Reset related pieces
-	for(Uint32 i = 0; i < m_numRelatedDoors; i++)
+	for(Uint32 i = 0; i < m_relatedDoorsArray.size(); i++)
 	{
-		CFuncDoor* pRelatedDoor = m_pRelatedDoors[i];
-		if(!pRelatedDoor)
+		CBaseEntity* pEntity = m_relatedDoorsArray[i];
+		if(!pEntity || !pEntity->IsFuncDoorEntity())
 			continue;
+
+		CFuncDoor* pRelatedDoor = reinterpret_cast<CFuncDoor*>(pEntity);
 
 		// Realign related door
 		if(pRelatedDoor->GetDelay() >= 0)
@@ -480,7 +448,7 @@ void CFuncDoor::SetToggleState( togglestate_t state, bool reverse )
 	else
 		setPosition = m_position1;
 
-	gd_engfuncs.pfnSetOrigin(m_pEdict, setPosition);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, setPosition, false);
 	m_toggleState = state;
 }
 
@@ -749,8 +717,8 @@ void CFuncDoor::HitBottom( void )
 //=============================================
 void CFuncDoor::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value )
 {
-	// If we're parented, don't react to use function
-	if(m_pState->parent != NO_ENTITY_INDEX)
+	// If owned child door, don't bother
+	if(m_isOwnedChildDoor)
 		return;
 
 	// Remember activator
@@ -787,10 +755,6 @@ void CFuncDoor::DoorTouch( CBaseEntity* pOther )
 	// Activate the door
 	if(DoorActivate())
 	{
-		// Trigger slave doors
-		for(Uint32 i = 0; i < m_numSlaveDoors; i++)
-			m_pSlaveDoors[i]->CallUse(m_activator, m_activator, USE_TOGGLE, 0);
-
 		// Disable touch function util done
 		SetTouch(nullptr);
 	}
@@ -812,28 +776,10 @@ void CFuncDoor::SendInitMessage( const CBaseEntity* pPlayer )
 //=============================================
 void CFuncDoor::ChildEntityRemoved( CBaseEntity* pEntity )
 {
-	for(Uint32 i = 0; i < m_numSlaveDoors; i++)
+	for(Uint32 i = 0; i < m_relatedDoorsArray.size(); i++)
 	{
-		if(m_pSlaveDoors[i] == pEntity)
-		{
-			for(Uint32 j = i; j < (m_numSlaveDoors-1); j++)
-				m_pSlaveDoors[j] = m_pSlaveDoors[j+1];
-
-			m_numSlaveDoors--;
-			i--;
-		}
-	}
-
-	for(Uint32 i = 0; i < m_numRelatedDoors; i++)
-	{
-		if(m_pRelatedDoors[i] == pEntity)
-		{
-			for(Uint32 j = i; j < (m_numRelatedDoors-1); j++)
-				m_pRelatedDoors[j] = m_pRelatedDoors[j+1];
-
-			m_numRelatedDoors--;
-			i--;
-		}
+		if(m_relatedDoorsArray[i].get() == pEntity->GetEdict())
+			m_relatedDoorsArray.erase(i);
 	}
 }
 

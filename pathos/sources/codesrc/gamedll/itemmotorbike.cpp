@@ -181,7 +181,7 @@ void CItemMotorBike::PlayerLeave( void )
 	m_pState->movetype = MOVETYPE_TOSS;
 	m_pState->aiment = m_pState->owner = NO_ENTITY_INDEX;
 
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pPlayer->GetOrigin()+Vector(0, 0, VEC_HULL_MIN[2]));
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pPlayer->GetOrigin()+Vector(0, 0, VEC_HULL_MIN[2]), false);
 
 	// set glow
 	m_pState->renderfx = RenderFx_GlowAura;

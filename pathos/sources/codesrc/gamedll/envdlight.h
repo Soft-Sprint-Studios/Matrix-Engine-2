@@ -38,6 +38,7 @@ public:
 	virtual bool KeyValue( const keyvalue_t& kv ) override;
 	virtual bool ShouldSetBoundsOnRestore( void ) override { return false; }
 	virtual bool ShouldOverrideKeyValue( const Char* pstrKeyValue ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	void ManageLightStyle( void );

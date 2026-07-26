@@ -22,8 +22,8 @@ extern const byte* Mod_LeafPAS( byte* pbuffer, Uint32 bufsize, const mleaf_t& le
 extern byte* Mod_CompressVIS( const byte* pin, Uint32* psize, const brushmodel_t& model, Int32 visbuffersize );
 extern const msurface_t* Mod_SurfaceAtPoint( const brushmodel_t* pmodel, const mnode_t* pnode, const Vector& start, const Vector& end );
 extern void Mod_FindTouchedLeafs( const brushmodel_t* pworld, CArray<Uint32>& leafnumsarray, Uint32& leafcount, const Vector& mins, const Vector& maxs, mnode_t* pnode );
-extern bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles = nullptr );
-extern bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles = nullptr );
-extern bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector& position, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, byte* poutstyles );
+extern bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles, Float overdarkenFactor );
+extern bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles, Float overdarkenFactor );
+extern bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector& position, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, byte* poutstyles, Float overdarkenFactor );
 extern Int32 Mod_StyleIndex ( const msurface_t *psurface, Uint32 style );
 #endif //BMODEL_H

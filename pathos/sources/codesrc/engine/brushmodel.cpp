@@ -330,7 +330,7 @@ void Mod_FindTouchedLeafs( const brushmodel_t* pworld, CArray<Uint32>& leafnumsa
 //=============================================
 //
 //=============================================
-bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles )
+bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles, Float overdarkenFactor )
 {
 	if (pnode->contents < 0)
 		return false;
@@ -341,7 +341,7 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 	Int32 side = front < 0;
 	
 	if ( (back < 0) == side )
-		return Mod_RecursiveLightPoint(pworld, pnode->pchildren[side], start, end, poutcolors, poutstyles);
+		return Mod_RecursiveLightPoint(pworld, pnode->pchildren[side], start, end, poutcolors, poutstyles, overdarkenFactor);
 	
 	Vector mid;
 	Float frac = front / (front-back);
@@ -350,7 +350,7 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 	mid[2] = start[2] + (end[2] - start[2])*frac;
 	
 	// go down front side	
-	if (Mod_RecursiveLightPoint(pworld, pnode->pchildren[side], start, mid, poutcolors, poutstyles)) 
+	if (Mod_RecursiveLightPoint(pworld, pnode->pchildren[side], start, mid, poutcolors, poutstyles, overdarkenFactor)) 
 		return true;
 		
 	if ((back < 0) == side)
@@ -386,15 +386,20 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 
 		plightmap += dt * ((psurf->base_extents[0] / psurf->base_samplesize)+1) + ds;
 
-		Float flIntensity = (plightmap->r + plightmap->g + plightmap->b)/3;
-		Float flScale = flIntensity/35;
-
-		if(flScale > 1.0) 
-			flScale = 1.0;
+		Float scale;
+		if(overdarkenFactor > 0)
+		{
+			Float intensity = (plightmap->r + plightmap->g + plightmap->b)/3;
+			scale = intensity/overdarkenFactor;
+			if(scale > 1.0)
+				scale = 1.0;
+		}
+		else
+			scale = 1.0;
 
 		Vector color;
 		Common::ParseColor(color, plightmap);
-		Math::VectorScale(color, flScale, poutcolors[BASE_LIGHTMAP_INDEX]);
+		Math::VectorScale(color, scale, poutcolors[BASE_LIGHTMAP_INDEX]);
 
 		// Check styles
 		if(poutstyles)
@@ -427,13 +432,13 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 	}
 
 	// go down back side
-	return Mod_RecursiveLightPoint(pworld, pnode->pchildren[!side], mid, end, poutcolors, poutstyles);
+	return Mod_RecursiveLightPoint(pworld, pnode->pchildren[!side], mid, end, poutcolors, poutstyles, overdarkenFactor);
 }
 
 //=============================================
 //
 //=============================================
-bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles )
+bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles, Float overdarkenFactor )
 {
 	if (pnode->contents < 0)
 		return false;
@@ -444,7 +449,7 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 	Int32 side = front < 0;
 	
 	if ( (back < 0) == side )
-		return Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[side], start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles);
+		return Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[side], start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, overdarkenFactor);
 	
 	Vector mid;
 	Float frac = front / (front-back);
@@ -453,7 +458,7 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 	mid[2] = start[2] + (end[2] - start[2])*frac;
 	
 	// go down front side	
-	if (Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[side], start, mid, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles)) 
+	if (Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[side], start, mid, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, overdarkenFactor)) 
 		return true;
 		
 	if ((back < 0) == side)
@@ -561,6 +566,20 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 			Common::ParseColor(ambientcolor, pambientlightmap);
 			Math::VectorScale(ambientcolor, styleScale, ambientcolor);
 
+			Float darkenScale;
+			if(overdarkenFactor > 0)
+			{
+				Float intensity = (pambientlightmap->r + pambientlightmap->g + pambientlightmap->b)/3;
+				darkenScale = intensity/overdarkenFactor;
+				if(darkenScale > 1.0)
+					darkenScale = 1.0;
+			}
+			else
+				darkenScale = 1.0;
+
+			// Scale by overdarken factor
+			Math::VectorScale(ambientcolor, darkenScale, ambientcolor);
+
 			// Get diffuse light
 			color24_t* pdiffuselightmap = psurf->psamples[SURF_LIGHTMAP_DIFFUSE] + size * j;
 			pdiffuselightmap += dt * xsize + ds;
@@ -603,7 +622,7 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 	}
 
 	// go down back side
-	return Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[!side], mid, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles);
+	return Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[!side], mid, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, overdarkenFactor);
 }
 
 //=============================================
@@ -661,7 +680,7 @@ const lightgridsample_t* Mod_GetLightGridSample ( const lightgriddata_t* plightg
 //=============================================
 //
 //=============================================
-bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector& position, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, byte* poutstyles )
+bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector& position, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, byte* poutstyles, Float overdarkenFactor )
 {
 	if(!plightgrid)
 		return false;
@@ -762,12 +781,18 @@ bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector&
 			for(Uint32 k = 0; k < 3; k++)
 				lighdirection[k] = (((*plightvectors)[k] / 127.5) - 1.0);
 
-			Float intensity = (pambientcolor->r + pambientcolor->g + pambientcolor->b)/3;
-			Float scale = intensity/35;
-			if(scale > 1.0)
+			Float scale;
+			if(overdarkenFactor > 0)
+			{
+				Float intensity = (pambientcolor->r + pambientcolor->g + pambientcolor->b)/3;
+				scale = intensity/overdarkenFactor;
+				if(scale > 1.0)
+					scale = 1.0;
+			}
+			else
 				scale = 1.0;
 
-			Math::VectorMA(amblights[style], weight, ambientcolor, amblights[style]);
+			Math::VectorMA(amblights[style], weight * scale, ambientcolor, amblights[style]);
 			Math::VectorMA(difflights[style], weight, diffusecolor, difflights[style]);
 			Math::VectorMA(lightvecs[style], weight, lighdirection, lightvecs[style]);
 

@@ -33,7 +33,8 @@ CFuncTrain::CFuncTrain( edict_t* pedict ):
 	m_lastTargetName(NO_STRING_VALUE),
 	m_currentPathCornerName(NO_STRING_VALUE),
 	m_isSoundPlaying(false),
-	m_skipSounds(false)
+	m_skipSounds(false),
+	m_wasManuallyStopped(false)
 {
 }
 
@@ -59,6 +60,7 @@ void CFuncTrain::DeclareSaveFields( void )
 	DeclareSaveField(DEFINE_DATA_FIELD(CFuncTrain, m_lastTargetName, EFIELD_STRING));
 	DeclareSaveField(DEFINE_DATA_FIELD(CFuncTrain, m_currentPathCornerName, EFIELD_STRING));
 	DeclareSaveField(DEFINE_DATA_FIELD(CFuncTrain, m_isSoundPlaying, EFIELD_BOOLEAN));
+	DeclareSaveField(DEFINE_DATA_FIELD(CFuncTrain, m_wasManuallyStopped, EFIELD_BOOLEAN));
 }
 
 //=============================================
@@ -181,7 +183,7 @@ void CFuncTrain::InitEntity( void )
 	m_pFields->target = gd_engfuncs.pfnAllocString(pTargetEntity->GetTarget());
 	m_pCurrentTarget = pTargetEntity;
 
-	gd_engfuncs.pfnSetOrigin(m_pEdict, GetDestinationVector(pTargetEntity->GetOrigin()));
+	gd_engfuncs.pfnSetOrigin(m_pEdict, GetDestinationVector(pTargetEntity->GetOrigin()), false);
 
 	if(m_pFields->targetname == NO_STRING_VALUE || HasSpawnFlag(FL_START_ON))
 	{
@@ -260,7 +262,7 @@ void CFuncTrain::Reroute( CBaseEntity* pTarget, Float speed )
 	if(m_pCurrentTarget->HasSpawnFlag(CPathCorner::FL_TELEPORT))
 	{
 		m_pState->effects |= EF_NOINTERP;
-		gd_engfuncs.pfnSetOrigin(m_pEdict, GetDestinationVector(pTarget->GetOrigin()));
+		gd_engfuncs.pfnSetOrigin(m_pEdict, GetDestinationVector(pTarget->GetOrigin()), false);
 
 		// Process next path_corner
 		Wait();
@@ -288,14 +290,34 @@ void CFuncTrain::Reroute( CBaseEntity* pTarget, Float speed )
 //=============================================
 void CFuncTrain::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value )
 {
-	if(HasSpawnFlag(FL_WAIT_RETRIGGER))
+	if(m_wasManuallyStopped && m_pCurrentTarget)
+	{
+		m_wasManuallyStopped = false;
+		m_pState->effects &= ~EF_NOINTERP;
+
+		SetMoveDone(&CFuncTrain::Wait);
+		LinearMove(GetDestinationVector(m_pCurrentTarget->GetOrigin()), m_pState->speed);
+
+		if(!m_isSoundPlaying)
+		{
+			if(m_moveSoundFile != NO_STRING_VALUE)
+				Util::EmitEntitySound(this, m_moveSoundFile, SND_CHAN_VOICE, m_volume);
+
+			m_isSoundPlaying = true;
+		}
+	}
+	else if(HasSpawnFlag(FL_WAIT_RETRIGGER))
 	{
 		m_pState->spawnflags &= ~FL_WAIT_RETRIGGER;
+		m_wasManuallyStopped = false;
+
+		// Head to next target
 		Next();
 	}
 	else
 	{
-		m_pState->spawnflags |= FL_WAIT_RETRIGGER;
+		// Mark that we were manually set to stop
+		m_wasManuallyStopped = true;
 
 		ClearThinkFunctions();
 		m_pState->velocity.Clear();
@@ -481,7 +503,7 @@ void CFuncTrain::Next( void )
 	if(m_pCurrentTarget->HasSpawnFlag(CPathCorner::FL_TELEPORT))
 	{
 		m_pState->effects |= EF_NOINTERP;
-		gd_engfuncs.pfnSetOrigin(m_pEdict, GetDestinationVector(pTarget->GetOrigin()));
+		gd_engfuncs.pfnSetOrigin(m_pEdict, GetDestinationVector(pTarget->GetOrigin()), false);
 
 		// Process next path_corner
 		Wait();
@@ -548,7 +570,7 @@ void CFuncTrain::MoveTrainToPathCorner( CBaseEntity* pPathCorner, CBaseEntity* p
 
 	// Get the valid destination vector
 	Vector destPosition = GetDestinationVector(m_pCurrentTarget->GetOrigin());
-	gd_engfuncs.pfnSetOrigin(m_pEdict, destPosition);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, destPosition, false);
 
 	// Don't interpolate this change and don't play sounds in Wait
 	m_pState->effects |= EF_NOINTERP;

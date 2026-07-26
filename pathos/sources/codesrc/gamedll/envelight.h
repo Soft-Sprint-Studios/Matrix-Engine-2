@@ -33,6 +33,7 @@ public:
 	virtual void Precache( void ) override;
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
 	virtual bool ShouldSetBoundsOnRestore( void ) override { return false; }
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 };
 
 #endif //ENVELIGHT_H

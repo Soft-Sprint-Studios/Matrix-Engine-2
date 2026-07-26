@@ -265,7 +265,7 @@ void CToggleEntity::LinearMoveDone( void )
 	// Snap entity to final position, and also make sure
 	// ground entities don't get stuck
 	Vector origDiff = m_pEdict->state.origin - m_finalDest;
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_finalDest);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_finalDest, false);
 	SyncGroundEntities(origDiff);
 
 	// Clear velocity and thinking
@@ -284,7 +284,7 @@ void CToggleEntity::LinearMoveDone( void )
 void CToggleEntity::AngularMoveDone( void )
 {
 	// Set final angles
-	m_pState->angles = m_finalAngle;
+	SetAngles(m_finalAngle);
 
 	// Clear velocity and thinking
 	m_pState->avelocity.Clear();
@@ -330,8 +330,190 @@ void CToggleEntity::SyncGroundEntities( const Vector& adjustVec )
 			Vector edictOrigin = pedict->state.origin;
 			edictOrigin -= adjustVec;
 
-			gd_engfuncs.pfnSetOrigin(pedict, edictOrigin);
+			gd_engfuncs.pfnSetOrigin(pedict, edictOrigin, false);
 		}
+	}
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CToggleEntity::BeginParentMovement( CBaseEntity* pParent )
+{
+	CDelayEntity::BeginParentMovement(pParent);
+
+	AddParentMoveRestoreField(DEFINE_DATA_FIELD(CToggleEntity, m_position1,		EFIELD_VECTOR),	reinterpret_cast<byte*>(&m_position1),	sizeof(Vector),	1);
+	AddParentMoveRestoreField(DEFINE_DATA_FIELD(CToggleEntity, m_position2,		EFIELD_VECTOR),	reinterpret_cast<byte*>(&m_position2),	sizeof(Vector),	1);
+	AddParentMoveRestoreField(DEFINE_DATA_FIELD(CToggleEntity, m_angle1,		EFIELD_VECTOR),	reinterpret_cast<byte*>(&m_angle1),		sizeof(Vector),	1);
+	AddParentMoveRestoreField(DEFINE_DATA_FIELD(CToggleEntity, m_angle2,		EFIELD_VECTOR),	reinterpret_cast<byte*>(&m_angle2),		sizeof(Vector),	1);
+	AddParentMoveRestoreField(DEFINE_DATA_FIELD(CToggleEntity, m_finalDest,		EFIELD_VECTOR),	reinterpret_cast<byte*>(&m_finalDest),	sizeof(Vector),	1);
+	AddParentMoveRestoreField(DEFINE_DATA_FIELD(CToggleEntity, m_finalAngle,	EFIELD_VECTOR),	reinterpret_cast<byte*>(&m_finalAngle),	sizeof(Vector),	1);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CToggleEntity::RotateEntityByParent( CBaseEntity* pRotatorParent, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& rotatorAngularMove )
+{
+	CDelayEntity::RotateEntityByParent(pRotatorParent, pPrevRotationMatrix, pCurRotationMatrix, rotatorAngularMove);
+
+	// Move position into local space
+	Vector local, tmp1, tmp2;
+	const Vector& rotatorOrigin = pRotatorParent->GetOrigin();
+
+	// Move m_position1 into new space
+	Math::VectorSubtract(m_position1, rotatorOrigin, local);
+	Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+	Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+	Math::VectorAdd(tmp2, rotatorOrigin, m_position1);
+
+	// Move m_position2 into new space
+	Math::VectorSubtract(m_position2, rotatorOrigin, local);
+	Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+	Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+	Math::VectorAdd(tmp2, rotatorOrigin, m_position2);
+
+	// Move m_finalDest into new space
+	Math::VectorSubtract(m_finalDest, rotatorOrigin, local);
+	Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+	Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+	Math::VectorAdd(tmp2, rotatorOrigin, m_finalDest);
+
+	// Add rotator angular movement to relevant variables
+	Math::VectorAdd(m_angle1, rotatorAngularMove, m_angle1);
+	Math::VectorAdd(m_angle2, rotatorAngularMove, m_angle2);
+	Math::VectorAdd(m_finalAngle, rotatorAngularMove, m_finalAngle);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CToggleEntity::MoveEntityByParent( CBaseEntity* pParent, const Vector& parentMovement )
+{
+	CDelayEntity::MoveEntityByParent(pParent, parentMovement);
+
+	// Move positional variables into new spot
+	Math::VectorAdd(m_position1, parentMovement, m_position1);
+	Math::VectorAdd(m_position2, parentMovement, m_position2);
+	Math::VectorAdd(m_finalDest, parentMovement, m_finalDest);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CToggleEntity::OnParentEntitySetAngles( CBaseEntity* pSetParent, const Vector& parentOrigin, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange )
+{
+	CDelayEntity::OnParentEntitySetAngles(pSetParent, parentOrigin, pPrevRotationMatrix, pCurRotationMatrix, angularChange);
+
+	// Move position into local space
+	Vector local, tmp1, tmp2;
+
+	// Move m_position1 into new space
+	Math::VectorSubtract(m_position1, parentOrigin, local);
+	Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+	Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+	Math::VectorAdd(tmp2, parentOrigin, m_position1);
+
+	// Move m_position2 into new space
+	Math::VectorSubtract(m_position2, parentOrigin, local);
+	Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+	Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+	Math::VectorAdd(tmp2, parentOrigin, m_position2);
+
+	// Move m_finalDest into new space
+	Math::VectorSubtract(m_finalDest, parentOrigin, local);
+	Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+	Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+	Math::VectorAdd(tmp2, parentOrigin, m_finalDest);
+
+	// Add rotator angular movement to relevant variables
+	Math::VectorAdd(m_angle1, angularChange, m_angle1);
+	Math::VectorAdd(m_angle2, angularChange, m_angle2);
+	Math::VectorAdd(m_finalAngle, angularChange, m_finalAngle);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CToggleEntity::OnParentEntitySetOrigin( CBaseEntity* pSetParent, const Vector& parentPrevOrigin, const Vector& parentCurOrigin )
+{
+	CDelayEntity::OnParentEntitySetOrigin(pSetParent, parentPrevOrigin, parentCurOrigin);
+
+	// Move positional variables into new spot
+	Vector localoffset;
+	Math::VectorSubtract(m_position1, parentPrevOrigin, localoffset);
+	Math::VectorAdd(localoffset, parentCurOrigin, m_position1);
+
+	Math::VectorSubtract(m_position2, parentPrevOrigin, localoffset);
+	Math::VectorAdd(localoffset, parentCurOrigin, m_position2);
+
+	Math::VectorSubtract(m_finalDest, parentPrevOrigin, localoffset);
+	Math::VectorAdd(localoffset, parentCurOrigin, m_finalDest);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CToggleEntity::OnEntitySetAngles( const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange, bool realignEntity )
+{
+	CDelayEntity::OnEntitySetAngles(pPrevRotationMatrix, pCurRotationMatrix, angularChange, realignEntity);
+
+	if(realignEntity)
+	{
+		// Move position into local space
+		Vector local, tmp1, tmp2;
+
+		// Move m_position1 into new space
+		Math::VectorSubtract(m_position1, m_pState->origin, local);
+		Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+		Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+		Math::VectorAdd(tmp2, m_pState->origin, m_position1);
+
+		// Move m_position2 into new space
+		Math::VectorSubtract(m_position2, m_pState->origin, local);
+		Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+		Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+		Math::VectorAdd(tmp2, m_pState->origin, m_position2);
+
+		// Move m_finalDest into new space
+		Math::VectorSubtract(m_finalDest, m_pState->origin, local);
+		Math::VectorInverseRotate(local, pPrevRotationMatrix, tmp1);
+		Math::VectorRotate(tmp1, pCurRotationMatrix, tmp2);
+		Math::VectorAdd(tmp2, m_pState->origin, m_finalDest);
+
+		// Add rotator angular movement to relevant variables
+		Math::VectorAdd(m_angle1, angularChange, m_angle1);
+		Math::VectorAdd(m_angle2, angularChange, m_angle2);
+		Math::VectorAdd(m_finalAngle, angularChange, m_finalAngle);
+	}
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CToggleEntity::OnEntitySetOrigin( const Vector& prevOrigin, const Vector& curOrigin, bool realignEntity )
+{
+	CDelayEntity::OnEntitySetOrigin(prevOrigin, curOrigin, realignEntity);
+
+	// Move positional variables into new spot
+	if(realignEntity)
+	{
+		Vector localoffset;
+		Math::VectorSubtract(m_position1, prevOrigin, localoffset);
+		Math::VectorAdd(localoffset, curOrigin, m_position1);
+
+		Math::VectorSubtract(m_position2, prevOrigin, localoffset);
+		Math::VectorAdd(localoffset, curOrigin, m_position2);
+
+		Math::VectorSubtract(m_finalDest, prevOrigin, localoffset);
+		Math::VectorAdd(localoffset, curOrigin, m_finalDest);
 	}
 }
 

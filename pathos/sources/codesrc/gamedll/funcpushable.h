@@ -45,6 +45,7 @@ public:
 	virtual Int32 GetEntityFlags( void ) override { return (CDelayEntity::GetEntityFlags() & ~FL_ENTITY_TRANSITION) | FL_ENTITY_CONTINOUS_USE; }
 	virtual bool CanBlackHolePull( void ) const override { return true; };
 	virtual bool IsFuncPushableEntity( void ) const override { return true; }
+	virtual bool CanEntityBeParent( void ) const override { return true; }
 
 public:
 	Float GetMaxSpeed( void ) const;

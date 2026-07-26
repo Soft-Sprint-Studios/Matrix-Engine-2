@@ -52,6 +52,7 @@ public:
 	virtual void Reroute( CBaseEntity* pTarget, Float speed ) override;
 	virtual void MoveTrainToPathCorner( CBaseEntity* pPathCorner, CBaseEntity* pTargetingPathCorner ) override;
 	virtual bool IsFuncTrainEntity( void ) override { return true; }
+	virtual bool CanEntityBeParent( void ) const override { return true; }
 
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
 	virtual void CallBlocked( CBaseEntity* pBlocker ) override;
@@ -72,5 +73,6 @@ private:
 	string_t		m_currentPathCornerName;
 	bool			m_isSoundPlaying;
 	bool			m_skipSounds;
+	bool			m_wasManuallyStopped;
 };
 #endif //FUNCTRAIN_H

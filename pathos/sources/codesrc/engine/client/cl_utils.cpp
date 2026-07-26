@@ -392,7 +392,12 @@ const font_set_t* CL_GetResolutionSchemaFontSet( const Char* schemaFileName, Uin
 //=============================================
 bool CL_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles, Float* poutstylevalues )
 {
-	bool result = Mod_RecursiveLightPoint(pworld, pnode, start, end, poutcolors, poutstyles);
+	// Get overdarken treshold
+	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
+	if(overdarken < 0)
+		overdarken = 0;
+
+	bool result = Mod_RecursiveLightPoint(pworld, pnode, start, end, poutcolors, poutstyles, overdarken);
 
 	if(result && poutstyles && poutstylevalues)
 	{
@@ -417,7 +422,12 @@ bool CL_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const V
 //=============================================
 extern bool CL_RecursiveLightPointBumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles, Float* poutstylevalues )
 {
-	bool result = Mod_RecursiveLightPoint_BumpData(pworld, pnode, start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles);
+	// Get overdarken treshold
+	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
+	if(overdarken < 0)
+		overdarken = 0;
+
+	bool result = Mod_RecursiveLightPoint_BumpData(pworld, pnode, start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, overdarken);
 
 	if(result && poutstyles && poutstylevalues)
 	{

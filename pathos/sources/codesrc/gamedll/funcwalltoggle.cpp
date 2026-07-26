@@ -78,7 +78,7 @@ void CFuncWallToggle::TurnOff( void )
 	if(!HasSpawnFlag(FL_ALWAYS_INVISIBLE))
 		m_pState->effects |= EF_NODRAW;
 
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 }
 
 //=============================================
@@ -93,7 +93,7 @@ void CFuncWallToggle::TurnOn( void )
 	if(!HasSpawnFlag(FL_ALWAYS_INVISIBLE))
 		m_pState->effects &= ~EF_NODRAW;
 
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 }
 
 //=============================================

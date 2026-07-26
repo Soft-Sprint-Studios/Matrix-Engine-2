@@ -25,6 +25,7 @@ public:
 	virtual void DeclareSaveFields( void ) override;
 	virtual bool KeyValue( const keyvalue_t& kv ) override;
 	virtual void CallTouch( CBaseEntity* pOther ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	Int32 m_roomType;

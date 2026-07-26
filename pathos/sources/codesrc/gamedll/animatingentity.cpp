@@ -1079,8 +1079,6 @@ bool CAnimatingEntity::GetSequenceBox( entity_state_t& state, Vector& mins, Vect
 	}
 
 	Vector angles = state.angles;
-	angles[PITCH] *= -1;
-
 	Float rotationmatrix[3][4];
 	Math::AngleMatrix(angles, rotationmatrix);
 

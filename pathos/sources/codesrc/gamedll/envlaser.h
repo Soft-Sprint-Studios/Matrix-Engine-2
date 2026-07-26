@@ -33,6 +33,8 @@ public:
 	virtual bool KeyValue( const keyvalue_t& kv ) override;
 	// Calls use function
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
+	// TRUE if entity can be parented by another
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	// Turns the laser on

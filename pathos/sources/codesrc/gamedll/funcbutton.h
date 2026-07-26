@@ -63,6 +63,7 @@ public:
 	virtual bool IsFuncButtonEntity( void ) const override { return true; }
 	virtual void SetPairedButtonDelay( Float delayTime ) override;
 	virtual usableobject_type_t GetUsableObjectType( void ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	void EXPORTFN ButtonUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value );

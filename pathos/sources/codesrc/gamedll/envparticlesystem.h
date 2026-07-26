@@ -43,6 +43,7 @@ public:
 	virtual bool Restore( void ) override;
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
 	virtual void SendInitMessage( const CBaseEntity* pPlayer ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	entindex_t GetTargetEntityIndex( void );

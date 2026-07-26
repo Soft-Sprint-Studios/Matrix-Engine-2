@@ -100,7 +100,7 @@ bool CFuncPushable::Spawn( void )
 			m_pState->takedamage = TAKEDAMAGE_YES;
 
 		m_angle = m_pState->angles.y;
-		m_pState->angles.y = 0;
+		SetYaw(0);
 	}
 
 	m_pState->solid = SOLID_BBOX;
@@ -120,8 +120,9 @@ bool CFuncPushable::Spawn( void )
 	m_pState->flags |= FL_FLOAT;
 
 	// List it off the ground a bit
-	m_pState->origin.z += 1;
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	Vector liftOrigin = m_pState->origin;
+	liftOrigin.z += 1;
+	SetOrigin(liftOrigin);
 
 	// Set up bouyancy properly
 	m_pState->skin = (m_pState->skin

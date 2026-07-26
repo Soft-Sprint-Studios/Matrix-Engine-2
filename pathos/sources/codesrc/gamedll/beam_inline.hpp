@@ -52,7 +52,7 @@ inline Int32 CBeam::GetBeamFlags( void ) const
 //=============================================
 inline void CBeam::SetBeamStartPosition( const Vector& position )
 {
-	m_pState->origin = position;
+	SetOrigin(position);
 }
 
 //=============================================

@@ -159,16 +159,20 @@ namespace Util
 	//=============================================
 	//
 	//=============================================
-	void SetMoveDirection( entity_state_t& state )
+	void SetMoveDirection( CBaseEntity* pEntity )
 	{
-		if(state.angles == Vector(0, -1, 0))
-			state.movedir = Vector(0, 0, 1);
-		else if(state.angles == Vector(0, -2, 0))
-			state.movedir = Vector(0, 0, -1);
-		else
-			Math::AngleVectors(state.angles, &state.movedir, nullptr, nullptr);
+		const Vector& angles = pEntity->GetAngles();
 
-		state.angles = ZERO_VECTOR;
+		Vector movedir;
+		if(angles == Vector(0, -1, 0))
+			movedir = Vector(0, 0, 1);
+		else if(angles == Vector(0, -2, 0))
+			movedir = Vector(0, 0, -1);
+		else
+			Math::AngleVectors(angles, &movedir, nullptr, nullptr);
+
+		pEntity->SetAngles(ZERO_VECTOR);
+		pEntity->SetMovementDirection(movedir);
 	}
 
 	//=============================================
@@ -1234,7 +1238,7 @@ namespace Util
 		pedict->state.effects |= EF_NODRAW;
 		pedict->state.nextthink = 0;
 		
-		gd_engfuncs.pfnSetOrigin(pedict, pedict->state.origin);
+		gd_engfuncs.pfnSetOrigin(pedict, pedict->state.origin, false);
 	}
 
 	//=============================================
@@ -1940,20 +1944,23 @@ namespace Util
 	// @brief
 	//
 	//=============================================
-	void AlignEntityToSurface( edict_t* pedict )
+	void AlignEntityToSurface( CBaseEntity* pEntity )
 	{
 		// Reset pitch pitch and roll
-		pedict->state.angles[0] = 0;
-		pedict->state.angles[2] = 0;
+		pEntity->SetPitch(0);
+		pEntity->SetRoll(0);
+
+		const Vector& angles = pEntity->GetAngles();
+		const Vector& origin = pEntity->GetOrigin();
 
 		trace_t tr;
-		Util::TraceLine(pedict->state.origin+Vector(0, 0, 8), pedict->state.origin-Vector(0, 0, 8), false, false, pedict, tr);
+		Util::TraceLine(origin+Vector(0, 0, 8), origin-Vector(0, 0, 8), false, false, pEntity->GetEdict(), tr);
 		if(tr.noHit() || tr.allSolid() || tr.startSolid())
 			return;
 
 		// Do not directly use m_pState->angles
-		Vector newangles = Math::AdjustAnglesToNormal(tr.plane.normal, pedict->state.angles);
-		pedict->state.angles = newangles;
+		Vector newangles = Math::AdjustAnglesToNormal(tr.plane.normal, angles);
+		pEntity->SetAngles(newangles);
 	}
 
 	//=============================================

@@ -684,7 +684,7 @@
   LightningEnd(target_destination) : "Ending Entity" 
 ]
 
-@PointClass base(Targetname, BeamStartEnd, RenderFxChoices) size(-16 -16 -16, 16 16 16) = env_beam : "Energy Beam Effect"
+@PointClass base(Targetname, ParentedEnt, BeamStartEnd, RenderFxChoices) size(-16 -16 -16, 16 16 16) = env_beam : "Energy Beam Effect"
 [
   renderamt(integer) : "Brightness (1 - 255)" : 100
   rendercolor(color255) : "Beam Color (R G B)" : "0 0 0"
@@ -740,7 +740,7 @@
   ] 
 ]
 
-@PointClass base(Targetname) size(-16 -16 -16, 16 16 16) color(0 128 255) = env_beamfx : "Special beam effect"
+@PointClass base(Targetname, ParentedEnt) size(-16 -16 -16, 16 16 16) color(0 128 255) = env_beamfx : "Special beam effect"
 [
   rendercolor(color255) : "Render Color" : "255 255 255"
   renderamt(integer) : "Brightness" : 255
@@ -781,7 +781,7 @@
     6 : "Random"
   ]
 ]
-@PointClass base(Targetname, Angles) size(-16 -16 -16, 16 16 16) color(255 0 0) = env_blood : "Blood Effects"  []
+@PointClass base(Targetname, Angles, ParentedEnt) size(-16 -16 -16, 16 16 16) color(255 0 0) = env_blood : "Blood Effects"  []
 @PointClass base(Targetname) size(-16 -16 -16, 16 16 16) = env_blackandwhite : "Black and White Effect"
 [
   strength(integer) : "Effect strength" : 1
@@ -840,7 +840,7 @@
 	2 : "Global" : 0
   ]
 ]
-@SolidClass base(Targetname, ZHLT) = env_bubbles : "Bubble Volume" 
+@SolidClass base(Targetname, ParentedEnt, ZHLT) = env_bubbles : "Bubble Volume" 
 [
   density(integer) : "Bubble density" : 2
   frequency(integer) : "Bubble frequency" : 2
@@ -872,7 +872,7 @@
   ]
   parallax_target(target_destination) : "Parallax OBB Name" : ""
 ]
-@PointClass base(Targetname) size(-8 -8 -8, 8 8 8) color(230 230 255) = env_decal: "Decal Entity" 
+@PointClass base(Targetname, ParentedEnt) size(-8 -8 -8, 8 8 8) color(230 230 255) = env_decal: "Decal Entity" 
 [
   message(string) : "Decal entry/group name"
   growthtime(integer) : "Growth duration" : 0
@@ -887,7 +887,7 @@
   ]
 ]
 
-@PointClass base(Targetname, RenderFxChoices, LightStyle) iconsprite("sprites/lightbulb.spr") size(-8 -8 -8, 8 8 8) = env_dlight : "Dynamic light"
+@PointClass base(Targetname, ParentedEnt, RenderFxChoices, LightStyle) iconsprite("sprites/lightbulb.spr") size(-8 -8 -8, 8 8 8) = env_dlight : "Dynamic light"
 [
   renderamt(integer) : "Radius" : 15
   rendercolor(color255) : "Render Color" : "255 255 255"
@@ -933,7 +933,7 @@
   duration(string) : "Duration" : "4"
   fadetime(string) : "Fade out time" : "0"
 ]
-@PointClass base(Targetname) iconsprite("sprites/lightbulb.spr") size(-16 -16 -16, 16 16 16) = env_elight : "Model light"
+@PointClass base(Targetname, ParentedEnt) iconsprite("sprites/lightbulb.spr") size(-16 -16 -16, 16 16 16) = env_elight : "Model light"
 [
   renderamt(integer) : "Radius(units / 9.5)" : 15
   rendercolor(color255) : "Render Color" : "255 255 255"
@@ -1031,7 +1031,7 @@
     4 : "Clear Others on First" : 0
   ]
 ]
-@PointClass base(Targetname) size(-16 -16 -16, 16 16 16) = env_funnel : "Large Portal Funnel" 
+@PointClass base(Targetname, ParentedEnt) size(-16 -16 -16, 16 16 16) = env_funnel : "Large Portal Funnel" 
 [
   spritemodel(sprite) : "Sprite Name"
   spawnflags(flags) =
@@ -1062,7 +1062,7 @@
 	]
 ]
 
-@PointClass sprite() base(Targetname, RenderFields) size(-4 -4 -4, 4 4 4) color(30 100 0) = env_glow : "Light Glow/Haze" 
+@PointClass sprite() base(Targetname, ParentedEnt, RenderFields) size(-4 -4 -4, 4 4 4) color(30 100 0) = env_glow : "Light Glow/Haze" 
 [
 	model(sprite) : "Sprite Name" : "sprites/glow01.spr"
 	scale(integer) : "Scale" : 1
@@ -1076,7 +1076,7 @@
     1: "Play Once" : 0
   ]
 ]
-@PointClass base(Targetname) = env_implosion : "Tracer Implosion Effect"
+@PointClass base(Targetname, ParentedEnt) = env_implosion : "Tracer Implosion Effect"
 [
   renderamt(integer) : "FX Amount (1 - 255)"
   rendercolor(color255) : "FX Color (R G B)" : "0 0 0"
@@ -1104,7 +1104,7 @@
     2 : "Start Disabled" : 0
   ] 
 ]
-@PointClass base(Targetname, RenderFxChoices) size(-16 -16 -16, 16 16 16) = env_laser : "Laser Beam Effect"
+@PointClass base(Targetname, ParentedEnt, RenderFxChoices) size(-16 -16 -16, 16 16 16) = env_laser : "Laser Beam Effect"
 [
   LaserTarget(target_destination) : "Target of Laser" 
   renderamt(integer) : "Brightness (1 - 255)" : 100
@@ -1125,7 +1125,7 @@
   ]
 ]
 
-@PointClass base(Targetname) size(-16 -16 -16, 16 16 16) = env_lensflare : "Lens Flare" 
+@PointClass base(Targetname, ParentedEnt) size(-16 -16 -16, 16 16 16) = env_lensflare : "Lens Flare" 
 [
   rendercolor(color255) : "Render Color" : "255 255 255"
   renderamt(integer) : "Render amount" : 255
@@ -1157,7 +1157,7 @@
     3 : "Play Everywhere"
   ]
 ]
-@PointClass base(Angles, Targetname, RenderFields) size(-16 -16 0, 16 16 36) studio() = env_model : "Model" 
+@PointClass base(Angles, Targetname, ParentedEnt, RenderFields) size(-16 -16 0, 16 16 36) studio() = env_model : "Model" 
 [
   model(studio) : "Model"
   body(Integer) : "Body" : 0
@@ -1234,7 +1234,7 @@
   effectminalpha(string) : "Effect minimum alpha" : "0.2"
   fadetime(string) : "Effect fade in/out time" : "0"
 ]
-@PointClass base(Targetname, Target, Angles) = env_particle_system: "Particle System"
+@PointClass base(Targetname, ParentedEnt, Target, Angles) = env_particle_system: "Particle System"
 [
 	spawnflags(flags) =
 	[
@@ -1257,7 +1257,7 @@
         2 : "Vector from two attachments"
   	]
 ]
-@PointClass base(Targetname, Target, Angles) = env_particleeffect: "Particle Effect"
+@PointClass base(Targetname, ParentedEnt, Target, Angles) = env_particleeffect: "Particle Effect"
 [
   	type(Choices) : "Effect type" : 0 =
   	[
@@ -1340,7 +1340,7 @@
 		28: "Weird 3"
 	]
 ]
-@PointClass base(Targetname, Angles) size(-16 -16 -16, 16 16 16) studio("models/props/emergency_light.mdl") = env_rot_light : "Emergency light"
+@PointClass base(Targetname, ParentedEnt, Angles) size(-16 -16 -16, 16 16 16) studio("models/props/emergency_light.mdl") = env_rot_light : "Emergency light"
 [
   framerate(integer) : "Framerate(0-1)" : 1
   rendercolor(color255) : "Render Color" : "0 0 0"
@@ -1390,7 +1390,7 @@
     2 : "Do not send off message" : 0
   ]  
 ]
-@PointClass base(gibshooterbase, RenderFields) size(-16 -16 -16, 16 16 16) = env_shooter : "Model Shooter"
+@PointClass base(gibshooterbase, ParentedEnt, RenderFields) size(-16 -16 -16, 16 16 16) = env_shooter : "Model Shooter"
 [
   shootmodel(studio) : "Model or Sprite name" : ""
   shootsounds(choices) :"Material Sound" : -1 =
@@ -1405,7 +1405,7 @@
   scale(string) : "Gib Sprite Scale" : ""
   skin(integer) : "Gib Skin" : 0
 ]
-@PointClass base(Targetname, Angles) size(-16 -16 -16, 16 16 16) = env_spark : "Spark" 
+@PointClass base(Targetname, ParentedEnt, Angles) size(-16 -16 -16, 16 16 16) = env_spark : "Spark" 
 [
   MaxDelay(string) : "Max Delay" : "0"
   spawnflags(flags) =
@@ -1422,7 +1422,7 @@
       1 : "Disable"
   ]
 ]
-@PointClass base(Targetname, Angles, RenderFxChoices, LightStyle) size(-8 -8 -8, 8 8 8) = env_spotlight : "SpotLight"
+@PointClass base(Targetname, ParentedEnt, Angles, RenderFxChoices, LightStyle) size(-8 -8 -8, 8 8 8) = env_spotlight : "SpotLight"
 [
   renderamt(integer) : "Radius" : 15
   rendercolor(color255) : "Render Color" : "255 255 255"
@@ -1447,7 +1447,7 @@
     1 : "Start On" : 0
   ]
 ]
-@PointClass sprite() base(Targetname, RenderFields, Angles) size(-4 -4 -4, 4 4 4) = env_sprite : "Sprite Effect" 
+@PointClass sprite() base(Targetname, ParentedEnt, RenderFields, Angles) size(-4 -4 -4, 4 4 4) = env_sprite : "Sprite Effect" 
 [
 	framerate(string) : "Framerate" : "10.0"
 	model(sprite) : "Sprite Name" : "sprites/glow01.spr"
@@ -1491,7 +1491,7 @@
     2 : "Portal Sun" : 0
   ] 
 ]
-@PointClass base(Targetname, Target, Angles) = env_tracereffect: "Tracer Effect"
+@PointClass base(Targetname, ParentedEnt, Target, Angles) = env_tracereffect: "Tracer Effect"
 [
 	renderamt(integer) : "FX Amount (1 - 255)"
 	rendercolor(color255) : "FX Color (R G B)" : "0 0 0"
@@ -1581,12 +1581,12 @@
 
 @SolidClass = func_bike_block : "Bike blocker" []
 
-@SolidClass base(Breakable, RenderFields, Angles, NoclipEnt, ZHLT) = func_breakable : "Breakable Object" 
+@SolidClass base(Breakable, ParentedEnt, RenderFields, Angles, NoclipEnt, ZHLT) = func_breakable : "Breakable Object" 
 [
   _minlight(string) : "Minimum light level"
 ]
 
-@SolidClass base(Targetname, Global, RenderFields, Angles, ZHLT, NoclipEnt) = func_button : "Button" 
+@SolidClass base(Targetname, ParentedEnt, Global, RenderFields, Angles, ZHLT, NoclipEnt) = func_button : "Button" 
 [
   speed(integer) : "Speed" : 5
   target(target_destination) : "Targetted object"
@@ -1691,7 +1691,7 @@
     1 : "Take Angles" : 0
   ] 
 ]
-@SolidClass base(Targetname, Global, RenderFields, Angles, ZHLT) = func_conveyor : "Conveyor Belt" 
+@SolidClass base(Targetname, ParentedEnt, Global, RenderFields, Angles, ZHLT) = func_conveyor : "Conveyor Belt" 
 [
   spawnflags(flags) =
   [
@@ -1702,9 +1702,9 @@
   speed(string) : "Conveyor Speed" : "100"
   _minlight(string) : "Minimum light level"
 ]
-@SolidClass base(Door, ZHLT, NoclipEnt) = func_door : "Basic door" []
+@SolidClass base(Door, ParentedEnt, ZHLT, NoclipEnt) = func_door : "Basic door" []
 
-@SolidClass base(Door, ZHLT, NoclipEnt) = func_door_rotating : "Rotating door" 
+@SolidClass base(Door, ParentedEnt, ZHLT, NoclipEnt) = func_door_rotating : "Rotating door" 
 [
   spawnflags(flags) =
   [
@@ -1716,18 +1716,18 @@
   distance(integer) : "Distance (deg)" : 90
   angles(string) : "Pitch Yaw Roll (Y Z X)" : "0 0 0"
 ]
-@SolidClass base(Targetname, Global, Appearflags, RenderFields, ZHLT) = func_fade : "Fade Entity" 
+@SolidClass base(Targetname, ParentedEnt, Global, Appearflags, RenderFields, ZHLT) = func_fade : "Fade Entity" 
 [
   _minlight(string) : "Minimum light level"
   fadetime(integer) : "Fade duration" : 0
   targetalpha(integer) : "Target opacity" : 255
 ]
-@SolidClass base(Appearflags, RenderFields, ZHLT) = func_friction : "Surface with a change in friction" 
+@SolidClass base(Appearflags, ParentedEnt, RenderFields, ZHLT) = func_friction : "Surface with a change in friction" 
 [
   modifier(integer) : "Percentage of standard (0 - 100)" : 15
 ]
 
-@SolidClass base(Targetname, Angles, RenderFields, ZHLT) = func_illusionary : "Fake Wall/Light" 
+@SolidClass base(Targetname, ParentedEnt, Angles, RenderFields, ZHLT) = func_illusionary : "Fake Wall/Light" 
 [
 
 	skin(choices) : "Contents" : -1 =
@@ -1749,14 +1749,14 @@
 
 // THIS CREATES AN INVISIBLE CLIMBABLE FIELD
 // You must create the physical ladder yourself
-@SolidClass base(Targetname) = func_ladder : "Ladder" []
+@SolidClass base(Targetname, ParentedEnt) = func_ladder : "Ladder" []
 
-@SolidClass base(Targetname, Appearflags) = func_mirror : "Mirror" []
+@SolidClass base(Targetname, ParentedEnt, Appearflags) = func_mirror : "Mirror" []
 @SolidClass base(RenderFields) = func_null : "Null brush entity" 
 [
   zhlt_noclip(integer) : "Noclip" : 1
 ]
-@SolidClass base(Targetname, NoclipEnt) = func_monitor : "Monitor Entity" 
+@SolidClass base(Targetname, ParentedEnt, NoclipEnt) = func_monitor : "Monitor Entity" 
 [
 	target(target_destination) : "Camera Entity"
 	skin(choices) : "Resolution" : 0 =
@@ -1783,7 +1783,7 @@
 ]
 
 // blocks NPC path ai
-@SolidClass base(Targetname) = func_npcclip : "NPC clip brush" 
+@SolidClass base(Targetname, ParentedEnt) = func_npcclip : "NPC clip brush" 
 [
   spawnflags(flags) =
   [
@@ -1791,10 +1791,10 @@
   ]
 ]
 
-@SolidClass base(Targetname) = func_particle_blocker : "Particle blocker brush" []
+@SolidClass base(Targetname, ParentedEnt) = func_particle_blocker : "Particle blocker brush" []
 
 // not fully implemented
-@SolidClass base(Appearflags, Targetname, Global, RenderFields, Angles, ZHLT) = func_pendulum : "Swings back and forth" 
+@SolidClass base(Appearflags, ParentedEnt, Targetname, Global, RenderFields, Angles, ZHLT) = func_pendulum : "Swings back and forth" 
 [
   speed(integer) : "Speed" : 100
   distance(integer) : "Distance (deg)" : 90
@@ -1836,7 +1836,7 @@
   rotation(integer) : "Spin amount" : 0
   _minlight(string) : "Minimum light level"
 ]
-@SolidClass base(Targetname, NoclipEnt) = func_portal_surface : "Portal surface entity" 
+@SolidClass base(Targetname, ParentedEnt, NoclipEnt) = func_portal_surface : "Portal surface entity" 
 [
   target(target_destination) : "Portal marker entity"
   spawnflags(flags) =
@@ -1863,7 +1863,7 @@
   _minlight(string) : "Minimum light level"
 ]
 
-@SolidClass base(Targetname, Global, RenderFields, Angles, ZHLT) = func_rot_button : "RotatingButton" 
+@SolidClass base(Targetname, ParentedEnt, Global, RenderFields, Angles, ZHLT) = func_rot_button : "RotatingButton" 
 [
   target(target_destination) : "Targetted object"
   lockedtarget(target_destination) : "Trigger when used and locked"
@@ -1896,7 +1896,7 @@
   _minlight(integer) : "_minlight"
 ]
 
-@SolidClass base(Targetname, Global, RenderFields, Angles, ZHLT) = func_rotating : "Rotating Object"
+@SolidClass base(Targetname, ParentedEnt, Global, RenderFields, Angles, ZHLT) = func_rotating : "Rotating Object"
 [
   speed(integer)  : "Rotation Speed" : 0
   volume(integer) : "Volume (10 = loudest)" : 10
@@ -1928,7 +1928,7 @@
   spawnorigin(string) : "X Y Z - Move here after lighting" : "0 0 0"
   dmg(integer) : "Damage inflicted when blocked" : 0
 ]
-@SolidClass base(Appearflags, RenderFields, ZHLT) = func_slippery : "Surface with a change in slipperiness" 
+@SolidClass base(Appearflags, ParentedEnt, RenderFields, ZHLT) = func_slippery : "Surface with a change in slipperiness" 
 [
   factor(integer) : "Slipperiness factor(0-10)" : 5
 ]
@@ -2733,7 +2733,7 @@
   p3globalstate(string) : "Priority L3 Global State"
 ]
 
-@SolidClass base(Targetname) = trigger_autosave : "AutoSave Trigger"
+@SolidClass base(Targetname, ParentedEnt) = trigger_autosave : "AutoSave Trigger"
 [
   master(target_destination) : "Master" 
   spawnflags(Flags) =
@@ -2867,7 +2867,7 @@
   gravity(integer) : "Gravity (0-1)" : 1
 ]
 
-@SolidClass base(Targetname,Target) = trigger_hurt : "Trigger player hurt" 
+@SolidClass base(Targetname,Target, ParentedEnt) = trigger_hurt : "Trigger player hurt" 
 [
   spawnflags(flags) = 
   [ 
@@ -2978,9 +2978,9 @@
 	fadeouttime(Integer) : "Fade out time" : 0
 ]
 
-@SolidClass base(Trigger) = trigger_once : "Trigger: Activate once" []
+@SolidClass base(Trigger, ParentedEnt) = trigger_once : "Trigger: Activate once" []
 @PointClass base(Targetname) size(-8 -8 -8, 8 8 8) = trigger_paralyzeplayer : "Disable player movement input" []
-@SolidClass base(Trigger, Angles) = trigger_push : "Trigger player push"
+@SolidClass base(Trigger, ParentedEnt, Angles) = trigger_push : "Trigger player push"
 [
   spawnflags(flags) = 
   [ 
@@ -3129,7 +3129,7 @@
 	]
 ]
 
-@SolidClass base(Trigger) = trigger_teleport : "Trigger teleport"
+@SolidClass base(Trigger, ParentedEnt) = trigger_teleport : "Trigger teleport"
 [
   spawnflags(Flags) =
   [

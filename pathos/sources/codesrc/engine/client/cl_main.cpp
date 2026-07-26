@@ -1371,43 +1371,6 @@ Uint32 CL_GetMaxClients( void )
 //=============================================
 void CL_UpdateParentedEntities( void )
 {
-	cl_entity_t* pplayer = CL_GetLocalPlayer();
-	if(!pplayer)
-		return;
-
-	for(Int32 i = 0; i < cls.numentities; i++)
-	{
-		cl_entity_t* pentity = CL_GetEntityByIndex(i);
-		if(!pentity)
-			continue;
-
-		if(pentity->curstate.msg_num != pplayer->curstate.msg_num)
-			continue;
-
-		if(!pentity->pmodel)
-			continue;
-
-		if(pentity->curstate.effects & EF_NODRAW)
-			continue;
-
-		if(!(pentity->curstate.flags & FL_PARENTED)
-			|| pentity->curstate.parent == NO_ENTITY_INDEX)
-			continue;
-
-		cl_entity_t* pparent = CL_GetEntityByIndex(pentity->curstate.parent);
-		if(!pparent)
-			continue;
-
-		if(pparent->curstate.msg_num != pplayer->curstate.msg_num)
-			continue;
-
-		// Set origin always
-		pentity->curstate.origin = pparent->curstate.origin;
-		Math::VectorAdd(pentity->curstate.origin, pentity->curstate.parentoffset, pentity->curstate.origin);
-		
-		if(pentity->curstate.effects & EF_TRACKANGLES)
-			pentity->curstate.angles = pparent->curstate.angles;
-	}
 }
 
 //=============================================

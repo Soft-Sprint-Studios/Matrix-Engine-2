@@ -62,7 +62,7 @@ void CFuncDoorRotating::SetMovementVectors( void )
 	// Swap origins if starting open
 	if(HasSpawnFlag(FL_START_OPEN))
 	{
-		m_pState->angles = m_angle2;
+		SetAngles(m_angle2);
 		Vector saveAngle = m_angle2;
 		m_angle2 = m_angle1;
 		m_angle1 = saveAngle;
@@ -111,7 +111,7 @@ void CFuncDoorRotating::DoorBeginMoveDown( void )
 // @brief
 //
 //=============================================
-void CFuncDoorRotating::RealignRelatedDoor( CFuncDoor* pDoor )
+void CFuncDoorRotating::RealignRelatedDoor( CBaseEntity* pDoor )
 {
 	pDoor->SetAngles(m_pState->angles);
 	pDoor->SetAngularVelocity(ZERO_VECTOR);
@@ -129,7 +129,7 @@ void CFuncDoorRotating::SetToggleState( togglestate_t state, bool reverse )
 	else
 		setAngles = m_angle1 * (reverse ? -1 : 1);
 
-	m_pState->angles = setAngles;
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	SetAngles(setAngles);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 	m_toggleState = state;
 }

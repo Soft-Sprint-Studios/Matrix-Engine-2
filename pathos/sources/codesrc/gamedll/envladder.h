@@ -41,6 +41,7 @@ public:
 	virtual usableobject_type_t GetUsableObjectType( void ) override;
 	virtual void GetUseReticleMinsMaxs( Vector& outMins, Vector& outMaxs, CBaseEntity* pPlayer ) override;
 	virtual void TraceAttack( CBaseEntity* pAttacker, Float damage, const Vector& direction, trace_t& tr, Int32 damageFlags ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	void EnterLadder( CBaseEntity* pPlayer );

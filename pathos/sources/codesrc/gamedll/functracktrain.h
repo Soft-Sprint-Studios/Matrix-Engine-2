@@ -60,6 +60,7 @@ public:
 	virtual void OnOverrideEntity( void ) override;
 	virtual bool IsFuncTrackTrainEntity( void ) const override { return true; }
 	virtual void SetNextThink( Double thinkTime, bool alwaysThink ) override;
+	virtual bool CanEntityBeParent( void ) const override { return true; }
 
 public:
 	void EXPORTFN Next( void );

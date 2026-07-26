@@ -40,6 +40,7 @@ public:
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
 	virtual void DeclareSaveFields( void ) override;
 	virtual bloodcolor_t GetBloodColor( void ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	Float GetBloodAmount( void ) const;

@@ -523,24 +523,47 @@ bool CSaveRestore::LoadSaveData( const save_header_t* pheader, const Vector* pla
 				}
 				break;
 			case EFIELD_FLOAT:
+			case EFIELD_CARRAY_FLOAT:
 			case EFIELD_DOUBLE:
+			case EFIELD_CARRAY_DOUBLE:
 			case EFIELD_ENTINDEX:
+			case EFIELD_CARRAY_ENTINDEX:
 			case EFIELD_ENTPOINTER:
+			case EFIELD_CARRAY_ENTPOINTER:
 			case EFIELD_EDICT:
+			case EFIELD_CARRAY_EDICT:
 			case EFIELD_ENTSTATE:
+			case EFIELD_CARRAY_ENTSTATE:
 			case EFIELD_EHANDLE:
+			case EFIELD_CARRAY_EHANDLE:
 			case EFIELD_VECTOR:
+			case EFIELD_CARRAY_VECTOR:
 			case EFIELD_COORD:
+			case EFIELD_CARRAY_COORD:
 			case EFIELD_INT16:
+			case EFIELD_CARRAY_INT16:
 			case EFIELD_UINT16:
+			case EFIELD_CARRAY_UINT16:
 			case EFIELD_INT32:
+			case EFIELD_CARRAY_INT32:
 			case EFIELD_UINT32:
+			case EFIELD_CARRAY_UINT32:
 			case EFIELD_INT64:
+			case EFIELD_CARRAY_INT64:
 			case EFIELD_UINT64:
+			case EFIELD_CARRAY_UINT64:
 			case EFIELD_FUNCPTR:
 			case EFIELD_BOOLEAN:
+			case EFIELD_CARRAY_BOOLEAN:
 			case EFIELD_TIME:
 				{
+					// Allow server to prep the data
+					if(!svs.dllfuncs.pfnPrepareEntityStateData(pedict, fieldname.c_str(), pfield->numblocks, istransferglobal))
+					{
+						Con_EPrintf("%s - Failure while preparing entity class data for entity %d.\n", __FUNCTION__, pentity->entityindex);
+						return false;
+					}
+
 					for(Int32 k = 0; k < pfield->numblocks; k++)
 					{
 						const save_block_t* pdatablock = &pdatablocks[pfield->blockindex + k];

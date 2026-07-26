@@ -28,5 +28,6 @@ public:
 	virtual bool Spawn( void ) override;
 	virtual void Precache( void ) override { }
 	virtual Int32 GetEntityFlags( void ) override { return CBaseEntity::GetEntityFlags() & ~FL_ENTITY_TRANSITION; }
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 };
 #endif //FUNCCLIPECONOMY_H

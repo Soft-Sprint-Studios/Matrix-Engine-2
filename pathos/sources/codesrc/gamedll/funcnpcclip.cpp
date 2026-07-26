@@ -37,7 +37,8 @@ CFuncNPCClip::~CFuncNPCClip( void )
 //=============================================
 bool CFuncNPCClip::Spawn( void )
 {
-	m_pState->angles = ZERO_VECTOR;
+	SetAngles(ZERO_VECTOR);
+
 	m_pState->movetype = MOVETYPE_PUSH;
 	m_pState->effects |= EF_NODRAW;
 	m_pState->flags |= FL_WORLDBRUSH;
@@ -89,5 +90,5 @@ void CFuncNPCClip::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemo
 	}
 
 	// ALWAYS link to world
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 }

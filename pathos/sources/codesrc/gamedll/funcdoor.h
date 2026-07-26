@@ -60,6 +60,8 @@ public:
 	virtual Int32 GetEntityFlags( void ) override;
 	virtual void InitEntity( void ) override;
 	virtual void SendInitMessage( const CBaseEntity* pPlayer ) override;
+	virtual bool CanEntityBeParent( void ) const override { return true; }
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
 	virtual void CallBlocked( CBaseEntity* pOther ) override;
@@ -79,7 +81,7 @@ public:
 	virtual void DoorBeginMoveUp( void );
 	virtual void DoorBeginMoveDown( void );
 	virtual bool ShouldAutoCloseDoor( void );
-	virtual void RealignRelatedDoor( CFuncDoor* pDoor );
+	virtual void RealignRelatedDoor( CBaseEntity* pDoor );
 
 	bool DoorActivate( void );
 
@@ -100,14 +102,11 @@ protected:
 	bool m_forcedToClose;
 	bool m_isBlocked;
 	bool m_isSilent;
+	bool m_isOwnedChildDoor;
 
 	Vector m_activatorOrigin;
 	Double m_nextLockedSoundTime;
 
-	CFuncDoor* m_pSlaveDoors[MAX_SLAVE_DOORS];
-	Uint32 m_numSlaveDoors;
-
-	CFuncDoor* m_pRelatedDoors[MAX_RELATED_DOORS];
-	Uint32 m_numRelatedDoors;
+	CArray<CEntityHandle> m_relatedDoorsArray;
 };
 #endif //DOORENTITY_H

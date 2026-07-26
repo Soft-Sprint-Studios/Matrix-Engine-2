@@ -32,5 +32,6 @@ public:
 public:
 	virtual bool Spawn( void ) override;
 	virtual void CallTouch( CBaseEntity* pOther ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 };
 #endif //TRIGGERONCE_H

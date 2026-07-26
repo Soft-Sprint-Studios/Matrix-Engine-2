@@ -23,5 +23,6 @@ public:
 
 public:
 	virtual bool TrainSetModel( void ) override;
+	virtual bool CanEntityBeParent( void ) const override { return true; }
 };
 #endif //ENVMODELTRAIN_H

@@ -40,6 +40,14 @@ public:
 	virtual bool IsLockedByMaster( void ) override;
 	virtual Float GetWaitTime( void ) override { return m_waitTime; }
 
+	virtual void BeginParentMovement( CBaseEntity* pParent ) override;
+	virtual void RotateEntityByParent( CBaseEntity* pRotatorParent, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& rotatorAngularMove ) override;
+	virtual void MoveEntityByParent( CBaseEntity* pParent, const Vector& parentMovement ) override;
+	virtual void OnParentEntitySetAngles( CBaseEntity* pSetParent, const Vector& parentOrigin, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange ) override;
+	virtual void OnParentEntitySetOrigin( CBaseEntity* pSetParent, const Vector& parentPrevOrigin, const Vector& parentCurOrigin ) override;
+	virtual void OnEntitySetAngles( const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange, bool realignEntity ) override;
+	virtual void OnEntitySetOrigin( const Vector& prevOrigin, const Vector& curOrigin, bool realignEntity ) override;
+
 public:
 	virtual Float GetDelay( void ) override;
 

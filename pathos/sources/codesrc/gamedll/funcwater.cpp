@@ -58,7 +58,7 @@ bool CFuncWater::KeyValue( const keyvalue_t& kv )
 void CFuncWater::SetSpawnProperties( void )
 {
 	// Set move direction
-	Util::SetMoveDirection(*m_pState);
+	Util::SetMoveDirection(this);
 
 	if(m_pState->renderfx == RenderFx_SkyEnt)
 	{

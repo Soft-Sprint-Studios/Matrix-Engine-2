@@ -518,12 +518,12 @@ void CPlayerWeapon::LandTouch( CBaseEntity* pOther )
 	// Align to surface if needed
 	if(m_pState->flags & FL_ONGROUND)
 	{
-		Util::AlignEntityToSurface(m_pEdict);
+		Util::AlignEntityToSurface(this);
 		EnablePlayerTouch();
 	}
 
 	// Link to world
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 }
 
 //=============================================
@@ -540,7 +540,7 @@ void CPlayerWeapon::DefaultTouch( CBaseEntity* pOther )
 			m_makeImpactSound = false;
 		}
 
-		Util::AlignEntityToSurface(m_pEdict);
+		Util::AlignEntityToSurface(this);
 		return;
 	}
 

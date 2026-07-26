@@ -38,7 +38,7 @@ CFuncClipEconomy::~CFuncClipEconomy( void )
 bool CFuncClipEconomy::Spawn( void )
 {
 	if(!HasSpawnFlag(FL_TAKE_ANGLES))
-		m_pState->angles = ZERO_VECTOR;
+		SetAngles(ZERO_VECTOR);
 
 	m_pState->movetype = MOVETYPE_PUSH;
 	m_pState->solid = SOLID_BSP;
