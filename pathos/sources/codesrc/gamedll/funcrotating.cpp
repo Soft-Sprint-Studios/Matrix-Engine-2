@@ -182,7 +182,8 @@ bool CFuncRotating::KeyValue( const keyvalue_t& kv )
 		Vector origin;
 		Common::StringToVector(kv.value, origin);
 		if(!origin.IsZero())
-			m_pState->origin = origin;
+			SetOrigin(origin);
+
 		return true;
 	}
 	else if(!qstrcmp(kv.keyname, "fanfriction"))

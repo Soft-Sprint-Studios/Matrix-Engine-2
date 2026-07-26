@@ -409,8 +409,10 @@ struct entity_state_t
 	Vector vuser3;
 	Vector vuser4;
 
+	// Parenting related
 	Int32 parent;
 	Vector parentoffset;
+	CArray<entindex_t> children;
 };
 
 #endif //ENTITY_STATE_H

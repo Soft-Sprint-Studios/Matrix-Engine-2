@@ -3781,10 +3781,15 @@ Vector R_GetLightingForPosition( const Vector& position, const Vector& defaultco
 
 	Vector end = position - Vector(0, 0, 8192);
 
+	// Get overdarken treshold
+	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
+	if(overdarken < 0)
+		overdarken = 0;
+
 	// Get lightstyle values array
 	CArray<Float>* pStyleValuesArray = nullptr;
 
-	if(ens.pworld->plightgrid && Mod_GetLightGridLighting(ens.pworld->plightgrid, position, lightcolors, difflightcolors, nullptr, lightstyles))
+	if(ens.pworld->plightgrid && Mod_GetLightGridLighting(ens.pworld->plightgrid, position, lightcolors, difflightcolors, nullptr, lightstyles, overdarken))
 	{
 		Vector lcolor = lightcolors[BASE_LIGHTMAP_INDEX] + difflightcolors[BASE_LIGHTMAP_INDEX];
 		for(Uint32 j = 1; j < MAX_SURFACE_STYLES; j++)
@@ -3804,7 +3809,7 @@ Vector R_GetLightingForPosition( const Vector& position, const Vector& defaultco
 		// Return final combined color
 		return lcolor;
 	}
-	else if(Mod_RecursiveLightPoint(ens.pworld, ens.pworld->pnodes, position, end, lightcolors, lightstyles))
+	else if(Mod_RecursiveLightPoint(ens.pworld, ens.pworld->pnodes, position, end, lightcolors, lightstyles, overdarken))
 	{
 		Vector lcolor = lightcolors[BASE_LIGHTMAP_INDEX];
 		for(Uint32 j = 1; j < MAX_SURFACE_STYLES; j++)

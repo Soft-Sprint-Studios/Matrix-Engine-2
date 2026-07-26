@@ -32,5 +32,6 @@ public:
 	virtual bool Spawn( void ) override;
 	virtual void Precache( void ) override { }
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 };
 #endif //FUNCONVEYOR_H

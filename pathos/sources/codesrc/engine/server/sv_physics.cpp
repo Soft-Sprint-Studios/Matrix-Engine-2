@@ -64,11 +64,8 @@ void SV_Physics_Init( void )
 	else
 		maxEdicts = DEFAULT_MAX_EDICTS;
 
-	if(!g_serverPhysics.savedmovingentities.empty())
-		g_serverPhysics.savedmovingentities.clear();
-
-	g_serverPhysics.savedmovingentities.resize(maxEdicts);
-	g_serverPhysics.numsavedmovingents = 0;
+	// Reset the stack
+	g_serverPhysics.resetStack();
 }
 
 //=============================================
@@ -97,12 +94,12 @@ void SV_CheckVelocity( edict_t* pedict )
 		if(pedict->state.velocity[i] > maxvelocity)
 		{
 			Con_Printf("Warning: Velocity %f too high on %s.\n", pedict->state.velocity[i], SV_GetString(pedict->fields.classname));
-			pedict->state.origin[i] = maxvelocity;
+			pedict->state.velocity[i] = maxvelocity;
 		}
 		else if(pedict->state.velocity[i] < -maxvelocity)
 		{
 			Con_Printf("Warning: Velocity %f too low on %s.\n", pedict->state.velocity[i], SV_GetString(pedict->fields.classname));
-			pedict->state.origin[i] = -maxvelocity;
+			pedict->state.velocity[i] = -maxvelocity;
 		}
 	}
 }
@@ -702,12 +699,260 @@ void SV_PushEntity( edict_t* pentity, const Vector& push, trace_t& trace )
 //=============================================
 //
 //=============================================
-bool SV_PushRotate( edict_t* ppusher, Float movetime )
+void SV_SaveEntityStates( edict_t* pedict )
+{
+	// Save this entity's states before move/rotation
+	pedict->prevstate.origin = pedict->state.origin;
+	pedict->prevstate.angles = pedict->state.angles;
+
+	pedict->prevstate.velocity = pedict->state.velocity;
+	pedict->prevstate.basevelocity = pedict->state.basevelocity;
+	pedict->prevstate.avelocity = pedict->state.avelocity;
+	pedict->prevstate.movedir = pedict->state.movedir;
+}
+
+//=============================================
+//
+//=============================================
+void SV_RestoreEntityStates( edict_t* pedict )
+{
+	// Restore this entity's states
+	pedict->state.origin = pedict->prevstate.origin;
+	pedict->state.angles = pedict->prevstate.angles;
+
+	pedict->state.velocity = pedict->prevstate.velocity;
+	pedict->state.basevelocity = pedict->prevstate.basevelocity;
+	pedict->state.avelocity = pedict->prevstate.avelocity;
+	pedict->state.movedir = pedict->prevstate.movedir;
+
+	SV_LinkEdict(pedict, FALSE);
+}
+
+//=============================================
+//
+//=============================================
+void SV_RestoreEntityAndChildrenStates( edict_t* pedict )
+{
+	// Restore our own states
+	SV_RestoreEntityStates(pedict);
+
+	// Propagate movement/rotation down to children too
+	CArray<savedmovestack_t*> psavdestacks;
+	for(Uint32 i = 0; i < pedict->state.children.size(); i++)
+	{
+		edict_t* pchildedict = SV_GetEdictByIndex(pedict->state.children[i]);
+		if(!pedict || pedict->free)
+			continue;
+
+		SV_RestoreEntityAndChildrenStates(pchildedict);
+	}
+}
+
+//=============================================
+//
+//=============================================
+void SV_OnParentMovementDone( edict_t* pedict, edict_t* pparent )
+{
+	svs.dllfuncs.pfnOnParentMovementDone(pedict, pparent);
+
+	// Propagate movement/rotation down to children too
+	CArray<savedmovestack_t*> psavdestacks;
+	for(Uint32 i = 0; i < pedict->state.children.size(); i++)
+	{
+		edict_t* pchildedict = SV_GetEdictByIndex(pedict->state.children[i]);
+		if(!pedict || pedict->free)
+			continue;
+
+		SV_OnParentMovementDone(pchildedict, pedict);
+	}
+}
+
+//=============================================
+//
+//=============================================
+bool SV_PushRotateChild( edict_t* protatingparent, edict_t* pedict, const Float (*pprevrotationmatrix)[4], const Float (*pcurrotationmatrix)[4],
+	const Vector& rotatorAngularMove, Double movetime, CLinkedList<savedmovestack_t*>& stacklist, edict_t*& pimpactedict )
 {
 	trace_t trace;
-	Vector amove, pushorig;
-	Vector forward, right, up;
-	Vector curForward, curRight, curUp;
+
+	// Save previous states in case we need to restore them
+	SV_SaveEntityStates(pedict);
+	// Same on gamedll side
+	svs.dllfuncs.pfnBeginParentMovement(pedict, protatingparent);
+
+	// Calculate new angle
+	Math::VectorAdd(pedict->state.angles, rotatorAngularMove, pedict->state.angles);
+
+	Vector start;
+	Math::VectorSubtract(pedict->state.origin, protatingparent->state.origin, start);
+
+	// Calculate destination position
+	Vector move, end;
+	Math::VectorInverseRotate(start, pprevrotationmatrix, move);
+	Math::VectorRotate(move, pcurrotationmatrix, end);
+
+	Math::VectorAdd(end, protatingparent->state.origin, pedict->state.origin);
+	SV_LinkEdict(pedict, FALSE);
+
+	// Calculate velocity rotation change
+	Vector velocity = pedict->state.velocity;
+	Float velocityLength = velocity.Length();
+	velocity.Normalize();
+
+	Vector refvelocity, endvelocity;
+	Math::VectorInverseRotate(velocity, pprevrotationmatrix, refvelocity);
+	Math::VectorRotate(refvelocity, pcurrotationmatrix, endvelocity);
+	Math::VectorScale(endvelocity, velocityLength, pedict->state.velocity);
+
+	// Calculate base velocity rotation change
+	velocity = pedict->state.basevelocity;
+	velocityLength = velocity.Length();
+	velocity.Normalize();
+
+	Math::VectorInverseRotate(velocity, pprevrotationmatrix, refvelocity);
+	Math::VectorRotate(refvelocity, pcurrotationmatrix, endvelocity);
+	Math::VectorScale(endvelocity, velocityLength, pedict->state.basevelocity);
+
+	// Calculate angular velocity rotation change
+	velocity = pedict->state.avelocity;
+	velocityLength = velocity.Length();
+	velocity.Normalize();
+
+	Math::VectorInverseRotate(velocity, pprevrotationmatrix, refvelocity);
+	Math::VectorRotate(refvelocity, pcurrotationmatrix, endvelocity);
+	Math::VectorScale(endvelocity, velocityLength, pedict->state.avelocity);
+
+	// Calculate move direction velocity rotation change
+	Vector refmovedir;
+	Math::VectorInverseRotate(pedict->state.movedir, pprevrotationmatrix, refmovedir);
+	Math::VectorRotate(refmovedir, pcurrotationmatrix, pedict->state.movedir);
+
+	// Also on gamedll side
+	svs.dllfuncs.pfnRotateEntityByParent(pedict, protatingparent, pprevrotationmatrix, pcurrotationmatrix, rotatorAngularMove);
+
+	// If not solid, don't bother
+	if(pedict->state.solid != SOLID_NOT)
+	{
+		// Allocate stack object
+		savedmovestack_t* psavedmovestack = g_serverPhysics.getStackForIndex(g_serverPhysics.currentstackindex);
+		g_serverPhysics.currentstackindex++;
+		stacklist.add(psavedmovestack);
+
+		// See if any solid entities are inside the final position
+		for(Int32 i = 1; i < static_cast<Int32>(gEdicts.GetNbEdicts()); i++)
+		{
+			edict_t* pother = gEdicts.GetEdict(i);
+			if(pother->free)
+				continue;
+
+			if(pother->state.movetype == MOVETYPE_PUSH
+				|| pother->state.movetype == MOVETYPE_NONE
+				|| pother->state.movetype == MOVETYPE_FOLLOW
+				|| pother->state.movetype == MOVETYPE_NOCLIP)
+				continue;
+
+			// See if the entity is standing on us
+			if(!(pother->state.flags & FL_ONGROUND) || pother->state.groundent != pedict->entindex)
+			{
+				if(Math::CheckMinsMaxs(pother->state.absmin, pother->state.absmax, pedict->state.absmin, pedict->state.absmax))
+					continue;
+
+				// See if we're inside the final position
+				if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) != pedict)
+					continue;
+			}
+
+			// remove the onground flag for non-players
+			if(pother->state.movetype != MOVETYPE_WALK)
+				pother->state.flags &= ~FL_ONGROUND;
+
+			Vector entityOrigin;
+			Math::VectorCopy(pother->state.origin, entityOrigin);
+			psavedmovestack->saveEdict(pother, entityOrigin, rotatorAngularMove, &pother->state.angles);
+
+			if(pother->state.movetype == MOVETYPE_PUSHSTEP)
+			{
+				Vector origin;
+				Math::VectorScale(pother->state.absmin, 0.5, origin);
+				Math::VectorMA(origin, 0.5, pother->state.absmax, origin);
+				Math::VectorSubtract(origin, protatingparent->state.origin, start);
+			}
+			else
+			{
+				Math::VectorSubtract(pother->state.origin, protatingparent->state.origin, start);
+			}
+
+			// Calculate destination position
+			Math::VectorInverseRotate(start, pprevrotationmatrix, move);
+			Math::VectorRotate(move, pcurrotationmatrix, end);
+
+			Vector push;
+			Math::VectorSubtract(end, start, push);
+
+			// Try moving the contacted entity
+			pedict->state.solid = SOLID_NOT;
+			SV_PushEntity(pother, push, trace);
+			pedict->state.solid = SOLID_BSP;
+
+			if(pother->state.movetype != MOVETYPE_PUSHSTEP)
+			{
+				if(pother->state.flags & FL_CLIENT)
+				{
+					pother->state.addavelocity = true;
+					pother->state.avelocity[YAW] += rotatorAngularMove[YAW];
+				}
+				else
+				{
+					pother->state.angles[YAW] += rotatorAngularMove[YAW];
+				}
+			}
+
+			// If it's still inside the ppusher, block
+			if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) == pedict)
+			{
+				if(pother->state.mins[0] == pother->state.maxs[0])
+					continue;
+
+				if(pother->state.solid == SOLID_NOT 
+					|| pother->state.solid == SOLID_TRIGGER
+					|| pother->state.flags & FL_DEAD)
+					continue;
+
+				Math::VectorCopy(entityOrigin, pother->state.origin);
+				SV_LinkEdict(pother, TRUE);
+
+				// Restore previous values
+				SV_RestoreEntityStates(pedict);
+				// Also on gamedll side
+				svs.dllfuncs.pfnUndoParentMovement(pedict, protatingparent);
+
+				// Mark object we impacted
+				pimpactedict = pother;
+				return false;
+			}
+		}
+	}
+
+	// Propagate movement/rotation down to children too
+	for(Uint32 i = 0; i < pedict->state.children.size(); i++)
+	{
+		edict_t* pchildedict = SV_GetEdictByIndex(pedict->state.children[i]);
+		if(!pedict || pedict->free)
+			continue;
+
+		if(!SV_PushRotateChild(protatingparent, pchildedict, pprevrotationmatrix, pcurrotationmatrix, rotatorAngularMove, movetime, stacklist, pimpactedict))
+			return false;
+	}
+
+	return true;
+}
+
+//=============================================
+//
+//=============================================
+bool SV_PushRotate( edict_t* ppusher, Double movetime )
+{
+	trace_t trace;
 
 	if(ppusher->state.avelocity.IsZero())
 	{
@@ -715,138 +960,198 @@ bool SV_PushRotate( edict_t* ppusher, Float movetime )
 		return true;
 	}
 
-	Math::VectorScale(ppusher->state.avelocity, movetime, amove);
-	Math::AngleVectors(ppusher->state.angles, &forward, &right, &up);
-	pushorig = ppusher->state.angles;
+	// Set up vectors for previous angles
+	Float prevRotationMatrix[3][4];
+	Math::AngleMatrix(ppusher->state.angles, prevRotationMatrix);
+
+	// Remember previous angles of this object
+	SV_SaveEntityStates(ppusher);
 
 	// Move the entity to it's final position
-	Math::VectorAdd(ppusher->state.angles, amove, ppusher->state.angles);
-	Math::AngleVectorsTranspose(ppusher->state.angles, &curForward, &curRight, &curUp);
+	Vector angularmove;
+	Math::VectorScale(ppusher->state.avelocity, movetime, angularmove);
+	Math::VectorAdd(ppusher->state.angles, angularmove, ppusher->state.angles);
+
+	// Get vectors in transpose for current
+	Float curRotationMatrix[3][4];
+	Math::AngleMatrix(ppusher->state.angles, curRotationMatrix);
+
+	// Modify ltime
 	ppusher->state.ltime += movetime;
 	SV_LinkEdict(ppusher, false);
 
-	if(ppusher->state.solid == SOLID_NOT)
-		return true;
-
-	// See if any solid entities are inside the final position
-	g_serverPhysics.numsavedmovingents = 0;
-	for(Int32 i = 1; i < static_cast<Int32>(gEdicts.GetNbEdicts()); i++)
+	// If not solid, don't bother
+	CLinkedList<savedmovestack_t*> stacklist;
+	if(ppusher->state.solid != SOLID_NOT)
 	{
-		edict_t* pother = gEdicts.GetEdict(i);
-		if(pother->free)
-			continue;
+		// Allocate stack object
+		savedmovestack_t* psavedmovestack = g_serverPhysics.getStackForIndex(g_serverPhysics.currentstackindex);
+		g_serverPhysics.currentstackindex++;
+		stacklist.add(psavedmovestack);
 
-		if(pother->state.movetype == MOVETYPE_PUSH
-			|| pother->state.movetype == MOVETYPE_NONE
-			|| pother->state.movetype == MOVETYPE_FOLLOW
-			|| pother->state.movetype == MOVETYPE_NOCLIP)
-			continue;
-
-		// See if the entity is standing on us
-		if(!(pother->state.flags & FL_ONGROUND) || pother->state.groundent != ppusher->entindex)
+		// See if any solid entities are inside the final position
+		for(Int32 i = 1; i < static_cast<Int32>(gEdicts.GetNbEdicts()); i++)
 		{
-			if(Math::CheckMinsMaxs(pother->state.absmin, pother->state.absmax, ppusher->state.absmin, ppusher->state.absmax))
+			edict_t* pother = gEdicts.GetEdict(i);
+			if(pother->free)
 				continue;
 
-			// See if we're inside the final position
-			if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) != ppusher)
+			if(pother->state.movetype == MOVETYPE_PUSH
+				|| pother->state.movetype == MOVETYPE_NONE
+				|| pother->state.movetype == MOVETYPE_FOLLOW
+				|| pother->state.movetype == MOVETYPE_NOCLIP)
 				continue;
-		}
 
-		// remove the onground flag for non-players
-		if(pother->state.movetype != MOVETYPE_WALK)
-			pother->state.flags &= ~FL_ONGROUND;
-
-		Vector entityOrigin;
-		Math::VectorCopy(pother->state.origin, entityOrigin);
-
-		saved_move_t* psave = &g_serverPhysics.savedmovingentities[g_serverPhysics.numsavedmovingents];
-		g_serverPhysics.numsavedmovingents++;
-
-		Math::VectorCopy(entityOrigin, psave->saved_origin);
-		psave->psave_edict = pother;
-
-		Vector start;
-		if(pother->state.movetype == MOVETYPE_PUSHSTEP)
-		{
-			Vector origin;
-			Math::VectorScale(pother->state.absmin, 0.5, origin);
-			Math::VectorMA(origin, 0.5, pother->state.absmax, origin);
-			Math::VectorSubtract(origin, pother->state.origin, start);
-		}
-		else
-		{
-			Math::VectorSubtract(pother->state.origin, ppusher->state.origin, start);
-		}
-
-		// Calculate destination position
-		Vector move;
-		move[0] = Math::DotProduct(forward, start);
-		move[1] = -Math::DotProduct(right, start);
-		move[2] = Math::DotProduct(up, start);
-
-		Vector end;
-		end[0] = Math::DotProduct(curForward, move);
-		end[1] = Math::DotProduct(curRight, move);
-		end[2] = Math::DotProduct(curUp, move);
-
-		Vector push;
-		Math::VectorSubtract(end, start, push);
-
-		// Try moving the contacted entity
-		ppusher->state.solid = SOLID_NOT;
-		SV_PushEntity(pother, push, trace);
-		ppusher->state.solid = SOLID_BSP;
-
-		if(pother->state.movetype != MOVETYPE_PUSHSTEP)
-		{
-			if(pother->state.flags & FL_CLIENT)
+			// See if the entity is standing on us
+			if(!(pother->state.flags & FL_ONGROUND) || pother->state.groundent != ppusher->entindex)
 			{
-				pother->state.addavelocity = true;
-				pother->state.avelocity[YAW] += amove[YAW];
+				if(Math::CheckMinsMaxs(pother->state.absmin, pother->state.absmax, ppusher->state.absmin, ppusher->state.absmax))
+					continue;
+
+				// See if we're inside the final position
+				if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) != ppusher)
+					continue;
+			}
+
+			// remove the onground flag for non-players
+			if(pother->state.movetype != MOVETYPE_WALK)
+				pother->state.flags &= ~FL_ONGROUND;
+
+			Vector entityOrigin;
+			Math::VectorCopy(pother->state.origin, entityOrigin);
+
+			// Save this edict and it's previous position
+			psavedmovestack->saveEdict(pother, entityOrigin, angularmove, nullptr);
+
+			Vector start;
+			if(pother->state.movetype == MOVETYPE_PUSHSTEP)
+			{
+				Vector origin;
+				Math::VectorScale(pother->state.absmin, 0.5, origin);
+				Math::VectorMA(origin, 0.5, pother->state.absmax, origin);
+				Math::VectorSubtract(origin, ppusher->state.origin, start);
 			}
 			else
 			{
-				pother->state.angles[YAW] += amove[YAW];
+				Math::VectorSubtract(pother->state.origin, ppusher->state.origin, start);
+			}
+
+			// Calculate destination position
+			Vector move, end;
+			Math::VectorInverseRotate(start, prevRotationMatrix, move);
+			Math::VectorRotate(move, curRotationMatrix, end);
+
+			Vector push;
+			Math::VectorSubtract(end, start, push);
+
+			// Try moving the contacted entity
+			ppusher->state.solid = SOLID_NOT;
+			SV_PushEntity(pother, push, trace);
+			ppusher->state.solid = SOLID_BSP;
+
+			if(pother->state.movetype != MOVETYPE_PUSHSTEP)
+			{
+				if(pother->state.flags & FL_CLIENT)
+				{
+					pother->state.addavelocity = true;
+					pother->state.avelocity[YAW] += angularmove[YAW];
+				}
+				else
+				{
+					pother->state.angles[YAW] += angularmove[YAW];
+				}
+			}
+
+			// If it's still inside the ppusher, block
+			if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) == ppusher)
+			{
+				if(pother->state.mins[0] == pother->state.maxs[0])
+					continue;
+
+				if(pother->state.solid == SOLID_NOT 
+					|| pother->state.solid == SOLID_TRIGGER
+					|| pother->state.flags & FL_DEAD)
+					continue;
+
+				// Restore pushed entity
+				Math::VectorCopy(entityOrigin, pother->state.origin);
+				SV_LinkEdict(pother, TRUE);
+
+				// Restore pusher
+				SV_RestoreEntityStates(ppusher);
+
+				ppusher->state.ltime -= movetime;
+				svs.dllfuncs.pfnDispatchBlocked(ppusher, pother);
+
+				// Move back any entities we already moved
+				psavedmovestack->restoreEdictPositions(angularmove);
+				g_serverPhysics.currentstackindex--;
+
+				return false;
 			}
 		}
+	}
 
-		// If it's still inside the ppusher, block
-		if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) == ppusher)
+	// Propagate movement/rotation down to children too
+	for(Uint32 i = 0; i < ppusher->state.children.size(); i++)
+	{
+		edict_t* pchildedict = SV_GetEdictByIndex(ppusher->state.children[i]);
+		if(!pchildedict || pchildedict->free)
+			continue;
+
+		edict_t* pimpactedict = nullptr;
+		if(!SV_PushRotateChild(ppusher, pchildedict, prevRotationMatrix, curRotationMatrix, angularmove, movetime, stacklist, pimpactedict))
 		{
-			if(pother->state.mins[0] == pother->state.maxs[0])
-				continue;
-
-			if(pother->state.solid == SOLID_NOT 
-				|| pother->state.solid == SOLID_TRIGGER
-				|| pother->state.flags & FL_DEAD)
-				continue;
-
-			Math::VectorCopy(entityOrigin, pother->state.origin);
-			SV_LinkEdict(pother, TRUE);
-
-			Math::VectorCopy(pushorig, ppusher->state.angles);
-			SV_LinkEdict(ppusher, FALSE);
-
-			ppusher->state.ltime -= movetime;
-			svs.dllfuncs.pfnDispatchBlocked(ppusher, pother);
-
-			// Move back any entities we already moved
-			for(Uint32 j = 0; j < g_serverPhysics.numsavedmovingents; j++)
+			// Restore other children's origins/angles
+			for(Uint32 j = 0; j < i; j++)
 			{
-				saved_move_t* psaved = &g_serverPhysics.savedmovingentities[j];
-				Math::VectorCopy(psaved->saved_origin, psaved->psave_edict->state.origin);
+				edict_t* pcurchildedict = SV_GetEdictByIndex(ppusher->state.children[j]);
+				if(!pcurchildedict || pcurchildedict->free)
+					continue;
 
-				if(psaved->psave_edict->state.flags & FL_CLIENT)
-					psaved->psave_edict->state.avelocity[1] = 0.0f;
-				else if(psaved->psave_edict->state.movetype != MOVETYPE_PUSHSTEP)
-					psaved->psave_edict->state.angles[YAW] -= amove[YAW];
-
-				SV_LinkEdict(psaved->psave_edict, FALSE);
+				SV_RestoreEntityAndChildrenStates(pcurchildedict);
+				SV_OnParentMovementDone(pcurchildedict, ppusher);
 			}
 
+			// Restore all this
+			stacklist.begin();
+			while(!stacklist.end())
+			{
+				savedmovestack_t* pstack = stacklist.get();
+				pstack->restoreEdictPositions(angularmove);
+
+				stacklist.next();
+			}
+
+			g_serverPhysics.currentstackindex -= stacklist.size();
+
+			// Restore ourselves too
+			SV_RestoreEntityStates(ppusher);
+			// On this too
+			SV_OnParentMovementDone(pchildedict, ppusher);
+
+			// Subtract ltime from pusher
+			ppusher->state.ltime -= movetime;
+
+			// Tell server we were blocked
+			svs.dllfuncs.pfnDispatchBlocked(ppusher, pimpactedict);
 			return false;
 		}
+	}
+
+	// Release all the stacks we've collected, but remove them,
+	// as we can avoid unnecessary allocations if we just reuse
+	// these
+	g_serverPhysics.currentstackindex -= stacklist.size();
+
+	// Release any kept data in entities
+	for(Uint32 i = 0; i < ppusher->state.children.size(); i++)
+	{
+		edict_t* pchildedict = SV_GetEdictByIndex(ppusher->state.children[i]);
+		if(!pchildedict || pchildedict->free)
+			continue;
+
+		SV_OnParentMovementDone(pchildedict, ppusher);
 	}
 
 	return true;
@@ -917,7 +1222,125 @@ bool SV_PushMove_UnstickGroundEntity( edict_t* ppusher, edict_t* pother, const V
 //=============================================
 //
 //=============================================
-void SV_PushMove( edict_t* ppusher, Float movetime )
+bool SV_PushMoveChild( edict_t* ppusherparent, edict_t* pedict, const Vector& move, Double movetime, CLinkedList<savedmovestack_t*>& stacklist, edict_t*& pimpactedict )
+{
+	trace_t trace;
+	Vector mins, maxs;
+	Math::VectorAdd(pedict->state.absmin, move, mins);
+	Math::VectorAdd(pedict->state.absmax, move, maxs);
+
+	// Save this entity's previous states
+	SV_SaveEntityStates(pedict);
+	// Notify gamedll also
+	svs.dllfuncs.pfnBeginParentMovement(pedict, ppusherparent);
+
+	// Move the pusher to it's final position
+	Math::VectorAdd(pedict->state.origin, move, pedict->state.origin);
+	SV_LinkEdict(pedict, FALSE);
+
+	// Also on gamedll side
+	svs.dllfuncs.pfnMoveEntityByParent(pedict, ppusherparent, move);
+
+	if(pedict->state.solid != SOLID_NOT)
+	{
+		// See if any solid entites are in the final position
+		savedmovestack_t* pchildstack = g_serverPhysics.getStackForIndex(g_serverPhysics.currentstackindex);		
+		g_serverPhysics.currentstackindex++;
+		stacklist.add(pchildstack);
+
+		for(Int32 i = 1; i < static_cast<Int32>(gEdicts.GetNbEdicts()); i++)
+		{
+			edict_t* pother = gEdicts.GetEdict(i);
+			if(pother->free)
+				continue;
+
+			if(pother->state.movetype == MOVETYPE_PUSH
+				|| pother->state.movetype == MOVETYPE_NONE
+				|| pother->state.movetype == MOVETYPE_FOLLOW
+				|| pother->state.movetype == MOVETYPE_NOCLIP)
+				continue;
+
+			// See if the entity is standing on us
+			if(!(pother->state.flags & FL_ONGROUND) || pother->state.groundent != pedict->entindex)
+			{
+				if(Math::CheckMinsMaxs(pother->state.absmin, pother->state.absmax, pedict->state.absmin, pedict->state.absmax))
+					continue;
+
+				// See if we're inside the final position
+				if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) != pedict)
+					continue;
+			}
+
+			// remove the onground flag for non-players
+			if(pother->state.movetype != MOVETYPE_WALK)
+				pother->state.flags &= ~FL_ONGROUND;
+
+			Vector entityOrigin;
+			Math::VectorCopy(pother->state.origin, entityOrigin);
+
+			// Save current position
+			pchildstack->saveEdict(pother, entityOrigin, ZERO_VECTOR, nullptr);
+
+			// Try moving the contacted entity
+			pedict->state.solid = SOLID_NOT;
+			SV_PushEntity(pother, move, trace);
+			pedict->state.solid = SOLID_BSP;
+
+			// If it's still inside the pusher, block
+			if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) == pedict)
+			{
+				if(pother->state.groundent == pedict->entindex)
+				{
+					// Sometimes on-ground entities get stuck, so try to unstick them(TODO: precision issue or what?)
+					if(SV_PushMove_UnstickGroundEntity(pedict, pother, entityOrigin, pother->state.origin))
+						continue;
+				}
+
+				if(pother->state.mins[0] == pother->state.maxs[0])
+					continue;
+
+				if(pother->state.solid == SOLID_NOT || pother->state.solid == SOLID_TRIGGER)
+				{
+					// corpse
+					pother->state.mins[0] = pother->state.mins[1] = 0;
+					pother->state.maxs[0] = pother->state.maxs[1] = 0;
+					pother->state.maxs[2] = pother->state.mins[2];
+					continue;
+				}
+
+				Math::VectorCopy(entityOrigin, pother->state.origin);
+				SV_LinkEdict(pother, TRUE);
+
+				// Restore our own state
+				SV_RestoreEntityStates(pedict);
+				// Notify gamedll too
+				svs.dllfuncs.pfnUndoParentMovement(pedict, ppusherparent);
+
+				// Set impact edict
+				pimpactedict = ppusherparent;
+				return false;
+			}
+		}
+	}
+
+	// Propagate movement/rotation down to children too
+	for(Uint32 i = 0; i < pedict->state.children.size(); i++)
+	{
+		edict_t* pchildedict = SV_GetEdictByIndex(pedict->state.children[i]);
+		if(!pedict || pedict->free)
+			continue;
+
+		if(!SV_PushMoveChild(ppusherparent, pchildedict, move, movetime, stacklist, pimpactedict))
+			return false;
+	}
+
+	return true;
+}
+
+//=============================================
+//
+//=============================================
+void SV_PushMove( edict_t* ppusher, Double movetime )
 {
 	if(Math::IsVectorZero(ppusher->state.velocity))
 	{
@@ -931,101 +1354,161 @@ void SV_PushMove( edict_t* ppusher, Float movetime )
 	Math::VectorAdd(ppusher->state.absmin, move, mins);
 	Math::VectorAdd(ppusher->state.absmax, move, maxs);
 
-	Vector pushorigin;
-	Math::VectorCopy(ppusher->state.origin, pushorigin);
+	// Remember values of pusher
+	SV_SaveEntityStates(ppusher);
 
 	// Move the pusher to it's final position
 	Math::VectorAdd(ppusher->state.origin, move, ppusher->state.origin);
 	ppusher->state.ltime += movetime;
 	SV_LinkEdict(ppusher, FALSE);
 
-	if(ppusher->state.solid == SOLID_NOT)
-		return;
-
-	// See if any solid entites are in the final position
-	g_serverPhysics.numsavedmovingents = 0;
-	for(Int32 i = 1; i < static_cast<Int32>(gEdicts.GetNbEdicts()); i++)
+	CLinkedList<savedmovestack_t*> stacklist;
+	if(ppusher->state.solid != SOLID_NOT)
 	{
-		edict_t* pother = gEdicts.GetEdict(i);
-		if(pother->free)
-			continue;
+		// See if any solid entites are in the final position
+		savedmovestack_t* psavedmovestack = g_serverPhysics.getStackForIndex(g_serverPhysics.currentstackindex);
+		g_serverPhysics.currentstackindex++;
+		stacklist.add(psavedmovestack);
 
-		if(pother->state.movetype == MOVETYPE_PUSH
-			|| pother->state.movetype == MOVETYPE_NONE
-			|| pother->state.movetype == MOVETYPE_FOLLOW
-			|| pother->state.movetype == MOVETYPE_NOCLIP)
-			continue;
-
-		// See if the entity is standing on us
-		if(!(pother->state.flags & FL_ONGROUND) || pother->state.groundent != ppusher->entindex)
+		for(Int32 i = 1; i < static_cast<Int32>(gEdicts.GetNbEdicts()); i++)
 		{
-			if(Math::CheckMinsMaxs(pother->state.absmin, pother->state.absmax, ppusher->state.absmin, ppusher->state.absmax))
+			edict_t* pother = gEdicts.GetEdict(i);
+			if(pother->free)
 				continue;
 
-			// See if we're inside the final position
-			if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) != ppusher)
+			if(pother->state.movetype == MOVETYPE_PUSH
+				|| pother->state.movetype == MOVETYPE_NONE
+				|| pother->state.movetype == MOVETYPE_FOLLOW
+				|| pother->state.movetype == MOVETYPE_NOCLIP)
 				continue;
-		}
 
-		// remove the onground flag for non-players
-		if(pother->state.movetype != MOVETYPE_WALK)
-			pother->state.flags &= ~FL_ONGROUND;
-
-		Vector entityOrigin;
-		Math::VectorCopy(pother->state.origin, entityOrigin);
-
-		saved_move_t* psave = &g_serverPhysics.savedmovingentities[g_serverPhysics.numsavedmovingents];
-		g_serverPhysics.numsavedmovingents++;
-
-		Math::VectorCopy(entityOrigin, psave->saved_origin);
-		psave->psave_edict = pother;
-
-		// Try moving the contacted entity
-		ppusher->state.solid = SOLID_NOT;
-		SV_PushEntity(pother, move, trace);
-		ppusher->state.solid = SOLID_BSP;
-
-		// If it's still inside the pusher, block
-		if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) == ppusher)
-		{
-			if(pother->state.groundent == ppusher->entindex)
+			// See if the entity is standing on us
+			if(!(pother->state.flags & FL_ONGROUND) || pother->state.groundent != ppusher->entindex)
 			{
-				// Sometimes on-ground entities get stuck, so try to unstick them(TODO: precision issue or what?)
-				if(SV_PushMove_UnstickGroundEntity(ppusher, pother, entityOrigin, pother->state.origin))
+				if(Math::CheckMinsMaxs(pother->state.absmin, pother->state.absmax, ppusher->state.absmin, ppusher->state.absmax))
+					continue;
+
+				// See if we're inside the final position
+				if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) != ppusher)
 					continue;
 			}
 
-			if(pother->state.mins[0] == pother->state.maxs[0])
-				continue;
+			// remove the onground flag for non-players
+			if(pother->state.movetype != MOVETYPE_WALK)
+				pother->state.flags &= ~FL_ONGROUND;
 
-			if(pother->state.solid == SOLID_NOT || pother->state.solid == SOLID_TRIGGER)
+			Vector entityOrigin;
+			Math::VectorCopy(pother->state.origin, entityOrigin);
+
+			// Save current position
+			psavedmovestack->saveEdict(pother, entityOrigin, ZERO_VECTOR, nullptr);
+
+			// Try moving the contacted entity
+			ppusher->state.solid = SOLID_NOT;
+			SV_PushEntity(pother, move, trace);
+			ppusher->state.solid = SOLID_BSP;
+
+			// If it's still inside the pusher, block
+			if(SV_TestEntityPosition(pother, static_cast<hull_types_t>(pother->state.forcehull)) == ppusher)
 			{
-				// corpse
-				pother->state.mins[0] = pother->state.mins[1] = 0;
-				pother->state.maxs[0] = pother->state.maxs[1] = 0;
-				pother->state.maxs[2] = pother->state.mins[2];
-				continue;
+				if(pother->state.groundent == ppusher->entindex)
+				{
+					// Sometimes on-ground entities get stuck, so try to unstick them(TODO: precision issue or what?)
+					if(SV_PushMove_UnstickGroundEntity(ppusher, pother, entityOrigin, pother->state.origin))
+						continue;
+				}
+
+				if(pother->state.mins[0] == pother->state.maxs[0])
+					continue;
+
+				if(pother->state.solid == SOLID_NOT || pother->state.solid == SOLID_TRIGGER)
+				{
+					// corpse
+					pother->state.mins[0] = pother->state.mins[1] = 0;
+					pother->state.maxs[0] = pother->state.maxs[1] = 0;
+					pother->state.maxs[2] = pother->state.mins[2];
+					continue;
+				}
+
+				Math::VectorCopy(entityOrigin, pother->state.origin);
+				SV_LinkEdict(pother, TRUE);
+
+				// Restore pusher
+				SV_RestoreEntityStates(ppusher);
+
+				ppusher->state.ltime -= movetime;
+				svs.dllfuncs.pfnDispatchBlocked(ppusher, pother);
+
+				// Move back any entities we already moved
+				psavedmovestack->restoreEdictPositions(ZERO_VECTOR);
+				g_serverPhysics.currentstackindex--;
+
+				return;
+			}
+		}
+	}
+
+	// Propagate movement/rotation down to children too
+	for(Uint32 i = 0; i < ppusher->state.children.size(); i++)
+	{
+		edict_t* pchildedict = SV_GetEdictByIndex(ppusher->state.children[i]);
+		if(!pchildedict || pchildedict->free)
+			continue;
+
+		edict_t* pimpactedict = nullptr;
+		if(!SV_PushMoveChild(ppusher, pchildedict, move, movetime, stacklist, pimpactedict))
+		{
+			// Restore other children's origins/angles
+			for(Uint32 j = 0; j < i; j++)
+			{
+				edict_t* pcurchildedict = SV_GetEdictByIndex(ppusher->state.children[j]);
+				if(!pcurchildedict || pcurchildedict->free)
+					continue;
+
+				SV_RestoreEntityAndChildrenStates(pcurchildedict);
+				SV_OnParentMovementDone(pcurchildedict, ppusher);
 			}
 
-			Math::VectorCopy(entityOrigin, pother->state.origin);
-			SV_LinkEdict(pother, TRUE);
+			// On this one too
+			SV_OnParentMovementDone(pchildedict, ppusher);
 
-			Math::VectorCopy(pushorigin, ppusher->state.origin);
-			SV_LinkEdict(ppusher, FALSE);
+			// Restore all this
+			stacklist.begin();
+			while(!stacklist.end())
+			{
+				savedmovestack_t* pstack = stacklist.get();
+				pstack->restoreEdictPositions(ZERO_VECTOR);
 
+				stacklist.next();
+			}
+
+			g_serverPhysics.currentstackindex -= stacklist.size();
+
+			// Restore ourselves too
+			SV_RestoreEntityStates(ppusher);
+
+			// Subtract ltime from pusher
 			ppusher->state.ltime -= movetime;
-			svs.dllfuncs.pfnDispatchBlocked(ppusher, pother);
 
-			// Move back any entities we already moved
-			for(Uint32 j = 0; j < g_serverPhysics.numsavedmovingents; j++)
-			{
-				saved_move_t* psaved = &g_serverPhysics.savedmovingentities[j];
-				Math::VectorCopy(psaved->saved_origin, psaved->psave_edict->state.origin);
-				SV_LinkEdict(psaved->psave_edict, FALSE);
-			}
-
+			// Tell server we were blocked
+			svs.dllfuncs.pfnDispatchBlocked(ppusher, pimpactedict);
 			return;
 		}
+	}
+
+	// Release all the stacks we've collected, but remove them,
+	// as we can avoid unnecessary allocations if we just reuse
+	// these
+	g_serverPhysics.currentstackindex -= stacklist.size();
+
+	// Release any kept data in entities
+	for(Uint32 i = 0; i < ppusher->state.children.size(); i++)
+	{
+		edict_t* pchildedict = SV_GetEdictByIndex(ppusher->state.children[i]);
+		if(!pchildedict || pchildedict->free)
+			continue;
+
+		SV_OnParentMovementDone(pchildedict, ppusher);
 	}
 }
 
@@ -1036,7 +1519,7 @@ bool SV_RunThink( edict_t* pedict )
 {
 	if(!(pedict->state.flags & FL_KILLME))
 	{
-		Float thinktime = pedict->state.nextthink;
+		Double thinktime = pedict->state.nextthink;
 
 		// Not thinking yet
 		if(thinktime <= 0 || thinktime > (svs.time + svs.frametime))
@@ -1058,36 +1541,6 @@ bool SV_RunThink( edict_t* pedict )
 		gEdicts.FreeEdict(pedict, EDICT_REMOVED_KILLED);
 
 	return (pedict->free ? false : true);
-}
-
-//=============================================
-//
-//=============================================
-void SV_Physics_ManageParentage( edict_t* pedict )
-{
-	if(!(pedict->state.flags & FL_PARENTED)
-		|| pedict->state.parent == NO_ENTITY_INDEX)
-		return;
-
-	// Perform think functions
-	SV_RunThink(pedict);
-
-	Vector oldorigin = pedict->state.origin;
-	Vector oldangles = pedict->state.angles;
-
-	// Only really dumb shit for now
-	edict_t* pparent = gEdicts.GetEdict(pedict->state.parent);
-	if(pparent)
-		Math::VectorAdd(pparent->state.origin, pedict->state.parentoffset, pedict->state.origin);
-
-	// Set angles too if needed
-	if(pedict->state.effects & EF_TRACKANGLES)
-		pedict->state.angles = pparent->state.angles;
-
-	// Update links if we moved
-	if(oldorigin != pedict->state.origin
-		|| oldangles != pedict->state.angles)
-		SV_LinkEdict(pedict, true);
 }
 
 //=============================================
@@ -1126,7 +1579,7 @@ void SV_Physics_Pusher( edict_t* pedict )
 			{
 				if(SV_PushRotate(pedict, movetime))
 				{
-					Float savetime = pedict->state.ltime;
+					Double savetime = pedict->state.ltime;
 					// Reset the local time before rotation
 					pedict->state.ltime = oldtime;
 					SV_PushMove(pedict, movetime);
@@ -1490,6 +1943,101 @@ void SV_Physics_Bounce( edict_t* pedict )
 //=============================================
 //
 //=============================================
+void SV_RunEntityPhysics( edict_t* pedict )
+{
+	if(pedict->free)
+		return;
+
+	// Force retouch for everything
+	if(svs.gamevars.force_retouch)
+		SV_LinkEdict(pedict, true);
+
+	if(pedict->state.flags & FL_ONGROUND)
+	{
+		// Get groundent if set
+		edict_t* pgroundentity = nullptr;
+		if(pedict->state.groundent != NO_ENTITY_INDEX)
+			pgroundentity = gEdicts.GetEdict(pedict->state.groundent);
+
+		if(pgroundentity && (pgroundentity->state.flags & FL_CONVEYOR))
+		{
+			if(pedict->state.flags & FL_BASEVELOCITY)
+				Math::VectorMA(pedict->state.basevelocity, pgroundentity->state.speed, pgroundentity->state.movedir, pedict->state.basevelocity);
+			else
+				Math::VectorScale(pgroundentity->state.movedir, pgroundentity->state.speed, pedict->state.basevelocity);
+
+			pedict->state.flags |= FL_BASEVELOCITY;
+		}
+	}
+
+	if(!(pedict->state.flags & FL_BASEVELOCITY))
+	{
+		Math::VectorMA(pedict->state.velocity, (svs.frametime * 0.5 + 1.0), pedict->state.basevelocity, pedict->state.velocity);
+		Math::VectorClear(pedict->state.basevelocity);
+	}
+
+	pedict->state.flags &= ~FL_BASEVELOCITY;
+
+	if(svs.dllfuncs.pfnRunEntityPhysics(pedict))
+	{
+		// Perform any think functions
+		SV_RunThink(pedict);
+	}
+	else
+	{
+		switch(pedict->state.movetype)
+		{
+		case MOVETYPE_NONE:
+			SV_Physics_None(pedict);
+			break;
+		case MOVETYPE_PUSH:
+			SV_Physics_Pusher(pedict);
+			break;
+		case MOVETYPE_FOLLOW:
+			SV_Physics_Follow(pedict);
+			break;
+		case MOVETYPE_NOCLIP:
+			SV_Physics_Noclip(pedict);
+			break;
+		case MOVETYPE_STEP:
+		case MOVETYPE_PUSHSTEP:
+			SV_Physics_Step(pedict);
+			break;
+		case MOVETYPE_TOSS:
+			SV_Physics_Toss(pedict);
+			break;
+		case MOVETYPE_FLY:
+		case MOVETYPE_BOUNCE:
+			SV_Physics_Bounce(pedict);
+			break;
+		default:
+			Con_Printf("Unknown movetype %d for entity %s.\n", pedict->state.movetype, SV_GetString(pedict->fields.classname));
+			break;
+		}
+	}
+
+	// Now that we simulated physics for the entity, do it for children
+	if(!pedict->state.children.empty())
+	{
+		for(Uint32 i = 0; i < pedict->state.children.size(); i++)
+		{
+			entindex_t childindex = pedict->state.children[i];
+			edict_t* pchildedict = SV_GetEdictByIndex(childindex);
+			if(!pchildedict || pchildedict->free)
+				continue;
+
+			SV_RunEntityPhysics(pchildedict);
+		}
+	}
+
+	// Kill the entity if flagged to do so
+	if(pedict->state.flags & FL_KILLME)
+		gEdicts.FreeEdict(pedict, EDICT_REMOVED_KILLED);
+}
+
+//=============================================
+//
+//=============================================
 void SV_Physics( void )
 {
 	// Set gamevars
@@ -1497,97 +2045,20 @@ void SV_Physics( void )
 	svs.gamevars.time = svs.time;
 
 	Uint32 nbEdicts = gEdicts.GetNbEdicts();
-	for(Uint32 i = 0; i < nbEdicts; i++)
+	for(Uint32 i = 1; i < nbEdicts; i++)
 	{
-		edict_t* pedict = gEdicts.GetEdict(i);
-		if(pedict->free || (pedict->state.flags & FL_PARENTED))
-			continue;
-
-		// Force retouch for everything
-		if(svs.gamevars.force_retouch)
-			SV_LinkEdict(pedict, true);
-
 		// Skip clients
 		if(i > 0 && i <= svs.maxclients)
 			continue;
 
-		if(pedict->state.flags & FL_ONGROUND)
-		{
-			// Get groundent if set
-			edict_t* pgroundentity = nullptr;
-			if(pedict->state.groundent != NO_ENTITY_INDEX)
-				pgroundentity = gEdicts.GetEdict(pedict->state.groundent);
-
-			if(pgroundentity && (pgroundentity->state.flags & FL_CONVEYOR))
-			{
-				if(pedict->state.flags & FL_BASEVELOCITY)
-					Math::VectorMA(pedict->state.basevelocity, pgroundentity->state.speed, pgroundentity->state.movedir, pedict->state.basevelocity);
-				else
-					Math::VectorScale(pgroundentity->state.movedir, pgroundentity->state.speed, pedict->state.basevelocity);
-
-				pedict->state.flags |= FL_BASEVELOCITY;
-			}
-		}
-
-		if(!(pedict->state.flags & FL_BASEVELOCITY))
-		{
-			Math::VectorMA(pedict->state.velocity, (svs.frametime * 0.5 + 1.0), pedict->state.basevelocity, pedict->state.velocity);
-			Math::VectorClear(pedict->state.basevelocity);
-		}
-
-		pedict->state.flags &= ~FL_BASEVELOCITY;
-
-		if(svs.dllfuncs.pfnRunEntityPhysics(pedict))
-		{
-			// Perform any think functions
-			SV_RunThink(pedict);
-		}
-		else
-		{
-			switch(pedict->state.movetype)
-			{
-			case MOVETYPE_NONE:
-				SV_Physics_None(pedict);
-				break;
-			case MOVETYPE_PUSH:
-				SV_Physics_Pusher(pedict);
-				break;
-			case MOVETYPE_FOLLOW:
-				SV_Physics_Follow(pedict);
-				break;
-			case MOVETYPE_NOCLIP:
-				SV_Physics_Noclip(pedict);
-				break;
-			case MOVETYPE_STEP:
-			case MOVETYPE_PUSHSTEP:
-				SV_Physics_Step(pedict);
-				break;
-			case MOVETYPE_TOSS:
-				SV_Physics_Toss(pedict);
-				break;
-			case MOVETYPE_FLY:
-			case MOVETYPE_BOUNCE:
-				SV_Physics_Bounce(pedict);
-				break;
-			default:
-				Con_Printf("Unknown movetype %d for entity %s.\n", pedict->state.movetype, SV_GetString(pedict->fields.classname));
-				break;
-			}
-		}
-
-		// Kill the entity if flagged to do so
-		if(pedict->state.flags & FL_KILLME)
-			gEdicts.FreeEdict(pedict, EDICT_REMOVED_KILLED);
-	}
-
-	nbEdicts = gEdicts.GetNbEdicts();
-	for(Uint32 i = 0; i < nbEdicts; i++)
-	{
 		edict_t* pedict = gEdicts.GetEdict(i);
-		if(pedict->free || !(pedict->state.flags & FL_PARENTED))
+
+		// Do not simulate here for parented entities,
+		// the parents will be called to do for that
+		if(pedict->state.parent != NO_ENTITY_INDEX)
 			continue;
 
-		SV_Physics_ManageParentage(pedict);
+		SV_RunEntityPhysics(pedict);
 	}
 
 	if(svs.gamevars.force_retouch)

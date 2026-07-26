@@ -46,6 +46,13 @@ public:
 	virtual void InitEntity( void ) override;
 
 	virtual Int32 GetEntityFlags( void ) override { return CBaseEntity::GetEntityFlags() & ~FL_ENTITY_TRANSITION; }
+	virtual bool CanEntityBeParent( void ) const override { return true; }
+	virtual bool CanEntityBeParented( void ) const override { return true; }
+
+	virtual void BeginParentMovement( CBaseEntity* pParent ) override;
+	virtual void RotateEntityByParent( CBaseEntity* pRotatorParent, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& rotatorAngularMove ) override;
+	virtual void OnParentEntitySetAngles( CBaseEntity* pSetParent, const Vector& parentOrigin, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange ) override;
+	virtual void OnEntitySetAngles( const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange, bool realignEntity ) override;
 
 public:
 	void EXPORTFN SwingThink( void );

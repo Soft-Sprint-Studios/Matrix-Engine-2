@@ -41,6 +41,7 @@ public:
 	virtual bool Spawn( void ) override;
 	virtual void DeclareSaveFields( void ) override;
 	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	void PerformSave( CBaseEntity* pPlayer );

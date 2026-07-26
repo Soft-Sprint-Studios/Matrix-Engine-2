@@ -103,6 +103,7 @@ extern void InitializeEntities( void );
 extern void SendEntityInitMessages( edict_t* pPlayer );
 
 extern void	BeginLoadSave( bool isLoadSave, bool isTransitionSave, bool isTransitionLoad, const Vector* pLandmarkOffset, const CArray<entindex_t>& entityIndexArray );
+extern bool PrepareEntityStateData( edict_t* pedict, const Char* fieldname, Uint32 numblocks, bool istransferglobalentity );
 extern bool ReadEntityStateData( edict_t* pedict, const Char* fieldname, const byte* pdata, Uint32 datasize, Uint32 blockindex, bool istransferglobalentity );
 extern bool ReadEntityFieldData( edict_t* pedict, const Char* fieldname, const byte* pdata, Uint32 datasize, Uint32 blockindex, bool istransferglobalentity );
 extern bool PrepareEntityClassData( edict_t* pedict, const Char* fieldname, Uint32 numblocks, bool istransferglobalentity );
@@ -113,6 +114,28 @@ extern entity_data_desc_t CheckSaveField( entity_data_desc_t desc, Uint64 typesi
 
 extern edict_t* FindEntityByString( edict_t* pStartEntity, const Char* pstrFieldName, const Char* pstrValue );
 extern edict_t* FindGlobalEntity( const Char* pstrClassname, const Char* pstrGlobalName );
+
+extern void SaveEntityStateData( edict_t* pedict, bool istransitionsave );
+extern void SaveEntityFieldsData( edict_t* pedict, bool istransitionsave );
+extern void SaveEntityClassData( edict_t* pedict, bool istransitionsave );
+extern bool IsGlobalTransitioningEntity( edict_t* pedict );
+extern bool ShouldTransitionEntity( edict_t* pedict );
+extern bool ShouldSaveEntity( edict_t* pedict );
+
+extern Int32 GetNbEntities( void );
+extern const entity_state_t* GetEntityState( entindex_t entindex );
+
+extern void BeginParentMovement( edict_t* pedict, edict_t* pmovingparent );
+extern void RotateEntityByParent( edict_t* pedict, edict_t* protatingparent, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& rotatorAngularMove );
+extern void MoveEntityByParent( edict_t* pedict, edict_t* pmovingparent, const Vector& movement );
+extern void OnParentEntitySetAngles( edict_t* pedict, edict_t* psetparent, const Vector& parentOrigin, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange );
+extern void OnParentEntitySetOrigin( edict_t* pedict, edict_t* psetparent, const Vector& parentPrevOrigin, const Vector& parentCurOrigin );
+extern void OnParentMovementDone( edict_t* pedict, edict_t* pmovingparent );
+extern void UndoParentMovement( edict_t* pedict, edict_t* pmovingparent );
+extern void OnParentChildFreed( edict_t* pedict, edict_t* pparent );
+
+extern void OnEntitySetAngles( edict_t* pedict, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange, bool realignEntity );
+extern void OnEntitySetOrigin( edict_t* pedict, const Vector& prevOrigin, const Vector& curOrigin, bool realignEntity );
 
 // Global entity fields
 #define EFIELD_GLOBAL			(1<<0)

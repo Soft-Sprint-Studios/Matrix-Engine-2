@@ -169,7 +169,7 @@ void CFuncPendulum::CallUse( CBaseEntity* pacticator, CBaseEntity* pCaller, usem
 //=============================================
 void CFuncPendulum::StopThink( void )
 {
-	m_pState->angles = m_start;
+	SetAngles(m_start);
 	m_pState->speed = 0;
 	m_pState->avelocity.Clear();
 
@@ -203,7 +203,7 @@ void CFuncPendulum::SwingThink( void )
 		m_dampSpeed -= m_dampening * m_dampSpeed * timedelta;
 		if(m_dampSpeed < 30)
 		{
-			m_pState->angles = m_center;
+			SetAngles(m_center);
 			m_pState->speed = 0;
 			m_pState->avelocity.Clear();
 
@@ -257,4 +257,58 @@ void CFuncPendulum::InitEntity( void )
 {
 	// Used for delayed initialization
 	CallUse(this, this, USE_TOGGLE, 0);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CFuncPendulum::BeginParentMovement( CBaseEntity* pParent )
+{
+	CBaseEntity::BeginParentMovement(pParent);
+
+	AddParentMoveRestoreField(DEFINE_DATA_FIELD(CFuncPendulum, m_center,		EFIELD_VECTOR),	reinterpret_cast<byte*>(&m_center),	sizeof(Vector), 1);
+	AddParentMoveRestoreField(DEFINE_DATA_FIELD(CFuncPendulum, m_start,			EFIELD_VECTOR),	reinterpret_cast<byte*>(&m_start),	sizeof(Vector),	1);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CFuncPendulum::RotateEntityByParent( CBaseEntity* pRotatorParent, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& rotatorAngularMove )
+{
+	CBaseEntity::RotateEntityByParent(pRotatorParent, pPrevRotationMatrix, pCurRotationMatrix, rotatorAngularMove);
+
+	// Add rotator angular movement to relevant variables
+	Math::VectorAdd(m_center, rotatorAngularMove, m_center);
+	Math::VectorAdd(m_start, rotatorAngularMove, m_start);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CFuncPendulum::OnParentEntitySetAngles( CBaseEntity* pSetParent, const Vector& parentOrigin, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange )
+{
+	CBaseEntity::OnParentEntitySetAngles(pSetParent, parentOrigin, pPrevRotationMatrix, pCurRotationMatrix, angularChange);
+
+	// Add rotator angular movement to relevant variables
+	Math::VectorAdd(m_center, angularChange, m_center);
+	Math::VectorAdd(m_start, angularChange, m_start);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CFuncPendulum::OnEntitySetAngles( const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange, bool realignEntity )
+{
+	CBaseEntity::OnEntitySetAngles(pPrevRotationMatrix, pCurRotationMatrix, angularChange, realignEntity);
+
+	// Add rotator angular movement to relevant variables
+	if(realignEntity)
+	{
+		Math::VectorAdd(m_center, angularChange, m_center);
+		Math::VectorAdd(m_start, angularChange, m_start);
+	}
 }

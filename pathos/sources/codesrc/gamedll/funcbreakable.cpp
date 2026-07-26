@@ -327,10 +327,10 @@ bool CFuncBreakable::Spawn( void )
 
 	m_angle = m_pState->angles.y;
 
-	SetSpawnProperties();
-
 	if(!SetModel(m_pFields->modelname))
 		return false;
+
+	SetSpawnProperties();
 
 	if(!HasSpawnFlag(FL_BREAK_ON_TRIGGER_ONLY))
 		SetTouch(&CFuncBreakable::BreakTouch);
@@ -364,7 +364,7 @@ void CFuncBreakable::SetSpawnProperties( void )
 {
 	m_pState->solid = SOLID_BSP;
 	m_pState->movetype = MOVETYPE_PUSH;
-	m_pState->angles.y = 0;
+	SetYaw(0);
 }
 
 //=============================================

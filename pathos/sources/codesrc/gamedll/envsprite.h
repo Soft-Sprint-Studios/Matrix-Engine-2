@@ -41,6 +41,7 @@ public:
 	virtual Int32 GetEntityFlags( void ) override;
 	virtual void PreAddPacket( void ) override;
 	virtual void InitEntity( void ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	void EXPORTFN AnimateThink( void );

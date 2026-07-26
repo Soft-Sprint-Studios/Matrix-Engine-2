@@ -38,7 +38,7 @@ CFuncConveyor::~CFuncConveyor( void )
 bool CFuncConveyor::Spawn( void )
 {
 	// Set movement direction
-	Util::SetMoveDirection(*m_pState);
+	Util::SetMoveDirection(this);
 
 	if(!CFuncWall::Spawn())
 		return false;

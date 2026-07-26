@@ -1221,7 +1221,9 @@ void CBaseNPC::BecomeDead( bool startedDead )
 		Float blastVelocity = upDp * Common::RandomFloat(250, 350) + (1.0 - upDp) * Common::RandomFloat(1250, 1450);
 
 		// Set angles
-		m_pState->angles = Math::VectorToAngles(-gMultiDamage.GetShotDirection());
+		Vector angles = Math::VectorToAngles(-gMultiDamage.GetShotDirection());
+		SetAngles(angles);
+
 		m_pState->idealyaw = m_pState->angles[YAW];
 		m_updateYaw = false;
 
@@ -1546,7 +1548,7 @@ bool CBaseNPC::TakeDamage( CBaseEntity* pInflictor, CBaseEntity* pAttacker, Floa
 			// Set velocity and angles
 			const Float blowbackReferenceDmg = 100;
 			m_pState->velocity += -m_damageDirection * Common::RandomFloat(155, 225) * (_dmgAmount / blowbackReferenceDmg) * GetBlowbackDmgAccelerationMultiplier();
-			m_pState->angles[YAW] = Util::VectorToYaw(m_damageDirection);
+			SetYaw(Util::VectorToYaw(m_damageDirection));
 			m_pState->idealyaw = m_pState->angles[YAW];
 			m_updateYaw = false;
 
@@ -1654,7 +1656,9 @@ bool CBaseNPC::TakeDamageDead( CBaseEntity* pInflictor, CBaseEntity* pAttacker, 
 
 		// Set angles
 		m_pState->flags &= FL_ONGROUND;
-		m_pState->angles = Math::VectorToAngles(-gMultiDamage.GetShotDirection());
+		Vector angles = Math::VectorToAngles(-gMultiDamage.GetShotDirection());
+		SetAngles(angles);
+
 		m_pState->idealyaw = m_pState->angles[YAW];
 		m_updateYaw = false;
 
@@ -1948,7 +1952,10 @@ void CBaseNPC::StartNPC( void )
 		if(!HasSpawnFlag(FL_NPC_DONT_FALL))
 		{
 			// Raise the NPC off the floor, then drop him
-			m_pState->origin.z += 1.0f;
+			Vector raisedOrigin = m_pState->origin;
+			raisedOrigin.z += 1.0f;
+			SetOrigin(raisedOrigin);
+
 			gd_engfuncs.pfnDropToFloor(m_pEdict);
 
 			if(!gd_engfuncs.pfnWalkMove(m_pEdict, 0, 0, WALKMOVE_NORMAL))
@@ -2378,15 +2385,13 @@ void CBaseNPC::CleanupScriptedSequence( void )
 			if((m_pState->origin - bonePosition).Length2D() > NPC_SCRIPT_MOVE_MIN_DIST)
 			{
 				Vector prevOrigin = m_pState->origin;
-				m_pState->origin[0] = bonePosition[0];
-				m_pState->origin[1] = bonePosition[1];
-				gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+				Vector newOrigin = bonePosition;
+				newOrigin.z = prevOrigin.z;
+
+				SetOrigin(newOrigin);
 
 				if(!gd_engfuncs.pfnWalkMove(m_pEdict, 0, 0, WALKMOVE_NORMAL))
-				{
-					m_pState->origin = prevOrigin;
-					gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
-				}
+					SetOrigin(prevOrigin);
 			}
 
 			// Set ideal yaw to current angles
@@ -2402,7 +2407,7 @@ void CBaseNPC::CleanupScriptedSequence( void )
 		GroundEntityNudge();
 
 	// Link it back to the world
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pEdict->state.origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pEdict->state.origin, false);
 
 	// Clear enemy
 	m_enemy.reset();
@@ -2580,13 +2585,16 @@ void CBaseNPC::GroundEntityNudge( bool noExceptions )
 
 	// Move the NPC up a bit, then drop him
 	Vector preNudgeOrigin = m_pState->origin;
+	Vector nudgeOrigin = preNudgeOrigin;
+	nudgeOrigin.z += 4;
+
+	SetOrigin(nudgeOrigin);
 	m_pState->flags &= ~FL_ONGROUND;
-	m_pState->origin.z += 4;
 
 	if(!gd_engfuncs.pfnDropToFloor(m_pEdict))
 	{
 		// If nudge fails, re-set the previous origin
-		gd_engfuncs.pfnSetOrigin(m_pEdict, preNudgeOrigin);
+		SetOrigin(preNudgeOrigin);
 	}
 }
 
@@ -2596,7 +2604,7 @@ void CBaseNPC::GroundEntityNudge( bool noExceptions )
 //=============================================
 Float CBaseNPC::GetYawDifference( void )
 {
-	Float currentYaw = Math::AngleMod(m_pState->angles[1]);
+	Float currentYaw = Math::AngleMod(m_pState->angles[YAW]);
 	if(currentYaw != m_pState->idealyaw)
 		return Util::AngleDistance(m_pState->idealyaw, currentYaw);
 	else
@@ -2639,7 +2647,7 @@ void CBaseNPC::ChangeYaw( Double timeInterval )
 			yawMove = -yawSpeed;
 
 		// Set the yaw angle
-		m_pState->angles[YAW] = Math::AngleMod(currentYaw+yawMove);
+		SetYaw(Math::AngleMod(currentYaw+yawMove));
 
 		// Turn head in desired direction if we can turn heads
 		if(HasCapability(AI_CAP_TURN_HEAD))
@@ -3285,7 +3293,7 @@ void CBaseNPC::CorpseFallThink( void )
 		SetThink(nullptr);
 
 		SetSequenceBox(false);
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 	}
 	else
 	{
@@ -6349,7 +6357,7 @@ bool CBaseNPC::WalkMoveTrace( const Vector& origin, const Vector& moveDirection,
 	bool traceResult = true;
 
 	// Move NPC to the start of the move
-	gd_engfuncs.pfnSetOrigin(m_pEdict, startPosition);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, startPosition, false);
 
 	// Make sure we're on the floor
 	if(!(m_pState->flags & (FL_FLY|FL_SWIM)))
@@ -6414,7 +6422,7 @@ bool CBaseNPC::WalkMoveTrace( const Vector& origin, const Vector& moveDirection,
 	// Set output position
 	outPosition = lastValidPosition;
 	// Since we've actually moved the NPC, move him back
-	gd_engfuncs.pfnSetOrigin(m_pEdict, originalPosition);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, originalPosition, false);
 
 	// Restore original state
 	m_pState->flags = savedFlags;
@@ -6439,7 +6447,7 @@ localmove_t CBaseNPC::CheckLocalMove( const Vector startPosition, const Vector& 
 
 	// Move NPC to start position and drop him to the floor
 	Vector moveStart = m_pState->origin;
-	gd_engfuncs.pfnSetOrigin(m_pEdict, startPosition);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, startPosition, false);
 
 	// Drop entity to floor
 	if(!(m_pState->flags & (FL_FLY|FL_SWIM)))
@@ -6456,7 +6464,7 @@ localmove_t CBaseNPC::CheckLocalMove( const Vector startPosition, const Vector& 
 			m_pState->flags = savedFlags;
 			m_pState->groundent = savedGroundEntity;
 
-			gd_engfuncs.pfnSetOrigin(m_pEdict, moveStart);
+			gd_engfuncs.pfnSetOrigin(m_pEdict, moveStart, false);
 			return LOCAL_MOVE_INVALID_NO_TRIANGULATION;
 		}
 	}
@@ -6548,7 +6556,7 @@ localmove_t CBaseNPC::CheckLocalMove( const Vector startPosition, const Vector& 
 
 	// Since we've actually moved the NPC, move him back
 	Vector moveEnd = m_pState->origin;
-	gd_engfuncs.pfnSetOrigin(m_pEdict, moveStart);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, moveStart, false);
 
 	if(!(m_pState->flags & (FL_FLY|FL_SWIM)) && (!pTargetEntity || pTargetEntity->GetFlags() & FL_ONGROUND))
 	{
@@ -6973,7 +6981,7 @@ bool CBaseNPC::BuildRoute( const Vector& destination, Uint64 moveFlags, CBaseEnt
 		&& !m_distanceTravelled)
 	{
 		Vector savedOrigin = m_pState->origin;
-		gd_engfuncs.pfnSetOrigin(m_pEdict, destination);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, destination, false);
 
 		// Make sure it's a valid position
 		if(!gd_engfuncs.pfnWalkMove(m_pEdict, 0, 0, WALKMOVE_CHECKONLY))
@@ -6984,7 +6992,7 @@ bool CBaseNPC::BuildRoute( const Vector& destination, Uint64 moveFlags, CBaseEnt
 				if(pHitEntity && (pHitEntity->IsNPC() || pHitEntity->IsPlayer()))
 				{
 					// Failed, try again later
-					gd_engfuncs.pfnSetOrigin(m_pEdict, savedOrigin);
+					gd_engfuncs.pfnSetOrigin(m_pEdict, savedOrigin, false);
 				}
 			}
 		}
@@ -7007,7 +7015,7 @@ bool CBaseNPC::IsPositionNavigable( const Vector& position )
 
 	// Remember original position
 	Vector moveStart = m_pState->origin;
-	gd_engfuncs.pfnSetOrigin(m_pEdict, position);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, position, false);
 
 	// See result of moving in said location
 	bool checkResult = gd_engfuncs.pfnWalkMove(m_pEdict, 0, 0, WALKMOVE_NO_NPCS);
@@ -7015,7 +7023,7 @@ bool CBaseNPC::IsPositionNavigable( const Vector& position )
 	{
 		// If the previous failed, try lifting NPC off the ground
 		Vector checkPosition = position + Vector(0, 0, 4);
-		gd_engfuncs.pfnSetOrigin(m_pEdict, position);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, position, false);
 
 		if(!(m_pState->flags & (FL_FLY|FL_SWIM)))
 			gd_engfuncs.pfnDropToFloor(m_pEdict);
@@ -7024,7 +7032,7 @@ bool CBaseNPC::IsPositionNavigable( const Vector& position )
 	}
 
 	// Always restore original position
-	gd_engfuncs.pfnSetOrigin(m_pEdict, moveStart);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, moveStart, false);
 
 	// Restore original state
 	m_pState->flags = savedFlags;
@@ -8960,7 +8968,9 @@ activity_t CBaseNPC::GetBlowbackDeathActivity( void )
 	Math::AngleVectors(m_pState->angles, &forward);
 
 	// Clear all angles but yaw
-	m_pState->angles[PITCH] = m_pState->angles[ROLL] = 0;
+	SetPitch(0);
+	SetRoll(0);
+
 	m_pState->effects |= EF_NOLERP;
 
 	if(m_deathFlags & NPC_DF_LANDED_AGAINST_WALL && (m_pState->flags & FL_ONGROUND))
@@ -9483,7 +9493,7 @@ void CBaseNPC::CorpseTouch( CBaseEntity* pOther )
 		flatDir.Normalize();
 
 		Vector angle = Math::VectorToAngles(flatDir);
-		m_pState->angles[YAW] = angle[YAW];
+		SetYaw(angle[YAW]);
 
 		// See if we're near ground
 		trace_t groundtr;

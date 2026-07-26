@@ -66,6 +66,8 @@ public:
 	virtual Int32 GetEntityFlags( void ) override { return CBaseEntity::GetEntityFlags() & ~FL_ENTITY_TRANSITION; }
 	virtual void DeclareSaveFields( void ) override;
 	virtual void InitEntity( void ) override;
+	virtual bool CanEntityBeParent( void ) const override { return true; }
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	void RampPitchAndVolume( void );

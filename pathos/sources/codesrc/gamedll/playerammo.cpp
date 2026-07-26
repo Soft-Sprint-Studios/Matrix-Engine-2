@@ -85,7 +85,7 @@ void CPlayerAmmo::DefaultTouch( CBaseEntity* pOther )
 			m_playImpactSound = false;
 		}
 
-		Util::AlignEntityToSurface(m_pEdict);
+		Util::AlignEntityToSurface(this);
 		return;
 	}
 

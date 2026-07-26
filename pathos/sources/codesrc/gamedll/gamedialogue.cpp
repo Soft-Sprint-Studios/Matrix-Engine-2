@@ -245,7 +245,7 @@ CGameDialogue* CGameDialogue::CreateDialogue( const Char* pstrPath, const Vector
 
 	CGameDialogue *pDialogue = reinterpret_cast<CGameDialogue *>(CBaseEntity::GetClass( pEntity ));
 
-	gd_engfuncs.pfnSetOrigin(pEntity, origin);
+	gd_engfuncs.pfnSetOrigin(pEntity, origin, false);
 	pEntity->fields.message = gd_engfuncs.pfnAllocString(pstrPath);
 	pDialogue->m_radius = radius;
 

@@ -24,6 +24,7 @@ public:
 public:
 	virtual void SetMinsMaxs( void ) override;
 	virtual void SetLightRenderFx( void ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 private:
 	// Only CEnvSpotlight can call this, not derived/parent classes

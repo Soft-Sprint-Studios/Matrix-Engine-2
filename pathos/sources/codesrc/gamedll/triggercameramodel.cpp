@@ -255,7 +255,7 @@ void CTriggerCameraModel::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller
 			
 			// Set endpos as origin
 			Vector resultOrigin = tr.endpos + Vector(0, 0, VEC_HULL_MIN[2]);
-			gd_engfuncs.pfnSetOrigin(m_pEdict, resultOrigin);
+			gd_engfuncs.pfnSetOrigin(m_pEdict, resultOrigin, false);
 
 			if(!HasSpawnFlag(FL_KEEP_ANGLES))
 			{
@@ -266,7 +266,7 @@ void CTriggerCameraModel::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller
 					m_pPlayer->SetVelocity(ZERO_VECTOR);
 				}
 
-				m_pState->angles = Vector(0, playerAngles[YAW], 0);
+				SetAngles(Vector(0, playerAngles[YAW], 0));
 			}
 		}
 
@@ -380,8 +380,7 @@ CTriggerCameraModel* CTriggerCameraModel::CreateCameraModel( const CBaseEntity* 
 	if(pOwner)
 	{
 		pedict->state.owner = pOwner->GetEntityIndex();
-		pedict->state.origin = pOwner->GetOrigin();
-		gd_engfuncs.pfnSetOrigin(pedict, pedict->state.origin);
+		gd_engfuncs.pfnSetOrigin(pedict, pOwner->GetOrigin(), false);
 	}
 
 	CTriggerCameraModel* pCameraModel = reinterpret_cast<CTriggerCameraModel*>(CBaseEntity::GetClass(pedict));
@@ -424,8 +423,8 @@ void CTriggerCameraModel::ResetThink( void )
 
 	if(HasSpawnFlag(FL_FOLLOW_PLAYER))
 	{
-		m_pState->angles[ROLL] = 0;
-		m_pState->angles[PITCH] = 0;
+		SetRoll(0);
+		SetPitch(0);
 
 		m_pPlayer->SetAngles(m_pState->angles);
 		m_pPlayer->SetViewAngles(m_pState->angles);

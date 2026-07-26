@@ -58,13 +58,13 @@ bool CFuncPlat::Spawn( void )
 
 	if(m_pFields->targetname != NO_STRING_VALUE)
 	{
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position1);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position1, false);
 		m_toggleState = TSTATE_AT_TOP;
 		SetUse(&CFuncPlat::PlatUse);
 	}
 	else
 	{
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position2);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position2, false);
 		m_toggleState = TSTATE_AT_BOTTOM;
 	}
 
@@ -86,7 +86,8 @@ bool CFuncPlat::Setup( void )
 	if(!m_tWidth)
 		m_tWidth = DEFAULT_T_WIDTH;
 
-	m_pState->angles.Clear();
+	SetAngles(ZERO_VECTOR);
+
 	m_pState->solid = SOLID_BSP;
 	m_pState->movetype = MOVETYPE_PUSH;
 

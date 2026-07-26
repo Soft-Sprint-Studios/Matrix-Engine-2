@@ -29,6 +29,7 @@ public:
 	virtual void TriggerWait( CBaseEntity* pActivator ) override;
 	virtual void PostTrigger( void ) override;
 	virtual void SetTriggerWait( void ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	void EXPORTFN RestoreThink( void );

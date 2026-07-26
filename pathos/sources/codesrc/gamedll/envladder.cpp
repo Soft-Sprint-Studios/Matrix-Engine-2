@@ -79,13 +79,14 @@ bool CEnvLadder::Spawn( void )
 		m_pState->body = 1;
 
 	// Round down origin
+	Vector adjustOrigin = m_pState->origin;
 	for(Uint32 i = 0; i < 3; i++)
 	{
-		float flfrac = m_pState->origin[i] - floor(m_pState->origin[i]);
-		m_pState->origin[i] = (flfrac > 0.5) ? ceil(m_pState->origin[i]) : floor(m_pState->origin[i]);
+		float flfrac = adjustOrigin[i] - SDL_floor(adjustOrigin[i]);
+		adjustOrigin[i] = (flfrac > 0.5) ? SDL_ceil(adjustOrigin[i]) : SDL_floor(adjustOrigin[i]);
 	}
 
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	SetOrigin(adjustOrigin);
 	return true;
 }
 
@@ -176,7 +177,7 @@ void CEnvLadder::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode
 
 	// make non-solid and relink
 	m_pState->solid = SOLID_NOT;
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 
 	if(!VerifyMove(vOrigin, pActivator, 1) && !VerifyMove(vOrigin, pActivator, -1)
 		|| (HasSpawnFlag(FL_TOP_ACCESS) 
@@ -184,7 +185,7 @@ void CEnvLadder::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode
 	{
 		// Make solid and relink
 		m_pState->solid = SOLID_BBOX;
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 
 		// Ladder is stuck in a solid or similar, can't move
 		Util::EntityConPrintf(m_pEdict, "Ladder is stuck in a solid!\n");
@@ -214,7 +215,7 @@ void CEnvLadder::ExitLadder( void )
 	m_pState->solid = SOLID_BBOX;
 
 	// Relink
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 }
 
 //=============================================

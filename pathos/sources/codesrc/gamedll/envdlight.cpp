@@ -229,11 +229,10 @@ void CEnvDLight::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode
 //=============================================
 void CEnvDLight::SetValues( const Vector& origin, const Vector& color, Uint32 radius )
 {
-	m_pState->origin = origin;
+	SetOrigin(origin);
+
 	m_pState->rendercolor = color;
 	m_pState->renderamt = radius;
-
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
 }
 
 //=============================================
@@ -272,9 +271,9 @@ void CEnvDLight::OscillateThink( void )
 	trace_t tr;
 	Util::TraceLine(m_pState->origin, newOrigin, true, false, nullptr, tr);
 	if(tr.noHit() || tr.allSolid() || tr.startSolid())
-		gd_engfuncs.pfnSetOrigin(m_pEdict, newOrigin);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, newOrigin, false);
 	else
-		gd_engfuncs.pfnSetOrigin(m_pEdict, tr.endpos);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, tr.endpos, false);
 
 	
 	m_pState->nextthink = m_pState->ltime + 0.1;

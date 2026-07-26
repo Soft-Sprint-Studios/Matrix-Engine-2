@@ -99,6 +99,7 @@ static gdll_engfuncs_t GAMEDLL_ENGINE_FUNCTIONS =
 	SV_SetMinsMaxs,						//pfnSetMinsMaxs
 	SV_SetSize,							//pfnSetSize
 	SV_SetOrigin,						//pfnSetOrigin
+	SV_SetAngles,						//pfnSetAngles
 	SV_SetPAS,							//pfnSetPAS
 	SV_SetPVS,							//pfnSetPVS
 	Con_Printf,							//pfnCon_Printf
@@ -111,6 +112,7 @@ static gdll_engfuncs_t GAMEDLL_ENGINE_FUNCTIONS =
 	SV_CreateEntity,					//pfnCreateEntity
 	SV_RemoveEntity,					//pfnRemoveEntity
 	SV_DropToFloor,						//pfnDropToFloor
+	SV_SetEntityParent,					//pfnSetEntityParent
 	Cache_GetModel,						//pfnGetModel
 	Cache_GetModelBounds,				//pfnGetModelBounds
 	Cache_GetModelType,					//pfnGetModelType
@@ -179,8 +181,8 @@ static gdll_engfuncs_t GAMEDLL_ENGINE_FUNCTIONS =
 	SV_GetBonePositionByName,			//pfnGetBonePositionByName
 	SV_GetBonePositionByIndex,			//pfnGetBonePositionByIndex
 	SV_GetAttachment,					//pfnGetAttachment
-	Mod_RecursiveLightPoint,			//pfnRecursiveLightPoint
-	Mod_RecursiveLightPoint_BumpData,	//pfnRecursiveLightPointBumpData
+	SV_RecursiveLightPoint,				//pfnRecursiveLightPoint
+	SV_RecursiveLightPoint_BumpData,	//pfnRecursiveLightPointBumpData
 	Engine_CreateCVar,					//pfnCreateCVar
 	Engine_CreateCVarCallback,			//pfnCreateCVarCallback
 	Engine_GetCVarPointer,				//pfnGetCVarPointer
@@ -3181,4 +3183,20 @@ edict_t* SV_FindClientInPVS( const edict_t* pedict )
 	}
 
 	return nullptr;
+}
+
+//=============================================
+//
+//=============================================
+bool SV_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles )
+{
+	return Mod_RecursiveLightPoint(pworld, pnode, start, end, poutcolors, poutstyles, 0);
+}
+
+//=============================================
+//
+//=============================================
+bool SV_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles )
+{
+	return Mod_RecursiveLightPoint_BumpData(pworld, pnode, start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, 0);
 }

@@ -39,6 +39,8 @@ public:
 	virtual bool Restore( void ) override;
 	// Initializes the entity after map has done loading
 	virtual void InitEntity( void ) override;
+	// TRUE if entity can be parented by another
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	// Use function for striking the beam

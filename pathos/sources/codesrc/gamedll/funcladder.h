@@ -24,5 +24,6 @@ public:
 public:
 	virtual bool Spawn( void ) override;
 	virtual Int32 GetEntityFlags( void ) override { return CBaseEntity::GetEntityFlags() & ~FL_ENTITY_TRANSITION; }
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 };
 #endif //FUNCLADDER_H

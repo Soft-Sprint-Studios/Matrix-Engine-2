@@ -37,6 +37,7 @@ public:
 	virtual void Precache( void ) override;
 	virtual void DeclareSaveFields( void ) override;
 	virtual bool KeyValue( const keyvalue_t& kv ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	virtual CGib* CreateGib( void ) override;

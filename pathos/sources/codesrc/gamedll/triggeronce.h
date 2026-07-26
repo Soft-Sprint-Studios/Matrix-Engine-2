@@ -31,6 +31,7 @@ public:
 
 public:
 	virtual bool Spawn( void ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	void EXPORTFN TriggerTouch( CBaseEntity* pOther );

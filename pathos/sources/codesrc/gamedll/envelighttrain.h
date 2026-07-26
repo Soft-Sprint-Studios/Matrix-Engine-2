@@ -26,5 +26,6 @@ public:
 	virtual void Precache( void ) override;
 	virtual bool TrainSetModel( void ) override;
 	virtual void SetSpawnProperties( void ) override;
+	virtual bool CanEntityBeParent( void ) const override { return true; }
 };
 #endif //ENVELIGHTTRAIN_H

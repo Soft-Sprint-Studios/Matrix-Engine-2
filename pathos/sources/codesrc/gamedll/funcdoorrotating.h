@@ -32,12 +32,14 @@ public:
 
 	virtual void SetToggleState( togglestate_t state, bool reverse ) override;
 	virtual bool IsFuncDoorRotatingEntity( void ) const { return true; }
+	virtual bool CanEntityBeParent( void ) const override { return true; }
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 
 public:
 	virtual void SetSpawnProperties( void ) override;
 	virtual void SetMovementVectors( void ) override;
 	virtual void DoorBeginMoveUp( void ) override;
 	virtual void DoorBeginMoveDown( void ) override;
-	virtual void RealignRelatedDoor( CFuncDoor* pDoor ) override;
+	virtual void RealignRelatedDoor( CBaseEntity* pDoor ) override;
 };
 #endif //FUCNDOORROTATING_H

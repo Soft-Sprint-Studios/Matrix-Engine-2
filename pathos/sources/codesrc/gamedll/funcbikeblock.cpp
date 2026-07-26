@@ -40,7 +40,7 @@ bool CFuncBikeBlock::Spawn( void )
 	if(!CBaseEntity::Spawn())
 		return false;
 
-	m_pState->angles.Clear();
+	SetAngles(ZERO_VECTOR);
 	m_pState->solid = SOLID_BSP;
 	m_pState->movetype = MOVETYPE_PUSH;
 	m_pState->effects |= EF_NODRAW;
@@ -81,7 +81,7 @@ void CFuncBikeBlock::SetBikeBlock( bool enable )
 		m_pState->movetype = MOVETYPE_NONE;
 	}
 
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 }
 
 //=============================================

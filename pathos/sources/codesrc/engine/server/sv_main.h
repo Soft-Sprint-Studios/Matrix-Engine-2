@@ -654,4 +654,8 @@ extern edict_t* SV_FindClientInPVS( const edict_t* pedict );
 
 extern void SV_MaxPlayersCvarCallBack( CCVar* pCVar );
 extern void SV_EndGame( const Char* pstrEndGameCode );
+
+extern bool SV_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles );
+extern bool SV_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles );
+
 #endif

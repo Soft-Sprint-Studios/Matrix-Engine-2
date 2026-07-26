@@ -235,12 +235,12 @@ void CTriggerCamera::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, use
 	if(HasSpawnFlag(FL_PLAYER_POSITION))
 	{
 		Vector origin = m_pPlayerEntity->GetEyePosition();
-		gd_engfuncs.pfnSetOrigin(m_pEdict, origin);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, origin, false);
 
 		Vector angles = m_pPlayerEntity->GetViewAngles();
 		angles[0] = -angles[0];
 		angles[2] = 0;
-		m_pState->angles = angles;
+		SetAngles(angles);
 
 		m_pState->velocity = m_pPlayerEntity->GetVelocity();
 	}
@@ -251,8 +251,10 @@ void CTriggerCamera::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, use
 
 	if(HasSpawnFlag(FL_LOCKON) && m_targetEntity)
 	{
-		m_pState->angles = Math::VectorToAngles((m_targetEntity->GetOrigin() - m_pState->origin).Normalize());
-		m_pState->angles.x = -m_pState->angles.x;
+		Vector angles = Math::VectorToAngles((m_targetEntity->GetOrigin() - m_pState->origin).Normalize());
+		angles.x = -angles.x;
+
+		SetAngles(angles);
 	}
 
 	m_pPlayerEntity->SetViewEntity(this);
@@ -385,10 +387,10 @@ void CTriggerCamera::FollowTarget( void )
 	vecDestAngles.x *= -1;
 
 	if(m_pState->angles.y > 360)
-		m_pState->angles.y -= 360;
+		SetYaw(m_pState->angles.y - 360);
 
 	if(m_pState->angles.y < 0)
-		m_pState->angles.y += 360;
+		SetYaw(m_pState->angles.y + 360);
 
 	Float dx = vecDestAngles.x - m_pState->angles.x;
 	Float dy = vecDestAngles.y - m_pState->angles.y;

@@ -53,19 +53,81 @@ inline const Vector& CBaseEntity::GetAngles( void ) const
 // @brief
 //
 //=============================================
-inline void CBaseEntity::SetOrigin( const Vector& origin )
+inline const Float CBaseEntity::GetPitch( void ) const
 {
-	m_pState->origin = origin;
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	return m_pEdict->state.angles[PITCH];
 }
 
 //=============================================
 // @brief
 //
 //=============================================
-inline void CBaseEntity::SetAngles( const Vector& angles )
+inline const Float CBaseEntity::GetYaw( void ) const
 {
-	m_pState->angles = angles;
+	return m_pEdict->state.angles[YAW];
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+inline const Float CBaseEntity::GetRoll( void ) const
+{
+	return m_pEdict->state.angles[ROLL];
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+inline void CBaseEntity::SetOrigin( const Vector& origin, bool realignEntity )
+{
+	gd_engfuncs.pfnSetOrigin(m_pEdict, origin, realignEntity);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+inline void CBaseEntity::SetAngles( const Vector& angles, bool realignEntity )
+{
+	gd_engfuncs.pfnSetAngles(m_pEdict, angles, realignEntity);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+inline void CBaseEntity::SetPitch( Float value, bool realignEntity )
+{
+	Vector angles = m_pEdict->state.angles;
+	angles[PITCH] = value;
+
+	gd_engfuncs.pfnSetAngles(m_pEdict, angles, realignEntity);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+inline void CBaseEntity::SetYaw( Float value, bool realignEntity )
+{
+	Vector angles = m_pEdict->state.angles;
+	angles[YAW] = value;
+
+	gd_engfuncs.pfnSetAngles(m_pEdict, angles, realignEntity);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+inline void CBaseEntity::SetRoll( Float value, bool realignEntity )
+{
+	Vector angles = m_pEdict->state.angles;
+	angles[ROLL] = value;
+
+	gd_engfuncs.pfnSetAngles(m_pEdict, angles, realignEntity);
 }
 
 //=============================================
@@ -120,6 +182,24 @@ inline const Vector& CBaseEntity::GetBaseVelocity( void ) const
 inline void CBaseEntity::SetBaseVelocity( const Vector& basevelocity )
 {
 	m_pState->basevelocity = basevelocity;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+inline const Vector& CBaseEntity::GetMovementDirection( void ) const
+{
+	return m_pState->movedir;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+inline void CBaseEntity::SetMovementDirection( const Vector& movedir )
+{
+	m_pState->movedir = movedir;
 }
 
 //=============================================
@@ -847,7 +927,7 @@ inline void CBaseEntity::SetParent( CBaseEntity* pEntity )
 	else
 	{
 		m_pState->parent = pEntity->GetEntityIndex();
-		m_pState->flags |= FL_PARENTED;
+		InitParenting();
 	}
 }
 

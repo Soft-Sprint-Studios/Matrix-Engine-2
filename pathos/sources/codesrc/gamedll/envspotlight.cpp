@@ -80,13 +80,14 @@ void CEnvSpotlight::SetMinsMaxs( void )
 //=============================================
 void CEnvSpotlight::SetSpotlightValues( const Vector& origin, const Vector& angles, const Vector& color, Uint32 radius, Uint32 conesize )
 {
-	m_pState->origin = origin;
-	m_pState->angles = angles;
+	SetOrigin(origin);
+	SetAngles(angles);
+
 	m_pState->rendercolor = color;
 	m_pState->renderamt = radius;
 	m_pState->scale = conesize;
 
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 }
 
 //=============================================

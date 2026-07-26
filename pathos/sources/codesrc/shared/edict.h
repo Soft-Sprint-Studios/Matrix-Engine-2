@@ -52,6 +52,22 @@ struct edict_fields_t
 	string_t noise3;
 };
 
+struct edict_prevstates_t
+{
+	// Origin before move/rotation by parent
+	Vector origin;
+	// Angles before rotation by parent
+	Vector angles;
+	// Velocity before rotation by parent
+	Vector velocity;
+	// Base velocity before rotation by parent
+	Vector basevelocity;
+	// Angular velocity before rotation by parent
+	Vector avelocity;
+	// Movement direction before rotation by parent
+	Vector movedir;
+};
+
 struct edict_t
 {
 	edict_t():
@@ -101,5 +117,10 @@ struct edict_t
 	entity_animinfo_t* paniminfo;
 	// vbm hull data if any
 	entity_vbmhulldata_t* pvbmhulldata;
+
+	// State variables that are modified
+	// by parents and need to be tracked
+	// for each child
+	edict_prevstates_t prevstate;
 };
 #endif

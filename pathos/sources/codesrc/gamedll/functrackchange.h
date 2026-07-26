@@ -53,6 +53,7 @@ public:
 	virtual void OnOverrideEntity( void ) override;
 	virtual void CallTouch( CBaseEntity* pOther ) override;
 	virtual void InitEntity( void ) override;
+	virtual bool CanEntityBeParent( void ) const override { return true; }
 
 public:
 	virtual void GoUp( void ) override;

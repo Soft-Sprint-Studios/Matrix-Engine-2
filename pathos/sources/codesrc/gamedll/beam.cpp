@@ -193,7 +193,7 @@ void CBeam::RelinkBeam( void )
 	m_pState->maxs = m_pState->maxs - m_pState->origin;
 
 	gd_engfuncs.pfnSetMinsMaxs(m_pEdict, m_pState->mins, m_pState->maxs);
-	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin);
+	gd_engfuncs.pfnSetOrigin(m_pEdict, m_pState->origin, false);
 }
 
 //=============================================

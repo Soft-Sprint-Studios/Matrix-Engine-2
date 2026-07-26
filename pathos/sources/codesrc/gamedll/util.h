@@ -29,7 +29,7 @@ namespace Util
 	extern edict_t* FindEntityByTargetName( edict_t* pStartEntity, const Char* pstrValue );
 	extern edict_t* FindEntityByTarget( edict_t* pStartEntity, const Char* pstrValue );
 	extern edict_t* FindEntityInBBox( edict_t* pStartEntity, const Vector& mins, const Vector& maxs );
-	extern void SetMoveDirection( entity_state_t& state );
+	extern void SetMoveDirection( CBaseEntity* pEntity );
 	extern void SetAxisDirection( entity_state_t& state, Int32 flags, Int32 flagz, Int32 flagx );
 	extern Float GetAxisValue( Int32 flags, const Vector& angles, Int32 flagz, Int32 flagx );
 	extern Float GetAxisDelta( Int32 flags, const Vector& angle1, const Vector& angle2, Int32 flagz, Int32 flagx );
@@ -112,7 +112,7 @@ namespace Util
 	extern CString PlayRandomEntitySound( CBaseEntity* pEntity, const Char* pstrPattern, Int32 count, snd_channels_t channel = SND_CHAN_AUTO, Float volume = VOL_NORM, Float attenuation = ATTN_NORM, Int32 pitch = PITCH_NORM, Int32 flags = SND_FL_NONE );
 	extern CString PlayRandomAmbientSound( const Vector& origin, const Char* pstrPattern, Int32 count, Float volume = VOL_NORM, Float attenuation = ATTN_NORM, Int32 pitch = PITCH_NORM, Int32 flags = SND_FL_NONE );
 	extern void PlayWeaponClatterSound( const edict_t* pedict );
-	extern void AlignEntityToSurface( edict_t* pedict );
+	extern void AlignEntityToSurface( CBaseEntity* pEntity );
 	extern Vector GetRandomBloodVector( void );
 	extern void ScreenShake( const Vector& origin, Float amplitude, Float frequency, Float duration, Float radius, bool inair = false, bool disruptcontrols = false );
 	extern void ScreenShakeAll( const Vector& origin, Float amplitude, Float frequency, Float duration );

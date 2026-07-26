@@ -63,5 +63,5 @@ void CEnvSetAngles::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usem
 	}
 
 	CBaseEntity* pEntity = CBaseEntity::GetClass(ptarget);
-	pEntity->SetAngles(m_pState->angles);
+	pEntity->SetAngles(m_pState->angles, true);
 }

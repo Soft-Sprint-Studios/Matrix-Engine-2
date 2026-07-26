@@ -1023,7 +1023,6 @@ bool PBSPV2_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dpb
 
 	// Allocate grid object
 	lightgriddata_t* pdestgrid = new lightgriddata_t();
-	model.plightgrid = pdestgrid;
 
 	pdestgrid->rootnodeindex = psrcgrid->rootnodeindex;
 	pdestgrid->gridmins = psrcgrid->grid_mins;
@@ -1124,6 +1123,12 @@ bool PBSPV2_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dpb
 
 		// We need this for ALD
 		destsample.rawsampleoffset = psrcsample->rawsampleoffset;
+		if(destsample.rawsampleoffset != NO_POSITION && (destsample.rawsampleoffset+3) > pdestgrid->rawsampledatasize)
+		{
+			Con_EPrintf("%s - Raw sample offset %d in sample %d is out of bounds for raw sample data size(%d bytes).\n", __FUNCTION__, destsample.rawsampleoffset, i, pdestgrid->rawsampledatasize);
+			delete pdestgrid;
+			return false;
+		}
 
 		// Set pointers for ease of access
 		if(destsample.rawsampleoffset != -1)
@@ -1133,5 +1138,6 @@ bool PBSPV2_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dpb
 		}
 	}
 	
+	model.plightgrid = pdestgrid;
 	return true;
 }

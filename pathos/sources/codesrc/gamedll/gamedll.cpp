@@ -113,6 +113,7 @@ static gdll_funcs_t GAMEDLL_FUNCTIONS =
 	ShouldSaveEntity,			//pfnShouldSaveEntity
 	GetSaveGameTitle,			//pfnGetSaveGameTitle
 	BeginLoadSave,				//pfnBeginLoadSave
+	PrepareEntityStateData,		//pfnPrepareEntityStateData
 	ReadEntityStateData,		//pfnReadEntityStateData
 	ReadEntityFieldData,		//pfnReadEntityFieldData
 	PrepareEntityClassData,		//pfnPrepareEntityClassData
@@ -120,8 +121,18 @@ static gdll_funcs_t GAMEDLL_FUNCTIONS =
 	FindGlobalEntity,			//pfnFindGlobalEntity
 	AdjustEntityPositions,		//pfnAdjustEntityPositions
 	InconsistentFile,			//pfnInconsistentFile
+	BeginParentMovement,		//pfnBeginParentMovement
+	RotateEntityByParent,		//pfnRotateEntityByParent
+	MoveEntityByParent,			//pfnMoveEntityByParent
+	UndoParentMovement,			//pfnUndoParentMovement
+	OnParentMovementDone,		//pfnOnParentMovementDone
+	OnParentChildFreed,			//pfnOnParentChildFreed
+	OnParentEntitySetAngles,	//pfnOnParentEntitySetAngles
+	OnParentEntitySetOrigin,	//pfnOnParentEntitySetOrigin
+	OnEntitySetAngles,			//pfnOnEntitySetAngles
+	OnEntitySetOrigin,			//pfnOnEntitySetOrigin
 	GetNbGlobalStates,			//pfnGetNbGlobalStates
-	SaveGlobalStates,			//pfnReagGlobalStateData
+	SaveGlobalStates,			//pfnReadGlobalStateData
 	ReadGlobalStateData,		//pfnReadGlobalStateData
 	AreCheatsEnabled,			//pfnAreCheatsEnabled
 	GetTransitioningEntities,	//pfnGetTransitionList
@@ -363,142 +374,6 @@ void RunPlayerMovement( const usercmd_t& cmd, pm_info_t* pminfo )
 
 	// Run movement logic for the client
 	gMovement.RunMovement(cmd, pminfo, true, isMultiplayer);
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-Int32 GetNbEntities( void )
-{
-	return gd_engfuncs.pfnGetNbEdicts();
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-const entity_state_t* GetEntityState( entindex_t entindex )
-{
-	edict_t* pedict = gd_engfuncs.pfnGetEdictByIndex(entindex);
-	if(!pedict || pedict->free)
-		return nullptr;
-
-	return &pedict->state;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-void SaveEntityStateData( edict_t* pedict, bool istransitionsave )
-{
-	SaveEntityState(pedict->state, istransitionsave);
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-void SaveEntityFieldsData( edict_t* pedict, bool istransitionsave )
-{
-	SaveEntityFields(pedict->fields, istransitionsave);
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-void SaveEntityClassData( edict_t* pedict, bool istransitionsave )
-{
-	CBaseEntity* pEntity = CBaseEntity::GetClass(pedict);
-	pEntity->SaveEntityClassData(istransitionsave);
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-bool IsGlobalTransitioningEntity( edict_t* pedict )
-{
-	// Do not transfer invalid entities
-	if(Util::IsNullEntity(pedict))
-		return false;
-
-	CBaseEntity* pEntity = CBaseEntity::GetClass(pedict);
-	if(!pEntity)
-		return false;
-
-	if(!pEntity->HasGlobalName())
-		return false;
-
-	// List of entites that can potentially transition
-	const Int32* pTransitionEntitiesList = nullptr;
-	Uint32 numTransitionEntities = 0;
-
-	gd_engfuncs.pfnGetTransitionList(&pTransitionEntitiesList, numTransitionEntities);
-
-	// Make sure it's in the list
-	for(Uint32 i = 0; i < numTransitionEntities; i++)
-	{
-		if(pTransitionEntitiesList[i] == pedict->entindex)
-			return true;
-	}
-
-	return false;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-bool ShouldTransitionEntity( edict_t* pedict )
-{
-	// Do not transfer invalid entities
-	if(Util::IsNullEntity(pedict))
-		return false;
-
-	CBaseEntity* pEntity = CBaseEntity::GetClass(pedict);
-	if(!pEntity)
-		return false;
-
-	if(!(pEntity->GetEntityFlags() & FL_ENTITY_TRANSITION) && pEntity->HasGlobalName())
-		return false;
-
-	// List of entites that can potentially transition
-	const Int32* pTransitionEntitiesList = nullptr;
-	Uint32 numTransitionEntities = 0;
-
-	gd_engfuncs.pfnGetTransitionList(&pTransitionEntitiesList, numTransitionEntities);
-
-	// Make sure it's in the list
-	for(Uint32 i = 0; i < numTransitionEntities; i++)
-	{
-		if(pTransitionEntitiesList[i] == pedict->entindex)
-			return true;
-	}
-
-	return false;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-bool ShouldSaveEntity( edict_t* pedict )
-{
-	// Do not transfer invalid entities
-	if(Util::IsNullEntity(pedict))
-		return false;
-
-	CBaseEntity* pEntity = CBaseEntity::GetClass(pedict);
-	if(!pEntity)
-		return false;
-
-	if(pEntity->GetEntityFlags() & FL_ENTITY_DONT_SAVE)
-		return false;
-
-	return true;
 }
 
 //=============================================

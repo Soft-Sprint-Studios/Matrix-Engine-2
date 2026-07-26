@@ -85,7 +85,7 @@ bool CEnvBlood::Spawn( void )
 	if(!CPointEntity::Spawn())
 		return false;
 
-	Util::SetMoveDirection(*m_pState);
+	Util::SetMoveDirection(this);
 	return true;
 }
 

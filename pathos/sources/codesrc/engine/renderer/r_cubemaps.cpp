@@ -318,16 +318,37 @@ void CCubemapManager::Update( const Vector& v_origin )
 		return;
 
 	// Find the closest cubemap
-	Int32 closestIndex = -1;
+	Int32 closestIndex = NO_POSITION;
 	Float closestDistance = 0;
 
+	// Try to find one where we're in the mins/maxs
 	for(Uint32 i = 0; i < m_cubemapsArray.size(); i++)
 	{
-		Float distance = (m_cubemapsArray[i].origin - v_origin).Length();
-		if(closestIndex == -1 || distance < closestDistance)
+		cubemapinfo_t& cubemap = m_cubemapsArray[i];
+		if(!cubemap.use_parallax)
+			continue;
+
+		if(!Math::PointInMinsMaxs(v_origin, cubemap.box_mins, cubemap.box_maxs))
+			continue;
+
+		Float distance = (cubemap.origin - v_origin).Length();
+		if(closestIndex == NO_POSITION || distance < closestDistance)
 		{
 			closestDistance = distance;
 			closestIndex = i;
+		}
+	}
+
+	if(closestIndex == NO_POSITION)
+	{
+		for(Uint32 i = 0; i < m_cubemapsArray.size(); i++)
+		{
+			Float distance = (m_cubemapsArray[i].origin - v_origin).Length();
+			if(closestIndex == NO_POSITION || distance < closestDistance)
+			{
+				closestDistance = distance;
+				closestIndex = i;
+			}
 		}
 	}
 

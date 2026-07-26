@@ -252,8 +252,9 @@ void CEnvDecal::SpawnDecal( const Vector& origin, const Char* pstrdecalname )
 
 	pedict->fields.targetname = gd_engfuncs.pfnAllocString("deaddecal");
 	pedict->fields.message = gd_engfuncs.pfnAllocString(pstrdecalname);
-	pedict->state.origin = origin;
 	pedict->state.spawnflags |= FL_ENVDECAL_TRANSITION;
+
+	pdecal->SetOrigin(origin);
 
 	DispatchSpawn(pedict);
 

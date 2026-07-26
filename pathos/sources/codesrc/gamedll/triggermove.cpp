@@ -116,10 +116,12 @@ void CTriggerMove::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemo
 		CBaseEntity* pLandmarkEntity = CBaseEntity::GetClass(pLandmarkEdict);
 		Vector vecOffset = pMoveEntity->GetOrigin() - pLandmarkEntity->GetOrigin();
 		Vector vecEntityOrigin = pMoveDestEntity->GetOrigin() + vecOffset;
-		pMoveEntity->SetOrigin(vecEntityOrigin);
+		pMoveEntity->SetOrigin(vecEntityOrigin, true);
 
 		if(HasSpawnFlag(FL_COPY_ANGLES))
-			pMoveEntity->SetAngles(pMoveDestEntity->GetAngles());
+			pMoveEntity->SetAngles(pMoveDestEntity->GetAngles(), true);
+
+		pMoveEntity->DetachFromParent();
 	}
 	else
 	{
@@ -138,17 +140,19 @@ void CTriggerMove::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemo
 			pMoveEntity->SetOrigin(tr.endpos);
 		}
 		else
-			pMoveEntity->SetOrigin(pMoveDestEntity->GetOrigin());
+			pMoveEntity->SetOrigin(pMoveDestEntity->GetOrigin(), true);
 
 		if(HasSpawnFlag(FL_COPY_ANGLES))
-			pMoveEntity->SetAngles(pMoveDestEntity->GetAngles());
+			pMoveEntity->SetAngles(pMoveDestEntity->GetAngles(), true);
+
+		pMoveEntity->DetachFromParent();
 	}
 
 	if(pMoveEntity->IsNPC())
 	{
 		// Move npc up a bit, and then drop him
 		pMoveEntity->RemoveFlags(FL_ONGROUND);
-		pMoveEntity->SetOrigin(pMoveEntity->GetOrigin() + Vector(0, 0, 8));
+		pMoveEntity->SetOrigin(pMoveEntity->GetOrigin() + Vector(0, 0, 8), true);
 		pMoveEntity->DropToFloor();
 		 
 		// Set ground entity

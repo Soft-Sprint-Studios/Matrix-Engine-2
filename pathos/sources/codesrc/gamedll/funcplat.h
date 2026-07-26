@@ -36,6 +36,7 @@ public:
 public:
 	virtual bool Spawn( void ) override;
 	virtual void CallBlocked( CBaseEntity* pBlocker ) override;
+	virtual bool CanEntityBeParent( void ) const override { return true; }
 
 public:
 	bool Setup( void );

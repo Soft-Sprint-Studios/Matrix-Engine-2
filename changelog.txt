@@ -969,3 +969,22 @@ Merge PR # 55:
  - Fix crash caused by cubemap builds when NPCs were used as static props with facial animations
  - Simplify parallax cubemap code by relying on already present pointers instead of looking the cubemap entity up again
  - Fix issue with VBM models being overly darkened by faulty light reduction code
+
+2026 July 26th:
+ - Recompiled all levels with light probes/light grid and baked vertex lighting.
+ - Modified levels to make use of new parenting system.
+ - Add "Parent" entry to relevant entities in FGD.
+ - Remove unused "precise" collision flag from particle scripts.
+ - Implement the new parenting system into server-side physics to allow entities to be parented to other entities.
+ - Modify light sampling functions to make use of the overdarken cvar instead of being hardcoded.
+ - Add safeguard to light grid to prevent overflow in case of bad buffer size.
+ - Modify cubemap code to prefer closest parallax cubemap whose bbox the view is inside of.
+ - Modify light grid and baked vertex lighting to consider the overdarken factor also.
+ - Modification to allow entity state fields to make use of CArray types support.
+ - Modify game dll code to exclusively set angles and origin through SV_SetOrigin and S_SetAngles for parenting.
+ - Redesign entity state tracking in server physics to support parenting.
+ - Get rid of last bits of "stupid Quake bug" type hacks.
+ - Expand some of the save-restore functionality to augment parenting code.
+ - Improve func_door and func_door_rotating code by getting rid of fixed-size arrays and make use of parenting.
+ - Fix bug with func_train going to wrong path_corner after being re-triggered to continue moving.
+ - Modify trigger_move to detach any parented target entities after moving them.

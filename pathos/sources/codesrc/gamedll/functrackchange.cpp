@@ -139,16 +139,16 @@ bool CFuncTrackChange::Spawn( void )
 
 	if(HasSpawnFlag(FL_START_AT_BOTTOM))
 	{
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position2);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position2, false);
 		m_toggleState = TSTATE_AT_BOTTOM;
-		m_pState->angles = m_startAngles;
+		SetAngles(m_startAngles);
 		m_targetState = TSTATE_AT_TOP;
 	}
 	else
 	{
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position1);
+		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position1, false);
 		m_toggleState = TSTATE_AT_TOP;
-		m_pState->angles = m_endAngles;
+		SetAngles(m_endAngles);
 		m_targetState = TSTATE_AT_BOTTOM;
 	}
 

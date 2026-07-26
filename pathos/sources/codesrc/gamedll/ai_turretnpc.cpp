@@ -769,10 +769,11 @@ void CTurretNPC::InitializeThink( void )
 		m_pState->idealpitch = 180.0f;
 		m_pState->view_offset.z = -m_pState->view_offset.z;
 		m_pState->effects |= EF_INVLIGHT;
-		m_pState->angles.x = 180;
-		m_pState->angles.y = m_pState->angles.y + 180.0f;
+
+		SetPitch(180);
+		SetYaw(m_pState->angles.y + 180.0f);
 		if(m_pState->angles.y > 360.0f)
-			m_pState->angles.y = m_pState->angles.y - 360.0f;
+			SetYaw(m_pState->angles.y - 360.0f);
 	}
 
 	m_goalAngles.x = 0;

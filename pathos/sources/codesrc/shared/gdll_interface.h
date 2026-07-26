@@ -94,14 +94,26 @@ struct gdll_funcs_t
 
 	void			(*pfnGetSaveGameTitle)( Char* pstrBuffer, Int32 maxlength );
 	void			(*pfnBeginLoadSave)( bool isLoadSave, bool isTransitionSave, bool isTransitionLoad, const Vector* pLandmarkOffset, const CArray<entindex_t>& entityIndexArray );
+	bool			(*pfnPrepareEntityStateData)( edict_t* pedict, const Char* fieldname, Uint32 numblocks, bool istransferglobalentity );
 	bool			(*pfnReadEntityStateData)( edict_t* pedict, const Char* fieldname, const byte* pdata, Uint32 datasize, Uint32 blockindex, bool istransferglobalentity );
 	bool			(*pfnReadEntityFieldData)( edict_t* pedict, const Char* fieldname, const byte* pdata, Uint32 datasize, Uint32 blockindex, bool istransferglobalentity );
 	bool			(*pfnPrepareEntityClassData)( edict_t* pedict, const Char* fieldname, Uint32 numblocks, bool istransferglobalentity );
 	bool			(*pfnReadEntityClassData)( edict_t* pedict, const Char* fieldname, const byte* pdata, Uint32 datasize, Uint32 blockindex, bool istransferglobalentity );
 	edict_t*		(*pfnFindGlobalEntity)( const Char* pstrClassname, const Char* pstrGlobalName );
 	void			(*pfnAdjustEntityPositions)( edict_t* pedict, Vector prevmins );
-
 	bool			(*pfnInconsistentFile)( const Char* pstrFilename );
+
+	void			(*pfnBeginParentMovement)( edict_t* pedict, edict_t* pmovingparent );
+	void			(*pfnRotateEntityByParent)( edict_t* pedict, edict_t* protatingparent, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& rotatorAngularMove );
+	void			(*pfnMoveEntityByParent)( edict_t* pedict, edict_t* pmovingparent, const Vector& movement );
+	void			(*pfnUndoParentMovement)( edict_t* pedict, edict_t* pmovingparent );
+	void			(*pfnOnParentMovementDone)( edict_t* pedict, edict_t* pmovingparent );
+	void			(*pfnOnParentChildFreed)( edict_t* pedict, edict_t* pparent );
+	void			(*pfnOnParentEntitySetAngles)( edict_t* pedict, edict_t* psetparent, const Vector& parentOrigin, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange );
+	void			(*pfnOnParentEntitySetOrigin)( edict_t* pedict, edict_t* psetparent, const Vector& parentPrevOrigin, const Vector& parentCurOrigin );
+
+	void			(*pfnOnEntitySetAngles)( edict_t* pedict, const Float (*pPrevRotationMatrix)[4], const Float (*pCurRotationMatrix)[4], const Vector& angularChange, bool realignEntity );
+	void			(*pfnOnEntitySetOrigin)( edict_t* pedict, const Vector& prevOrigin, const Vector& curOrigin, bool realignEntity );
 
 	Uint32			(*pfnGetNbGlobalStates)( void );
 	void			(*pfnSaveGlobalStates)( void );
@@ -134,7 +146,8 @@ struct gdll_engfuncs_t
 	bool					(*pfnSetModel)( edict_t* pedict, const Char* pstrFilepath, bool setbounds );
 	void					(*pfnSetMinsMaxs)( edict_t* pedict, const Vector& mins, const Vector& maxs );
 	void					(*pfnSetSize)( edict_t* pedict, const Vector& size );
-	void					(*pfnSetOrigin)( edict_t* pedict, const Vector& origin );
+	void					(*pfnSetOrigin)( edict_t* pedict, const Vector& origin, bool realignEntity );
+	void					(*pfnSetAngles)( edict_t* pedict, const Vector& angles, bool realignEntity );
 
 	byte*					(*pfnSetPAS)( const Vector& origin );
 	byte*					(*pfnSetPVS)( const Vector& origin );
@@ -150,6 +163,7 @@ struct gdll_engfuncs_t
 	edict_t*				(*pfnCreateEntity)( const Char* pstrClassName );
 	void					(*pfnRemoveEntity)( edict_t* pentity );
 	bool					(*pfnDropToFloor)( edict_t* pentity );
+	bool					(*pfnSetEntityParent)( edict_t* pentity, edict_t* pparent );
 
 	const cache_model_t*	(*pfnGetModel)( Int32 modelindex );
 	void					(*pfnGetModelBounds)( const cache_model_t& model, Vector& mins, Vector& maxs );
