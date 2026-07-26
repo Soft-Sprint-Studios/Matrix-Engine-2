@@ -109,8 +109,8 @@ struct mdispinfo_t
 
 struct mdispvert_t
 {
-	Float dist;
 	Vector vector;
+	Float dist;
 
 	// Unused
 	Float alpha;
