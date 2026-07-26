@@ -34,6 +34,16 @@ brushmodel_t* PBSPV2_Load( const byte* pfile, const dpbspv2header_t* pheader, co
 	pmodel->version = pheader->version;
 	pmodel->freedata = true;
 
+	// If PBSPV2_FL_HAS_CHECKSUM is set, then load and verify checksum first
+	if (pheader->flags & PBSPV2_FL_HAS_CHECKSUM)
+	{
+		if (!PBSPV2_LoadChecksum(pfile, (*pmodel), pheader->lumps[PBSPV2_LUMP_CHECKSUM]))
+		{
+			delete pmodel;
+			return nullptr;
+		}
+	}
+
 	// Load the lumps
 	if(!PBSPV2_LoadVertexes(pfile, (*pmodel), pheader->lumps[PBSPV2_LUMP_VERTEXES])
 		|| !PBSPV2_LoadEdges(pfile, (*pmodel), pheader->lumps[PBSPV2_LUMP_EDGES])
@@ -1207,6 +1217,40 @@ bool PBSPV2_LoadDisplacements(const byte* pfile, brushmodel_t& model, const dpbs
 	Uint32 limit = (count_faces < model.numsurfaces) ? count_faces : model.numsurfaces;
 	for (Uint32 i = 0; i < limit; i++)
 		model.psurfaces[i].displacement_id = pmaps[i];
+
+	return true;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+bool PBSPV2_LoadChecksum( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump )
+{
+	if (!lump.size)
+		return true;
+
+	// Check if sizes are correct
+	if (lump.size != sizeof(dpbspv2checksum_t))
+	{
+		Con_EPrintf("%s - Inconsistent lump size in '%s'.\n", __FUNCTION__, model.name.c_str());
+		return false;
+	}
+
+	const dpbspv2checksum_t* pchecksum = reinterpret_cast<const dpbspv2checksum_t*>(pfile + lump.offset);
+
+	Uint64 computed_checksum = 14695981039346656037ULL;
+	for (Int32 i = 0; i < lump.offset; i++)
+	{
+		computed_checksum ^= pfile[i];
+		computed_checksum *= 1099511628211ULL;
+	}
+
+	if (computed_checksum != pchecksum->checksum)
+	{
+		Con_EPrintf("%s - BSP file corrupted! ('%s')\n", __FUNCTION__, model.name.c_str());
+		return false;
+	}
 
 	return true;
 }

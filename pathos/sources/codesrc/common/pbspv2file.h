@@ -78,6 +78,9 @@ enum pbspv2_lumps_t
 	// This lump is available if header->flags has PBSPV2_FL_HAS_DISPLACEMENT set
 	PBSPV2_LUMP_DISPLACEMENTS,
 
+	// This lump is available if header->flags has PBSPV2_FL_HAS_CHECKSUM set
+	PBSPV2_LUMP_CHECKSUM,
+
 	// MUST BE LAST
 	PBSPV2_NB_LUMPS // Don't actually use this anywhere if possible
 };
@@ -91,7 +94,8 @@ enum pbspv2_flags_t
 	PBSPV2_FL_HAS_SMOOTHING_GROUPS	= (1<<0),
 	PBSPV2_FL_HAS_VERTEX_LIGHTING	= (1<<1),
 	PBSPV2_FL_HAS_LIGHTGRID_DATA	= (1<<2),
-	PBSPV2_FL_HAS_DISPLACEMENT		= (1<<3)
+	PBSPV2_FL_HAS_DISPLACEMENT		= (1<<3),
+	PBSPV2_FL_HAS_CHECKSUM			= (1<<4)
 };
 
 //
@@ -434,6 +438,11 @@ struct dpbspv2dispvert_t
 
 	// Unused
 	Float alpha;
+};
+
+struct dpbspv2checksum_t
+{
+	Uint64 checksum;
 };
 
 #endif //PBSPV2FILE_H
