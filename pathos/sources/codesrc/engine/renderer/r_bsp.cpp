@@ -994,6 +994,7 @@ void CBSPRenderer::InitVBO( void )
 				Uint32 v_base = curVertexIndex;
 				pbspsurface->start_index = curIndex;
 
+				// Store normal
 				Vector faceNormal;
 				Math::VectorCopy(psurface->pplane->normal, faceNormal);
 				if (psurface->flags & SURF_PLANEBACK)
@@ -1030,11 +1031,26 @@ void CBSPRenderer::InitVBO( void )
 						v.origin[3] = 1.0f;
 						v.normal = faceNormal;
 
-						v.texcoord[0] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[0]) + psurface->ptexinfo->vecs[0][3]) / psurface->ptexinfo->ptexture->width;
-						v.texcoord[1] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[1]) + psurface->ptexinfo->vecs[1][3]) / psurface->ptexinfo->ptexture->height;
+						mtexinfo_t* ptexinfo = psurface->ptexinfo;
+						Math::VectorCopy(ptexinfo->vecs[0], v.tangent);
+						Math::VectorNormalize(v.tangent);
+						Math::VectorCopy(ptexinfo->vecs[1], v.binormal);
+						Math::VectorNormalize(v.binormal);
+
+						// Set texcoords
+						v.texcoord[0] = (Math::DotProduct(pos, ptexinfo->vecs[0]) + ptexinfo->vecs[0][3]) / ptexinfo->ptexture->width;
+						v.texcoord[1] = (Math::DotProduct(pos, ptexinfo->vecs[1]) + ptexinfo->vecs[1][3]) / ptexinfo->ptexture->height;
+
+						// Set detail texcoords if needed
+						if (pbspsurface->ptexture->pmaterial->ptextures[MT_TX_DETAIL])
+						{
+							v.dtexcoord[0] = v.texcoord[0] * pbspsurface->ptexture->pmaterial->dt_scalex * m_pCvarDetailScale->GetValue();
+							v.dtexcoord[1] = v.texcoord[1] * pbspsurface->ptexture->pmaterial->dt_scaley * m_pCvarDetailScale->GetValue();
+						}
 
 						for (Uint32 l = 0; l < MAX_SURFACE_STYLES; l++)
 						{
+							// Set lightmap coords
 							v.lmapcoord[l][0] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[0]) + psurface->ptexinfo->vecs[0][3] - psurface->texturemins[0] + pbspsurface->light_s[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f)) / (m_lightmapWidths[l] * psurface->lightmapdivider);
 							v.lmapcoord[l][1] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[1]) + psurface->ptexinfo->vecs[1][3] - psurface->texturemins[1] + pbspsurface->light_t[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f)) / (m_lightmapHeights[l] * psurface->lightmapdivider);
 						}
