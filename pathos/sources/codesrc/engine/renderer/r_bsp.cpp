@@ -5107,13 +5107,66 @@ void CBSPRenderer::DecalSurface( const msurface_t *surf, bsp_decal_t *pdecal, co
 		return;
 
 	// Extract vertexes
-	for(Uint32 i = 0; i < surf->numedges; i++)
+	CArray<CArray<Vector>> polygonsToClip;
+
+	// If we are displacement
+	if (surf->displacement_id != -1)
 	{
-		Int32 e_index = ens.pworld->psurfedges[surf->firstedge+i];
-		if(e_index > 0)
-			Math::VectorCopy(ens.pworld->pvertexes[ens.pworld->pedges[e_index].vertexes[0]].origin, dverts1[i]);
-		else
-			Math::VectorCopy(ens.pworld->pvertexes[ens.pworld->pedges[-e_index].vertexes[1]].origin, dverts1[i]);
+		const mdispinfo_t& info = ens.pworld->pdispinfo[surf->displacement_id];
+		Uint32 side = (1 << info.power) + 1;
+
+		Vector corners[4];
+		for (Uint32 c = 0; c < 4; c++)
+			corners[c] = Vector(info.corners[c][0], info.corners[c][1], info.corners[c][2]);
+
+		CArray<Vector> dispVerts(side * side);
+		for (Uint32 y = 0; y < side; y++)
+		{
+			for (Uint32 x = 0; x < side; x++)
+			{
+				Float fr_x = static_cast<Float>(x) / (side - 1);
+				Float fr_y = static_cast<Float>(y) / (side - 1);
+
+				Vector top, bot, pos;
+				Math::VectorAdd(corners[0], (corners[1] - corners[0]) * fr_x, top);
+				Math::VectorAdd(corners[3], (corners[2] - corners[3]) * fr_x, bot);
+				Math::VectorAdd(top, (bot - top) * fr_y, pos);
+
+				Int32 v_idx = info.vert_start + (y * side + x);
+				Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].dist, ens.pworld->pdispverts[v_idx].vector, dispVerts[y * side + x]);
+			}
+		}
+
+		for (Uint32 y = 0; y < side - 1; y++)
+		{
+			for (Uint32 x = 0; x < side - 1; x++)
+			{
+				CArray<Vector> tri1(3);
+				tri1[0] = dispVerts[y * side + x];
+				tri1[1] = dispVerts[(y + 1) * side + (x + 1)];
+				tri1[2] = dispVerts[(y + 1) * side + x];
+				polygonsToClip.push_back(tri1);
+
+				CArray<Vector> tri2(3);
+				tri2[0] = dispVerts[y * side + x];
+				tri2[1] = dispVerts[y * side + (x + 1)];
+				tri2[2] = dispVerts[(y + 1) * side + (x + 1)];
+				polygonsToClip.push_back(tri2);
+			}
+		}
+	}
+	else
+	{
+		CArray<Vector> facePoly(surf->numedges);
+		for(Uint32 i = 0; i < surf->numedges; i++)
+		{
+			Int32 e_index = ens.pworld->psurfedges[surf->firstedge+i];
+			if(e_index > 0)
+				Math::VectorCopy(ens.pworld->pvertexes[ens.pworld->pedges[e_index].vertexes[0]].origin, facePoly[i]);
+			else
+				Math::VectorCopy(ens.pworld->pvertexes[ens.pworld->pedges[-e_index].vertexes[1]].origin, facePoly[i]);
+		}
+		polygonsToClip.push_back(facePoly);
 	}
 
 	Math::GetUpRight(normal, up, right);
@@ -5124,156 +5177,163 @@ void CBSPRenderer::DecalSurface( const msurface_t *surf, bsp_decal_t *pdecal, co
 	Float texc_orig_x = Math::DotProduct(origin, right);
 	Float texc_orig_y = Math::DotProduct(origin, up);
 
-	Int32 nv;
-	Vector planepoint;
-	Math::VectorMA(origin, -xsize, right, planepoint);
-	nv = Decal_ClipPolygon(dverts1, surf->numedges, right, planepoint, dverts2);
-	if (nv < 3)
-		return;
-
-	Math::VectorMA(origin, xsize, right, planepoint);
-	Math::VectorScale(right, -1, tmp);
-	nv = Decal_ClipPolygon(dverts2, nv, tmp, planepoint, dverts1);
-	if (nv < 3)
-		return;
-
-	Math::VectorMA(origin, -ysize, up, planepoint);
-	nv = Decal_ClipPolygon(dverts1, nv, up, planepoint, dverts2);
-	if (nv < 3)
-		return;
-
-	Math::VectorMA(origin, ysize, up, planepoint);
-	Math::VectorScale(up, -1, tmp);
-	nv = Decal_ClipPolygon(dverts2, nv, tmp, planepoint, dverts1);
-	if (nv < 3)
-		return;
-
-	// see if we have enough space
-	numverts = 3+(nv-3)*3;
-	Int32 ioffset = GetDecalOffset(numverts);
-
-	// See if we need to allocate
-	decalpolygroup_t *pgroup = nullptr;
-	if(!pdecal->polygroups.empty())
-		pgroup = pdecal->polygroups[pdecal->polygroups.size()-1];
-
-	if(!pgroup || ioffset < pgroup->start_vertex 
-		|| pgroup->pentity != m_pCurrentEntity
-		|| pgroup->alphatest != transparent
-		|| pgroup->alphatest && pgroup->ptexture != surf->ptexinfo->ptexture)
+	for (Uint32 polyIdx = 0; polyIdx < polygonsToClip.size(); polyIdx++)
 	{
-		pgroup = new decalpolygroup_t;
-		pdecal->polygroups.push_back(pgroup);
-		pgroup->pentity = m_pCurrentEntity;
-		pgroup->start_vertex = ioffset;
-		pgroup->alphatest = transparent;
-		pgroup->localmins = NULL_MINS;
-		pgroup->localmaxs = NULL_MAXS;
-		pgroup->localorigin = pdecal->origin;
+		const CArray<Vector>& srcPoly = polygonsToClip[polyIdx];
+		for (Uint32 i = 0; i < srcPoly.size(); i++)
+			dverts1[i] = srcPoly[i];
 
-		if(m_pCurrentEntity && R_IsEntityMoved(*m_pCurrentEntity))
+		Int32 nv;
+		Vector planepoint;
+		Math::VectorMA(origin, -xsize, right, planepoint);
+		nv = Decal_ClipPolygon(dverts1, srcPoly.size(), right, planepoint, dverts2);
+		if (nv < 3)
+			continue;
+
+		Math::VectorMA(origin, xsize, right, planepoint);
+		Math::VectorScale(right, -1, tmp);
+		nv = Decal_ClipPolygon(dverts2, nv, tmp, planepoint, dverts1);
+		if (nv < 3)
+			continue;
+
+		Math::VectorMA(origin, -ysize, up, planepoint);
+		nv = Decal_ClipPolygon(dverts1, nv, up, planepoint, dverts2);
+		if (nv < 3)
+			continue;
+
+		Math::VectorMA(origin, ysize, up, planepoint);
+		Math::VectorScale(up, -1, tmp);
+		nv = Decal_ClipPolygon(dverts2, nv, tmp, planepoint, dverts1);
+		if (nv < 3)
+			continue;
+
+		// see if we have enough space
+		numverts = 3 + (nv - 3) * 3;
+		Int32 ioffset = GetDecalOffset(numverts);
+
+		// See if we need to allocate
+		decalpolygroup_t* pgroup = nullptr;
+		if (!pdecal->polygroups.empty())
+			pgroup = pdecal->polygroups[pdecal->polygroups.size() - 1];
+
+		if (!pgroup || ioffset < pgroup->start_vertex
+			|| pgroup->pentity != m_pCurrentEntity
+			|| pgroup->alphatest != transparent
+			|| pgroup->alphatest && pgroup->ptexture != surf->ptexinfo->ptexture)
 		{
-			Math::VectorSubtract(pgroup->localorigin, m_pCurrentEntity->curstate.origin, pgroup->localorigin);
-			if(m_pCurrentEntity)
-				Math::RotateToEntitySpace(m_pCurrentEntity->curstate.angles, pgroup->localorigin);
+			pgroup = new decalpolygroup_t;
+			pdecal->polygroups.push_back(pgroup);
+			pgroup->pentity = m_pCurrentEntity;
+			pgroup->start_vertex = ioffset;
+			pgroup->alphatest = transparent;
+			pgroup->localmins = NULL_MINS;
+			pgroup->localmaxs = NULL_MAXS;
+			pgroup->localorigin = pdecal->origin;
+
+			if (m_pCurrentEntity && R_IsEntityMoved(*m_pCurrentEntity))
+			{
+				Math::VectorSubtract(pgroup->localorigin, m_pCurrentEntity->curstate.origin, pgroup->localorigin);
+				if (m_pCurrentEntity)
+					Math::RotateToEntitySpace(m_pCurrentEntity->curstate.angles, pgroup->localorigin);
+			}
+
+			if (pgroup->alphatest)
+				pgroup->ptexture = surf->ptexinfo->ptexture;
 		}
 
-		if(pgroup->alphatest)
-			pgroup->ptexture = surf->ptexinfo->ptexture;
-	}
-
-	if(static_cast<Int32>(m_tempDecalVertsArray.size()) < numverts)
-	{
-		const Uint32 currentsize = m_tempDecalVertsArray.size();
-		m_tempDecalVertsArray.resize(currentsize+numverts);
-	}
-	
-	// triangulate
-	Int32 curvert = 0;
-	Vector *pvert = dverts1;
-	bsp_vertex_t pconvverts[3];
-	for(Int32 j = 0; j < 3; j++, pvert++)
-	{
-		Float texc_x = (Math::DotProduct(*pvert, right) - texc_orig_x)/xsize;
-		Float texc_y = (Math::DotProduct(*pvert, up) - texc_orig_y)/ysize;
-
-		pconvverts[j].texcoord[0] = ((texc_x + 1)/2);
-		pconvverts[j].texcoord[1] = ((texc_y + 1)/2);
-
-		pconvverts[j].origin[0] = (*pvert)[0];
-		pconvverts[j].origin[1] = (*pvert)[1];
-		pconvverts[j].origin[2] = (*pvert)[2];
-		pconvverts[j].origin[3] = 1.0;
-
-		for(Uint32 k = 0; k < 3; k++)
+		if (static_cast<Int32>(m_tempDecalVertsArray.size()) < numverts)
 		{
-			if(pconvverts[j].origin[k] < pgroup->localmins[k])
-				pgroup->localmins[k] = pconvverts[j].origin[k];
-
-			if(pconvverts[j].origin[k] > pgroup->localmaxs[k])
-				pgroup->localmaxs[k] = pconvverts[j].origin[k];
+			const Uint32 currentsize = m_tempDecalVertsArray.size();
+			m_tempDecalVertsArray.resize(currentsize + numverts);
 		}
 
-		if(transparent)
+		// triangulate
+		Int32 curvert = 0;
+		Vector* pvert = dverts1;
+		bsp_vertex_t pconvverts[3];
+		for (Int32 j = 0; j < 3; j++, pvert++)
 		{
-			pconvverts[j].dtexcoord[0] = Math::DotProduct(&pconvverts[j].origin[0], surf->ptexinfo->vecs[0])+surf->ptexinfo->vecs[0][3];
-			pconvverts[j].dtexcoord[0] /= static_cast<Float>(surf->ptexinfo->ptexture->width);
+			Float texc_x = (Math::DotProduct(*pvert, right) - texc_orig_x) / xsize;
+			Float texc_y = (Math::DotProduct(*pvert, up) - texc_orig_y) / ysize;
 
-			pconvverts[j].dtexcoord[1] = Math::DotProduct(&pconvverts[j].origin[0], surf->ptexinfo->vecs[1])+surf->ptexinfo->vecs[1][3];
-			pconvverts[j].dtexcoord[1] /= static_cast<Float>(surf->ptexinfo->ptexture->height);
-		}
-	}
+			pconvverts[j].texcoord[0] = ((texc_x + 1) / 2);
+			pconvverts[j].texcoord[1] = ((texc_y + 1) / 2);
 
-	memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[0], sizeof(bsp_vertex_t)); curvert++;
-	memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[1], sizeof(bsp_vertex_t)); curvert++;
-	memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[2], sizeof(bsp_vertex_t)); curvert++;
+			pconvverts[j].origin[0] = (*pvert)[0];
+			pconvverts[j].origin[1] = (*pvert)[1];
+			pconvverts[j].origin[2] = (*pvert)[2];
+			pconvverts[j].origin[3] = 1.0;
 
-	for(Int32 j = 0; j < (nv-3); j++, pvert++)
-	{
-		memcpy(&pconvverts[1], &pconvverts[2], sizeof(bsp_vertex_t));
+			for (Uint32 k = 0; k < 3; k++)
+			{
+				if (pconvverts[j].origin[k] < pgroup->localmins[k])
+					pgroup->localmins[k] = pconvverts[j].origin[k];
 
-		Float texc_x = (Math::DotProduct(*pvert, right) - texc_orig_x)/xsize;
-		Float texc_y = (Math::DotProduct(*pvert, up) - texc_orig_y)/ysize;
-		pconvverts[2].texcoord[0] = ((texc_x + 1)/2);
-		pconvverts[2].texcoord[1] = ((texc_y + 1)/2);
+				if (pconvverts[j].origin[k] > pgroup->localmaxs[k])
+					pgroup->localmaxs[k] = pconvverts[j].origin[k];
+			}
 
-		pconvverts[2].origin[0] = (*pvert)[0];
-		pconvverts[2].origin[1] = (*pvert)[1];
-		pconvverts[2].origin[2] = (*pvert)[2];
-		pconvverts[2].origin[3] = 1.0;
+			if (transparent)
+			{
+				pconvverts[j].dtexcoord[0] = Math::DotProduct(&pconvverts[j].origin[0], surf->ptexinfo->vecs[0]) + surf->ptexinfo->vecs[0][3];
+				pconvverts[j].dtexcoord[0] /= static_cast<Float>(surf->ptexinfo->ptexture->width);
 
-		for(Uint32 k = 0; k < 3; k++)
-		{
-			if(pconvverts[2].origin[k] < pgroup->localmins[k])
-				pgroup->localmins[k] = pconvverts[2].origin[k];
-
-			if(pconvverts[2].origin[k] > pgroup->localmaxs[k])
-				pgroup->localmaxs[k] = pconvverts[2].origin[k];
-		}
-
-		if(transparent)
-		{
-			pconvverts[2].dtexcoord[0] = Math::DotProduct(&pconvverts[2].origin[0], surf->ptexinfo->vecs[0])+surf->ptexinfo->vecs[0][3];
-			pconvverts[2].dtexcoord[0] /= static_cast<Float>(surf->ptexinfo->ptexture->width);
-
-			pconvverts[2].dtexcoord[1] = Math::DotProduct(&pconvverts[2].origin[0], surf->ptexinfo->vecs[1])+surf->ptexinfo->vecs[1][3];
-			pconvverts[2].dtexcoord[1] /= static_cast<Float>(surf->ptexinfo->ptexture->height);
+				pconvverts[j].dtexcoord[1] = Math::DotProduct(&pconvverts[j].origin[0], surf->ptexinfo->vecs[1]) + surf->ptexinfo->vecs[1][3];
+				pconvverts[j].dtexcoord[1] /= static_cast<Float>(surf->ptexinfo->ptexture->height);
+			}
 		}
 
 		memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[0], sizeof(bsp_vertex_t)); curvert++;
 		memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[1], sizeof(bsp_vertex_t)); curvert++;
 		memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[2], sizeof(bsp_vertex_t)); curvert++;
-	}
- 
-	for(Uint32 j = 0; j < 3; j++)
-	{
-		Float size = pgroup->localmaxs[j] - pgroup->localmins[j];
-		if(size > pgroup->radius)
-			pgroup->radius = size;
-	}
 
-	m_pDecalVBO->VBOSubBufferData(ioffset*sizeof(bsp_vertex_t), &m_tempDecalVertsArray[0], numverts*sizeof(bsp_vertex_t));
-	pgroup->num_vertexes += numverts;
+		for (Int32 j = 0; j < (nv - 3); j++, pvert++)
+		{
+			memcpy(&pconvverts[1], &pconvverts[2], sizeof(bsp_vertex_t));
+
+			Float texc_x = (Math::DotProduct(*pvert, right) - texc_orig_x) / xsize;
+			Float texc_y = (Math::DotProduct(*pvert, up) - texc_orig_y) / ysize;
+			pconvverts[2].texcoord[0] = ((texc_x + 1) / 2);
+			pconvverts[2].texcoord[1] = ((texc_y + 1) / 2);
+
+			pconvverts[2].origin[0] = (*pvert)[0];
+			pconvverts[2].origin[1] = (*pvert)[1];
+			pconvverts[2].origin[2] = (*pvert)[2];
+			pconvverts[2].origin[3] = 1.0;
+
+			for (Uint32 k = 0; k < 3; k++)
+			{
+				if (pconvverts[2].origin[k] < pgroup->localmins[k])
+					pgroup->localmins[k] = pconvverts[2].origin[k];
+
+				if (pconvverts[2].origin[k] > pgroup->localmaxs[k])
+					pgroup->localmaxs[k] = pconvverts[2].origin[k];
+			}
+
+			if (transparent)
+			{
+				pconvverts[2].dtexcoord[0] = Math::DotProduct(&pconvverts[2].origin[0], surf->ptexinfo->vecs[0]) + surf->ptexinfo->vecs[0][3];
+				pconvverts[2].dtexcoord[0] /= static_cast<Float>(surf->ptexinfo->ptexture->width);
+
+				pconvverts[2].dtexcoord[1] = Math::DotProduct(&pconvverts[2].origin[0], surf->ptexinfo->vecs[1]) + surf->ptexinfo->vecs[1][3];
+				pconvverts[2].dtexcoord[1] /= static_cast<Float>(surf->ptexinfo->ptexture->height);
+			}
+
+			memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[0], sizeof(bsp_vertex_t)); curvert++;
+			memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[1], sizeof(bsp_vertex_t)); curvert++;
+			memcpy(&m_tempDecalVertsArray[curvert], &pconvverts[2], sizeof(bsp_vertex_t)); curvert++;
+		}
+
+		for (Uint32 j = 0; j < 3; j++)
+		{
+			Float size = pgroup->localmaxs[j] - pgroup->localmins[j];
+			if (size > pgroup->radius)
+				pgroup->radius = size;
+		}
+
+		m_pDecalVBO->VBOSubBufferData(ioffset * sizeof(bsp_vertex_t), &m_tempDecalVertsArray[0], numverts * sizeof(bsp_vertex_t));
+		pgroup->num_vertexes += numverts;
+	}
 }
 
 //=============================================
