@@ -1155,6 +1155,7 @@ bool PBSPV2_LoadDisplacements(const byte* pfile, brushmodel_t& model, const dpbs
 	if (!lump.size)
 		return true;
 
+	// Check if sizes are correct
 	if (lump.size < sizeof(dpbspv2dispheader_t))
 	{
 		Con_EPrintf("%s - Lump size is too small for header in '%s'.\n", __FUNCTION__, model.name.c_str());
