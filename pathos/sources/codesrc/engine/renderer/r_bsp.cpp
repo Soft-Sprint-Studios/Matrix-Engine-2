@@ -1021,42 +1021,49 @@ void CBSPRenderer::InitVBO( void )
 						Math::VectorAdd(top, (bot - top) * fr_y, pos);
 
 						Int32 v_idx = pdisp->vert_start + (y * side + x);
-						Vector displaced_pos;
-						Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].dist, ens.pworld->pdispverts[v_idx].vector, displaced_pos);
+						Vector vertexOrigin;
+						Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].dist, ens.pworld->pdispverts[v_idx].vector, vertexOrigin);
 
-						bsp_vertex_t& v = pvertexes[curVertexIndex++];
-						v.origin[0] = displaced_pos.x;
-						v.origin[1] = displaced_pos.y;
-						v.origin[2] = displaced_pos.z;
-						v.origin[3] = 1.0f;
-						v.normal = faceNormal;
+						bsp_vertex_t& vertex = pvertexes[curVertexIndex++];
+						vertex.origin[0] = vertexOrigin.x;
+						vertex.origin[1] = vertexOrigin.y;
+						vertex.origin[2] = vertexOrigin.z;
+						vertex.origin[3] = 1.0f;
+						vertex.normal = faceNormal;
 
 						if (rns.fog.specialfog)
-							v.fogcoord = CalcFogCoord(v.origin[2]);
+							vertex.fogcoord = CalcFogCoord(vertex.origin[2]);
 
 						// Store tangents
 						mtexinfo_t* ptexinfo = psurface->ptexinfo;
-						Math::VectorCopy(ptexinfo->vecs[0], v.tangent);
-						Math::VectorNormalize(v.tangent);
-						Math::VectorCopy(ptexinfo->vecs[1], v.binormal);
-						Math::VectorNormalize(v.binormal);
+						Math::VectorCopy(ptexinfo->vecs[0], vertex.tangent);
+						Math::VectorNormalize(vertex.tangent);
+						Math::VectorCopy(ptexinfo->vecs[1], vertex.binormal);
+						Math::VectorNormalize(vertex.binormal);
 
 						// Set texcoords
-						v.texcoord[0] = (Math::DotProduct(pos, ptexinfo->vecs[0]) + ptexinfo->vecs[0][3]) / ptexinfo->ptexture->width;
-						v.texcoord[1] = (Math::DotProduct(pos, ptexinfo->vecs[1]) + ptexinfo->vecs[1][3]) / ptexinfo->ptexture->height;
+						vertex.texcoord[0] = (Math::DotProduct(pos, ptexinfo->vecs[0]) + ptexinfo->vecs[0][3]) / ptexinfo->ptexture->width;
+						vertex.texcoord[1] = (Math::DotProduct(pos, ptexinfo->vecs[1]) + ptexinfo->vecs[1][3]) / ptexinfo->ptexture->height;
 
 						// Set detail texcoords if needed
 						if (pbspsurface->ptexture->pmaterial->ptextures[MT_TX_DETAIL])
 						{
-							v.dtexcoord[0] = v.texcoord[0] * pbspsurface->ptexture->pmaterial->dt_scalex * m_pCvarDetailScale->GetValue();
-							v.dtexcoord[1] = v.texcoord[1] * pbspsurface->ptexture->pmaterial->dt_scaley * m_pCvarDetailScale->GetValue();
+							vertex.dtexcoord[0] = vertex.texcoord[0] * pbspsurface->ptexture->pmaterial->dt_scalex * m_pCvarDetailScale->GetValue();
+							vertex.dtexcoord[1] = vertex.texcoord[1] * pbspsurface->ptexture->pmaterial->dt_scaley * m_pCvarDetailScale->GetValue();
 						}
 
 						for (Uint32 l = 0; l < MAX_SURFACE_STYLES; l++)
 						{
 							// Set lightmap coords
-							v.lmapcoord[l][0] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[0]) + psurface->ptexinfo->vecs[0][3] - psurface->texturemins[0] + pbspsurface->light_s[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f)) / (m_lightmapWidths[l] * psurface->lightmapdivider);
-							v.lmapcoord[l][1] = (Math::DotProduct(pos, psurface->ptexinfo->vecs[1]) + psurface->ptexinfo->vecs[1][3] - psurface->texturemins[1] + pbspsurface->light_t[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f)) / (m_lightmapHeights[l] * psurface->lightmapdivider);
+							vertex.lmapcoord[l][0] = Math::DotProduct(vertexOrigin, ptexinfo->vecs[0]) + ptexinfo->vecs[0][3];
+							vertex.lmapcoord[l][0] -= psurface->texturemins[0];
+							vertex.lmapcoord[l][0] += pbspsurface->light_s[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
+							vertex.lmapcoord[l][0] /= m_lightmapWidths[l] * psurface->lightmapdivider;
+
+							vertex.lmapcoord[l][1] = Math::DotProduct(vertexOrigin, ptexinfo->vecs[1]) + ptexinfo->vecs[1][3];
+							vertex.lmapcoord[l][1] -= psurface->texturemins[1];
+							vertex.lmapcoord[l][1] += pbspsurface->light_t[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
+							vertex.lmapcoord[l][1] /= m_lightmapHeights[l] * psurface->lightmapdivider;
 						}
 					}
 				}
