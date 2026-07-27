@@ -718,8 +718,8 @@ bool PBSPV3_LoadLeafs( const byte* pfile, brushmodel_t& model, const dpbspv3lump
 
 		for(Uint32 j = 0; j < 3; j++)
 		{
-			pout->mins[j] = Common::ByteToInt16(reinterpret_cast<const byte*>(&pinleafs[i].mins[j]));
-			pout->maxs[j] = Common::ByteToInt16(reinterpret_cast<const byte*>(&pinleafs[i].maxs[j]));
+			pout->mins[j] = Common::ByteToInt32(reinterpret_cast<const byte*>(&pinleafs[i].mins[j]));
+			pout->maxs[j] = Common::ByteToInt32(reinterpret_cast<const byte*>(&pinleafs[i].maxs[j]));
 		}
 
 		pout->contents = pinleafs[i].contents;
@@ -769,8 +769,8 @@ bool PBSPV3_LoadNodes( const byte* pfile, brushmodel_t& model, const dpbspv3lump
 
 		for(Uint32 j = 0; j < 3; j++)
 		{
-			pout->mins[j] = Common::ByteToInt16(reinterpret_cast<const byte*>(&pinnodes[i].mins[j]));
-			pout->maxs[j] = Common::ByteToInt16(reinterpret_cast<const byte*>(&pinnodes[i].maxs[j]));
+			pout->mins[j] = Common::ByteToInt32(reinterpret_cast<const byte*>(&pinnodes[i].mins[j]));
+			pout->maxs[j] = Common::ByteToInt32(reinterpret_cast<const byte*>(&pinnodes[i].maxs[j]));
 		}
 
 		pout->pplane = &model.pplanes[pinnodes[i].planenum];
