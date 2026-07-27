@@ -4778,7 +4778,7 @@ bool CVBMRenderer::DrawFinal ( void )
 
 	if (pcubemapinfo && g_pCvarCubemaps->GetValue() > 0)
 	{
-		glBlendFunc(GL_ONE, GL_ONE);
+		glBlendFunc(GL_DST_COLOR, GL_ONE);
 
 		m_pShader->EnableAttribute(m_attribs.a_normal);
 		m_pShader->EnableAttribute(m_attribs.a_texcoord1);
@@ -5083,7 +5083,7 @@ bool CVBMRenderer::DrawFinal ( void )
 
 		if (ptranscubemapinfo && g_pCvarCubemaps->GetValue() > 0)
 		{
-			glBlendFunc(GL_ONE, GL_ONE);
+			glBlendFunc(GL_DST_COLOR, GL_ONE);
 
 			m_pShader->EnableAttribute(m_attribs.a_normal);
 			m_pShader->EnableAttribute(m_attribs.a_texcoord1);

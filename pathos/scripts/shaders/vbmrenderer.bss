@@ -1086,7 +1086,7 @@ void main()
 		finalColor = finalColor*color;
 		
 		if( d_cubemaps >= 1 )
-			finalColor += AddCubemaps(specularFactor);
+			finalColor.xyz += AddCubemaps(specularFactor).xyz * finalColor.xyz;
 	$end
 	
 	// Lighting without textures but with alpha
