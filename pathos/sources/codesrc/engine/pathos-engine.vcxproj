@@ -339,6 +339,7 @@
     <ClCompile Include="renderer\r_text.cpp" />
     <ClCompile Include="system.cpp" />
     <ClCompile Include="uimanager.cpp" />
+    <ClCompile Include="vbmtracegen.cpp" />
     <ClCompile Include="vid.cpp" />
     <ClCompile Include="win32_delay_load.cpp" />
     <ClCompile Include="window.cpp" />
@@ -502,6 +503,7 @@
     <ClInclude Include="savefile.h" />
     <ClInclude Include="system.h" />
     <ClInclude Include="uimanager.h" />
+    <ClInclude Include="vbmtracegen.h" />
     <ClInclude Include="vid.h" />
     <ClInclude Include="window.h" />
     <ClInclude Include=".\ui\uielements.h" />
