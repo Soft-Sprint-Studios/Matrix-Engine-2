@@ -1031,6 +1031,10 @@ void CBSPRenderer::InitVBO( void )
 						v.origin[3] = 1.0f;
 						v.normal = faceNormal;
 
+						if (rns.fog.specialfog)
+							v.fogcoord = CalcFogCoord(v.origin[2]);
+
+						// Store tangents
 						mtexinfo_t* ptexinfo = psurface->ptexinfo;
 						Math::VectorCopy(ptexinfo->vecs[0], v.tangent);
 						Math::VectorNormalize(v.tangent);
