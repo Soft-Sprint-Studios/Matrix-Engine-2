@@ -15,9 +15,11 @@ All Rights Reserved.
 #include "modelcache.h"
 #include "pbspv1file.h"
 #include "pbspv2file.h"
+#include "pbspv3file.h"
 #include "bspv30.h"
 #include "pbspv1.h"
 #include "pbspv2.h"
+#include "pbspv3.h"
 #include "system.h"
 #include "texturemanager.h"
 #include "studio.h"
@@ -424,6 +426,9 @@ cache_model_t* CModelCache::LoadBSPModel( const Char* pstrFilename, const byte* 
 			break;
 		case PBSPV2_VERSION:
 			pmodel = PBSPV2_Load(pfile, reinterpret_cast<const dpbspv2header_t*>(pfile), pstrFilename);
+			break;
+		case PBSPV3_VERSION:
+			pmodel = PBSPV3_Load(pfile, reinterpret_cast<const dpbspv3header_t*>(pfile), pstrFilename);
 			break;
 		default:
 			Con_EPrintf("%s - PBSP file '%s' has an unknown version number '%d'.\n", __FUNCTION__, pstrFilename, fileHeaderVersion);

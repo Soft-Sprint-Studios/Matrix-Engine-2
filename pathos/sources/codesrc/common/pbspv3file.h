@@ -7,8 +7,8 @@ All Rights Reserved.
 ===============================================
 */
 
-#ifndef PBSPV2FILE_H
-#define PBSPV2FILE_H
+#ifndef PBSPV3FILE_H
+#define PBSPV3FILE_H
 
 #include "miptex.h"
 #include "contents.h"
@@ -18,85 +18,80 @@ All Rights Reserved.
 // BSP limits
 //
 
-static constexpr Uint32 PBSPV2_MAX_MAP_HULLS			= 4;
-static constexpr Uint32 PBSPV2_MAX_MAP_MODELS			= 4096;
-static constexpr Uint32 PBSPV2_MAX_MAP_BRUSHES			= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_ENTITIES			= 65535;
-static constexpr Uint32 PBSPV2_MAX_MAP_ENTSTRING		= 2097152;
-static constexpr Uint32 PBSPV2_MAX_MAP_PLANES			= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_NODES			= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_CLIPNODES		= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_LEAFS			= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_VERTS			= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_FACES			= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_MARKSURFACES		= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_TEXINFO			= 262144;
-static constexpr Uint32 PBSPV2_MAX_MAP_EDGES			= 524288;
-static constexpr Uint32 PBSPV2_MAX_MAP_SURFEDGES		= 1048576;
-static constexpr Uint32 PBSPV2_MAX_MAP_TEXTURES			= 16384;
-static constexpr Uint32 PBSPV2_MAX_MAP_LIGHTING			= 16777216;
-static constexpr Uint32 PBSPV2_MAX_MAP_VISIBILITY		= 16777216;
+static constexpr Uint32 PBSPV3_MAX_MAP_HULLS			= 4;
+static constexpr Uint32 PBSPV3_MAX_MAP_MODELS			= 4096;
+static constexpr Uint32 PBSPV3_MAX_MAP_BRUSHES			= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_ENTITIES			= 65535;
+static constexpr Uint32 PBSPV3_MAX_MAP_ENTSTRING		= 2097152;
+static constexpr Uint32 PBSPV3_MAX_MAP_PLANES			= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_NODES			= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_CLIPNODES		= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_LEAFS			= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_VERTS			= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_FACES			= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_MARKSURFACES		= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_TEXINFO			= 262144;
+static constexpr Uint32 PBSPV3_MAX_MAP_EDGES			= 524288;
+static constexpr Uint32 PBSPV3_MAX_MAP_SURFEDGES		= 1048576;
+static constexpr Uint32 PBSPV3_MAX_MAP_TEXTURES			= 16384;
+static constexpr Uint32 PBSPV3_MAX_MAP_LIGHTING			= 16777216;
+static constexpr Uint32 PBSPV3_MAX_MAP_VISIBILITY		= 16777216;
 
-static constexpr Uint32 PBSPV2_MAX_LIGHTMAPS			= 4;
-static constexpr Uint32 PBSPV2_LM_SAMPLE_SIZE			= 16;
-static constexpr Uint32 PBSPV2_NUM_AMBIENTS				= 4;
-static constexpr Uint32 PBSPV2_VERSION					= 2;
-static constexpr Uint32 PBSPV2_MAX_SURFACE_EXTENTS		= 1024;
+static constexpr Uint32 PBSPV3_MAX_LIGHTMAPS			= 4;
+static constexpr Uint32 PBSPV3_LM_SAMPLE_SIZE			= 16;
+static constexpr Uint32 PBSPV3_NUM_AMBIENTS				= 4;
+static constexpr Uint32 PBSPV3_VERSION					= 3;
+static constexpr Uint32 PBSPV3_MAX_SURFACE_EXTENTS		= 1024;
 
 //
 // BSP lumps
 //
-enum pbspv2_lumps_t
+enum pbspv3_lumps_t
 {
-	PBSPV2_LUMP_ENTITIES = 0,
-	PBSPV2_LUMP_PLANES,
-	PBSPV2_LUMP_TEXTURES,
-	PBSPV2_LUMP_VERTEXES,
-	PBSPV2_LUMP_VISIBILITY,
-	PBSPV2_LUMP_NODES,
-	PBSPV2_LUMP_TEXINFO,
-	PBSPV2_LUMP_FACES,
-	PBSPV2_LUMP_LIGHTING_DEFAULT,
-	PBSPV2_LUMP_LIGHTING_AMBIENT,
-	PBSPV2_LUMP_LIGHTING_DIFFUSE,
-	PBSPV2_LUMP_LIGHTING_VECTORS,
-	PBSPV2_LUMP_CLIPNODES,
-	PBSPV2_LUMP_LEAFS,
-	PBSPV2_LUMP_MARKSURFACES,
-	PBSPV2_LUMP_EDGES,
-	PBSPV2_LUMP_SURFEDGES,
-	PBSPV2_LUMP_MODELS,
-
-	// These lumps are available if header->flags has PBSPV2_FL_HAS_VERTEX_LIGHTING set
-	PBSPV2_LUMP_VERTEX_LIGHTING_AMBIENT,
-	PBSPV2_LUMP_VERTEX_LIGHTING_DIFFUSE,
-	PBSPV2_LUMP_VERTEX_LIGHTING_VECTORS,
-
-	// This lump is available if header->flags has PBSPV2_FL_HAS_LIGHTGRID_DATA set
-	PBSPV2_LUMP_LIGHTGRID_DATA,
+	PBSPV3_LUMP_ENTITIES = 0,
+	PBSPV3_LUMP_PLANES,
+	PBSPV3_LUMP_TEXTURES,
+	PBSPV3_LUMP_VERTEXES,
+	PBSPV3_LUMP_VISIBILITY,
+	PBSPV3_LUMP_NODES,
+	PBSPV3_LUMP_TEXINFO,
+	PBSPV3_LUMP_FACES,
+	PBSPV3_LUMP_LIGHTING_DEFAULT,
+	PBSPV3_LUMP_LIGHTING_AMBIENT,
+	PBSPV3_LUMP_LIGHTING_DIFFUSE,
+	PBSPV3_LUMP_LIGHTING_VECTORS,
+	PBSPV3_LUMP_CLIPNODES,
+	PBSPV3_LUMP_LEAFS,
+	PBSPV3_LUMP_MARKSURFACES,
+	PBSPV3_LUMP_EDGES,
+	PBSPV3_LUMP_SURFEDGES,
+	PBSPV3_LUMP_MODELS,
+	PBSPV3_LUMP_VERTEX_LIGHTING_AMBIENT,
+	PBSPV3_LUMP_VERTEX_LIGHTING_DIFFUSE,
+	PBSPV3_LUMP_VERTEX_LIGHTING_VECTORS,
+	PBSPV3_LUMP_LIGHTGRID_DATA,
+	PBSPV3_LUMP_DISPLACEMENTS,
+	PBSPV3_LUMP_CHECKSUM,
 
 	// MUST BE LAST
-	PBSPV2_NB_LUMPS // Don't actually use this anywhere if possible
+	PBSPV3_NB_LUMPS // Don't actually use this anywhere if possible
 };
 
 //
 // Flags for BSP file
 //
-enum pbspv2_flags_t
+enum pbspv3_flags_t
 {
-	PBSPV2_FL_NONE					= 0,
-	PBSPV2_FL_HAS_SMOOTHING_GROUPS	= (1<<0),
-	PBSPV2_FL_HAS_VERTEX_LIGHTING	= (1<<1),
-	PBSPV2_FL_HAS_LIGHTGRID_DATA	= (1<<2)
+	PBSPV3_FL_NONE					= 0
 };
 
 //
-// Header for Pathos BSP V2
+// Header for Pathos BSP V3
 //
 
-struct dpbspv2lump_t
+struct dpbspv3lump_t
 {
-	dpbspv2lump_t():
+	dpbspv3lump_t():
 		offset(0),
 		size(0)
 	{}
@@ -105,9 +100,9 @@ struct dpbspv2lump_t
 	Int32 size;
 };
 
-struct dpbspv2header_t
+struct dpbspv3header_t
 {
-	dpbspv2header_t():
+	dpbspv3header_t():
 		id(0),
 		version(0),
 		flags(0)
@@ -119,15 +114,15 @@ struct dpbspv2header_t
 	Int32 version;
 	Int64 flags;
 
-	dpbspv2lump_t lumps[1];
+	dpbspv3lump_t lumps[1];
 };
 
 //
 // BSP file structures
 //
-struct dpbspv2model_t
+struct dpbspv3model_t
 {
-	dpbspv2model_t():
+	dpbspv3model_t():
 		visleafs(0),
 		firstface(0),
 		numfaces(0)
@@ -142,16 +137,16 @@ struct dpbspv2model_t
 	Float maxs[3];
 	Float origin[3];
 
-	Int32 headnode[PBSPV2_MAX_MAP_HULLS];
+	Int32 headnode[PBSPV3_MAX_MAP_HULLS];
 	Int32 visleafs;
 
 	Int32 firstface;
 	Int32 numfaces;
 };
 
-struct dpbspv2vertex_t
+struct dpbspv3vertex_t
 {
-	dpbspv2vertex_t()
+	dpbspv3vertex_t()
 	{
 		memset(origin, 0, sizeof(origin));
 	}
@@ -159,9 +154,9 @@ struct dpbspv2vertex_t
 	Float origin[3];
 };
 
-struct dpbspv2plane_t
+struct dpbspv3plane_t
 {
-	dpbspv2plane_t():
+	dpbspv3plane_t():
 		dist(0),
 		type(0)
 	{
@@ -174,9 +169,9 @@ struct dpbspv2plane_t
 	Int32 type;
 };
 
-struct dpbspv2node_t
+struct dpbspv3node_t
 {
-	dpbspv2node_t():
+	dpbspv3node_t():
 		planenum(0),
 		firstface(0),
 		numfaces(0)
@@ -188,16 +183,16 @@ struct dpbspv2node_t
 
 	Int32 planenum;
 	Int32 children[2];
-	Int16 mins[3];
-	Int16 maxs[3];
+	Int32 mins[3];
+	Int32 maxs[3];
 
 	Uint32 firstface;
 	Uint32 numfaces;
 };
 
-struct dpbspv2clipnode_t
+struct dpbspv3clipnode_t
 {
-	dpbspv2clipnode_t():
+	dpbspv3clipnode_t():
 		planenum(0)
 	{
 		memset(children, 0, sizeof(children));
@@ -207,9 +202,9 @@ struct dpbspv2clipnode_t
 	Int32 children[2];
 };
 
-struct dpbspv2texinfo_t
+struct dpbspv3texinfo_t
 {
-	dpbspv2texinfo_t():
+	dpbspv3texinfo_t():
 		miptex(0),
 		flags(0)
 	{
@@ -221,14 +216,14 @@ struct dpbspv2texinfo_t
 	Int32 flags;
 };
 
-struct dpbspv2edge_t
+struct dpbspv3edge_t
 {
 	Uint32 vertexes[2];
 };
 
-struct dpbspv2face_t
+struct dpbspv3face_t
 {
-	dpbspv2face_t():
+	dpbspv3face_t():
 		planenum(0),
 		side(0),
 		firstedge(0),
@@ -248,15 +243,15 @@ struct dpbspv2face_t
 	Int32 numedges;
 	Int32 texinfo;
 	Float samplescale;
-	Int32 smoothgroupbits; // This is set if pheader->flags has PBSPV2_FL_HAS_SMOOTHING_GROUPS set
+	Int32 smoothgroupbits; // This is set if pheader->flags has PBSPV3_FL_HAS_SMOOTHING_GROUPS set
 
-	byte lmstyles[PBSPV2_MAX_LIGHTMAPS];
+	byte lmstyles[PBSPV3_MAX_LIGHTMAPS];
 	Int32 lightoffset;
 };
 
-struct dpbspv2leaf_t
+struct dpbspv3leaf_t
 {
-	dpbspv2leaf_t():
+	dpbspv3leaf_t():
 		contents(0),
 		visoffset(0),
 		firstmarksurface(0),
@@ -270,18 +265,18 @@ struct dpbspv2leaf_t
 	Int32 contents;
 	Int32 visoffset;
 
-	Int16 mins[3];
-	Int16 maxs[3];
+	Int32 mins[3];
+	Int32 maxs[3];
 
 	Uint32 firstmarksurface;
 	Uint32 nummarksurfaces;
 
-	byte ambient_level[PBSPV2_NUM_AMBIENTS];
+	byte ambient_level[PBSPV3_NUM_AMBIENTS];
 };
 
-struct dpbspv2lightingdata_t
+struct dpbspv3lightingdata_t
 {
-	dpbspv2lightingdata_t():
+	dpbspv3lightingdata_t():
 		compression(0),
 		compressionlevel(0),
 		dataoffset(0),
@@ -296,9 +291,9 @@ struct dpbspv2lightingdata_t
 	Int32 noncompressedsize;
 };
 
-struct dlightgridlumpv2header_t
+struct dlightgridlumpv3header_t
 {
-    dlightgridlumpv2header_t():
+    dlightgridlumpv3header_t():
         rootnodeindex(NO_POSITION),
 		totalsize(0),
         leafsoffset(NO_POSITION),
@@ -361,9 +356,9 @@ struct dlightgridlumpv2header_t
     Int32 vectorscompressiontype;
 };
 
-struct dlightgridv2node_t
+struct dlightgridv3node_t
 {
-    dlightgridv2node_t()
+    dlightgridv3node_t()
     {
         for(Uint32 i = 0; i < 3; i++)
 			divisionpoint[i] = 0;
@@ -376,9 +371,9 @@ struct dlightgridv2node_t
     Int32 children[8];
 };
 
-struct dlightgridv2leaf_t
+struct dlightgridv3leaf_t
 {
-    dlightgridv2leaf_t():
+    dlightgridv3leaf_t():
         firstsample(NO_POSITION),
         numsamples(0)
     {
@@ -396,16 +391,45 @@ struct dlightgridv2leaf_t
     Int32 numsamples;
 };
 
-struct dlightgridv2sample_t
+struct dlightgridv3sample_t
 {
-    dlightgridv2sample_t():
+    dlightgridv3sample_t():
         rawsampleoffset(NO_POSITION)
     {
         memset(styles, 0, sizeof(styles));
     }
 
-	byte styles[PBSPV2_MAX_LIGHTMAPS];
+	byte styles[PBSPV3_MAX_LIGHTMAPS];
     Int32 rawsampleoffset;
 };
 
-#endif //PBSPV2FILE_H
+struct dpbspv3dispheader_t
+{
+	Int32 num_disp_infos;
+	Int32 num_disp_verts;
+	Int32 num_faces;
+};
+
+struct dpbspv3dispinfo_t
+{
+	Int32 face_index;
+	Int32 power;
+	Int32 vert_start;
+	Float corners[4][3];
+};
+
+struct dpbspv3dispvert_t
+{
+	Float vector[3];
+	Float dist;
+
+	// Unused
+	Float alpha;
+};
+
+struct dpbspv3checksum_t
+{
+	Uint64 checksum;
+};
+
+#endif //PBSPV3FILE_H
