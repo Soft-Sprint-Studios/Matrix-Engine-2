@@ -442,7 +442,7 @@ bool CSkyRenderer::DrawSky( void )
 
 		if (m_pCvarProcedualSky && m_pCvarProcedualSky->GetValue() >= 1)
 		{
-			if (!m_pShader->SetDeterminator(m_attribs.d_mode, 2))
+			if (!m_pShader->SetDeterminator(m_attribs.d_mode, SHADER_PROCEDUAL))
 				return false;
 
 			Vector sunDir = -cls.skyvec;

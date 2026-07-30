@@ -64,7 +64,8 @@ public:
 	enum shader_modes_t
 	{
 		SHADER_TEXTURE = 0,
-		SHADER_COLOR
+		SHADER_COLOR,
+		SHADER_PROCEDUAL
 	};
 
 	struct skytextureset_t
