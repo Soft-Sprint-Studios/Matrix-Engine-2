@@ -248,6 +248,7 @@ void main()
 
 		skyColor += sunDiskColor;
 		skyColor += getCloudColor(rayOrigin, rayDir, sunDir);
+		skyColor = vec3(1.0) - exp(-0.8 * skyColor);
 		
 		oColor = vec4(skyColor, 1.0);
 	$end
