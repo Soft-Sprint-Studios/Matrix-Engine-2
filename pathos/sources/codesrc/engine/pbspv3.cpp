@@ -1177,6 +1177,8 @@ bool PBSPV3_LoadDisplacements(const byte* pfile, brushmodel_t& model, const dpbs
 	model.numdispinfo = count_infos;
 	for (Uint32 i = 0; i < count_infos; i++)
 	{
+		qstrcpy(model.pdispinfo[i].texture2, pinfos[i].texture2);
+	
 		model.pdispinfo[i].face_index = pinfos[i].face_index;
 		model.pdispinfo[i].power = pinfos[i].power;
 		model.pdispinfo[i].vert_start = pinfos[i].vert_start;

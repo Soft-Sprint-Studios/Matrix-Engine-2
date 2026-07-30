@@ -426,6 +426,7 @@ struct dpbspv3dispheader_t
 
 struct dpbspv3dispinfo_t
 {
+	Char texture2[32];
 	Int32 face_index;
 	Int32 power;
 	Int32 vert_start;
@@ -436,8 +437,6 @@ struct dpbspv3dispvert_t
 {
 	Float vector[3];
 	Float dist;
-
-	// Unused
 	Float alpha;
 };
 

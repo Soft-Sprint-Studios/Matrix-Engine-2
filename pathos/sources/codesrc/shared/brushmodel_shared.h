@@ -101,6 +101,7 @@ struct medge_t
 
 struct mdispinfo_t
 {
+	Char texture2[32];
 	Int32 face_index;
 	Int32 power;
 	Int32 vert_start;
@@ -111,8 +112,6 @@ struct mdispvert_t
 {
 	Vector vector;
 	Float dist;
-
-	// Unused
 	Float alpha;
 };
 

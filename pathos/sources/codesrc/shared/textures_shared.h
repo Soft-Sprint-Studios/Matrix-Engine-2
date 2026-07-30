@@ -42,9 +42,12 @@ enum mt_texture_t
 {
 	MT_TX_UNKNOWN = -1,
 	MT_TX_DIFFUSE = 0,
+	MT_TX_DIFFUSE2,
 	MT_TX_NORMALMAP,
+	MT_TX_NORMALMAP2,
 	MT_TX_DETAIL,
 	MT_TX_SPECULAR,
+	MT_TX_SPECULAR2,
 	MT_TX_LUMINANCE,
 
 	// Must be last
@@ -144,9 +147,12 @@ struct en_material_t
 			ptextures[i] = nullptr;
 	}
 	inline en_texture_t* getdiffuse( void ) { return ptextures[MT_TX_DIFFUSE]; }
+	inline en_texture_t* getdiffuse2( void ) { return ptextures[MT_TX_DIFFUSE2]; }
 	inline en_texture_t* getnormalmap( void ) { return ptextures[MT_TX_NORMALMAP]; }
+	inline en_texture_t* getnormalmap2( void ) { return ptextures[MT_TX_NORMALMAP2]; }
 	inline en_texture_t* getdetail( void ) { return ptextures[MT_TX_DETAIL]; }
 	inline en_texture_t* getspecular( void ) { return ptextures[MT_TX_SPECULAR]; }
+	inline en_texture_t* getspecular2( void ) { return ptextures[MT_TX_SPECULAR2]; }
 	inline en_texture_t* getluminance( void ) { return ptextures[MT_TX_LUMINANCE]; }
 
 	CString filepath;

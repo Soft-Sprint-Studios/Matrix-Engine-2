@@ -1,5 +1,6 @@
 $global_determinator shadertype 0 22
 $global_determinator alphatest 0 2
+$global_determinator blended 0 1
 $invalid_state 2 alphatest 1 2 shadertype 5 9
 $invalid_state 2 alphatest 1 2 shadertype 11 16
 $invalid_state 2 alphatest 1 2 shadertype 18 19
@@ -56,6 +57,7 @@ in vec2 in_lmapcoord;
 in vec2 in_texcoord;
 in vec2 in_dtexcoord;
 in float in_fogcoord;
+in float in_alpha;
 
 out vec2 ps_lmapcoord;
 out vec2 ps_texcoord;
@@ -72,6 +74,7 @@ out vec4 ps_light_2_vertexcoord; // projection space
 out vec4 ps_light_3_vertexcoord; // projection space
 
 out float ps_fogcoord; // static fogcoord
+out float ps_alpha;
 out vec3 ps_vertexpos;
 
 out vec3 ps_cubenormal;
@@ -83,6 +86,7 @@ void main()
 {
 	vec4 position = in_position*modelview;
 	ps_vertexpos = position.xyz;
+	ps_alpha = in_alpha;
 	
 	$branch shadertype == 15
 	$begin
@@ -218,6 +222,13 @@ uniform sampler2D lightvecstex;
 uniform sampler2D speculartex;
 uniform sampler2D luminance;
 
+$branch blended == 1
+$begin
+uniform sampler2D maintexture2;
+uniform sampler2D normalmap2;
+uniform sampler2D speculartex2;
+$end
+
 uniform vec3 light_0_origin;
 uniform float light_0_radius;
 uniform vec4 light_0_color;
@@ -304,6 +315,7 @@ in vec4 ps_light_2_vertexcoord; // projection space
 in vec4 ps_light_3_vertexcoord; // projection space
 
 in float ps_fogcoord; // static fogcoord
+in float ps_alpha;
 in vec3 ps_vertexpos; // for radial fog
 
 in vec3 ps_cubenormal;
@@ -312,6 +324,49 @@ in vec3 ps_cubebinormal;
 in vec3 ps_cubevertexpos;
 
 out vec4 oColor;
+
+// Blend functions
+vec4 GetMainTexture()
+{
+	vec4 col1 = texture(maintexture, ps_texcoord);
+	$branch blended == 1
+	$begin
+		vec4 col2 = texture(maintexture2, ps_texcoord);
+		return mix(col1, col2, ps_alpha);
+	$end
+	$branch blended == 0
+	$begin
+		return col1;
+	$end
+}
+
+vec3 GetNormalMapSample()
+{
+	vec3 norm1 = texture(normalmap, ps_texcoord).xyz;
+	$branch blended == 1
+	$begin
+		vec3 norm2 = texture(normalmap2, ps_texcoord).xyz;
+		return mix(norm1, norm2, ps_alpha);
+	$end
+	$branch blended == 0
+	$begin
+		return norm1;
+	$end
+}
+
+vec4 GetSpecularMapSample()
+{
+	vec4 spec1 = texture(speculartex, ps_texcoord);
+	$branch blended == 1
+	$begin
+		vec4 spec2 = texture(speculartex2, ps_texcoord);
+		return mix(spec1, spec2, ps_alpha);
+	$end
+	$branch blended == 0
+	$begin
+		return spec1;
+	$end
+}
 
 float CalcShininess( vec3 v_origin, vec3 v_normal, vec3 l_origin )
 {
@@ -689,7 +744,7 @@ vec3 GetTangentSpaceNormal( vec2 texcoord, sampler2D normalmap, vec3 v_normal )
 	}
 	else
 	{
-		vec3 out_normal = (2.0 * texture2D (normalmap, texcoord).xyz) - 1.0;
+		vec3 out_normal = (2.0 * GetNormalMapSample()) - 1.0;
 		return normalize(out_normal);
 	}
 }
@@ -702,7 +757,7 @@ vec3 GetEyeSpaceNormal( vec2 texcoord, sampler2D normalmap, vec3 v_normal, mat3 
 	}
 	else
 	{
-		vec3 out_normal = (2.0 * texture2D (normalmap, texcoord).xyz) - 1.0;
+		vec3 out_normal = (2.0 * GetNormalMapSample()) - 1.0;
 		return normalize(tbnMatrix * out_normal);
 	}
 }
@@ -715,7 +770,7 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, float specularStrength 
 
 	$branch shadertype == 0
 	$begin
-		vec4 texColor = texture2D(maintexture, ps_texcoord);
+		vec4 texColor = GetMainTexture();
 		vec4 detailTexColor = texture2D(detailtex, ps_dtexcoord);
 		
 		finalColor = finalColor*texColor*detailTexColor;
@@ -723,7 +778,7 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, float specularStrength 
 	$end
 	$branch shadertype == 1
 	$begin
-		vec4 texColor = texture2D(maintexture, ps_texcoord);
+		vec4 texColor = GetMainTexture();
 		finalColor = finalColor*texColor;
 		finalColor.xyz = finalColor.xyz*2;
 	$end
@@ -732,7 +787,7 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, float specularStrength 
 		// Store light color
 		vec4 lightColor = finalColor;
 	
-		vec4 texColor = texture2D(maintexture, ps_texcoord);
+		vec4 texColor = GetMainTexture();
 		finalColor = lightColor*texColor;
 		finalColor.xyz = finalColor.xyz*2;
 
@@ -821,7 +876,7 @@ vec4 AddCubemaps( float reflectivity )
 		if( d_bumpmapping == 1 )
 		{
 			mat3 tbnMatrix = mat3(ps_cubetangent, ps_cubebinormal, ps_cubenormal);
-			vec3 tex_normal = (2.0 * texture2D (normalmap, ps_texcoord).xyz) - 1.0;
+			vec3 tex_normal = (2.0 * GetNormalMapSample()) - 1.0;
 			vec3 eye_texnormal = normalize(tbnMatrix * tex_normal);
 			
 			float normalstrength = 0.025;
@@ -862,7 +917,7 @@ void main()
 
 	if( d_specular == 1 || d_cubemaps >= 1 )
 	{
-		vec4 specTexture = texture2D(speculartex, ps_texcoord);
+		vec4 specTexture = GetSpecularMapSample();
 		specularFactor = (specTexture.x + specTexture.y + specTexture.z) / 3.0;
 	}
 	
@@ -890,7 +945,7 @@ void main()
 	// Texture unit 1
 	$branch shadertype == 4
 	$begin
-		finalColor = texture2D(maintexture, ps_texcoord) * color;
+		finalColor = GetMainTexture() * color;
 	$end
 	// Dynamic lights
 	$branch shadertype == 5
@@ -969,7 +1024,7 @@ void main()
 		
 		if( d_blendmultipass >= 1 )
 		{
-			vec4 maintexcolor = texture(maintexture, ps_texcoord);
+			vec4 maintexcolor = GetMainTexture();
 			finalColor = finalColor * maintexcolor * color;
 			
 			if( d_blendmultipass == 2 )
@@ -1057,7 +1112,7 @@ void main()
 		
 		if( d_blendmultipass >= 1 )
 		{
-			vec4 maintexcolor = texture(maintexture, ps_texcoord);
+			vec4 maintexcolor = GetMainTexture();
 			finalColor = finalColor * maintexcolor * color;
 			
 			if( d_blendmultipass == 2 )
@@ -1071,7 +1126,7 @@ void main()
 	// Caustics
 	$branch shadertype == 9
 	$begin
-		vec4 caustics1 = texture2D(maintexture, ps_texcoord);
+		vec4 caustics1 = GetMainTexture();
 		vec4 caustics2 = texture2D(detailtex, ps_texcoord);
 		
 		finalColor = caustics1*(1.0 - interpolant) + caustics2*interpolant;
@@ -1084,7 +1139,7 @@ void main()
 		vec4 diffuseLight = GetDiffuseLight( difflightmap );
 		
 		finalColor = AddBaseLight(baselightmap, diffuseLight, lightDir, v_normal);		
-		finalColor.w = finalColor.w * texture2D(maintexture, ps_texcoord).w;
+		finalColor.w = finalColor.w * GetMainTexture().w;
 	$end
 	
 	// Solid color only
@@ -1100,7 +1155,7 @@ void main()
 		
 		$branch shadertype == 13
 		$begin
-			if(texture2D(maintexture, ps_texcoord).w < 0.5)
+			if(GetMainTexture().w < 0.5)
 				discard;
 		$end
 	$end
@@ -1135,7 +1190,7 @@ void main()
 	// Main texture multiplid with detail texture * 2
 	$branch shadertype == 17
 	$begin
-		vec4 tex0 = texture2D(maintexture, ps_texcoord);
+		vec4 tex0 = GetMainTexture();
 		vec4 tex1 = texture2D(detailtex, ps_dtexcoord);
 		finalColor = tex0*tex1;
 		finalColor.xyz = finalColor.xyz*2;
@@ -1158,7 +1213,7 @@ void main()
 	// Decals with alpha holes from world texture
 	$branch shadertype == 20
 	$begin
-		finalColor = texture2D(maintexture, ps_texcoord);
+		finalColor = GetMainTexture();
 		vec4 tex1 = texture2D(detailtex, ps_dtexcoord);
 		finalColor.a = finalColor.a*tex1.a;
 		finalColor.xyz = (decalalpha * finalColor.xyz) + (1.0 - decalalpha) * vec3(0.5, 0.5, 0.5);
@@ -1167,7 +1222,7 @@ void main()
 	// Decal
 	$branch shadertype == 21
 	$begin
-		finalColor = texture2D(maintexture, ps_texcoord);
+		finalColor = GetMainTexture();
 		finalColor.xyz = (decalalpha * finalColor.xyz) + (1.0 - decalalpha) * vec3(0.5, 0.5, 0.5);
 	$end
 	

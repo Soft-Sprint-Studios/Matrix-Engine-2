@@ -101,6 +101,7 @@ struct bsp_shader_attribs
 	bsp_shader_attribs():
 		d_shadertype(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_alphatest(CGLSLShader::PROPERTY_UNAVAILABLE),
+		d_blended(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_fogtype(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_specular(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -117,6 +118,7 @@ struct bsp_shader_attribs
 		a_texcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_dtexcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_fogcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
+		a_alpha(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_projection(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_modelview(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_modelmatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -143,13 +145,16 @@ struct bsp_shader_attribs
 		u_cube_prev_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_baselightmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_maintexture(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_maintexture2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_detailtex(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_chrometex(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmap(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_normalmap2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_difflightmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_lightvecstex(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_specular(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_specular2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_color(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_light_radius(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogcolor(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -158,6 +163,7 @@ struct bsp_shader_attribs
 
 	Int32 d_shadertype;
 	Int32 d_alphatest;
+	Int32 d_blended;
 
 	Int32 u_d_fogtype;
 	Int32 u_d_bumpmapping;
@@ -177,6 +183,7 @@ struct bsp_shader_attribs
 	Int32 a_texcoord;
 	Int32 a_dtexcoord;
 	Int32 a_fogcoord;
+	Int32 a_alpha;
 
 	// vertex shader uniforms
 	Int32 u_projection;
@@ -215,13 +222,16 @@ struct bsp_shader_attribs
 
 	Int32 u_baselightmap;
 	Int32 u_maintexture;
+	Int32 u_maintexture2;
 	Int32 u_detailtex;
 	Int32 u_chrometex;
 	Int32 u_normalmap;
+	Int32 u_normalmap2;
 	Int32 u_luminance;
 	Int32 u_difflightmap;
 	Int32 u_lightvecstex;
 	Int32 u_specular;
+	Int32 u_specular2;
 	Int32 u_color;
 	Int32 u_light_radius;
 
@@ -254,7 +264,9 @@ struct bsp_vertex_t
 
 	Float fogcoord; // 104
 
-	byte padding[22]; // 128
+	Float alpha; // 108
+
+	byte padding[20]; // 128
 };
 
 struct drawbatch_t
