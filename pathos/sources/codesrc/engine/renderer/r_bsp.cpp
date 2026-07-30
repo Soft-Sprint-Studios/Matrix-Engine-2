@@ -1052,6 +1052,9 @@ void CBSPRenderer::InitVBO( void )
 						Math::VectorCopy(ptexinfo->vecs[1], vertex.binormal);
 						Math::VectorNormalize(vertex.binormal);
 
+						if (psmoothing)
+							psmoothing->ManageVertex(vertexOrigin, vertex.normal, curVertexIndex - 1);
+
 						// Set texcoords
 						vertex.texcoord[0] = (Math::DotProduct(pos, ptexinfo->vecs[0]) + ptexinfo->vecs[0][3]) / ptexinfo->ptexture->width;
 						vertex.texcoord[1] = (Math::DotProduct(pos, ptexinfo->vecs[1]) + ptexinfo->vecs[1][3]) / ptexinfo->ptexture->height;
