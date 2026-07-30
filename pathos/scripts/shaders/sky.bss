@@ -240,10 +240,8 @@ void main()
 		);
 		
 		float sunAmount = max(dot(rayDir, sunDir), 0.0);
-		
-		// Sharp realistic sun disk size (~0.53 degrees)
+
 		float sunDisk = smoothstep(0.9998, 0.99998, sunAmount);
-		// Soft glow halo around sun disk
 		float sunGlow = pow(sunAmount, 3500.0) * 0.5;
 
 		vec3 sunDiskColor = vec3(1.0, 0.95, 0.8) * (sunDisk * 8.0 + sunGlow * 2.0);
