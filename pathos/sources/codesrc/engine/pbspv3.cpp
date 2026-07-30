@@ -1195,7 +1195,7 @@ bool PBSPV3_LoadDisplacements(const byte* pfile, brushmodel_t& model, const dpbs
 	for (Uint32 i = 0; i < count_verts; i++)
 	{
 		Math::VectorCopy(pverts[i].vector, model.pdispverts[i].vector);
-		model.pdispverts[i].dist = pverts[i].dist;
+		model.pdispverts[i].distance = pverts[i].distance;
 		model.pdispverts[i].alpha = pverts[i].alpha;
 	}
 

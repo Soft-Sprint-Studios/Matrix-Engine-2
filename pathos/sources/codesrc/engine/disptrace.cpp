@@ -154,7 +154,7 @@ void TR_BuildDisplacementMCD( const brushmodel_t& model )
 
 				Int32 v_idx = info.vert_start + (y * side + x);
 				Vector displaced_pos;
-				Math::VectorMA(pos, model.pdispverts[v_idx].dist, model.pdispverts[v_idx].vector, displaced_pos);
+				Math::VectorMA(pos, model.pdispverts[v_idx].distance, model.pdispverts[v_idx].vector, displaced_pos);
 
 				mcdvertex_t& v = pVertices[curVertex++];
 				v.origin = displaced_pos;

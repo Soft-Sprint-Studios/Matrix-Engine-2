@@ -1032,7 +1032,7 @@ void CBSPRenderer::InitVBO( void )
 
 						Int32 v_idx = pdisp->vert_start + (y * side + x);
 						Vector vertexOrigin;
-						Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].dist, ens.pworld->pdispverts[v_idx].vector, vertexOrigin);
+						Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].distance, ens.pworld->pdispverts[v_idx].vector, vertexOrigin);
 
 						bsp_vertex_t& vertex = pvertexes[curVertexIndex++];
 						vertex.origin[0] = vertexOrigin.x;
@@ -5405,7 +5405,7 @@ void CBSPRenderer::DecalSurface( const msurface_t *surf, bsp_decal_t *pdecal, co
 				Math::VectorAdd(top, (bot - top) * fr_y, pos);
 
 				Int32 v_idx = info.vert_start + (y * side + x);
-				Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].dist, ens.pworld->pdispverts[v_idx].vector, dispVerts[y * side + x]);
+				Math::VectorMA(pos, ens.pworld->pdispverts[v_idx].distance, ens.pworld->pdispverts[v_idx].vector, dispVerts[y * side + x]);
 			}
 		}
 

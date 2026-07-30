@@ -111,7 +111,7 @@ struct mdispinfo_t
 struct mdispvert_t
 {
 	Vector vector;
-	Float dist;
+	Float distance;
 	Float alpha;
 };
 

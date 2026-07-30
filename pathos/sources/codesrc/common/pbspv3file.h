@@ -436,7 +436,7 @@ struct dpbspv3dispinfo_t
 struct dpbspv3dispvert_t
 {
 	Float vector[3];
-	Float dist;
+	Float distance;
 	Float alpha;
 };
 
