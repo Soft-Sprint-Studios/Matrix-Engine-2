@@ -173,8 +173,10 @@ void main()
 	$branch pp_type == 0
 	$begin
 		vec4 color = texture0Func(ps_texcoord);
+		color.rgb = max(vec3(0.0), color.rgb);
 		for(int i = 0; i < 4; i++)
 			oColor[i] = pow(color[i], 1.0/gamma);
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 1
 	$begin
@@ -184,10 +186,13 @@ void main()
 		vec4 outcolor = texture0Func(ps_texcoord)*weight[0];
 		for(int i = 1; i < 5; i++)
 		{
-			outcolor += texture0Func(ps_texcoord+vec2(offset[i]/offsetdivider.x, 0))*weight[i];
-			outcolor += texture0Func(ps_texcoord-vec2(offset[i]/offsetdivider.y, 0))*weight[i];
+			vec2 tc1 = vec2(clamp(ps_texcoord.x + offset[i]/offsetdivider.x, 0.0, screenwidth - 1.0), ps_texcoord.y);
+			vec2 tc2 = vec2(clamp(ps_texcoord.x - offset[i]/offsetdivider.y, 0.0, screenwidth - 1.0), ps_texcoord.y);
+			outcolor += texture0Func(tc1)*weight[i];
+			outcolor += texture0Func(tc2)*weight[i];
 		}
 		oColor = outcolor * u_color * blur_brightness;
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 2
 	$begin
@@ -197,27 +202,35 @@ void main()
 		vec4 outcolor = texture0Func(ps_texcoord)*weight[0];
 		for(int i = 1; i < 5; i++)
 		{
-			outcolor += texture0Func(ps_texcoord+vec2(0, offset[i]/offsetdivider.x))*weight[i];
-			outcolor += texture0Func(ps_texcoord-vec2(0, offset[i]/offsetdivider.y))*weight[i];
+			vec2 tc1 = vec2(ps_texcoord.x, clamp(ps_texcoord.y + offset[i]/offsetdivider.x, 0.0, screenheight - 1.0));
+			vec2 tc2 = vec2(ps_texcoord.x, clamp(ps_texcoord.y - offset[i]/offsetdivider.y, 0.0, screenheight - 1.0));
+			outcolor += texture0Func(tc1)*weight[i];
+			outcolor += texture0Func(tc2)*weight[i];
 		}
 		oColor = outcolor * u_color * blur_brightness;
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 3
 	$begin
-		vec2 texc = vec2(ps_texcoord.x, ps_texcoord.y);
-		texc.x += (sin(texc.y * 0.03 + offset) * 10) * u_color.a;	
+		vec2 texSize = vec2(textureSize(texture0rect));
+		vec2 texc = ps_texcoord;
+		texc.x += sin(texc.y * 0.03 + offset) * 10.0 * u_color.a;
+		texc = clamp(texc, vec2(0.5), texSize - vec2(0.5));
 	
-		oColor = texture0Func(texc) * u_color;
+		vec4 texColor = texture(texture0rect, texc);
+		oColor = vec4(max(vec3(0.0), texColor.rgb * u_color.rgb), 1.0);
 	$end
 	$branch pp_type == 4
 	$begin
 		vec4 maintex = texture0Func(ps_texcoord);
 		vec4 blurtex = textureBlurFunc(ps_texcoord);
 		oColor = maintex*(1.0-u_color.a)+blurtex*(u_color.a);
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 5
 	$begin
 		oColor = u_color;
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 6
 	$begin
@@ -243,30 +256,33 @@ void main()
 		lum += luminance;
 
 		noise = mix(noise,vec3(0.0),pow(lum,4.0));
-		col = col+noise*grainamount;
+		col = max(vec3(0.0), col + noise * grainamount);
 	   
-		oColor =  vec4(col,1.0);	
+		oColor = vec4(col, 1.0);	
 	$end
 	$branch pp_type == 7
 	$begin
 		oColor = texture0Func(ps_texcoord);
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 8
 	$begin
-		vec3 textureColor = texture0Func(ps_texcoord).xyz * brighten_multiplier;
+		vec3 textureColor = max(vec3(0.0), texture0Func(ps_texcoord).xyz * brighten_multiplier);
 		
 		float brightness = dot(textureColor, vec3(0.2126, 0.7152, 0.0722));
-		brightness = clamp(brightness, 0, 1);
+		brightness = clamp(brightness, 0.0, 1.0);
 		
-		float amount = (brightness / brightness_treshold);
-		float darken = pow(brightness, darken_steps);
+		float safeThreshold = max(0.0001, brightness_treshold);
+		float amount = (brightness / safeThreshold);
+		float darken = pow(max(0.0001, brightness), max(1.0, darken_steps));
 		
-		oColor.xyz = textureColor*amount*darken;
+		oColor.xyz = max(vec3(0.0), textureColor * amount * darken);
 		oColor.w = 1.0;
 	$end
 	$branch pp_type == 9
 	$begin
 		oColor = texture0Func(ps_texcoord) * brighten_multiplier;
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 10
 	$begin
@@ -275,10 +291,13 @@ void main()
 		vec4 outcolor = texture0Func(ps_texcoord)*blur_fraction;
 		for(int i = 1; i < blur_radius; i++)
 		{
-			outcolor += texture0Func(ps_texcoord+vec2(i/offsetdivider.x, 0))*blur_fraction;
-			outcolor += texture0Func(ps_texcoord-vec2(i/offsetdivider.y, 0))*blur_fraction;
+			vec2 tc1 = vec2(clamp(ps_texcoord.x + i/offsetdivider.x, 0.0, screenwidth - 1.0), ps_texcoord.y);
+			vec2 tc2 = vec2(clamp(ps_texcoord.x - i/offsetdivider.y, 0.0, screenwidth - 1.0), ps_texcoord.y);
+			outcolor += texture0Func(tc1)*blur_fraction;
+			outcolor += texture0Func(tc2)*blur_fraction;
 		}
 		oColor = outcolor * u_color * blur_brightness;
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 11
 	$begin
@@ -287,39 +306,46 @@ void main()
 		vec4 outcolor = texture0Func(ps_texcoord)*blur_fraction;
 		for(int i = 1; i < blur_radius; i++)
 		{
-			outcolor += texture0Func(ps_texcoord+vec2(0, i/offsetdivider.x))*blur_fraction;
-			outcolor += texture0Func(ps_texcoord-vec2(0, i/offsetdivider.y))*blur_fraction;
+			vec2 tc1 = vec2(ps_texcoord.x, clamp(ps_texcoord.y + i/offsetdivider.x, 0.0, screenheight - 1.0));
+			vec2 tc2 = vec2(ps_texcoord.x, clamp(ps_texcoord.y - i/offsetdivider.y, 0.0, screenheight - 1.0));
+			outcolor += texture0Func(tc1)*blur_fraction;
+			outcolor += texture0Func(tc2)*blur_fraction;
 		}
 		oColor = outcolor * u_color * blur_brightness;
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	$end
 	$branch pp_type == 12
     $begin
 		vec2 offsetR = vec2(chromaticStrength * 1000.0 / screenwidth, 0.0);
 		vec2 offsetG = vec2(-chromaticStrength * 1000.0 / screenwidth, 0.0);
 		vec2 offsetB = vec2(0.0, chromaticStrength * 1000.0 / screenheight);
-		vec4 colorR = texture0Func(ps_texcoord + offsetR);
-		vec4 colorG = texture0Func(ps_texcoord + offsetG);
-		vec4 colorB = texture0Func(ps_texcoord + offsetB);
-		oColor.r = colorR.r;
-		oColor.g = colorG.g;
-		oColor.b = colorB.b;
+		vec4 colorR = texture0Func(clamp(ps_texcoord + offsetR, vec2(0.0), vec2(screenwidth - 1.0, screenheight - 1.0)));
+		vec4 colorG = texture0Func(clamp(ps_texcoord + offsetG, vec2(0.0), vec2(screenwidth - 1.0, screenheight - 1.0)));
+		vec4 colorB = texture0Func(clamp(ps_texcoord + offsetB, vec2(0.0), vec2(screenwidth - 1.0, screenheight - 1.0)));
+		oColor.r = max(0.0, colorR.r);
+		oColor.g = max(0.0, colorG.g);
+		oColor.b = max(0.0, colorB.b);
 		oColor.a = (colorR.a + colorG.a + colorB.a) / 3.0;
     $end
 	$branch pp_type == 13
     $begin
 		vec4 color = texture0Func(ps_texcoord);
+		color.rgb = max(vec3(0.0), color.rgb);
 		float luminance = 0.3 * color.r + 0.59 * color.g + 0.11 * color.b;
 		vec4 grayscaleColor = vec4(vec3(luminance), color.a);
 		oColor = mix(color, grayscaleColor, BWStrength);
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
     $end
 	$branch pp_type == 14
     $begin
 		vec4 color = texture0Func(ps_texcoord);
+		color.rgb = max(vec3(0.0), color.rgb);
 		vec2 uv = vec2(ps_texcoord.x / screenwidth, ps_texcoord.y / screenheight);
 		vec2 centeredUV = uv - vec2(0.5, 0.5);
 		float distance = length(centeredUV);
 		float vignette = smoothstep(vignetteRadius, vignetteRadius - vignetteStrength, distance);
 		oColor = color * vignette;
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
     $end
 	$branch pp_type == 15 || pp_type == 16
     $begin
@@ -327,6 +353,7 @@ void main()
 		flip_texcoord.x = ps_texcoord.x;
 		flip_texcoord.y = 1.0 - ps_texcoord.y;
 		oColor = texture(normal2dTexture, flip_texcoord)*u_color;
+		oColor.rgb = max(vec3(0.0), oColor.rgb);
 	
 		$branch pp_type == 16
 		$begin
