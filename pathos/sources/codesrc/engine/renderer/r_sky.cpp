@@ -27,6 +27,7 @@ All Rights Reserved.
 #include "r_vbm.h"
 #include "r_water.h"
 #include "r_particles.h"
+#include "r_lensflare.h"
 
 // Skybox surface distance
 const Float CSkyRenderer::SKYBOX_SURFACE_DISTANCE = 128;
@@ -45,6 +46,9 @@ CSkyRenderer::CSkyRenderer( void ):
 	m_skyIndexBase(0),
 	m_screenQuadBase(0),
 	m_pCvarDrawSky(nullptr),
+	m_pCvarProcedualSky(nullptr),
+	m_pCvarProcedualSkyStepsPrimary(nullptr),
+	m_pCvarProcedualSkyStepsLight(nullptr),
 	m_currentSkySet(NO_POSITION),
 	m_skyBoxSkySet(NO_POSITION),
 	m_skySetUsed(NO_POSITION),
@@ -69,6 +73,10 @@ CSkyRenderer::~CSkyRenderer( void )
 bool CSkyRenderer::Init( void )
 {
 	m_pCvarDrawSky = gConsole.CreateCVar( CVAR_FLOAT, FL_CV_CLIENT, "r_drawsky", "1", "Toggle sky rendering." );
+
+	m_pCvarProcedualSky = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_procedualsky", "0", "Toggle procedural sky rendering.");
+	m_pCvarProcedualSkyStepsPrimary = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_procedualsky_steps_primary", "16", "Primary raymarching steps for procedural sky.");
+	m_pCvarProcedualSkyStepsLight = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_procedualsky_steps_light", "4", "Light raymarching steps for procedural sky.");
 
 	return true;
 }
@@ -111,6 +119,10 @@ bool CSkyRenderer::InitGL( void )
 		m_attribs.u_modelview = m_pShader->InitUniform("modelview", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_projection = m_pShader->InitUniform("projection", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_texture = m_pShader->InitUniform("texture0", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_sundir = m_pShader->InitUniform("u_sunDir", CGLSLShader::UNIFORM_FLOAT3);
+		m_attribs.u_time = m_pShader->InitUniform("u_time", CGLSLShader::UNIFORM_FLOAT1);
+		m_attribs.u_sky_steps_primary = m_pShader->InitUniform("u_sky_steps_primary", CGLSLShader::UNIFORM_INT1);
+		m_attribs.u_sky_steps_light = m_pShader->InitUniform("u_sky_steps_light", CGLSLShader::UNIFORM_INT1);
 
 		if(!R_CheckShaderUniform(m_attribs.u_color, "color", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_modelview, "modelview", m_pShader, Sys_ErrorPopup)
@@ -424,37 +436,67 @@ bool CSkyRenderer::DrawSky( void )
 		m_pShader->SetUniform1i(m_attribs.u_texture, 0);
 		m_pShader->EnableAttribute(m_attribs.a_texcoord);
 		m_pShader->SetUniform4f(m_attribs.u_color, 1.0, 1.0, 1.0, 1.0);
-
-		if(!m_pShader->SetDeterminator(m_attribs.d_mode, SHADER_TEXTURE))
-		{
-			Sys_ErrorPopup("Rendering error: %s.", m_pShader->GetError());
-			return false;
-		}
 		
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_projection, rns.view.projection.GetMatrix());
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_modelview, rns.view.modelview.GetMatrix());
 
-		R_ValidateShader(m_pShader);
-
-		en_texture_t** pTexturesArray = nullptr;
-		if(drawskybox && m_skyBoxSkySet != NO_POSITION 
-			&& m_skyBoxSkySet >= 0 
-			&& m_skyBoxSkySet < m_skySetsArray.size())
-			pTexturesArray = m_skySetsArray[m_skyBoxSkySet].ptextures;
-		else if(m_currentSkySet != NO_POSITION 
-			&& m_currentSkySet >= 0 
-			&& m_currentSkySet < m_skySetsArray.size())
-			pTexturesArray = m_skySetsArray[m_currentSkySet].ptextures;
-		else
-			pTexturesArray = m_pSkyboxTextures;
-
-		glDepthMask(GL_FALSE);
-		for (Uint32 i = 0; i < 6; i++)
+		if (m_pCvarProcedualSky && m_pCvarProcedualSky->GetValue() >= 1)
 		{
-			R_Bind2DTexture(GL_TEXTURE0, pTexturesArray[i]->palloc->gl_index);
-			m_pShader->DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, BUFFER_OFFSET(m_skyIndexBase+i*6));
+			if (!m_pShader->SetDeterminator(m_attribs.d_mode, 2))
+				return false;
+
+			Vector sunDir;
+			if (!gLensFlareRenderer.GetPrimarySunDirection(sunDir))
+			{
+				CCVar* pCvarX = gConsole.GetCVar("sv_skyvec_x");
+				CCVar* pCvarY = gConsole.GetCVar("sv_skyvec_y");
+				CCVar* pCvarZ = gConsole.GetCVar("sv_skyvec_z");
+
+				if (pCvarX && pCvarY && pCvarZ && (pCvarX->GetValue() != 0 || pCvarY->GetValue() != 0 || pCvarZ->GetValue() != 0))
+					sunDir = Vector(-pCvarX->GetValue(), -pCvarY->GetValue(), -pCvarZ->GetValue());
+				else
+					sunDir = -cls.skyvec;
+			}
+			sunDir.Normalize();
+
+			m_pShader->SetUniform3f(m_attribs.u_sundir, sunDir.x, sunDir.y, sunDir.z);
+			m_pShader->SetUniform1f(m_attribs.u_time, rns.time);
+			m_pShader->SetUniform1i(m_attribs.u_sky_steps_primary, m_pCvarProcedualSkyStepsPrimary ? static_cast<Int32>(m_pCvarProcedualSkyStepsPrimary->GetValue()) : 16);
+			m_pShader->SetUniform1i(m_attribs.u_sky_steps_light, m_pCvarProcedualSkyStepsLight ? static_cast<Int32>(m_pCvarProcedualSkyStepsLight->GetValue()) : 4);
+
+			R_ValidateShader(m_pShader);
+
+			glDepthMask(GL_FALSE);
+			m_pShader->DrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, BUFFER_OFFSET(m_skyIndexBase));
+			glDepthMask(GL_TRUE);
 		}
-		glDepthMask(GL_TRUE);
+		else
+		{
+			if (!m_pShader->SetDeterminator(m_attribs.d_mode, SHADER_TEXTURE))
+				return false;
+
+			R_ValidateShader(m_pShader);
+
+			en_texture_t** pTexturesArray = nullptr;
+			if (drawskybox && m_skyBoxSkySet != NO_POSITION
+				&& m_skyBoxSkySet >= 0
+				&& m_skyBoxSkySet < m_skySetsArray.size())
+				pTexturesArray = m_skySetsArray[m_skyBoxSkySet].ptextures;
+			else if (m_currentSkySet != NO_POSITION
+				&& m_currentSkySet >= 0
+				&& m_currentSkySet < m_skySetsArray.size())
+				pTexturesArray = m_skySetsArray[m_currentSkySet].ptextures;
+			else
+				pTexturesArray = m_pSkyboxTextures;
+
+			glDepthMask(GL_FALSE);
+			for (Uint32 i = 0; i < 6; i++)
+			{
+				R_Bind2DTexture(GL_TEXTURE0, pTexturesArray[i]->palloc->gl_index);
+				m_pShader->DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, BUFFER_OFFSET(m_skyIndexBase + i * 6));
+			}
+			glDepthMask(GL_TRUE);
+		}
 
 		if(rns.mirroring)
 		{

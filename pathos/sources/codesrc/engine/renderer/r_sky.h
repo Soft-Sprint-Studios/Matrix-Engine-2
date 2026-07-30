@@ -16,6 +16,10 @@ struct sky_attribs_t
 		u_projection(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_color(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_texture(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_sundir(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_time(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_sky_steps_primary(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_sky_steps_light(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_modelview(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_texcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -27,6 +31,10 @@ struct sky_attribs_t
 	Int32 u_modelview;
 	Int32 u_color;
 	Int32 u_texture;
+	Int32 u_sundir;
+	Int32 u_time;
+	Int32 u_sky_steps_primary;
+	Int32 u_sky_steps_light;
 
 	Int32 a_texcoord;
 	Int32 a_origin;
@@ -130,6 +138,11 @@ private:
 
 	// Cvar for toggling sky rendering
 	CCVar* m_pCvarDrawSky;
+
+	// Cvars for procedural sky rendering
+	CCVar* m_pCvarProcedualSky;
+	CCVar* m_pCvarProcedualSkyStepsPrimary;
+	CCVar* m_pCvarProcedualSkyStepsLight;
 
 	// Sky set used for rendering
 	Int32 m_currentSkySet;

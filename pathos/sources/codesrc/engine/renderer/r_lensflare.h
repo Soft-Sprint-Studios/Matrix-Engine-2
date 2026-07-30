@@ -107,6 +107,8 @@ public:
 public:
 	// Sets sun flare properties
 	void SetSunFlare( entindex_t entindex, bool active, Float pitch, Float roll, Float scale, const Vector& color, bool portalSunFlare );
+	// Gets primary non-portal sun direction from env_sun
+	bool GetPrimarySunDirection(Vector& sunDir) const;
 
 	// Pre-draw function for rendering glow dots
 	void PreDrawFunction( void );
