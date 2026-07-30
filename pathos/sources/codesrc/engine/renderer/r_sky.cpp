@@ -445,19 +445,7 @@ bool CSkyRenderer::DrawSky( void )
 			if (!m_pShader->SetDeterminator(m_attribs.d_mode, 2))
 				return false;
 
-			Vector sunDir;
-			if (!gLensFlareRenderer.GetPrimarySunDirection(sunDir))
-			{
-				CCVar* pCvarX = gConsole.GetCVar("sv_skyvec_x");
-				CCVar* pCvarY = gConsole.GetCVar("sv_skyvec_y");
-				CCVar* pCvarZ = gConsole.GetCVar("sv_skyvec_z");
-
-				if (pCvarX && pCvarY && pCvarZ && (pCvarX->GetValue() != 0 || pCvarY->GetValue() != 0 || pCvarZ->GetValue() != 0))
-					sunDir = Vector(-pCvarX->GetValue(), -pCvarY->GetValue(), -pCvarZ->GetValue());
-				else
-					sunDir = -cls.skyvec;
-			}
-			sunDir.Normalize();
+			Vector sunDir = -cls.skyvec;
 
 			m_pShader->SetUniform3f(m_attribs.u_sundir, sunDir.x, sunDir.y, sunDir.z);
 			m_pShader->SetUniform1f(m_attribs.u_time, rns.time);

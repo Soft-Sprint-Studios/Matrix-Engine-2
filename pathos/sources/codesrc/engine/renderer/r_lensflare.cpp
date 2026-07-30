@@ -165,11 +165,6 @@ void CLensFlareRenderer::ClearGame( void )
 //====================================
 void CLensFlareRenderer::DrawSunFlare( sunflare_t& sunflare )
 {
-	// Skip drawing duplicate sun if procedural sky is active
-	CCVar* pCvarProceduralSky = gConsole.GetCVar("r_procedualsky");
-	if (pCvarProceduralSky && pCvarProceduralSky->GetValue() >= 1 && !sunflare.portal)
-		return;
-
 	// Set up the sun entity's origin
 	Vector sunForward;
 	Vector sunAngles;
@@ -514,28 +509,6 @@ void CLensFlareRenderer::SetSunFlare( entindex_t entindex, bool active, Float pi
 		pflare->scale = SUN_GLOW_DEFAULT_SCALE;
 
 	pflare->portal = portalSunFlare;
-}
-
-//====================================
-//
-//====================================
-bool CLensFlareRenderer::GetPrimarySunDirection(Vector& sunDir) const
-{
-	if (m_sunFlaresArray.empty())
-		return false;
-
-	for (Uint32 i = 0; i < m_sunFlaresArray.size(); i++)
-	{
-		const sunflare_t& flare = m_sunFlaresArray[i];
-		if (flare.portal)
-			continue;
-
-		Vector sunAngles(flare.pitch, flare.roll, 0);
-		Math::AngleVectors(sunAngles, &sunDir);
-		return true;
-	}
-
-	return false;
 }
 
 //====================================
