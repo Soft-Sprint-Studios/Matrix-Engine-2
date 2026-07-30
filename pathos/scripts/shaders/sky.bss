@@ -196,7 +196,7 @@ vec3 getCloudColor(vec3 r0, vec3 rd, vec3 sunDir)
     
     vec3 normal = normalize(pCloud);
     float directLight = max(dot(normal, sunDir), 0.0);
-    float light = 0.35 + (0.65) * pow(directLight, 4.0);
+    float light = 0.55 + (0.65) * pow(directLight, 2.0);
     
     return vec3(1.0) * (density * 0.6 * viewFade * light);
 }
@@ -248,7 +248,7 @@ void main()
 
 		skyColor += sunDiskColor;
 		skyColor += getCloudColor(rayOrigin, rayDir, sunDir);
-		skyColor = vec3(1.0) - exp(-0.8 * skyColor);
+		skyColor = vec3(1.0) - exp(-1.0 * skyColor);
 		
 		oColor = vec4(skyColor, 1.0);
 	$end
