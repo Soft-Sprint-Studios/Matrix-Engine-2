@@ -55,7 +55,6 @@ state variables and functionality.
 #include "dllexports.h"
 #include "filewriterthread.h"
 #include "sys_sentry.h"
-#include "vbmtracegen.h"
 
 #if defined WIN32 && _64BUILD
 #include <detours.h>
@@ -166,8 +165,6 @@ bool Sys_Init( CArray<CString>* argsArray )
 	gSentry.Init();
 	// Intialize model cache
 	gModelCache.Init();
-	// Initialize VBM Trace Generator
-	VBM_InitTraceGen();
 
 	// Register commands
 	Sys_InitCommands();

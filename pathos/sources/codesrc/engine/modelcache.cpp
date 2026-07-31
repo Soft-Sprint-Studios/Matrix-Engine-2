@@ -31,7 +31,6 @@ All Rights Reserved.
 #include "crc32.h"
 #include "mcdformat.h"
 #include "disptrace.h"
-#include "vbmtracegen.h"
 
 // Object declaration
 CModelCache gModelCache;
@@ -345,9 +344,6 @@ cache_model_t* CModelCache::LoadVBMModel( const Char* pstrFilename, const byte* 
 	if(pmcddata)
 		pcache->pmcdheader = reinterpret_cast<mcdheader_t*>(pmcddata);
 
-	if (!pmcddata)
-		VBM_GenerateMCD(pcache);
-
 	// Create a new model entry
 	Uint32 modelindex = m_modelCacheArray.size();
 	cache_model_t* pnew = new cache_model_t;
@@ -379,7 +375,7 @@ cache_model_t* CModelCache::LoadVBMModel( const Char* pstrFilename, const byte* 
 	pnew->flags = pstudiohdr->flags;
 
 	// Mark if we have an MCD file
-	if(pcache->pmcdheader)
+	if(pmcddata)
 		pnew->cacheflags |= CACHE_FL_HAS_MCD;
 
 	// needs to be loaded to gpu

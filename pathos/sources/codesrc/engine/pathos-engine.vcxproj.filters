@@ -438,12 +438,6 @@
     <ClCompile Include="disptrace.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vbmtracegen.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pbspv3.cpp">
-      <Filter>Source Files\bsp</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
@@ -988,15 +982,6 @@
     </ClInclude>
     <ClInclude Include="disptrace.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vbmtracegen.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\pbspv3file.h">
-      <Filter>Header Files\common</Filter>
-    </ClInclude>
-    <ClInclude Include="pbspv3.h">
-      <Filter>Header Files\bsp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
