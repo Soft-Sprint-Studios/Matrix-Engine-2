@@ -150,15 +150,16 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>.\Release/vbmcompiler.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>.\x64\Release\SDL2.lib;.\x64\Release\SDL2Main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2Main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\VS2022PROJECTS\Matrix-Engine-2\pathos\sources\codesrc\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Release/vbmcompiler.bsc</OutputFile>
     </Bscmake>
     <CustomBuildStep>
-      <Command>copy /Y "$(OutDir)/vbmcompiler.exe" "$(SolutionDir)/../../../progs/vbmcompiler/vbmcompiler.exe"</Command>
-      <Message>Copy "$(OutDir)/vbmcompiler.exe" to working "$(SolutionDir)/../../../progs/vbmcompiler/vbmcompiler.exe"</Message>
+      <Command>copy /Y "$(OutDir)\vbmcompiler.exe" "$(SolutionDir)..\progs\vbmcompiler\vbmcompiler.exe"</Command>
+      <Message>Copy "$(OutDir)\vbmcompiler.exe" to "$(SolutionDir)..\progs\vbmcompiler\vbmcompiler.exe"</Message>
       <Outputs>vbmcompiler.exe</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -240,8 +241,8 @@
       <OutputFile>.\Debug/vbmcompiler.bsc</OutputFile>
     </Bscmake>
     <CustomBuildStep>
-      <Command>copy /Y "$(OutDir)/vbmcompiler.exe" "$(SolutionDir)/../../../progs/vbmcompiler/vbmcompiler.exe"</Command>
-      <Message>Copy "$(OutDir)/vbmcompiler.exe" to working "$(SolutionDir)/../../../progs/vbmcompiler/vbmcompiler.exe"</Message>
+      <Command>copy /Y "$(OutDir)\vbmcompiler.exe" "$(SolutionDir)..\progs\vbmcompiler\vbmcompiler.exe"</Command>
+      <Message>Copy "$(OutDir)\vbmcompiler.exe" to "$(SolutionDir)..\progs\vbmcompiler\vbmcompiler.exe"</Message>
       <Outputs>vbmcompiler.exe</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>

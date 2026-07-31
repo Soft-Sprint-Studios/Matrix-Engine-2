@@ -111,6 +111,11 @@ bool CAnimationSMDParser::ProcessFile( const Char* pstrFilename )
 		{
 			result = ParseAnimation();
 		}
+		else if (!qstrcicmp(pstrString, "triangles"))
+		{
+			while (ReadString(pstrString, true) && qstrcicmp(pstrString, "end"));
+			result = true;
+		}
 		else
 		{
 			ErrorMsg("Unknown token '%s' in %s'.\n", pstrString, m_scriptFileName.c_str());

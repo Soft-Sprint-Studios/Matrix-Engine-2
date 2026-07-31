@@ -1,7 +1,9 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pathos-engine", "engine\pathos-engine.vcxproj", "{9919AF58-E9C3-4694-8688-8048B97C6AC1}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35506.116 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "matrix-engine", "engine\pathos-engine.vcxproj", "{9919AF58-E9C3-4694-8688-8048B97C6AC1}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3A214E06-B95E-4D61-A291-1F8DF2EC10FD} = {3A214E06-B95E-4D61-A291-1F8DF2EC10FD}
 		{D65D9642-32C0-470C-86D7-90FE7E8EFED0} = {D65D9642-32C0-470C-86D7-90FE7E8EFED0}
@@ -37,6 +39,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libvorbis_static", "libs\libvorbis\win32\VS2010\libvorbis\libvorbis_static.vcxproj", "{3A214E06-B95E-4D61-A291-1F8DF2EC10FD}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libvorbisfile", "libs\libvorbis\win32\VS2010\libvorbisfile\libvorbisfile_static.vcxproj", "{CEBDE98B-A6AA-46E6-BC79-FAAF823DB9EC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mdlimporter", "utils\mdlimporter\mdlimporter.vcxproj", "{35F5405C-2D77-493D-88C1-7D02392778D6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vbmcompiler", "utils\vbmcompiler\vbmcompiler.vcxproj", "{07560066-7207-4114-B0F2-16162F183E59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -156,6 +162,30 @@ Global
 		{CEBDE98B-A6AA-46E6-BC79-FAAF823DB9EC}.Release|Win32.Build.0 = Release|Win32
 		{CEBDE98B-A6AA-46E6-BC79-FAAF823DB9EC}.Release|x64.ActiveCfg = Release|x64
 		{CEBDE98B-A6AA-46E6-BC79-FAAF823DB9EC}.Release|x64.Build.0 = Release|x64
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.Debug|Win32.Build.0 = Debug|Win32
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.Debug|x64.ActiveCfg = Debug|x64
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.Debug|x64.Build.0 = Debug|x64
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.EngineRelease|Win32.ActiveCfg = Release|Win32
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.EngineRelease|Win32.Build.0 = Release|Win32
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.EngineRelease|x64.ActiveCfg = Release|x64
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.EngineRelease|x64.Build.0 = Release|x64
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.Release|Win32.ActiveCfg = Release|Win32
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.Release|Win32.Build.0 = Release|Win32
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.Release|x64.ActiveCfg = Release|x64
+		{35F5405C-2D77-493D-88C1-7D02392778D6}.Release|x64.Build.0 = Release|x64
+		{07560066-7207-4114-B0F2-16162F183E59}.Debug|Win32.ActiveCfg = Debug|Win32
+		{07560066-7207-4114-B0F2-16162F183E59}.Debug|Win32.Build.0 = Debug|Win32
+		{07560066-7207-4114-B0F2-16162F183E59}.Debug|x64.ActiveCfg = Debug|x64
+		{07560066-7207-4114-B0F2-16162F183E59}.Debug|x64.Build.0 = Debug|x64
+		{07560066-7207-4114-B0F2-16162F183E59}.EngineRelease|Win32.ActiveCfg = Release|Win32
+		{07560066-7207-4114-B0F2-16162F183E59}.EngineRelease|Win32.Build.0 = Release|Win32
+		{07560066-7207-4114-B0F2-16162F183E59}.EngineRelease|x64.ActiveCfg = Release|x64
+		{07560066-7207-4114-B0F2-16162F183E59}.EngineRelease|x64.Build.0 = Release|x64
+		{07560066-7207-4114-B0F2-16162F183E59}.Release|Win32.ActiveCfg = Release|Win32
+		{07560066-7207-4114-B0F2-16162F183E59}.Release|Win32.Build.0 = Release|Win32
+		{07560066-7207-4114-B0F2-16162F183E59}.Release|x64.ActiveCfg = Release|x64
+		{07560066-7207-4114-B0F2-16162F183E59}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
