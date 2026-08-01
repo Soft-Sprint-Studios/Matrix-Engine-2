@@ -160,6 +160,72 @@ bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filenam
     return true;
 }
 
+bool SaveSpecularFromMRAO(const cgltf_image* image, const std::string& out_filename)
+{
+    if (!image || !image->buffer_view || !image->buffer_view->buffer)
+    {
+        return false;
+    }
+
+    const uint8_t* data = (const uint8_t*)image->buffer_view->buffer->data + image->buffer_view->offset;
+    size_t size = image->buffer_view->size;
+
+    IStream* stream = nullptr;
+    if (CreateStreamOnHGlobal(nullptr, TRUE, &stream) != S_OK)
+    {
+        return false;
+    }
+
+    ULONG written;
+    stream->Write(data, (ULONG)size, &written);
+    stream->Seek({ 0 }, STREAM_SEEK_SET, nullptr);
+
+    Gdiplus::Bitmap* source = Gdiplus::Bitmap::FromStream(stream);
+    if (!source || source->GetLastStatus() != Gdiplus::Ok)
+    {
+        stream->Release();
+        return false;
+    }
+
+    Gdiplus::Bitmap target(source->GetWidth(), source->GetHeight(), PixelFormat24bppRGB);
+
+    for (UINT y = 0; y < source->GetHeight(); ++y)
+    {
+        for (UINT x = 0; x < source->GetWidth(); ++x)
+        {
+            Gdiplus::Color c;
+            source->GetPixel(x, y, &c);
+
+            BYTE spec = 255 - c.GetG();
+
+            target.SetPixel(x, y, Gdiplus::Color(spec, spec, spec));
+        }
+    }
+
+    CLSID clsid;
+    UINT num = 0, size_needed = 0;
+    Gdiplus::GetImageEncodersSize(&num, &size_needed);
+    std::vector<BYTE> encoders(size_needed);
+    Gdiplus::ImageCodecInfo* codecInfo = (Gdiplus::ImageCodecInfo*)encoders.data();
+    Gdiplus::GetImageEncoders(num, size_needed, codecInfo);
+
+    for (UINT i = 0; i < num; ++i)
+    {
+        if (wcscmp(codecInfo[i].MimeType, L"image/bmp") == 0)
+        {
+            clsid = codecInfo[i].Clsid;
+            break;
+        }
+    }
+
+    std::wstring wfilename(out_filename.begin(), out_filename.end());
+    target.Save(wfilename.c_str(), &clsid, nullptr);
+
+    delete source;
+    stream->Release();
+    return true;
+}
+
 void ConvertBMPToDDS(const std::string& inputBmp, const std::string& outputDds)
 {
     std::string command = "\"" + g_Config.nvcompress + "\" -bc1 -alpha \"" + inputBmp + "\" \"" + outputDds + "\"";
@@ -304,7 +370,7 @@ void ProcessFile(const fs::path& glbPath)
         }
         if (mat.pbr_metallic_roughness.metallic_roughness_texture.texture)
         {
-            if (SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.metallic_roughness_texture.texture->image, workDir + "/temp_s.bmp", PixelFormat24bppRGB))
+            if (SaveSpecularFromMRAO(mat.pbr_metallic_roughness.metallic_roughness_texture.texture->image, workDir + "/temp_s.bmp"))
             {
                 ConvertBMPToDDS(workDir + "/temp_s.bmp", workDir + "/" + modelName + "_specular.dds");
             }
