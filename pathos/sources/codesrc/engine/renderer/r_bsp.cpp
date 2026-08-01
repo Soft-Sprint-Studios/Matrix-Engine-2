@@ -3777,9 +3777,9 @@ bool CBSPRenderer::DrawLights( bool specular )
 				continue;
 
 			if (pmaterial->ptextures[MT_TX_DIFFUSE2])
-				m_pShader->SetDeterminator(m_attribs.d_blended, 1, false);
+				m_pShader->SetDeterminator(m_attribs.d_blended, 1, true);
 			else
-				m_pShader->SetDeterminator(m_attribs.d_blended, 0, false);
+				m_pShader->SetDeterminator(m_attribs.d_blended, 0, true);
 
 			// Set texture units up
 			Int32 texunit = outer_index + 1;
@@ -4252,9 +4252,9 @@ bool CBSPRenderer::DrawFinal( void )
 				continue;			
 
 			if (pmaterial->ptextures[MT_TX_DIFFUSE2])
-				m_pShader->SetDeterminator(m_attribs.d_blended, 1, false);
+				m_pShader->SetDeterminator(m_attribs.d_blended, 1, true);
 			else
-				m_pShader->SetDeterminator(m_attribs.d_blended, 0, false);
+				m_pShader->SetDeterminator(m_attribs.d_blended, 0, true);
 			
 			m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength);
 
@@ -4465,9 +4465,9 @@ bool CBSPRenderer::DrawFinalSpecular( void )
 			continue;
 
 		if (pmaterial->ptextures[MT_TX_DIFFUSE2])
-			m_pShader->SetDeterminator(m_attribs.d_blended, 1, false);
+			m_pShader->SetDeterminator(m_attribs.d_blended, 1, true);
 		else
-			m_pShader->SetDeterminator(m_attribs.d_blended, 0, false);
+			m_pShader->SetDeterminator(m_attribs.d_blended, 0, true);
 
 		m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
 		m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
