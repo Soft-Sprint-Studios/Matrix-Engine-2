@@ -551,6 +551,14 @@ void CBulletPhysics::SyncEntityToPhysics(edict_t* pedict, Uint32 entindex)
 	body->setUserPointer(pedict);
 	body->setActivationState(DISABLE_DEACTIVATION);
 
+	float hx = (pedict->state.maxs.x - pedict->state.mins.x) * 0.5f;
+	float hy = (pedict->state.maxs.y - pedict->state.mins.y) * 0.5f;
+	float hz = (pedict->state.maxs.z - pedict->state.mins.z) * 0.5f;
+	float minExtent = hx < hy ? (hx < hz ? hx : hz) : (hy < hz ? hy : hz);
+
+	body->setCcdMotionThreshold(minExtent * 0.5f);
+	body->setCcdSweptSphereRadius(minExtent * 0.2f);
+
 	m_pDynamicsWorld->addRigidBody(body);
 	m_bodyIds[entindex] = body;
 }
