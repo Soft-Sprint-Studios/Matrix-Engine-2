@@ -458,16 +458,31 @@ bool CBulletPhysics::ConvexSweepTest(const Vector& start, const Vector& end, con
 //=============================================
 btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLocalCenter)
 {
-	if (!pedict || pedict->state.modelindex <= 0)
+	if (!pedict)
+	{
+		Con_EPrintf("%s - Entity was nullptr.\n", __FUNCTION__);
 		return nullptr;
+	}
+
+	if (pedict->state.modelindex <= 0)
+	{
+		Con_EPrintf("%s - Entity %d (%s) has no model set.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
+		return nullptr;
+	}
 
 	cache_model_t* pmodel = gModelCache.GetModelByIndex(pedict->state.modelindex);
 	if (!pmodel || pmodel->type != MOD_BRUSH)
+	{
+		Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) model is not a brush model.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
 		return nullptr;
+	}
 
 	brushmodel_t* pbrushmodel = pmodel->getBrushmodel();
 	if (!pbrushmodel || pbrushmodel->nummodelsurfaces == 0)
+	{
+		Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) has no model surfaces.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
 		return nullptr;
+	}
 
 	Vector mins = pedict->state.mins;
 	Vector maxs = pedict->state.maxs;
@@ -490,6 +505,7 @@ btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLoca
 
 	if (convexShape->getNumPoints() == 0)
 	{
+		Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) generated 0 convex hull points.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
 		delete convexShape;
 		return nullptr;
 	}
