@@ -444,6 +444,9 @@
     <ClCompile Include="renderer\r_video.cpp">
       <Filter>Source Files\renderer</Filter>
     </ClCompile>
+    <ClCompile Include="server\sv_bulletphysics.cpp">
+      <Filter>Source Files\server</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
@@ -997,6 +1000,9 @@
     </ClInclude>
     <ClInclude Include="renderer\r_video.h">
       <Filter>Header Files\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="server\sv_bulletphysics.h">
+      <Filter>Header Files\server</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

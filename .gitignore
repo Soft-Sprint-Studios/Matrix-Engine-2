@@ -511,7 +511,6 @@ local.properties
 *.lai
 *.so
 *.so.*
-*.dll
 *.dylib
 
 # Qt-es
@@ -965,7 +964,6 @@ _deps
 # Compiled Dynamic libraries
 *.so
 *.dylib
-*.dll
 
 # Fortran module files
 *.mod
@@ -977,7 +975,6 @@ _deps
 *.a
 
 # Executables
-*.exe
 *.out
 *.app
 
@@ -1008,14 +1005,12 @@ _deps
 *.la
 *.lo
 
-# Shared objects (inc. Windows DLLs)
-*.dll
+# Shared objects
 *.so
 *.so.*
 *.dylib
 
 # Executables
-*.exe
 *.out
 *.app
 *.i*86

@@ -23,6 +23,7 @@ All Rights Reserved.
 #include "trace_shared.h"
 #include "vbmtrace.h"
 #include "sv_physics.h"
+#include "sv_bulletphysics.h"
 #include "mcdtrace.h"
 #include "collision_shared.h"
 
@@ -58,6 +59,29 @@ void SV_LinkEdict( edict_t* pentity, bool touchtriggers )
 
 	// Set the abs box
 	svs.dllfuncs.pfnSetAbsBox(pentity);
+
+	// Handle rotated objects to avoid bullet physics bug
+	if (!pentity->state.angles.IsZero())
+	{
+		Float mat[3][4];
+		Math::AngleMatrix(pentity->state.angles, mat);
+
+		Vector localCenter = (pentity->state.mins + pentity->state.maxs) * 0.5f;
+		Vector localExtents = (pentity->state.maxs - pentity->state.mins) * 0.5f;
+
+		Vector worldCenter;
+		Math::VectorTransform(localCenter, mat, worldCenter);
+		worldCenter += pentity->state.origin;
+
+		Vector worldExtents;
+		for (Uint32 i = 0; i < 3; i++)
+		{
+			worldExtents[i] = SDL_fabs(mat[i][0]) * localExtents.x + SDL_fabs(mat[i][1]) * localExtents.y + SDL_fabs(mat[i][2]) * localExtents.z;
+		}
+
+		pentity->state.absmin = worldCenter - worldExtents;
+		pentity->state.absmax = worldCenter + worldExtents;
+	}
 
 	if(pentity->state.movetype == MOVETYPE_FOLLOW && pentity->state.aiment != NO_ENTITY_INDEX)
 	{
@@ -1147,6 +1171,8 @@ void SV_PlayerTrace( const Vector& start, const Vector& end, Int32 traceflags, h
 	edict_t* pworld = gEdicts.GetEdict(WORLDSPAWN_ENTITY_INDEX);
 	TR_PlayerTraceSingleEntity(pworld->state, pworld->pvbmhulldata, nullptr, start, end, hulltype, traceflags, svs.player_mins[hulltype], svs.player_maxs[hulltype], trace);
 
+	gBulletPhysics.ConvexSweepTest(start, end, svs.player_mins[hulltype], svs.player_maxs[hulltype], ignore_ent, trace);
+
 	// Trace against entities if applicable
 	if(!(traceflags & FL_TRACE_WORLD_ONLY))
 	{
@@ -1252,6 +1278,8 @@ void SV_TraceLine( const Vector& start, const Vector& end, Int32 traceflags, hul
 		SV_Move_Point(trace, start, end, traceflags, pignoreent);
 	else
 		SV_Move(trace, start, HULL_MINS[hulltype], HULL_MAXS[hulltype], end, traceflags, pignoreent, hulltype);
+
+	gBulletPhysics.ConvexSweepTest(start, end, (hulltype == HULL_POINT ? ZERO_VECTOR : HULL_MINS[hulltype]), (hulltype == HULL_POINT ? ZERO_VECTOR : HULL_MAXS[hulltype]), ignore_ent, trace);
 }
 
 //=============================================

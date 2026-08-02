@@ -960,6 +960,9 @@
     <ClCompile Include="funcvideo.cpp">
       <Filter>Source Files\entities\func</Filter>
     </ClCompile>
+    <ClCompile Include="funcphysbox.cpp">
+      <Filter>Source Files\entities\func</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gamedll.h">
@@ -1806,6 +1809,9 @@
       <Filter>Header Files\entities\env</Filter>
     </ClInclude>
     <ClInclude Include="funcvideo.h">
+      <Filter>Header Files\entities\func</Filter>
+    </ClInclude>
+    <ClInclude Include="funcphysbox.h">
       <Filter>Header Files\entities\func</Filter>
     </ClInclude>
   </ItemGroup>

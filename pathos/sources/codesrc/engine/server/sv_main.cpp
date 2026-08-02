@@ -15,6 +15,7 @@ All Rights Reserved.
 #include "system.h"
 #include "sv_world.h"
 #include "sv_physics.h"
+#include "sv_bulletphysics.h"
 #include "common.h"
 #include "sv_msg.h"
 #include "sv_move.h"
@@ -290,6 +291,9 @@ bool SV_Init( void )
 
 	// Initialize physics
 	SV_Physics_Init();
+
+	// Initialize Bullet
+	gBulletPhysics.Init();
 
 	// Call game dll to initialize after creating cvars
 	if(!svs.dllfuncs.pfnGameDLLInit())
@@ -1011,6 +1015,9 @@ bool SV_SpawnGame( const Char* pstrLevelName, const Char* pstrSaveFile, const Ch
 	// Set paused state
 	Sys_SetPaused(false, false);
 
+	// Make Bullet world
+	gBulletPhysics.SetupStaticWorld();
+
 	// Call PostSpawnGame function on game dll
 	svs.dllfuncs.pfnPostSpawnGame();
 
@@ -1250,6 +1257,9 @@ void SV_ClearGame(  bool clearloadingscreen, bool clearconnections )
 	// Delete networking instance
 	CNetworking::DeleteInstance();
 	svs.netinfo.pnet = nullptr;
+
+	// Clear Bullet world
+	gBulletPhysics.ClearWorld();
 
 	// Clear at very end
 	svs.serverstate = SV_INACTIVE;
@@ -1640,6 +1650,9 @@ void SV_Frame( void )
 	{
 		// Simulate physics
 		SV_Physics();
+
+		// Simulate Bullet physics
+		gBulletPhysics.Frame(ens.frametime);
 
 		// Increment time after doing physics
 		svs.time += ens.frametime;

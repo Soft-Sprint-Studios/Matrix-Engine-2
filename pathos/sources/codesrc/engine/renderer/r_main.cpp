@@ -79,6 +79,7 @@ All Rights Reserved.
 #include "stb_dxt.h"
 #include "bsp_shared.h"
 #include "file.h"
+#include "sv_bulletphysics.h"
 
 // Global cvars
 CCVar* g_pCvarBumpMaps = nullptr;
@@ -2335,6 +2336,9 @@ bool R_Draw( const ref_params_t& params )
 		if(!R_DrawOrigins())
 			return false;
 	}
+
+	// Draw debug wireframe
+	gBulletPhysics.DrawDebug();
 
 	return true;
 }

@@ -1948,6 +1948,12 @@ void SV_RunEntityPhysics( edict_t* pedict )
 	if(pedict->free)
 		return;
 
+	if (pedict->state.movetype == MOVETYPE_PHYSICS)
+	{
+		SV_RunThink(pedict);
+		return;
+	}
+
 	// Force retouch for everything
 	if(svs.gamevars.force_retouch)
 		SV_LinkEdict(pedict, true);

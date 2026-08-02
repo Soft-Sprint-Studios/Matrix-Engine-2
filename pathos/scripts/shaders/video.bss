@@ -1,0 +1,82 @@
+$global_determinator fog 0 1
+$shader_vertex
+$begin
+#version 130
+
+uniform mat4 projection;
+uniform mat4 modelview;
+
+in vec4 in_position;
+in vec2 in_texcoord;
+
+out vec2 ps_texcoord;
+out vec3 ps_vertexpos;
+
+void main()
+{
+	ps_texcoord = in_texcoord;
+
+	vec4 position = in_position * modelview;
+
+	$branch fog == 1
+	$begin
+		ps_vertexpos = position.xyz;
+	$end
+
+	gl_Position = position * projection;
+}
+$end
+
+$shader_fragment 
+$begin
+#version 130
+
+uniform sampler2D textureY;
+uniform sampler2D textureCb;
+uniform sampler2D textureCr;
+
+uniform vec3 fogcolor;
+uniform vec2 fogparams;
+
+in vec2 ps_texcoord;
+in vec3 ps_vertexpos;
+
+out vec4 oColor;
+
+float SplineFraction( float value, float scale )
+{
+	float valueSquared;
+
+	value = scale * value;
+	valueSquared = value * value;
+
+	// Nice little ease-in, ease-out spline-like curve
+	return 3 * valueSquared - 2 * valueSquared * value;
+}
+
+void main()
+{
+	float y = 1.164383 * (texture(textureY, ps_texcoord).r - 0.062745);
+	float cb = texture(textureCb, ps_texcoord).r - 0.5;
+	float cr = texture(textureCr, ps_texcoord).r - 0.5;
+
+	float r = y + 1.596027 * cr;
+	float g = y - 0.391762 * cb - 0.812968 * cr;
+	float b = y + 2.017232 * cb;
+
+	vec4 yuvColor = vec4(r, g, b, 1.0);
+	vec4 finalColor = clamp(yuvColor, 0.0, 1.0);
+
+	$branch fog == 1
+	$begin
+		float fogcoord = length(ps_vertexpos);
+		
+		float fogfactor = (fogparams.x - fogcoord) * fogparams.y;
+		fogfactor = 1.0 - SplineFraction(clamp(fogfactor, 0.0, 1.0), 1.0);
+		
+		finalColor.xyz = mix(finalColor.xyz, fogcolor, fogfactor);
+	$end
+
+	oColor = finalColor;
+}
+$end

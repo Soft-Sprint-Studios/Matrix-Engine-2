@@ -300,6 +300,7 @@
     <ClCompile Include="funcmonitor.cpp" />
     <ClCompile Include="funcnull.cpp" />
     <ClCompile Include="funcparticleblocker.cpp" />
+    <ClCompile Include="funcphysbox.cpp" />
     <ClCompile Include="funcplat.cpp" />
     <ClCompile Include="funcplatrot.cpp" />
     <ClCompile Include="funcportalsurface.cpp" />
@@ -553,6 +554,7 @@
     <ClInclude Include="envtracereffect.h" />
     <ClInclude Include="envvignette.h" />
     <ClInclude Include="funcparticleblocker.h" />
+    <ClInclude Include="funcphysbox.h" />
     <ClInclude Include="funcportalsurface.h" />
     <ClInclude Include="funcslippery.h" />
     <ClInclude Include="funcvideo.h" />
