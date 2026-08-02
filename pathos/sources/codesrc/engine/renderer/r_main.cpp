@@ -54,6 +54,7 @@ All Rights Reserved.
 #include "r_decals.h"
 #include "r_water.h"
 #include "r_mirror.h"
+#include "r_video.h"
 #include "r_monitor.h"
 #include "r_particles.h"
 #include "r_sprites.h"
@@ -640,6 +641,9 @@ bool R_InitGL( void )
 	if(!gMirrorManager.InitGL())
 		return false;
 
+	if(!gVideoManager.InitGL())
+		return false;
+
 	if(!gParticleEngine.InitGL())
 		return false;
 
@@ -712,6 +716,7 @@ void R_ShutdownGL( void )
 	gWaterShader.ClearGL();
 	gMonitorManager.ClearGL();
 	gMirrorManager.ClearGL();
+	gVideoManager.ClearGL();
 	gParticleEngine.ClearGL();
 	gSpriteRenderer.ClearGL();
 	gCubemaps.ClearGL();
@@ -774,6 +779,9 @@ bool R_LoadResources( void )
 		return false;
 
 	if(!gMirrorManager.InitGame())
+		return false;
+
+	if(!gVideoManager.InitGame())
 		return false;
 
 	VID_DrawLoadingScreen("Initializing particles");
@@ -921,6 +929,7 @@ void R_ResetGame( void )
 	gWaterShader.ClearGame();
 	gMonitorManager.ClearGame();
 	gMirrorManager.ClearGame();
+	gVideoManager.ClearGame();
 	gParticleEngine.ClearGame();
 	gSpriteRenderer.ClearGame();
 	gCubemaps.ClearGame();
@@ -1619,6 +1628,18 @@ void R_Ent_Mirror( cl_entity_t *pentity )
 //====================================
 //
 //====================================
+void R_Ent_Video(cl_entity_t* pentity)
+{
+	entity_extrainfo_t* pinfo = CL_GetEntityExtraData(pentity);
+	if (pinfo->pvideodata)
+		return;
+
+	gVideoManager.AllocNewVideo(pentity);
+}
+
+//====================================
+//
+//====================================
 void R_Ent_Monitor( cl_entity_t *pentity )
 {
 	if(pentity->curstate.aiment != NO_ENTITY_INDEX)
@@ -1738,6 +1759,7 @@ bool R_IsSpecialRenderEntity( const cl_entity_t& entity )
 	case RT_WATERSHADER:
 	case RT_SKYWATERENT:
 	case RT_MIRROR:
+	case RT_VIDEO:
 	case RT_MONITORENTITY:
 	case RT_PORTALSURFACE:
 	case RT_BEAM:
@@ -1789,6 +1811,12 @@ bool R_AddSpecialEntity( cl_entity_t *pentity )
 	case RT_MIRROR:
 		{
 			R_Ent_Mirror(pentity);
+			return true;
+		}
+		break;
+	case RT_VIDEO:
+		{
+			R_Ent_Video(pentity);
 			return true;
 		}
 		break;
@@ -2124,6 +2152,10 @@ bool R_DrawNormal( void )
 
 		// Draw mirrors
 		if(!gMirrorManager.DrawMirrors())
+			return false;
+
+		// Draw videos
+		if(!gVideoManager.DrawVideos())
 			return false;
 
 		// Draw monitors

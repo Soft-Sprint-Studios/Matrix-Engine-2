@@ -208,7 +208,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>.\;..\libs\sdl2.0\include\;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\sentry\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\libs\sdl2.0\include\;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\sentry\include;..\libs\pl_mpeg\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996;4305;4244;4127;4100;4481;4512;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -301,6 +301,7 @@
     <ClCompile Include="renderer\r_portals.cpp" />
     <ClCompile Include="renderer\r_sky.cpp" />
     <ClCompile Include="renderer\r_tracers.cpp" />
+    <ClCompile Include="renderer\r_video.cpp" />
     <ClCompile Include="renderer\r_wadtextures.cpp" />
     <ClCompile Include="renderer\r_mirror.cpp" />
     <ClCompile Include="renderer\r_monitor.cpp" />
@@ -472,6 +473,7 @@
     <ClInclude Include="renderer\r_portals.h" />
     <ClInclude Include="renderer\r_sky.h" />
     <ClInclude Include="renderer\r_tracers.h" />
+    <ClInclude Include="renderer\r_video.h" />
     <ClInclude Include="renderer\r_wadtextures.h" />
     <ClInclude Include="renderer\r_mirror.h" />
     <ClInclude Include="renderer\r_monitor.h" />

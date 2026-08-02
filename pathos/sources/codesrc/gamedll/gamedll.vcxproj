@@ -313,6 +313,7 @@
     <ClCompile Include="functrain.cpp" />
     <ClCompile Include="functraincontrols.cpp" />
     <ClCompile Include="functraincopy.cpp" />
+    <ClCompile Include="funcvideo.cpp" />
     <ClCompile Include="funcwater.cpp" />
     <ClCompile Include="funcfriction.cpp" />
     <ClCompile Include="game.cpp" />
@@ -554,6 +555,7 @@
     <ClInclude Include="funcparticleblocker.h" />
     <ClInclude Include="funcportalsurface.h" />
     <ClInclude Include="funcslippery.h" />
+    <ClInclude Include="funcvideo.h" />
     <ClInclude Include="gamestaminamodifier.h" />
     <ClInclude Include="gametimer.h" />
     <ClInclude Include="gameobjective.h" />

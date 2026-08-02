@@ -441,6 +441,9 @@
     <ClCompile Include="pbspv3.cpp">
       <Filter>Source Files\bsp</Filter>
     </ClCompile>
+    <ClCompile Include="renderer\r_video.cpp">
+      <Filter>Source Files\renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
@@ -991,6 +994,9 @@
     </ClInclude>
     <ClInclude Include="..\common\pbspv3file.h">
       <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="renderer\r_video.h">
+      <Filter>Header Files\renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
