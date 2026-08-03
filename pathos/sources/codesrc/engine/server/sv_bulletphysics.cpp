@@ -275,14 +275,13 @@ void CBulletPhysics::SetupStaticWorld( void )
 		if (!pMesh || pMesh->numtriangles == 0)
 			continue;
 
-		btTransform entTransform;
-		entTransform.setIdentity();
+		Vector angles = pedict->state.angles;
+		angles[PITCH] = -angles[PITCH];
 
-		vec4_t vq;
-		Math::AngleQuaternion(pedict->state.angles, vq);
-		btQuaternion rot((Float)vq[0], (Float)vq[1], (Float)vq[2], (Float)vq[3]);
-		entTransform.setRotation(rot);
-		entTransform.setOrigin(btVector3(pedict->state.origin.x, pedict->state.origin.y, pedict->state.origin.z));
+		Float mat[3][4];
+		Math::AngleMatrix(angles, mat);
+		for (Uint32 j = 0; j < 3; j++)
+			mat[j][3] = pedict->state.origin[j];
 
 		const mcdvertex_t* pVerts = pMesh->getVertexes(pMCD);
 		const mcdtrimeshtriangle_t* pTris = pMesh->getTriangles(pMCD);
@@ -290,15 +289,13 @@ void CBulletPhysics::SetupStaticWorld( void )
 		for (Uint32 i = 0; i < pMesh->numtriangles; i++)
 		{
 			const mcdtrimeshtriangle_t& t = pTris[i];
-			const Vector& v0 = pVerts[t.trivertexes[0]].origin;
-			const Vector& v1 = pVerts[t.trivertexes[1]].origin;
-			const Vector& v2 = pVerts[t.trivertexes[2]].origin;
 
-			btVector3 pt0 = entTransform * btVector3(v0.x, v0.y, v0.z);
-			btVector3 pt1 = entTransform * btVector3(v1.x, v1.y, v1.z);
-			btVector3 pt2 = entTransform * btVector3(v2.x, v2.y, v2.z);
+			Vector pt0, pt1, pt2;
+			Math::VectorTransform(pVerts[t.trivertexes[0]].origin, mat, pt0);
+			Math::VectorTransform(pVerts[t.trivertexes[1]].origin, mat, pt1);
+			Math::VectorTransform(pVerts[t.trivertexes[2]].origin, mat, pt2);
 
-			m_pWorldMesh->addTriangle(pt0, pt1, pt2, true);
+			m_pWorldMesh->addTriangle(btVector3(pt0.x, pt0.y, pt0.z), btVector3(pt1.x, pt1.y, pt1.z), btVector3(pt2.x, pt2.y, pt2.z), true);
 		}
 	}
 
@@ -471,16 +468,9 @@ btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLoca
 	}
 
 	cache_model_t* pmodel = gModelCache.GetModelByIndex(pedict->state.modelindex);
-	if (!pmodel || pmodel->type != MOD_BRUSH)
+	if (!pmodel)
 	{
-		Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) model is not a brush model.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
-		return nullptr;
-	}
-
-	brushmodel_t* pbrushmodel = pmodel->getBrushmodel();
-	if (!pbrushmodel || pbrushmodel->nummodelsurfaces == 0)
-	{
-		Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) has no model surfaces.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
+		Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) model invalid.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
 		return nullptr;
 	}
 
@@ -489,29 +479,81 @@ btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLoca
 	Vector center = (mins + maxs) * 0.5f;
 	outLocalCenter.setValue(center.x, center.y, center.z);
 
-	btConvexHullShape* convexShape = new btConvexHullShape();
-	for (Uint32 i = 0; i < pbrushmodel->nummodelsurfaces; i++)
+	if (pmodel->type == MOD_BRUSH)
 	{
-		msurface_t* psurf = &pbrushmodel->psurfaces[pbrushmodel->firstmodelsurface + i];
-		for (Int32 j = 0; j < psurf->numedges; j++)
+		brushmodel_t* pbrushmodel = pmodel->getBrushmodel();
+		if (!pbrushmodel || pbrushmodel->nummodelsurfaces == 0)
 		{
-			Int32 edgeIndex = pbrushmodel->psurfedges[psurf->firstedge + j];
-			mvertex_t* pvert = GetBSPVertex(pbrushmodel, edgeIndex);
+			Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) has no model surfaces.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
+			return nullptr;
+		}
 
-			Vector localVert = pvert->origin - center;
+		btConvexHullShape* convexShape = new btConvexHullShape();
+		for (Uint32 i = 0; i < pbrushmodel->nummodelsurfaces; i++)
+		{
+			msurface_t* psurf = &pbrushmodel->psurfaces[pbrushmodel->firstmodelsurface + i];
+			for (Int32 j = 0; j < psurf->numedges; j++)
+			{
+				Int32 edgeIndex = pbrushmodel->psurfedges[psurf->firstedge + j];
+				mvertex_t* pvert = GetBSPVertex(pbrushmodel, edgeIndex);
+
+				Vector localVert = pvert->origin - center;
+				convexShape->addPoint(btVector3(localVert.x, localVert.y, localVert.z), false);
+			}
+		}
+
+		if (convexShape->getNumPoints() == 0)
+		{
+			Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) generated 0 convex hull points.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
+			delete convexShape;
+			return nullptr;
+		}
+
+		convexShape->recalcLocalAabb();
+		return convexShape;
+	}
+	else if (pmodel->type == MOD_VBM)
+	{
+		const vbmcache_t* pvbmcache = pmodel->getVBMCache();
+		if (!pvbmcache || !pvbmcache->pmcdheader)
+		{
+			Con_EPrintf("[flags=onlyonce_game]%s - VBM Entity %d (%s) has no MCD collision data.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
+			return nullptr;
+		}
+
+		const mcdheader_t* pMCD = pvbmcache->pmcdheader;
+		const mcdbodypart_t* pPart = pMCD->getBodyPart(0);
+		if (!pPart)
+			return nullptr;
+
+		Uint32 subIdx = (pedict->state.body / pPart->base) % pPart->numsubmodels;
+		const mcdsubmodel_t* pSub = pPart->getSubmodel(pMCD, subIdx);
+		if (!pSub)
+			return nullptr;
+
+		const mcdtrimeshtype_t* pMesh = reinterpret_cast<const mcdtrimeshtype_t*>(pSub->getTypeData(pMCD, MCD_COLLISION_TRIANGLES));
+		if (!pMesh || pMesh->numvertexes == 0)
+			return nullptr;
+
+		const mcdvertex_t* pVerts = pMesh->getVertexes(pMCD);
+		btConvexHullShape* convexShape = new btConvexHullShape();
+		for (Uint32 i = 0; i < pMesh->numvertexes; i++)
+		{
+			Vector localVert = pVerts[i].origin - center;
 			convexShape->addPoint(btVector3(localVert.x, localVert.y, localVert.z), false);
 		}
+
+		if (convexShape->getNumPoints() == 0)
+		{
+			delete convexShape;
+			return nullptr;
+		}
+
+		convexShape->recalcLocalAabb();
+		return convexShape;
 	}
 
-	if (convexShape->getNumPoints() == 0)
-	{
-		Con_EPrintf("[flags=onlyonce_game]%s - Entity %d (%s) generated 0 convex hull points.\n", __FUNCTION__, pedict->entindex, SV_GetString(pedict->fields.classname));
-		delete convexShape;
-		return nullptr;
-	}
-
-	convexShape->recalcLocalAabb();
-	return convexShape;
+	return nullptr;
 }
 
 //=============================================

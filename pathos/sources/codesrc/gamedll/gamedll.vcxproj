@@ -254,6 +254,7 @@
     <ClCompile Include="envlensflare.cpp" />
     <ClCompile Include="envlightning.cpp" />
     <ClCompile Include="envmodelbreakable.cpp" />
+    <ClCompile Include="envmodelphysics.cpp" />
     <ClCompile Include="envmodeltrain.cpp" />
     <ClCompile Include="envoverlay.cpp" />
     <ClCompile Include="envparticleeffect.cpp" />
@@ -542,6 +543,7 @@
     <ClInclude Include="envlaser.h" />
     <ClInclude Include="envlensflare.h" />
     <ClInclude Include="envlightning.h" />
+    <ClInclude Include="envmodelphysics.h" />
     <ClInclude Include="envoverlay.h" />
     <ClInclude Include="envparticleeffect.h" />
     <ClInclude Include="envposportal.h" />

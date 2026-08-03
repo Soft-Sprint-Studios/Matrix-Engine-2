@@ -321,7 +321,16 @@ void WriteQC(const std::string& qc_filename, const std::string& model_name)
     {
         return;
     }
-    out << "$modelname \"" << model_name << ".mdl\"\n$cd \".\"\n$cdtexture \".\"\n$scale 50\n$bodygroup \"studio\"\n{\n    studio \"" << model_name << "\"\n}\n$sequence \"idle1\" \"" << model_name << "\" fps 1\n";
+
+    out << "$modelname \"" << model_name << ".mdl\"\n"
+        << "$cd \".\"\n"
+        << "$cdtexture \".\"\n"
+        << "$scale 50\n"
+        << "$bodygroup \"studio\"\n"
+        << "{\n"
+        << "    studio \"" << model_name << "\" collision \"" << model_name << "\"\n"
+        << "}\n"
+        << "$sequence \"idle1\" \"" << model_name << "\" fps 1\n";
 }
 
 void WritePMF(const std::string& pmf_filename, const std::string& model_name)
@@ -398,6 +407,7 @@ void ProcessFile(const fs::path& glbPath)
     fs::create_directories(gameTexturesRoot);
 
     fs::copy_file(targetPath / (modelName + ".mdl"), gameModelsRoot / (modelName + ".mdl"), fs::copy_options::overwrite_existing);
+    fs::copy_file(targetPath / (modelName + ".mcd"), gameModelsRoot / (modelName + ".mcd"), fs::copy_options::overwrite_existing);
     fs::copy_file(targetPath / (modelName + ".vbm"), gameModelsRoot / (modelName + ".vbm"), fs::copy_options::overwrite_existing);
     fs::copy_file(targetPath / (modelName + ".pmf"), gameTexturesRoot / (modelName + ".pmf"), fs::copy_options::overwrite_existing);
 

@@ -1187,6 +1187,12 @@
   body(Integer) : "Body" : 0
   skin(Integer) : "Skin" : 0
 ]
+@PointClass base(Angles, Targetname, RenderFields, Breakable) size(-16 -16 0, 16 16 36) studio() = env_model_physics : "Physics Model" 
+[
+  model(studio) : "Model"
+  body(Integer) : "Body" : 0
+  skin(Integer) : "Skin" : 0
+]
 
 @PointClass base(Targetname, Global, Angles, RenderFields) size(-16 -16 -16, 16 16 16) color(0 128 255) studio() = env_modeltrain : "Model Train"
 [
