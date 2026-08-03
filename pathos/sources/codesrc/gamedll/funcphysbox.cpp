@@ -48,16 +48,19 @@ CFuncPhysbox::~CFuncPhysbox( void )
 // @brief
 //
 //=============================================
-bool CFuncPhysbox::Spawn( void )
+void CFuncPhysbox::SetSpawnProperties(void)
 {
-	SetPrecacheObjects();
-	if (!CDelayEntity::Spawn())
-		return false;
-
 	m_pState->movetype = MOVETYPE_PHYSICS;
 	m_pState->solid = SOLID_BBOX;
+}
 
-	if(!SetModel(m_pFields->modelname))
+//=============================================
+// @brief
+//
+//=============================================
+bool CFuncPhysbox::Spawn(void)
+{
+	if (!CFuncBreakable::Spawn())
 		return false;
 
 	SetOrigin(m_pState->origin);
