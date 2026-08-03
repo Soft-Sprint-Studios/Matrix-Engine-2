@@ -41,7 +41,7 @@ public:
 	virtual bool CanEntityBeParent( void ) const override { return true; }
 
 public:
-	virtual void SetSpawnProperties(void) override;
+	virtual void SetSpawnProperties( void ) override;
 };
 
 #endif //FUNCPHYSBOX_H

@@ -48,7 +48,7 @@ CFuncPhysbox::~CFuncPhysbox( void )
 // @brief
 //
 //=============================================
-void CFuncPhysbox::SetSpawnProperties(void)
+void CFuncPhysbox::SetSpawnProperties( void )
 {
 	m_pState->movetype = MOVETYPE_PHYSICS;
 	m_pState->solid = SOLID_BBOX;
