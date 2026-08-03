@@ -420,6 +420,8 @@ bool CBulletPhysics::ConvexSweepTest(const Vector& start, const Vector& end, con
 			if (colObj && colObj->getUserPointer())
 			{
 				edict_t* pedict = (edict_t*)colObj->getUserPointer();
+				if (pedict->state.movetype != MOVETYPE_PHYSICS)
+					return false;
 				if (pedict->entindex == ignoreEnt || pedict->free)
 					return false;
 			}
