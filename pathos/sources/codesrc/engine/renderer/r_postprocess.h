@@ -31,7 +31,8 @@ enum pp_shadertypes_t
 	SHADER_BW,
 	SHADER_VIGNETTE,
 	SHADER_2DTEXTURE,
-	SHADER_2DTEXTURE_ALPHATEST
+	SHADER_2DTEXTURE_ALPHATEST,
+	SHADER_TONEMAP
 };
 
 struct pp_shader_attribs
@@ -188,6 +189,8 @@ private:
 	bool DrawBlackAndWhite( void );
 	// Draw vignette effect
 	bool DrawVignette( void );
+	// Draw tonemapping
+	bool DrawTonemap(void);
 	// Draw overlay effects
 	bool DrawOverlays( void );
 
@@ -290,6 +293,8 @@ private:
 	CCVar*			m_pCvarBloomBrightenMultiplier;
 	// Bloom darken steps cvar
 	CCVar*			m_pCvarBloomBrightnessTreshold;
+	// Tonemap cvar
+	CCVar*			m_pCvarTonemap;
 
 	// Screen RTT
 	rtt_texture_t*	m_pScreenRTT;

@@ -82,6 +82,7 @@ CPostProcess::CPostProcess( void ):
 	m_pCvarBloomBlurSteps(nullptr),
 	m_pCvarBloomBrightenMultiplier(nullptr),
 	m_pCvarBloomBrightnessTreshold(nullptr),
+	m_pCvarTonemap(nullptr),
 	m_pScreenRTT(nullptr),
 	m_pBlurScreenTexture(nullptr),
 	m_vignetteActive(false),
@@ -121,6 +122,8 @@ bool CPostProcess :: Init( void )
 	m_pCvarBloomBlurSteps = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_bloom_blur_steps", "1", "Controls the amount of bloom blurring steps.");
 	m_pCvarBloomBrightenMultiplier = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_bloom_brighten_multiplier", "1", "Controls the brightness of bloom.");
 	m_pCvarBloomBrightnessTreshold = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_bloom_brightness_treshold", "1", "Controls lower cutoff brightness for bloom.");
+
+	m_pCvarTonemap = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_tonemap", "0", "Enable ACES tonemapping.");
 
 	return true;
 }
@@ -569,6 +572,27 @@ bool CPostProcess::DrawVignette( void )
 // @brief
 //
 //=============================================
+bool CPostProcess::DrawTonemap(void)
+{
+	FetchScreen(&m_pScreenRTT);
+	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+
+	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_TONEMAP))
+	{
+		Sys_ErrorPopup("Shader error: %s.", m_pShader->GetError());
+		return false;
+	}
+
+	R_ValidateShader(m_pShader);
+
+	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
+	return true;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
 bool CPostProcess::DrawOverlays( void )
 {
 	if(m_screenOverlays.empty())
@@ -925,6 +949,17 @@ bool CPostProcess :: Draw( bool noFilmGrain )
 
 	if(m_pCvarPostProcess->GetValue() > 0)
 	{
+		// Apply tonemapping if needed
+		if (m_pCvarTonemap->GetValue() >= 1)
+		{
+			if (!DrawTonemap())
+			{
+				glEnable(GL_DEPTH_TEST);
+				m_pShader->DisableShader();
+				return false;
+			}
+		}
+
 		// Apply gamma if needed
 		if(m_pCvarGamma->GetValue() != 1.8)
 		{
