@@ -129,8 +129,6 @@ struct bsp_shader_attribs
 		u_vorigin(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_vright(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_uvoffset(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_phong_exponent(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_specularfactor(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_interpolant(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cubemapstrength(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_decalalpha(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -202,8 +200,6 @@ struct bsp_shader_attribs
 
 	Int32 u_uvoffset;
 
-	Int32 u_phong_exponent;
-	Int32 u_specularfactor;
 	Int32 u_interpolant;
 	Int32 u_cubemapstrength;
 	Int32 u_decalalpha;

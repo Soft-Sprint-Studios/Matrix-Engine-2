@@ -319,8 +319,6 @@ struct vbm_attribs
 		u_color(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_scope_scale(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_scope_scrsize(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_phong_exponent(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_specularfactor(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_shadertype(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_flexes(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -407,9 +405,6 @@ struct vbm_attribs
 
 	Int32 u_scope_scale;
 	Int32 u_scope_scrsize;
-
-	Int32 u_phong_exponent;
-	Int32 u_specularfactor;
 
 	attrib_light lights[MAX_ENT_MLIGHTS];
 

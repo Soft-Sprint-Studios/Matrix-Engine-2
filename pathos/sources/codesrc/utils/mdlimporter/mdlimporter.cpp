@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 #define _CRT_SECURE_NO_WARNINGS
 #define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
@@ -160,45 +159,86 @@ bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filenam
     return true;
 }
 
-bool SaveSpecularFromMRAO(const cgltf_image* image, const std::string& out_filename)
+bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
 {
-    if (!image || !image->buffer_view || !image->buffer_view->buffer)
+    const cgltf_image* mr_image = mat.pbr_metallic_roughness.metallic_roughness_texture.texture ? mat.pbr_metallic_roughness.metallic_roughness_texture.texture->image : nullptr;
+    const cgltf_image* occ_image = mat.occlusion_texture.texture ? mat.occlusion_texture.texture->image : nullptr;
+
+    if (!mr_image && !occ_image)
     {
         return false;
     }
 
-    const uint8_t* data = (const uint8_t*)image->buffer_view->buffer->data + image->buffer_view->offset;
-    size_t size = image->buffer_view->size;
-
-    IStream* stream = nullptr;
-    if (CreateStreamOnHGlobal(nullptr, TRUE, &stream) != S_OK)
-    {
-        return false;
-    }
-
-    ULONG written;
-    stream->Write(data, (ULONG)size, &written);
-    stream->Seek({ 0 }, STREAM_SEEK_SET, nullptr);
-
-    Gdiplus::Bitmap* source = Gdiplus::Bitmap::FromStream(stream);
-    if (!source || source->GetLastStatus() != Gdiplus::Ok)
-    {
-        stream->Release();
-        return false;
-    }
-
-    Gdiplus::Bitmap target(source->GetWidth(), source->GetHeight(), PixelFormat24bppRGB);
-
-    for (UINT y = 0; y < source->GetHeight(); ++y)
-    {
-        for (UINT x = 0; x < source->GetWidth(); ++x)
+    auto LoadBitmapFromImage = [](const cgltf_image* img) -> Gdiplus::Bitmap*
         {
-            Gdiplus::Color c;
-            source->GetPixel(x, y, &c);
+            if (!img || !img->buffer_view || !img->buffer_view->buffer)
+            {
+                return nullptr;
+            }
+            const uint8_t* data = (const uint8_t*)img->buffer_view->buffer->data + img->buffer_view->offset;
+            size_t size = img->buffer_view->size;
+            IStream* stream = nullptr;
+            if (CreateStreamOnHGlobal(nullptr, TRUE, &stream) != S_OK)
+            {
+                return nullptr;
+            }
+            ULONG written;
+            stream->Write(data, (ULONG)size, &written);
+            stream->Seek({ 0 }, STREAM_SEEK_SET, nullptr);
+            Gdiplus::Bitmap* bmp = Gdiplus::Bitmap::FromStream(stream);
+            stream->Release();
+            if (!bmp || bmp->GetLastStatus() != Gdiplus::Ok)
+            {
+                delete bmp;
+                return nullptr;
+            }
+            return bmp;
+        };
 
-            BYTE spec = 255 - c.GetG();
+    Gdiplus::Bitmap* mr_source = LoadBitmapFromImage(mr_image);
+    Gdiplus::Bitmap* occ_source = LoadBitmapFromImage(occ_image);
 
-            target.SetPixel(x, y, Gdiplus::Color(spec, spec, spec));
+    if (!mr_source && !occ_source)
+    {
+        return false;
+    }
+
+    UINT width = mr_source ? mr_source->GetWidth() : occ_source->GetWidth();
+    UINT height = mr_source ? mr_source->GetHeight() : occ_source->GetHeight();
+
+    Gdiplus::Bitmap target(width, height, PixelFormat24bppRGB);
+
+    for (UINT y = 0; y < height; ++y)
+    {
+        for (UINT x = 0; x < width; ++x)
+        {
+            BYTE ao = 255;
+            BYTE roughness = 128;
+            BYTE metallic = 0;
+
+            if (mr_source)
+            {
+                UINT mr_x = (x * mr_source->GetWidth()) / width;
+                UINT mr_y = (y * mr_source->GetHeight()) / height;
+                Gdiplus::Color c_mr;
+                mr_source->GetPixel(mr_x, mr_y, &c_mr);
+
+                roughness = c_mr.GetG();
+                metallic = c_mr.GetB();
+                ao = c_mr.GetR();
+            }
+
+            if (occ_source)
+            {
+                UINT occ_x = (x * occ_source->GetWidth()) / width;
+                UINT occ_y = (y * occ_source->GetHeight()) / height;
+                Gdiplus::Color c_occ;
+                occ_source->GetPixel(occ_x, occ_y, &c_occ);
+
+                ao = c_occ.GetR();
+            }
+
+            target.SetPixel(x, y, Gdiplus::Color(ao, roughness, metallic));
         }
     }
 
@@ -221,8 +261,8 @@ bool SaveSpecularFromMRAO(const cgltf_image* image, const std::string& out_filen
     std::wstring wfilename(out_filename.begin(), out_filename.end());
     target.Save(wfilename.c_str(), &clsid, nullptr);
 
-    delete source;
-    stream->Release();
+    delete mr_source;
+    delete occ_source;
     return true;
 }
 
@@ -333,14 +373,22 @@ void WriteQC(const std::string& qc_filename, const std::string& model_name)
         << "$sequence \"idle1\" \"" << model_name << "\" fps 1\n";
 }
 
-void WritePMF(const std::string& pmf_filename, const std::string& model_name)
+void WritePMF(const std::string& pmf_filename, const std::string& model_name, bool hasLuminance = false)
 {
     std::ofstream out(pmf_filename);
     if (!out.is_open())
     {
         return;
     }
-    out << "$texture\n{\n    $texture diffuse models/" << model_name << "/" << model_name << "_diff.dds\n    $texture normal models/" << model_name << "/" << model_name << "_normal.dds\n    $texture specular models/" << model_name << "/" << model_name << "_specular.dds\n    $cubemaps\n}\n";
+    out << "$texture\n{\n";
+    out << "    $texture diffuse models/" << model_name << "/" << model_name << "_diff.dds\n";
+    out << "    $texture normal models/" << model_name << "/" << model_name << "_normal.dds\n";
+    out << "    $texture specular models/" << model_name << "/" << model_name << "_specular.dds\n";
+    if (hasLuminance)
+    {
+        out << "    $texture luminance models/" << model_name << "/" << model_name << "_lum.dds\n";
+    }
+    out << "    $cubemaps\n}\n";
 }
 
 void ProcessFile(const fs::path& glbPath)
@@ -358,6 +406,8 @@ void ProcessFile(const fs::path& glbPath)
     cgltf_load_buffers(&options, data, glbPath.string().c_str());
 
     std::string bmpPath = workDir + "/" + modelName + ".bmp";
+
+    bool hasLuminance = false;
 
     if (data->materials_count > 0)
     {
@@ -377,18 +427,25 @@ void ProcessFile(const fs::path& glbPath)
                 ConvertBMPToDDS(workDir + "/temp_n.bmp", workDir + "/" + modelName + "_normal.dds");
             }
         }
-        if (mat.pbr_metallic_roughness.metallic_roughness_texture.texture)
+
+        if (SaveMRAOTexture(mat, workDir + "/temp_s.bmp"))
         {
-            if (SaveSpecularFromMRAO(mat.pbr_metallic_roughness.metallic_roughness_texture.texture->image, workDir + "/temp_s.bmp"))
+            ConvertBMPToDDS(workDir + "/temp_s.bmp", workDir + "/" + modelName + "_specular.dds");
+        }
+
+        if (mat.emissive_texture.texture)
+        {
+            if (SaveGLTFImageAsBMP(mat.emissive_texture.texture->image, workDir + "/temp_l.bmp", PixelFormat24bppRGB))
             {
-                ConvertBMPToDDS(workDir + "/temp_s.bmp", workDir + "/" + modelName + "_specular.dds");
+                ConvertBMPToDDS(workDir + "/temp_l.bmp", workDir + "/" + modelName + "_lum.dds");
+                hasLuminance = true;
             }
         }
     }
 
     WriteSMD(workDir + "/" + modelName + ".smd", data, modelName + ".bmp");
     WriteQC(workDir + "/" + modelName + ".qc", modelName);
-    WritePMF(workDir + "/" + modelName + ".pmf", modelName);
+    WritePMF(workDir + "/" + modelName + ".pmf", modelName, hasLuminance);
 
     fs::path targetPath = fs::path(g_Config.target) / modelName;
     fs::create_directories(targetPath);

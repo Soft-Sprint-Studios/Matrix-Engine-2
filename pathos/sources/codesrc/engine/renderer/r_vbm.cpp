@@ -355,8 +355,6 @@ bool CVBMRenderer::InitGL( void )
 
 		m_attribs.u_flextexture = m_pShader->InitUniform("flextexture", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_flextexturesize = m_pShader->InitUniform("flextexture_size", CGLSLShader::UNIFORM_FLOAT1);
-		m_attribs.u_phong_exponent = m_pShader->InitUniform("phong_exponent", CGLSLShader::UNIFORM_FLOAT1);
-		m_attribs.u_specularfactor = m_pShader->InitUniform("specfactor", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_causticsm1 = m_pShader->InitUniform("causticsm1", CGLSLShader::UNIFORM_NOSYNC);
 		m_attribs.u_causticsm2 = m_pShader->InitUniform("causticsm2", CGLSLShader::UNIFORM_NOSYNC);
 		m_attribs.u_scroll = m_pShader->InitUniform("scroll", CGLSLShader::UNIFORM_FLOAT2);
@@ -381,8 +379,6 @@ bool CVBMRenderer::InitGL( void )
 
 		if(!R_CheckShaderUniform(m_attribs.u_flextexture, "flextexture", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_flextexturesize, "flextexture_size", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_phong_exponent, "phong_exponent", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_specularfactor, "specfactor", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_causticsm1, "causticsm1", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_causticsm2, "causticsm2", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_scroll, "scroll", m_pShader, Sys_ErrorPopup)
@@ -3772,9 +3768,6 @@ bool CVBMRenderer::DrawStyles( bool specularPass, bool transparentPass )
 					if(!pmaterial->ptextures[MT_TX_SPECULAR])
 						continue;
 
-					m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
-					m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
-
 					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
 				}
@@ -3928,9 +3921,6 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 
 	if (pmaterial->ptextures[MT_TX_SPECULAR] && g_pCvarSpecular->GetValue() > 0)
 	{
-		m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp * g_pCvarPhongExponent->GetValue());
-		m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
-
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
 	}
@@ -4383,9 +4373,6 @@ bool CVBMRenderer::DrawLights( bool specularPass, bool transparentPass )
 				{
 					if(!pmaterial->ptextures[MT_TX_SPECULAR])
 						continue;
-
-					m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
-					m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
 
 					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
@@ -5346,9 +5333,6 @@ bool CVBMRenderer::DrawFinalSpecular( bool transparentPass )
 
 			if(!pmaterial->ptextures[MT_TX_SPECULAR])
 				continue;
-
-			m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
-			m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
 
 			// m_firstTextureUnit marks the first available unit
 			Int32 texunit_local = m_firstTextureUnit;

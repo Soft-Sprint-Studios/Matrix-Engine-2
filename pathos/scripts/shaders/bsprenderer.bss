@@ -219,6 +219,7 @@ uniform sampler2D chrometex;
 uniform sampler2D normalmap;
 uniform sampler2D difflightmap;
 uniform sampler2D lightvecstex;
+// speculartex/speculartex2 are repurposed as MRAO maps: x = metallic, y = roughness, z = ambient occlusion
 uniform sampler2D speculartex;
 uniform sampler2D luminance;
 
@@ -265,8 +266,6 @@ uniform vec3 light_3_spotdirection;
 uniform samplerCube light_3_cubemap;
 uniform sampler2D light_3_shadowmap;
 
-uniform float phong_exponent;
-uniform float specfactor;
 uniform float interpolant;
 uniform float cubemapstrength;
 
@@ -354,31 +353,18 @@ vec3 GetNormalMapSample()
 	$end
 }
 
-vec4 GetSpecularMapSample()
+vec4 GetMRAOSample()
 {
-	vec4 spec1 = texture(speculartex, ps_texcoord);
+	vec4 mrao1 = texture(speculartex, ps_texcoord);
 	$branch blended == 1
 	$begin
-		vec4 spec2 = texture(speculartex2, ps_texcoord);
-		return mix(spec1, spec2, ps_alpha);
+		vec4 mrao2 = texture(speculartex2, ps_texcoord);
+		return mix(mrao1, mrao2, ps_alpha);
 	$end
 	$branch blended == 0
 	$begin
-		return spec1;
+		return mrao1;
 	$end
-}
-
-float CalcShininess( vec3 v_origin, vec3 v_normal, vec3 l_origin )
-{
-	if(d_bumpmapping == 1)
-	{
-		vec3 halfVec = normalize(l_origin - v_origin);
-		return max(dot(halfVec, v_normal), 0.0);
-	}
-	else
-	{
-		return 1.0;
-	}
 }
 
 float LinearStep(float in1, float in2, float pmax)  
@@ -424,7 +410,47 @@ float DepthTestProj( float depthcoord, sampler2D shadowmap, vec4 coord )
 	return p_max*sgn+(1.0-sgn);
 }
 
-float CalcSpecular( vec3 v_origin, vec3 v_normal, vec3 lightDir, float specularStrength )
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+	float a = roughness*roughness;
+	float a2 = a*a;
+	float NdotH = max(dot(N, H), 0.0);
+	float NdotH2 = NdotH*NdotH;
+
+	float nom = a2;
+	float denom = (NdotH2*(a2-1.0)+1.0);
+	denom = M_PI*denom*denom;
+
+	return nom/max(denom, 0.0001);
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+	float r = roughness+1.0;
+	float k = (r*r)/8.0;
+
+	float nom = NdotV;
+	float denom = NdotV*(1.0-k)+k;
+
+	return nom/max(denom, 0.0001);
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+	float NdotV = max(dot(N, V), 0.0);
+	float NdotL = max(dot(N, L), 0.0);
+	float ggx1 = GeometrySchlickGGX(NdotV, roughness);
+	float ggx2 = GeometrySchlickGGX(NdotL, roughness);
+
+	return ggx1*ggx2;
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+	return F0+(1.0-F0)*pow(clamp(1.0-cosTheta, 0.0, 1.0), 5.0);
+}
+
+vec3 CookTorranceSpecular( vec3 v_origin, vec3 v_normal, vec3 lightDir, float roughness, vec3 F0 )
 {
 	// Eye vector (towards the camera)
 	// All coordinates are in eye space
@@ -433,14 +459,19 @@ float CalcSpecular( vec3 v_origin, vec3 v_normal, vec3 lightDir, float specularS
 	// Halfway vector between eye vector and light source (pointing to light)
 	vec3 halfVec = normalize( -lightDir + eyeVec );
 	
-	// Cosine of the angle between the normal and the halfway vector
-	float cosAlpha = clamp( dot( v_normal, halfVec ), 0.0, 1.0 );
+	float rough = max(roughness, 0.05);
 	
-	// Currently specular color is light color times two
-	return specfactor * pow( cosAlpha, phong_exponent ) * specularStrength;
+	float NDF = DistributionGGX(v_normal, halfVec, rough);
+	float G = GeometrySmith(v_normal, eyeVec, -lightDir, rough);
+	vec3 F = FresnelSchlick(clamp(dot(halfVec, eyeVec), 0.0, 1.0), F0);
+	
+	float NdotL = max(dot(v_normal, -lightDir), 0.0);
+	float denom = 4.0*max(dot(v_normal, eyeVec), 0.0)*NdotL + 0.0001;
+	
+	return (NDF*G*F/denom) * NdotL;
 }
 
-vec4 AddPointLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, vec3 v_normal, float specularStrength )
+vec4 AddPointLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, vec3 v_normal, vec3 mrao, out vec3 specOut )
 {
 	// Inverse squared radius
 	float rad = l_radius * l_radius;
@@ -459,18 +490,17 @@ vec4 AddPointLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, 
 	}
 	
 	vec4 outColor;
-	outColor.xyz = attn*l_color;
+	outColor.xyz = attn*l_color*(1.0 - mrao.x);
 	
+	specOut = vec3(0.0);
 	if (d_specular == 1)
 	{
 		// Add specular if any
-		float shineFactor = CalcShininess(normalize(v_origin), v_normal, dir);
-		outColor.w = CalcSpecular(v_origin, v_normal, -dir, specularStrength * shineFactor) * attn;	
+		vec3 F0 = mix(vec3(0.04), vec3(1.0), mrao.x);
+		specOut = CookTorranceSpecular(v_origin, v_normal, -dir, mrao.y, F0) * attn * l_color;
 	}
-	else
-	{
-		outColor.w = 0.0;
-	}
+	
+	outColor.w = 0.0;
 	
 	return outColor;
 }
@@ -482,7 +512,7 @@ float GetPointLightShadowing( float l_radius, vec4 v_coord, samplerCube l_shadow
 	return ReduceLightBleeding(flresult, 0.4);
 }
 
-vec4 AddProjLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, vec4 v_coord, vec3 v_normal, sampler2D l_texture, float specularStrength, float l_cone_size, vec3 l_spotdirection )
+vec4 AddProjLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, vec4 v_coord, vec3 v_normal, sampler2D l_texture, vec3 mrao, float l_cone_size, vec3 l_spotdirection, out vec3 specOut )
 {
 	float rad = l_radius*l_radius;
 	vec3 dir = l_origin-v_origin;
@@ -510,15 +540,18 @@ vec4 AddProjLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, v
 	float spotfactor = (spotatten - spotcos)/(1.0 - spotcos);
 	
 	vec4 outColor;
-	outColor.xyz = texColor.xyz * attn * l_color * dp * spotfactor;
+	outColor.xyz = texColor.xyz * attn * l_color * dp * spotfactor * (1.0 - mrao.x);
 	
+	specOut = vec3(0.0);
 	if(d_specular == 1)
 	{
 		// Add specular if any
 		float lightStrength = (texColor.x + texColor.y + texColor.z) / 3.0f;
-		float shineFactor = CalcShininess(normalize(v_origin), v_normal, dir);
-		outColor.w = CalcSpecular(v_origin, v_normal, -dir, specularStrength * shineFactor) * attn * dp * lightStrength * spotfactor;
+		vec3 F0 = mix(vec3(0.04), vec3(1.0), mrao.x);
+		specOut = CookTorranceSpecular(v_origin, v_normal, -dir, mrao.y, F0) * attn * dp * lightStrength * spotfactor * l_color;
 	}
+	
+	outColor.w = 0.0;
 	
 	return outColor;
 }
@@ -548,11 +581,11 @@ vec3 AddDiffuseDynamicLight ( vec3 colorIn1, vec3 colorIn2 )
 	return outValue;
 }
 
-vec3 AddSpecularLight ( vec3 colorIn1, float specularStrength, vec3 colorIn2 )
+vec3 AddSpecularLight ( vec3 colorIn1, vec3 colorIn2 )
 {
 	vec3 outValue = colorIn1;
 	if( d_specular == 1 )
-		outValue += colorIn2 * specularStrength;
+		outValue += colorIn2;
 
 	return outValue;
 }
@@ -762,11 +795,12 @@ vec3 GetEyeSpaceNormal( vec2 texcoord, vec3 v_normal, mat3 tbnMatrix )
 	}
 }
 
-vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, float specularStrength )
+vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao )
 {
 	vec3 lightDir = GetLightDir( lightvecstex );
 	vec4 lightDiffuse = GetDiffuseLight( difflightmap );
 	vec4 finalColor = AddBaseLight(baselightmap, lightDiffuse, lightDir, v_normal);
+	vec3 albedoColor = GetMainTexture().rgb;
 
 	$branch shadertype == 0
 	$begin
@@ -802,16 +836,16 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, float specularStrength 
 		vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(lightDir[0], -lightDir[1], lightDir[2]));
 		vec3 eyeSpaceNormal = normalize(tbnMatrix * v_normal);
 		
-		float shineFactor = CalcShininess(normalize(v_origin), eyeSpaceNormal, eyeSpaceDir);
-		float specularValue = CalcSpecular(v_origin, eyeSpaceNormal, -eyeSpaceDir, specularStrength);
+		vec3 F0 = mix(vec3(0.04), albedoColor, mrao.x);
+		vec3 specularValue = CookTorranceSpecular(v_origin, eyeSpaceNormal, -eyeSpaceDir, mrao.y, F0);
 		
-		finalColor += specularValue * lightDiffuse * shineFactor;
+		finalColor.xyz += specularValue * lightDiffuse.xyz * mrao.z;
 	}
 	
 	return finalColor;
 }
 
-vec4 GetLightmappedSpecular( vec3 v_origin, vec3 v_normal, float specularStrength )
+vec4 GetLightmappedSpecular( vec3 v_origin, vec3 v_normal, vec3 mrao )
 {
 	vec3 lightDir = GetLightDir( lightvecstex );
 	vec4 lightDiffuse = GetDiffuseLight( difflightmap );
@@ -821,24 +855,29 @@ vec4 GetLightmappedSpecular( vec3 v_origin, vec3 v_normal, float specularStrengt
 	vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(lightDir[0], -lightDir[1], lightDir[2]));
 	vec3 eyeSpaceNormal = normalize(tbnMatrix * v_normal);
 	
-	float shineFactor = CalcShininess(normalize(v_origin), eyeSpaceNormal, eyeSpaceDir);
-	float specularValue = CalcSpecular(v_origin, eyeSpaceNormal, -eyeSpaceDir, specularStrength);
+	vec3 F0 = mix(vec3(0.04), vec3(1.0), mrao.x);
+	vec3 specularValue = CookTorranceSpecular(v_origin, eyeSpaceNormal, -eyeSpaceDir, mrao.y, F0);
 	
-	vec4 finalColor = specularValue * lightDiffuse * shineFactor;
+	vec4 finalColor;
+	finalColor.xyz = specularValue * lightDiffuse.xyz * mrao.z;
+	finalColor.w = lightDiffuse.w;
 	return finalColor;
 }
 
-vec4 GetCubemapPixel ( vec3 reflectvec, vec3 reflectvecprev )
+vec4 GetCubemapPixel ( vec3 reflectvec, vec3 reflectvecprev, float roughness )
 {
+	float maxMipLevel = floor(log2(float(textureSize(cubemap, 0).x)));
+	float mipLevel = clamp(roughness, 0.0, 1.0) * maxMipLevel;
+	
 	vec4 outColor;
 	if( d_cubemaps != 2 )
 	{
-		outColor = texture(cubemap, reflectvec);
+		outColor = textureLod(cubemap, reflectvec, mipLevel);
 	}
 	else
 	{
-		vec4 color1 = texture(cubemap_prev, reflectvecprev);
-		vec4 color2 = texture(cubemap, reflectvec);
+		vec4 color1 = textureLod(cubemap_prev, reflectvecprev, mipLevel);
+		vec4 color2 = textureLod(cubemap, reflectvec, mipLevel);
 		
 		outColor = (1.0 - interpolant) * color1 + color2 * interpolant;
 	}
@@ -864,7 +903,7 @@ vec3 CubemapParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3
 	return -normalize(intersectPos - probePos);
 }
 
-vec4 AddCubemaps( float reflectivity )
+vec4 AddCubemaps( vec3 mrao )
 { 
 	if( d_cubemaps == 0 )
 	{
@@ -904,21 +943,20 @@ vec4 AddCubemaps( float reflectivity )
 			local_cube_origin = (inv_modelmatrix * vec4(u_cube_prev_origin, 1.0)).xyz;
 			reflectvec_prev = CubemapParallaxCorrect(reflectvec, ps_cubevertexpos, local_cube_min, local_cube_max, local_cube_origin);
 		}
-		
-		return GetCubemapPixel(reflectvec_current, reflectvec_prev) * pow(reflectivity, 16);
+
+		float reflectivity = mix(0.04, 1.0, mrao.x);
+		return GetCubemapPixel(reflectvec_current, reflectvec_prev, mrao.y) * reflectivity * mrao.z;
 	}
 }
 
 void main()
 {
-	float specularFactor = 0.0;
-	vec4 specularColor = vec4(0, 0, 0, 0);
+	vec3 mrao = vec3(0.0, 1.0, 1.0);
 	vec4 finalColor = vec4(0, 0, 0, 0);
 
 	if( d_specular == 1 || d_cubemaps >= 1 )
 	{
-		vec4 specTexture = GetSpecularMapSample();
-		specularFactor = (specTexture.x + specTexture.y + specTexture.z) / 3.0;
+		mrao = GetMRAOSample().zyx;
 	}
 	
 	// 0 -> main * detail texture * lightmapping
@@ -927,11 +965,11 @@ void main()
 	$branch shadertype == 0 || shadertype == 1 || shadertype == 2
 	$begin
 		vec3 v_normal = GetTangentSpaceNormal(ps_texcoord, ps_normal);
-		finalColor = CombineTextureLayers(ps_vertexpos, v_normal, specularFactor);
+		finalColor = CombineTextureLayers(ps_vertexpos, v_normal, mrao);
 		finalColor = finalColor*color;		
 		
 		if( d_cubemaps >= 1 )
-			finalColor.xyz += AddCubemaps(specularFactor).xyz * finalColor.xyz;
+			finalColor.xyz += AddCubemaps(mrao).xyz * finalColor.xyz;
 	$end
 	// Texture unit 0 only and texunit 0 * 4
 	$branch shadertype == 3 || shadertype == 22
@@ -959,16 +997,21 @@ void main()
 		//
 		if(d_numlights >= 1)
 		{
-			vec4 lightColor = AddPointLight(light_0_radius, light_0_origin, light_0_color.xyz, ps_vertexpos, v_normal, specularFactor);
+			vec3 specLight;
+			vec4 lightColor = AddPointLight(light_0_radius, light_0_origin, light_0_color.xyz, ps_vertexpos, v_normal, mrao, specLight);
 			
 			if( d_light0_shadowmap == 1 )
-				lightColor *= GetPointLightShadowing(light_0_radius, ps_light_0_vertexcoord, light_0_cubemap);
+			{
+				float shadowFactor = GetPointLightShadowing(light_0_radius, ps_light_0_vertexcoord, light_0_cubemap);
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
 			
 			// Add in the diffuse light
 			finalColor.xyz = AddDiffuseDynamicLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			finalColor.xyz = AddSpecularLight(finalColor.xyz, lightColor.w, light_0_color.xyz);
+			finalColor.xyz = AddSpecularLight(finalColor.xyz, specLight);
 		}
 		
 		//
@@ -976,16 +1019,21 @@ void main()
 		//
 		if( d_numlights >= 2 )
 		{
-			vec4 lightColor = AddPointLight(light_1_radius, light_1_origin, light_1_color.xyz, ps_vertexpos, v_normal, specularFactor);
+			vec3 specLight;
+			vec4 lightColor = AddPointLight(light_1_radius, light_1_origin, light_1_color.xyz, ps_vertexpos, v_normal, mrao, specLight);
 			
 			if( d_light1_shadowmap == 1 )
-				lightColor *= GetPointLightShadowing(light_1_radius, ps_light_1_vertexcoord, light_1_cubemap);
+			{
+				float shadowFactor = GetPointLightShadowing(light_1_radius, ps_light_1_vertexcoord, light_1_cubemap);
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
 			
 			// Add in the diffuse light
 			finalColor.xyz = AddDiffuseDynamicLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			finalColor.xyz = AddSpecularLight(finalColor.xyz, lightColor.w, light_1_color.xyz);
+			finalColor.xyz = AddSpecularLight(finalColor.xyz, specLight);
 		}
 		
 		//
@@ -993,16 +1041,21 @@ void main()
 		//
 		if( d_numlights >= 3 )
 		{
-			vec4 lightColor = AddPointLight(light_2_radius, light_2_origin, light_2_color.xyz, ps_vertexpos, v_normal, specularFactor);
+			vec3 specLight;
+			vec4 lightColor = AddPointLight(light_2_radius, light_2_origin, light_2_color.xyz, ps_vertexpos, v_normal, mrao, specLight);
 			
 			if( d_light2_shadowmap == 1 )
-				lightColor *= GetPointLightShadowing(light_2_radius, ps_light_2_vertexcoord, light_2_cubemap);
+			{
+				float shadowFactor = GetPointLightShadowing(light_2_radius, ps_light_2_vertexcoord, light_2_cubemap);
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
 			
 			// Add in the diffuse light
 			finalColor.xyz = AddDiffuseDynamicLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			finalColor.xyz = AddSpecularLight(finalColor.xyz, lightColor.w, light_2_color.xyz);
+			finalColor.xyz = AddSpecularLight(finalColor.xyz, specLight);
 		}
 		
 		//
@@ -1010,16 +1063,21 @@ void main()
 		//
 		if( d_numlights >= 4 )
 		{
-			vec4 lightColor = AddPointLight(light_3_radius, light_3_origin, light_3_color.xyz, ps_vertexpos, v_normal, specularFactor);
+			vec3 specLight;
+			vec4 lightColor = AddPointLight(light_3_radius, light_3_origin, light_3_color.xyz, ps_vertexpos, v_normal, mrao, specLight);
 			
 			if( d_light3_shadowmap == 1 )
-				lightColor *= GetPointLightShadowing(light_3_radius, ps_light_3_vertexcoord, light_3_cubemap);
+			{
+				float shadowFactor = GetPointLightShadowing(light_3_radius, ps_light_3_vertexcoord, light_3_cubemap);
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
 			
 			// Add in the diffuse light
 			finalColor.xyz = AddDiffuseDynamicLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			finalColor.xyz = AddSpecularLight(finalColor.xyz, lightColor.w, light_3_color.xyz);
+			finalColor.xyz = AddSpecularLight(finalColor.xyz, specLight);
 		}
 		
 		if( d_blendmultipass >= 1 )
@@ -1047,16 +1105,21 @@ void main()
 		//
 		if( d_numlights >= 1 )
 		{
-			vec4 lightColor = AddProjLight(light_0_radius, light_0_origin, light_0_color.xyz, ps_vertexpos.xyz, ps_light_0_vertexcoord, v_normal, light_0_projtexture, specularFactor, light_0_cone_size, light_0_spotdirection);
+			vec3 specLight;
+			vec4 lightColor = AddProjLight(light_0_radius, light_0_origin, light_0_color.xyz, ps_vertexpos.xyz, ps_light_0_vertexcoord, v_normal, light_0_projtexture, mrao, light_0_cone_size, light_0_spotdirection, specLight);
 			
 			if( d_light0_shadowmap == 1 )
-				lightColor *= GetProjLightShadowing(light_0_radius, light_0_origin, ps_vertexpos.xyz, ps_light_0_vertexcoord, v_normal, light_0_shadowmap );
+			{
+				float shadowFactor = GetProjLightShadowing(light_0_radius, light_0_origin, ps_vertexpos.xyz, ps_light_0_vertexcoord, v_normal, light_0_shadowmap );
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
 			
 			// Add in the diffuse light
 			finalColor.xyz = AddDiffuseDynamicLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			finalColor.xyz = AddSpecularLight(finalColor.xyz, lightColor.w, light_0_color.xyz);
+			finalColor.xyz = AddSpecularLight(finalColor.xyz, specLight);
 		}
 		
 		//
@@ -1064,16 +1127,21 @@ void main()
 		//
 		if( d_numlights >= 2 )
 		{
-			vec4 lightColor = AddProjLight(light_1_radius, light_1_origin, light_1_color.xyz, ps_vertexpos.xyz, ps_light_1_vertexcoord, v_normal, light_1_projtexture, specularFactor, light_1_cone_size, light_1_spotdirection);
+			vec3 specLight;
+			vec4 lightColor = AddProjLight(light_1_radius, light_1_origin, light_1_color.xyz, ps_vertexpos.xyz, ps_light_1_vertexcoord, v_normal, light_1_projtexture, mrao, light_1_cone_size, light_1_spotdirection, specLight);
 			
 			if( d_light1_shadowmap == 1 )
-				lightColor *= GetProjLightShadowing(light_1_radius, light_1_origin, ps_vertexpos.xyz, ps_light_1_vertexcoord, v_normal, light_1_shadowmap );
+			{
+				float shadowFactor = GetProjLightShadowing(light_1_radius, light_1_origin, ps_vertexpos.xyz, ps_light_1_vertexcoord, v_normal, light_1_shadowmap );
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
 			
 			// Add in the diffuse light
 			finalColor.xyz = AddDiffuseDynamicLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			finalColor.xyz = AddSpecularLight(finalColor.xyz, lightColor.w, light_1_color.xyz);
+			finalColor.xyz = AddSpecularLight(finalColor.xyz, specLight);
 		}
 		
 		//
@@ -1081,16 +1149,21 @@ void main()
 		//
 		if( d_numlights >= 3 )
 		{
-			vec4 lightColor = AddProjLight(light_2_radius, light_2_origin, light_2_color.xyz, ps_vertexpos.xyz, ps_light_2_vertexcoord, v_normal, light_2_projtexture, specularFactor, light_2_cone_size, light_2_spotdirection);
+			vec3 specLight;
+			vec4 lightColor = AddProjLight(light_2_radius, light_2_origin, light_2_color.xyz, ps_vertexpos.xyz, ps_light_2_vertexcoord, v_normal, light_2_projtexture, mrao, light_2_cone_size, light_2_spotdirection, specLight);
 			
 			if( d_light2_shadowmap == 1 )
-				lightColor *= GetProjLightShadowing(light_2_radius, light_2_origin, ps_vertexpos.xyz, ps_light_2_vertexcoord, v_normal, light_2_shadowmap );
+			{
+				float shadowFactor = GetProjLightShadowing(light_2_radius, light_2_origin, ps_vertexpos.xyz, ps_light_2_vertexcoord, v_normal, light_2_shadowmap );
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
 			
 			// Add in the diffuse light
 			finalColor.xyz = AddDiffuseDynamicLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			finalColor.xyz = AddSpecularLight(finalColor.xyz, lightColor.w, light_2_color.xyz);
+			finalColor.xyz = AddSpecularLight(finalColor.xyz, specLight);
 		}
 		
 		//
@@ -1098,16 +1171,21 @@ void main()
 		//
 		if( d_numlights >= 4 )
 		{
-			vec4 lightColor = AddProjLight(light_3_radius, light_3_origin, light_3_color.xyz, ps_vertexpos.xyz, ps_light_3_vertexcoord, v_normal, light_3_projtexture, specularFactor, light_3_cone_size, light_3_spotdirection);
+			vec3 specLight;
+			vec4 lightColor = AddProjLight(light_3_radius, light_3_origin, light_3_color.xyz, ps_vertexpos.xyz, ps_light_3_vertexcoord, v_normal, light_3_projtexture, mrao, light_3_cone_size, light_3_spotdirection, specLight);
 			
 			if( d_light3_shadowmap == 1 )
-				lightColor *= GetProjLightShadowing(light_3_radius, light_3_origin, ps_vertexpos.xyz, ps_light_3_vertexcoord, v_normal, light_3_shadowmap );
+			{
+				float shadowFactor = GetProjLightShadowing(light_3_radius, light_3_origin, ps_vertexpos.xyz, ps_light_3_vertexcoord, v_normal, light_3_shadowmap );
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
 			
 			// Add in the diffuse light
 			finalColor.xyz = AddDiffuseDynamicLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			finalColor.xyz = AddSpecularLight(finalColor.xyz, lightColor.w, light_3_color.xyz);
+			finalColor.xyz = AddSpecularLight(finalColor.xyz, specLight);
 		}
 		
 		if( d_blendmultipass >= 1 )
@@ -1201,13 +1279,13 @@ void main()
 	$branch shadertype == 18
 	$begin
 		vec3 v_normal = GetTangentSpaceNormal(ps_texcoord, ps_normal);
-		finalColor = GetLightmappedSpecular( ps_vertexpos, v_normal, specularFactor );
+		finalColor = GetLightmappedSpecular( ps_vertexpos, v_normal, mrao );
 	$end
 	
 	// Cube mapping only
 	$branch shadertype == 19
 	$begin
-		finalColor = AddCubemaps(specularFactor);
+		finalColor = AddCubemaps(mrao);
 	$end
 	
 	// Decals with alpha holes from world texture

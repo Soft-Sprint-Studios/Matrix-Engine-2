@@ -230,8 +230,6 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_vright = m_pShader->InitUniform("v_right", CGLSLShader::UNIFORM_FLOAT3);
 
 		m_attribs.u_uvoffset = m_pShader->InitUniform("uvoffset", CGLSLShader::UNIFORM_FLOAT2);
-		m_attribs.u_phong_exponent = m_pShader->InitUniform("phong_exponent", CGLSLShader::UNIFORM_FLOAT1);
-		m_attribs.u_specularfactor = m_pShader->InitUniform("specfactor", CGLSLShader::UNIFORM_FLOAT1);
 		
 		m_attribs.u_modelmatrix = m_pShader->InitUniform("modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_inv_modelmatrix = m_pShader->InitUniform("inv_modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
@@ -284,8 +282,6 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_vorigin, "v_origin", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_vright, "v_right", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_uvoffset, "uvoffset", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_phong_exponent, "phong_exponent", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_specularfactor, "specfactor", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_decalalpha, "decalalpha", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_decalscale, "decalscale", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_baselightmap, "baselightmap", m_pShader, Sys_ErrorPopup)
@@ -2343,13 +2339,6 @@ bool CBSPRenderer::DrawFirst( void )
 			// Set up binds
 			if(!BindTextures(ptexturehandle, pcubemapinfo, pprevcubemapinfo, cubemapUnit, alphaToCoverageEnabled))
 				return false;
-		
-			// Set specular and phong if it's needed
-			if(pmaterial->ptextures[MT_TX_SPECULAR])
-			{
-				m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
-				m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
-			}
 
 			// Reset cubemap bind
 			if(pcubemapinfo && g_pCvarCubemaps->GetValue() > 0)
@@ -3809,9 +3798,6 @@ bool CBSPRenderer::DrawLights( bool specular )
 
 			if(specular)
 			{
-				m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
-				m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
-
 				// Set normal map
 				texunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_normalmap);
 				R_Bind2DTexture(GL_TEXTURE0 + texunit, pmaterial->ptextures[MT_TX_NORMALMAP]->palloc->gl_index);
@@ -4469,9 +4455,6 @@ bool CBSPRenderer::DrawFinalSpecular( void )
 		else
 			m_pShader->SetDeterminator(m_attribs.d_blended, 0, true);
 
-		m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
-		m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
-
 		Int32 inner_index = outer_index + 1;
 		m_pShader->ResetSamplerIndex(inner_index);
 
@@ -4553,9 +4536,6 @@ bool CBSPRenderer::DrawFinalSpecular( void )
 
 					// Modify the lightmap coord pointer to use the appropriate texcoord
 					m_pShader->SetAttributePointer(m_attribs.a_lmapcoord, OFFSET(bsp_vertex_t, lmapcoord[k]));
-
-					m_pShader->SetUniform1f(m_attribs.u_phong_exponent, pmaterial->phong_exp*g_pCvarPhongExponent->GetValue());
-					m_pShader->SetUniform1f(m_attribs.u_specularfactor, pmaterial->spec_factor);
 
 					m_pShader->ResetSamplerIndex();
 
