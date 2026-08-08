@@ -206,6 +206,7 @@ static gdll_engfuncs_t GAMEDLL_ENGINE_FUNCTIONS =
 	SV_FindClientInPVS,					//pfnFindClientInPVS
 	SV_EndGame,							//pfnEndGame
 	Sys_FloatTime,						//pfnFloatTime
+	SV_ApplyPhysicsImpulse,				//pfnApplyPhysicsImpulse
 };
 
 //

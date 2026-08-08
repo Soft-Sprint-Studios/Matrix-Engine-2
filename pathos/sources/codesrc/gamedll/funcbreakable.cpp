@@ -470,6 +470,21 @@ bool CFuncBreakable::TakeDamage( CBaseEntity* pInflictor, CBaseEntity* pAttacker
 		return false;
 	}
 
+	if(m_pState->movetype == MOVETYPE_PHYSICS && pInflictor)
+	{
+		Vector direction = GetCenter() - pInflictor->GetCenter();
+		if (direction.IsZero())
+			direction = Vector(0, 0, 1);
+		else
+			Math::VectorNormalize(direction);
+
+		Float forceMultiplier = (damageFlags & DMG_EXPLOSION) ? 400.0f : 250.0f;
+		Float force = damagedealt * forceMultiplier;
+		Vector impulse = direction * force;
+
+		gd_engfuncs.pfnApplyPhysicsImpulse(m_pEdict, impulse, ZERO_VECTOR);
+	}
+
 	// Play damage sound
 	PlayDamageSound();
 	return true;

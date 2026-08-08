@@ -453,6 +453,30 @@ bool CBulletPhysics::ConvexSweepTest(const Vector& start, const Vector& end, con
 //=============================================
 //
 //=============================================
+void CBulletPhysics::ApplyImpulse( Uint32 entindex, const Vector& impulse, const Vector& relPos )
+{
+	if (entindex >= m_bodyIds.size())
+		return;
+
+	btRigidBody* body = m_bodyIds[entindex];
+	if (!body)
+		return;
+
+	body->activate(true);
+
+	if (relPos.IsZero())
+	{
+		body->applyCentralImpulse(btVector3(impulse.x, impulse.y, impulse.z));
+	}
+	else
+	{
+		body->applyImpulse(btVector3(impulse.x, impulse.y, impulse.z), btVector3(relPos.x, relPos.y, relPos.z));
+	}
+}
+
+//=============================================
+//
+//=============================================
 btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLocalCenter)
 {
 	if (!pedict)
@@ -633,4 +657,15 @@ void CBulletPhysics::SyncPhysicsToEntity(edict_t* pedict, Uint32 entindex)
 	pedict->state.angles.z = SDL_atan2(mat[2][1], mat[2][2]) * (180.0f / M_PI);
 
 	SV_LinkEdict(pedict, true);
+}
+
+//=============================================
+//
+//=============================================
+void SV_ApplyPhysicsImpulse(edict_t* pedict, const Vector& impulse, const Vector& relPos)
+{
+	if (!pedict || pedict->free)
+		return;
+
+	gBulletPhysics.ApplyImpulse(pedict->entindex, impulse, relPos);
 }

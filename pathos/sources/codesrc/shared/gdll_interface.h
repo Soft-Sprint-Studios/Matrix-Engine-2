@@ -277,5 +277,7 @@ struct gdll_engfuncs_t
 
 	void					(*pfnEndGame)( const Char* pstrEndGameCode );
 	Double					(*pfnFloatTime)( void );
+
+	void					(*pfnApplyPhysicsImpulse)( edict_t* pedict, const Vector& impulse, const Vector& relPos );
 };
 #endif //GDLL_INTERFACE_H

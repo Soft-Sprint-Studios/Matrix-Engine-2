@@ -58,6 +58,8 @@ public:
 
 	bool ConvexSweepTest( const Vector& start, const Vector& end, const Vector& mins, const Vector& maxs, Int32 ignore_ent, trace_t& trace );
 
+	void ApplyImpulse( Uint32 entindex, const Vector& impulse, const Vector& relPos = Vector(0, 0, 0) );
+
 private:
 	void SyncEntityToPhysics( edict_t* pedict, Uint32 entindex );
 	void SyncPhysicsToEntity( edict_t* pedict, Uint32 entindex );
@@ -77,6 +79,8 @@ private:
 
 	CBulletDebugDraw m_debugDrawer;
 };
+
+extern void SV_ApplyPhysicsImpulse(edict_t* pedict, const Vector& impulse, const Vector& relPos);
 
 extern CBulletPhysics gBulletPhysics;
 

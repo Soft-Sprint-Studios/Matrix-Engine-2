@@ -1848,6 +1848,20 @@ bool CBaseEntity::TakeDamage( CBaseEntity* pInflictor, CBaseEntity* pAttacker, F
 		// Set velocity
 		Math::VectorMA(m_pState->velocity, force, direction, m_pState->velocity);
 	}
+	else if(m_pState->movetype == MOVETYPE_PHYSICS)
+	{
+		Vector direction = GetCenter() - pInflictor->GetCenter();
+		if (direction.IsZero())
+			direction = Vector(0, 0, 1);
+		else
+			Math::VectorNormalize(direction);
+
+		Float forceMultiplier = (damageFlags & DMG_EXPLOSION) ? 400.0f : 250.0f;
+		Float force = amount * forceMultiplier;
+		Vector impulse = direction * force;
+
+		gd_engfuncs.pfnApplyPhysicsImpulse(m_pEdict, impulse, ZERO_VECTOR);
+	}
 
 	// Reduct health
 	m_pState->health -= amount;
@@ -1871,6 +1885,16 @@ void CBaseEntity::TraceAttack( CBaseEntity* pAttacker, Float damage, const Vecto
 
 	// Add to multi damage
 	gMultiDamage.AddDamage(this, damage, damageFlags);
+
+	if(m_pState->movetype == MOVETYPE_PHYSICS)
+	{
+		Float forceMultiplier = (damageFlags & DMG_EXPLOSION) ? 400.0f : 250.0f;
+		Float force = damage * forceMultiplier;
+		Vector impulse = direction * force;
+		Vector relPos = tr.endpos - GetCenter();
+
+		gd_engfuncs.pfnApplyPhysicsImpulse(m_pEdict, impulse, relPos);
+	}
 
 	if(GetBloodColor() != BLOOD_NONE && damage > 0)
 	{
