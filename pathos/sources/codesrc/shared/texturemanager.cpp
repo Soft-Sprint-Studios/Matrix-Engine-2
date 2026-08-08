@@ -26,10 +26,6 @@ All Rights Reserved.
 #define GL_TEXTURE_MAX_ANISOTROPY 0x84FE
 #endif //GL_TEXTURE_MAX_ANISOTROPY
 
-// Default value for specular scale
-const Float CTextureManager::DEFAULT_SPECFACTOR = 2.0f;
-// Default phong exponent value
-const Float CTextureManager::DEFAULT_PHONG_EXP = 16.0f;
 // Anisotropy off value
 const Uint32 CTextureManager::ANISOTROPY_OFF_VALUE = 1;
 
@@ -615,9 +611,9 @@ mt_texture_t CTextureManager::GetTextureType( const Char* pstrTypename )
 		return MT_TX_NORMALMAP2;
 	else if(!qstrcmp(pstrTypename, "detail"))
 		return MT_TX_DETAIL;
-	else if(!qstrcmp(pstrTypename, "specular"))
+	else if(!qstrcmp(pstrTypename, "mrao"))
 		return MT_TX_SPECULAR;
-	else if (!qstrcmp(pstrTypename, "specular2"))
+	else if (!qstrcmp(pstrTypename, "mrao2"))
 		return MT_TX_SPECULAR2;
 	else if(!qstrcmp(pstrTypename, "luminance"))
 		return MT_TX_LUMINANCE;
@@ -726,8 +722,6 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 
 		// Set defaults
 		pmaterial->alpha = 1.0;
-		pmaterial->spec_factor = DEFAULT_SPECFACTOR;
-		pmaterial->phong_exp = DEFAULT_PHONG_EXP;
 	}
 
 	static Char line[MAX_LINE_LENGTH];
@@ -851,10 +845,6 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 					pmaterial->int_height = SDL_atoi(value);
 				else if(!qstrcmp(token, "$alpha"))
 					pmaterial->alpha = static_cast<Float>(SDL_atof(value));
-				else if(!qstrcmp(token, "$phong_exp"))
-					pmaterial->phong_exp = static_cast<Float>(SDL_atof(value));
-				else if(!qstrcmp(token, "$spec"))
-					pmaterial->spec_factor = static_cast<Float>(SDL_atof(value));
 				else if(!qstrcmp(token, "$scopescale"))
 					pmaterial->scale = static_cast<Float>(SDL_atof(value));
 				else if(!qstrcmp(token, "$cubemapstrength"))
@@ -1689,15 +1679,6 @@ void CTextureManager::WritePMFFile( en_material_t* pmaterial )
 	{
 		if(pmaterial->alpha)
 			data << "\t$alpha " << pmaterial->alpha << NEWLINE;
-	}
-
-	if(pmaterial->ptextures[MT_TX_SPECULAR])
-	{
-		if(pmaterial->phong_exp)
-			data << "\t$phong_exp " << pmaterial->phong_exp << NEWLINE;
-
-		if(pmaterial->spec_factor)
-			data << "\t$spec " << pmaterial->spec_factor << NEWLINE;
 	}
 
 	if(pmaterial->scale)

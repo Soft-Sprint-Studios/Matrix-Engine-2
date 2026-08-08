@@ -134,8 +134,6 @@ struct en_material_t
 		int_width(0),
 		int_height(0),
 		alpha(0),
-		phong_exp(0),
-		spec_factor(0),
 		scale(0),
 		cubemapstrength(0),
 		scrollu(0),
@@ -165,8 +163,6 @@ struct en_material_t
 	Uint32 int_height;
 
 	Float alpha;
-	Float phong_exp;
-	Float spec_factor;
 	Float scale;
 	Float cubemapstrength;
 	Float scrollu;
