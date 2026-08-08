@@ -84,7 +84,6 @@ All Rights Reserved.
 // Global cvars
 CCVar* g_pCvarBumpMaps = nullptr;
 CCVar* g_pCvarDrawEntities = nullptr;
-CCVar* g_pCvarPhongExponent = nullptr;
 CCVar* g_pCvarWireFrame = nullptr;
 CCVar* g_pCvarSpecular = nullptr;
 CCVar* g_pCvarCaustics = nullptr;
@@ -187,7 +186,6 @@ bool R_Init( void )
 	g_pCvarBumpMaps = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_bumpmaps", "1", "Toggles normal mapping");
 	g_pCvarSpecular = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_specular", "1", "Toggles specular highlights");
 	g_pCvarDrawEntities = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_drawentities", "1", "Toggles rendering of entities");
-	g_pCvarPhongExponent = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_phong_exponent", "1", "Phong exponent setting");
 	g_pCvarWireFrame = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_wireframe", "0", "Toggle wireframe rendering");
 	g_pCvarCaustics = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_water_caustics", "1", "Toggle water caustics");
 	g_pCvarFarZ = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_farz", "16384", "Far clipping plane distance");

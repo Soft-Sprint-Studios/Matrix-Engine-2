@@ -1943,7 +1943,7 @@ bool CWaterShader::DrawWater( bool skybox )
 		m_pShader->SetUniform2f(m_attribs.u_scroll, psettings->scrollu*rns.time, psettings->scrollv*rns.time);
 		m_pShader->SetUniform1f(m_attribs.u_lightstrength, psettings->lightstrength);
 		m_pShader->SetUniform1f(m_attribs.u_specularstrength, psettings->specularstrength);
-		m_pShader->SetUniform1f(m_attribs.u_phongexponent, psettings->phongexponent*g_pCvarPhongExponent->GetValue());
+		m_pShader->SetUniform1f(m_attribs.u_phongexponent, psettings->phongexponent);
 		m_pShader->SetUniform1f(m_attribs.u_wavefresnelstrength, psettings->wavefresnelstrength);
 		m_pShader->SetUniform1f(m_attribs.u_flowspeed, psettings->flowmapspeed);
 

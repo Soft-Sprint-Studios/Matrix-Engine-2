@@ -469,7 +469,6 @@ extern renderer_state_t rns;
 
 extern CCVar* g_pCvarBumpMaps;
 extern CCVar* g_pCvarDrawEntities;
-extern CCVar* g_pCvarPhongExponent;
 extern CCVar* g_pCvarWireFrame;
 extern CCVar* g_pCvarSpecular;
 extern CCVar* g_pCvarCaustics;
