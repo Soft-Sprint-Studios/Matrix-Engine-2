@@ -816,7 +816,7 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 					|| !qstrcmp(token, "$int_width") || !qstrcmp(token, "$int_height")
 					|| !qstrcmp(token, "$alpha") || !qstrcmp(token, "$phong_exp")
 					|| !qstrcmp(token, "$spec") || !qstrcmp(token, "$scopescale") 
-					|| !qstrcmp(token, "$cubemapstrength") || !qstrcmp(token, "$container")
+					|| !qstrcmp(token, "$container")
 					|| !qstrcmp(token, "$scrollu") || !qstrcmp(token, "$scrollv"))
 			{
 				if(!pchar)
@@ -847,8 +847,6 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 					pmaterial->alpha = static_cast<Float>(SDL_atof(value));
 				else if(!qstrcmp(token, "$scopescale"))
 					pmaterial->scale = static_cast<Float>(SDL_atof(value));
-				else if(!qstrcmp(token, "$cubemapstrength"))
-					pmaterial->cubemapstrength = static_cast<Float>(SDL_atof(value));
 				else if(!qstrcmp(token, "$container"))
 					pmaterial->containername = value;
 				else if(!qstrcmp(token, "$scrollu"))
@@ -977,9 +975,6 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 
 	if(!pmaterial->ptextures[MT_TX_DIFFUSE] && pmaterial->containername.empty())
 		pmaterial->ptextures[MT_TX_DIFFUSE] = GetDummyTexture();
-
-	if(pmaterial->flags & TX_FL_CUBEMAPS && pmaterial->cubemapstrength <= 0)
-		pmaterial->cubemapstrength = 0.1;
 
 	// Add it to the index list
 	m_materialsIndexPtrArray.push_back(pmaterial);
@@ -1683,9 +1678,6 @@ void CTextureManager::WritePMFFile( en_material_t* pmaterial )
 
 	if(pmaterial->scale)
 		data << "\t$scopescale " << pmaterial->scale << NEWLINE;
-
-	if(pmaterial->cubemapstrength)
-		data << "\t$cubemapstrength " << pmaterial->cubemapstrength << NEWLINE;
 
 	// Set container
 	if(!pmaterial->containername.empty())

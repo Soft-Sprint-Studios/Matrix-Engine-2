@@ -135,7 +135,6 @@ struct en_material_t
 		int_height(0),
 		alpha(0),
 		scale(0),
-		cubemapstrength(0),
 		scrollu(0),
 		scrollv(0),
 		flags(TX_FL_NONE),
@@ -164,7 +163,6 @@ struct en_material_t
 
 	Float alpha;
 	Float scale;
-	Float cubemapstrength;
 	Float scrollu;
 	Float scrollv;
 

@@ -130,7 +130,6 @@ struct bsp_shader_attribs
 		u_vright(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_uvoffset(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_interpolant(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_cubemapstrength(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_decalalpha(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_decalscale(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cubemap(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -201,7 +200,6 @@ struct bsp_shader_attribs
 	Int32 u_uvoffset;
 
 	Int32 u_interpolant;
-	Int32 u_cubemapstrength;
 	Int32 u_decalalpha;
 	Int32 u_decalscale;
 

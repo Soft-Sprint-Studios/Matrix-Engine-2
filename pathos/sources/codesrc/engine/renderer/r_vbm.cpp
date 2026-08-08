@@ -432,7 +432,6 @@ bool CVBMRenderer::InitGL( void )
 
 		m_attribs.u_cubemap = m_pShader->InitUniform("cubemap", CGLSLShader::UNIFORM_SAMPLERCUBE);
 		m_attribs.u_cubemap_prev = m_pShader->InitUniform("cubemap_prev", CGLSLShader::UNIFORM_SAMPLERCUBE);
-		m_attribs.u_cubemapstrength = m_pShader->InitUniform("cubemapstrength", CGLSLShader::UNIFORM_FLOAT1);
 
 		m_attribs.u_cube_min = m_pShader->InitUniform("u_cube_min", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_cube_max = m_pShader->InitUniform("u_cube_max", CGLSLShader::UNIFORM_FLOAT3);
@@ -455,7 +454,6 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_d_blendmultipass, "blendmultipass", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cubemap, "cubemap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cubemap_prev, "cubemap_prev", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_cubemapstrength, "cubemapstrength", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_min, "u_cube_min", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_max, "u_cube_max", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_origin, "u_cube_origin", m_pShader, Sys_ErrorPopup)
@@ -3770,6 +3768,9 @@ bool CVBMRenderer::DrawStyles( bool specularPass, bool transparentPass )
 
 					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+
+					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
+					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
 				}
 
 				if(pmaterial->ptextures[MT_TX_NORMALMAP] && g_pCvarBumpMaps->GetValue() > 0)
@@ -3936,8 +3937,6 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 
 	if (pcubemapinfo)
 	{
-		m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength * m_renderAlpha);
-
 		Int32 cubemapUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
 		R_BindCubemapTexture(GL_TEXTURE0_ARB + cubemapUnit, pcubemapinfo->palloc->gl_index);
 
@@ -4376,6 +4375,9 @@ bool CVBMRenderer::DrawLights( bool specularPass, bool transparentPass )
 
 					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+
+					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
+					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
 				}
 
 				if(pmaterial->ptextures[MT_TX_NORMALMAP] && g_pCvarBumpMaps->GetValue() > 0)
@@ -4765,7 +4767,7 @@ bool CVBMRenderer::DrawFinal ( void )
 
 	if (pcubemapinfo && g_pCvarCubemaps->GetValue() > 0)
 	{
-		glBlendFunc(GL_DST_COLOR, GL_ONE);
+		glBlendFunc(GL_ONE, GL_ONE);
 
 		m_pShader->EnableAttribute(m_attribs.a_normal);
 		m_pShader->EnableAttribute(m_attribs.a_texcoord1);
@@ -4863,13 +4865,14 @@ bool CVBMRenderer::DrawFinal ( void )
 				if (!(pmaterial->flags & TX_FL_CUBEMAPS))
 					continue;
 
-				m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength);
-
 				Int32 inner_textureunit = m_firstTextureUnit + 2;
 				m_pShader->ResetSamplerIndex(inner_textureunit);
 
 				inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 				R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+
+				inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
+				R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
 
 				if (pmaterial->ptextures[MT_TX_NORMALMAP] && g_pCvarBumpMaps->GetValue() > 0)
 				{
@@ -5070,7 +5073,7 @@ bool CVBMRenderer::DrawFinal ( void )
 
 		if (ptranscubemapinfo && g_pCvarCubemaps->GetValue() > 0)
 		{
-			glBlendFunc(GL_DST_COLOR, GL_ONE);
+			glBlendFunc(GL_ONE, GL_ONE);
 
 			m_pShader->EnableAttribute(m_attribs.a_normal);
 			m_pShader->EnableAttribute(m_attribs.a_texcoord1);
@@ -5168,13 +5171,14 @@ bool CVBMRenderer::DrawFinal ( void )
 					if (!(pmaterial->flags & TX_FL_CUBEMAPS))
 						continue;
 
-					m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength * m_renderAlpha);
-
 					Int32 inner_textureunit = m_firstTextureUnit + 2;
 					m_pShader->ResetSamplerIndex(inner_textureunit);
 
 					inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 					R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+
+					inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
+					R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
 
 					if (pmaterial->ptextures[MT_TX_NORMALMAP] && g_pCvarBumpMaps->GetValue() > 0)
 					{
@@ -5341,6 +5345,12 @@ bool CVBMRenderer::DrawFinalSpecular( bool transparentPass )
 
 			texunit_local = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
 			R_Bind2DTexture(GL_TEXTURE0 + texunit_local, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+
+			if (!transparentPass && !m_useBlending)
+			{
+				texunit_local = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
+				R_Bind2DTexture(GL_TEXTURE0 + texunit_local, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
+			}
 			
 			// Set normal map if any
 			if (pmaterial->ptextures[MT_TX_NORMALMAP])

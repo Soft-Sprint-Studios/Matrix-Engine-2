@@ -233,7 +233,6 @@ bool CBSPRenderer::InitGL( void )
 		
 		m_attribs.u_modelmatrix = m_pShader->InitUniform("modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_inv_modelmatrix = m_pShader->InitUniform("inv_modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
-		m_attribs.u_cubemapstrength = m_pShader->InitUniform("cubemapstrength", CGLSLShader::UNIFORM_FLOAT1);
 
 		m_attribs.u_decalalpha = m_pShader->InitUniform("decalalpha", CGLSLShader::UNIFORM_NOSYNC);
 		m_attribs.u_decalscale = m_pShader->InitUniform("decalscale", CGLSLShader::UNIFORM_NOSYNC);
@@ -357,8 +356,7 @@ bool CBSPRenderer::InitGL( void )
 				return false;
 		}
 
-		if(!R_CheckShaderUniform(m_attribs.u_cubemapstrength, "cubemapstrength", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_cubemap, "cubemap", m_pShader, Sys_ErrorPopup)
+		if(!R_CheckShaderUniform(m_attribs.u_cubemap, "cubemap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_min, "u_cube_min", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_max, "u_cube_max", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_origin, "u_cube_origin", m_pShader, Sys_ErrorPopup)
@@ -2362,8 +2360,6 @@ bool CBSPRenderer::DrawFirst( void )
 					m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
 				}
 
-				m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength);
-
 				// Parallax correction
 				if (pcubemapinfo->use_parallax)
 				{
@@ -3818,6 +3814,15 @@ bool CBSPRenderer::DrawLights( bool specular )
 					R_Bind2DTexture(GL_TEXTURE0 + texunit, pmaterial->ptextures[MT_TX_SPECULAR2]->palloc->gl_index);
 				}
 
+				texunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture);
+				R_Bind2DTexture(GL_TEXTURE0 + texunit, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
+
+				if (pmaterial->ptextures[MT_TX_DIFFUSE2])
+				{
+					texunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture2);
+					R_Bind2DTexture(GL_TEXTURE0 + texunit, pmaterial->ptextures[MT_TX_DIFFUSE2]->palloc->gl_index);
+				}
+
 				m_pShader->EnableAttribute(m_attribs.a_tangent);
 				m_pShader->EnableAttribute(m_attribs.a_binormal);
 				useTexCoord = true;
@@ -4139,7 +4144,7 @@ bool CBSPRenderer::DrawFinal( void )
 	// Draw any cubemaps
 	if(pcubemapinfo && g_pCvarCubemaps->GetValue() > 0)
 	{
-		glBlendFunc(GL_DST_COLOR, GL_ONE);
+		glBlendFunc(GL_ONE, GL_ONE);
 
 		m_pShader->EnableAttribute(m_attribs.a_texcoord);
 		m_pShader->EnableAttribute(m_attribs.a_normal);
@@ -4241,8 +4246,6 @@ bool CBSPRenderer::DrawFinal( void )
 				m_pShader->SetDeterminator(m_attribs.d_blended, 1, true);
 			else
 				m_pShader->SetDeterminator(m_attribs.d_blended, 0, true);
-			
-			m_pShader->SetUniform1f(m_attribs.u_cubemapstrength, pmaterial->cubemapstrength);
 
 			// Bind specular texture
 			inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_specular);
@@ -4252,6 +4255,15 @@ bool CBSPRenderer::DrawFinal( void )
 			{
 				inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_specular2);
 				R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_SPECULAR2]->palloc->gl_index);
+			}
+
+			inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture);
+			R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
+
+			if (pmaterial->ptextures[MT_TX_DIFFUSE2])
+			{
+				inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture2);
+				R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_DIFFUSE2]->palloc->gl_index);
 			}
 
 			if(pmaterial->ptextures[MT_TX_NORMALMAP])
@@ -4476,6 +4488,15 @@ bool CBSPRenderer::DrawFinalSpecular( void )
 			R_Bind2DTexture(GL_TEXTURE0 + outer_index, pspecular2->palloc->gl_index);
 		}
 
+		outer_index = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture);
+		R_Bind2DTexture(GL_TEXTURE0 + outer_index, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
+
+		if (pmaterial->ptextures[MT_TX_DIFFUSE2])
+		{
+			outer_index = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture2);
+			R_Bind2DTexture(GL_TEXTURE0 + outer_index, pmaterial->ptextures[MT_TX_DIFFUSE2]->palloc->gl_index);
+		}
+
 		R_ValidateShader(m_pShader);
 
 		drawbatch_t *pbatch = &m_texturesArray[i].multi_batches[0];
@@ -4563,6 +4584,15 @@ bool CBSPRenderer::DrawFinalSpecular( void )
 					{
 						texture_index = m_pShader->AutoSetSamplerUniform(m_attribs.u_specular2);
 						R_Bind2DTexture(GL_TEXTURE0 + texture_index, pspecular2->palloc->gl_index);
+					}
+
+					texture_index = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture);
+					R_Bind2DTexture(GL_TEXTURE0 + texture_index, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
+
+					if (pmaterial->ptextures[MT_TX_DIFFUSE2])
+					{
+						texture_index = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture2);
+						R_Bind2DTexture(GL_TEXTURE0 + texture_index, pmaterial->ptextures[MT_TX_DIFFUSE2]->palloc->gl_index);
 					}
 
 					R_ValidateShader(m_pShader);
