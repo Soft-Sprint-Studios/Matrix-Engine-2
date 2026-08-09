@@ -44,32 +44,14 @@ enum vbm_shtype
 {
 	vbm_texture = 0,
 	vbm_texture_fog,
-	vbm_notexture,
-	vbm_dynlight,
-	vbm_unused1,
-	vbm_spotlight,
-	vbm_unused2,
-	vbm_caustics,
 	vbm_solid,
 	vbm_vsm,
 	vbm_vsmalpha,
-	vbm_fogpass,
 	vbm_texonly,
 	vbm_scope,
 	vbm_texonly_fog,
-	vbm_speconly,
 	vbm_texonly_holes,
-	vbm_texonly_holes_fog,
-	vbm_vlight_only,
-	vbm_vlight_only_specular,
-	vbm_cubeonly
-};
-
-enum vbm_blendmultipass_t
-{
-	BLENDMULTIPASS_OFF = 0,
-	BLENDMULTIPASS_NORMAL,
-	BLENDMULTIPASS_BLACKFOG
+	vbm_texonly_holes_fog
 };
 
 struct vbm_decal_mesh_t
@@ -329,7 +311,6 @@ struct vbm_attribs
 		u_d_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numdlights(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cubemap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_min(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_max(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -418,7 +399,6 @@ struct vbm_attribs
 	Int32 u_d_luminance;
 	Int32 u_d_bumpmapping;
 	Int32 u_d_numdlights;
-	Int32 u_d_blendmultipass;
 
 	Int32 u_cubemap;
 	Int32 u_cubemap_prev;
@@ -620,16 +600,8 @@ private:
 
 	// Draws first pass 
 	bool DrawFirst( void );
-	// Draw lightstyles only
-	bool DrawStyles( bool specularPass, bool transparentPass );
 	// Draws a mesh
 	bool DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, bool drawBlended );
-	// Draws lights
-	bool DrawLights( bool specularPass, bool transparentPass );
-	// Draws final renderpasses
-	bool DrawFinal( void );
-	// Draws final specular pass
-	bool DrawFinalSpecular( bool transparentPass );
 	// Draws in wireframe mode
 	bool DrawWireframe( void );
 	// Draws bones
@@ -832,8 +804,6 @@ private:
 	// Number of dynamic lights
 	Uint32 m_numDynamicLights;
 
-	// TRUE if we're rendering in multipass
-	bool m_isMultiPass;
 	// TRUE if we're rendering an aura pass
 	bool m_isAuraPass;
 

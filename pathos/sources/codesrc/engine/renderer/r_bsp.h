@@ -35,21 +35,11 @@ enum bsp_shaders_t
 	shader_chrome,
 	shader_texunit0,
 	shader_texunit1,
-	shader_dynlight,
-	shader_unused1,
-	shader_spotlight,
-	shader_unused2,
-	shader_caustics,
 	shader_lightalpha,
 	shader_solidcolor,
 	shader_vsm_store,
 	shader_vsm_alpha,
-	shader_fogpass,
-	shader_fogpass_fc,
-	shader_lightonly,
 	shader_main_detail,
-	shader_speconly,
-	shader_cubeonly,
 	shader_decal_holes,
 	shader_decal,
 	shader_texunit0_x4
@@ -60,13 +50,6 @@ enum bsp_fog_settings_t
 	fog_none = 0,
 	fog_radial,
 	fog_fogcoord
-};
-
-enum bsp_blendmultipass_t
-{
-	blendmultipass_no = 0,
-	blendmultipass_texture,
-	blendmultipass_texture_dtexture
 };
 
 struct light_attribs_t
@@ -108,7 +91,6 @@ struct bsp_shader_attribs
 		u_d_cubemaps(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_lightmap_bicubic(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_position(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_tangent(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -168,7 +150,6 @@ struct bsp_shader_attribs
 	Int32 u_d_cubemaps;
 	Int32 u_d_luminance;
 	Int32 u_d_numlights;
-	Int32 u_d_blendmultipass;
 	Int32 u_d_lightmap_bicubic;
 
 	// vertex attribs
@@ -283,33 +264,13 @@ struct drawbatch_t
 	byte pad[24];
 };
 
-struct stylebatches_t
-{
-	stylebatches_t():
-		numbatches(0)
-	{}
-
-	CArray<drawbatch_t> batches;
-	Uint32 numbatches;
-};
-
-struct lightstyleinfo_t
-{
-	lightstyleinfo_t()
-	{}
-
-	CArray<stylebatches_t> stylebatches;
-};
-
 struct bsp_texture_t
 {
 	bsp_texture_t():
 		flags(0),
 		index(0),
 		pmaterial(nullptr),
-		nummultibatches(0),
 		numsinglebatches(0),
-		numlightbatches(0),
 		psurfchain(nullptr),
 		pmodeltexture(nullptr)
 	{}
@@ -319,20 +280,12 @@ struct bsp_texture_t
 
 	struct en_material_t* pmaterial;
 
-	CArray<drawbatch_t> multi_batches;
-	Uint32 nummultibatches;
-
 	CArray<drawbatch_t> single_batches;
 	Uint32 numsinglebatches;
-
-	CArray<drawbatch_t> light_batches;
-	Uint32 numlightbatches;
 
 	struct msurface_t* psurfchain;
 
 	struct mtexture_t* pmodeltexture;
-
-	CArray<lightstyleinfo_t> lightstyleinfos;
 };
 
 struct bsp_surface_t
@@ -342,9 +295,7 @@ struct bsp_surface_t
 		end_index(0),
 		num_indexes(0),
 		pmsurface(nullptr),
-		ptexture(nullptr),
-		ptexturechain(nullptr),
-		pstylechains(nullptr)
+		ptexture(nullptr)
 	{
 		memset(light_s, 0, sizeof(light_s));
 		memset(light_t, 0, sizeof(light_t));
@@ -370,11 +321,6 @@ struct bsp_surface_t
 	msurface_t* pmsurface;
 	// texture info
 	bsp_texture_t* ptexture;
-
-	// texture chains
-	msurface_t* ptexturechain;
-	// lightstyle chains
-	msurface_t** pstylechains;
 };
 
 struct decalpolygroup_t
@@ -448,15 +394,6 @@ CBSPRenderer
 */
 class CBSPRenderer
 {
-public:
-	// Multipass modes
-	enum multipass_mode_t
-	{
-		MULTIPASS_NORMAL = 0,
-		MULTIPASS_TRANSPARENTS,
-		MULTIPASS_DISABLED
-	};
-
 public:
 	// Default lightmap width
 	static const Uint32 LIGHTMAP_DEFAULT_WIDTH;
@@ -548,8 +485,6 @@ private:
 	// Draws a brushmodel
 	bool DrawBrushModel( cl_entity_t& entity, bool isstatic );
 
-	// Tells if an object is affected by a dynamic light
-	void FlagIfDynamicLighted( const Vector& mins, const Vector& maxs );
 	// Retreives the texture animation for a texture
 	mtexture_t *TextureAnimation( mtexture_t *pbase, Uint32 frame );
 	// Binds textures for rendering in single-pass mode
@@ -569,12 +504,6 @@ private:
 
 	// Renders first render pass
 	bool DrawFirst( void );
-	// Renders any lights
-	bool DrawLights( bool specular );
-	// Draws final renderpasses
-	bool DrawFinal( void );
-	// Draws final for specular highlights
-	bool DrawFinalSpecular( void );
 
 	// Prepares for VSM rendering
 	void PrepareVSM( void );
@@ -582,11 +511,6 @@ private:
 	bool DrawVSMFaces( void );
 	// Batches a brushmodel for VSM
 	bool BatchBrushModelForVSM( cl_entity_t& entity, bool isstatic );
-
-	// Prepares a light for rendering
-	bool SetupLight( cl_dlight_t* pdlight, Uint32 lightindex, Int32& texunit, lightbatchtype_t type );
-	// Finishes rendering of a light
-	void FinishLight( cl_dlight_t* pdlight, Int32& texunit );
 
 private:
 	// Draws a single decal
@@ -615,16 +539,10 @@ private:
 	CArray<bsp_texture_t> m_texturesArray;
 
 private:
-	// TRUE if rendering in multi-pass
-	bool m_multiPass;
-	// TRUE if object/surface should be added to multi-pass rendering
-	bool m_addMulti;
 	// TRUE if bump maps are present
 	bool m_bumpMaps;
 	// TRUE if lightstyles are supported
 	bool m_useLightStyles;
-	// Multipass mode
-	multipass_mode_t m_multiPassMode;
 
 private:
 	// Lightmap images
