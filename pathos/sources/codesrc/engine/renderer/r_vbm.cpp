@@ -3763,11 +3763,11 @@ bool CVBMRenderer::DrawStyles( bool specularPass, bool transparentPass )
 
 				if(specularPass)
 				{
-					if(!pmaterial->ptextures[MT_TX_SPECULAR])
+					if(!pmaterial->ptextures[MT_TX_MRAO])
 						continue;
 
 					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
-					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
 
 					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
 					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
@@ -3853,7 +3853,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 	// Set the determinator states
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, ((!m_isMultiPass || m_useBlending) && (pmaterial->flags & (TX_FL_CHROME) || pmaterial->flags & (TX_FL_EYEGLINT) && drawBlended)) ? TRUE : FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, (pmaterial->flags & (TX_FL_FULLBRIGHT|TX_FL_SCOPE)) ? 0 : m_numModelLights);
-	m_pShader->SetUniform1i(m_attribs.u_d_specular, (pmaterial->ptextures[MT_TX_SPECULAR]) && !(pmaterial->flags & TX_FL_FULLBRIGHT) && (!m_isMultiPass || m_useBlending) && g_pCvarSpecular->GetValue() > 0 ? true : false);
+	m_pShader->SetUniform1i(m_attribs.u_d_specular, (pmaterial->ptextures[MT_TX_MRAO]) && !(pmaterial->flags & TX_FL_FULLBRIGHT) && (!m_isMultiPass || m_useBlending) && g_pCvarSpecular->GetValue() > 0 ? true : false);
 	m_pShader->SetUniform1i(m_attribs.u_d_luminance, (pmaterial->ptextures[MT_TX_LUMINANCE]) && !(pmaterial->flags & TX_FL_FULLBRIGHT));
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, (pmaterial->ptextures[MT_TX_NORMALMAP]) && !(pmaterial->flags & TX_FL_FULLBRIGHT) && g_pCvarBumpMaps->GetValue() > 0);
 
@@ -3920,15 +3920,15 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		R_BindRectangleTexture(GL_TEXTURE0_ARB + textureIndex, m_pScreenTexture->palloc->gl_index);
 	}
 
-	if (pmaterial->ptextures[MT_TX_SPECULAR] && g_pCvarSpecular->GetValue() > 0)
+	if (pmaterial->ptextures[MT_TX_MRAO] && g_pCvarSpecular->GetValue() > 0)
 	{
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
-		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
 	}
 
 	cubemapinfo_t* pcubemapinfo = nullptr;
 	cubemapinfo_t* pprevcubemapinfo = nullptr;
-	if (g_pCvarCubemaps->GetValue() > 0 && (pmaterial->flags & TX_FL_CUBEMAPS) && pmaterial->ptextures[MT_TX_SPECULAR])
+	if (g_pCvarCubemaps->GetValue() > 0 && (pmaterial->flags & TX_FL_CUBEMAPS) && pmaterial->ptextures[MT_TX_MRAO])
 	{
 		pcubemapinfo = gCubemaps.GetIdealCubemap();
 		if (gCubemaps.GetInterpolant() != 1.0)
@@ -4370,11 +4370,11 @@ bool CVBMRenderer::DrawLights( bool specularPass, bool transparentPass )
 
 				if(specularPass)
 				{
-					if(!pmaterial->ptextures[MT_TX_SPECULAR])
+					if(!pmaterial->ptextures[MT_TX_MRAO])
 						continue;
 
 					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
-					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
 
 					texunit_inner = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
 					R_Bind2DTexture(GL_TEXTURE0 + texunit_inner, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
@@ -4645,7 +4645,7 @@ bool CVBMRenderer::DrawFinal ( void )
 				if(pmaterial->flags & TX_FL_EYEGLINT)
 					textureFlags |= pmaterial->flags;
 
-				if(pmaterial->ptextures[MT_TX_SPECULAR])
+				if(pmaterial->ptextures[MT_TX_MRAO])
 					hasSpecular = true;
 
 				if(pmaterial->scrollu || pmaterial->scrollv)
@@ -4745,7 +4745,7 @@ bool CVBMRenderer::DrawFinal ( void )
 				if(pmaterial->flags & TX_FL_EYEGLINT)
 					textureFlags |= pmaterial->flags;
 
-				if(pmaterial->ptextures[MT_TX_SPECULAR])
+				if(pmaterial->ptextures[MT_TX_MRAO])
 					hasSpecular = true;
 			}
 		}
@@ -4859,7 +4859,7 @@ bool CVBMRenderer::DrawFinal ( void )
 				if (!pmaterial)
 					continue;
 
-				if (!pmaterial->ptextures[MT_TX_SPECULAR])
+				if (!pmaterial->ptextures[MT_TX_MRAO])
 					continue;
 
 				if (!(pmaterial->flags & TX_FL_CUBEMAPS))
@@ -4869,7 +4869,7 @@ bool CVBMRenderer::DrawFinal ( void )
 				m_pShader->ResetSamplerIndex(inner_textureunit);
 
 				inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
-				R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+				R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
 
 				inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
 				R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
@@ -5165,7 +5165,7 @@ bool CVBMRenderer::DrawFinal ( void )
 					if (!pmaterial)
 						continue;
 
-					if (!pmaterial->ptextures[MT_TX_SPECULAR])
+					if (!pmaterial->ptextures[MT_TX_MRAO])
 						continue;
 
 					if (!(pmaterial->flags & TX_FL_CUBEMAPS))
@@ -5175,7 +5175,7 @@ bool CVBMRenderer::DrawFinal ( void )
 					m_pShader->ResetSamplerIndex(inner_textureunit);
 
 					inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
-					R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+					R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
 
 					inner_textureunit = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
 					R_Bind2DTexture(GL_TEXTURE0 + inner_textureunit, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
@@ -5335,7 +5335,7 @@ bool CVBMRenderer::DrawFinalSpecular( bool transparentPass )
 			if(pmaterial->flags & (TX_FL_SCOPE|TX_FL_FULLBRIGHT))
 				continue;
 
-			if(!pmaterial->ptextures[MT_TX_SPECULAR])
+			if(!pmaterial->ptextures[MT_TX_MRAO])
 				continue;
 
 			// m_firstTextureUnit marks the first available unit
@@ -5344,7 +5344,7 @@ bool CVBMRenderer::DrawFinalSpecular( bool transparentPass )
 			m_pShader->ResetSamplerIndex(texunit_local);
 
 			texunit_local = m_pShader->AutoSetSamplerUniform(m_attribs.u_spectexture);
-			R_Bind2DTexture(GL_TEXTURE0 + texunit_local, pmaterial->ptextures[MT_TX_SPECULAR]->palloc->gl_index);
+			R_Bind2DTexture(GL_TEXTURE0 + texunit_local, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
 
 			if (!transparentPass && !m_useBlending)
 			{
