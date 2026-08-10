@@ -1676,7 +1676,7 @@ bool CBSPRenderer::DrawSkyBox( bool inZElements )
 
 		RecursiveWorldNode(ens.pworld->pnodes);
 
-		if(!DrawFirst())
+		if(!Draw())
 			return false;
 	}
 
@@ -1794,7 +1794,7 @@ bool CBSPRenderer::DrawWorld( void )
 	m_pCurrentEntity = CL_GetEntityByIndex(WORLDSPAWN_ENTITY_INDEX);
 	m_isEntityTransparent = false;
 
-	if(!DrawFirst())
+	if(!Draw())
 		return false;
 
 	// Draw moved entities
@@ -2061,7 +2061,7 @@ __forceinline void CBSPRenderer::AddBatch( CArray<drawbatch_t>& batches, Uint32&
 // @brief
 //
 //=============================================
-bool CBSPRenderer::DrawFirst( void ) 
+bool CBSPRenderer::Draw( void ) 
 {
 	Int32 rendermodeext;
 	if(m_pCvarLegacyTransparents->GetValue() >= 1)
@@ -3023,7 +3023,7 @@ bool CBSPRenderer::DrawBrushModel( cl_entity_t& entity, bool isstatic )
 	// Draw everything now if it's not a static pass
 	if(!isstatic)
 	{
-		if(!DrawFirst())
+		if(!Draw())
 			return false;
 	}
 

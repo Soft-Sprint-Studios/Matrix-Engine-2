@@ -3541,7 +3541,7 @@ void CVBMRenderer::CalculateFlexesSW( const vbmsubmodel_t* psubmodel )
 //
 //
 //=============================================
-bool CVBMRenderer::DrawFirst( void )
+bool CVBMRenderer::Draw( void )
 {
 	Int32 skinnum = m_pCurrentEntity->curstate.skin; // for short..
 	const Int16 *pskinref = m_pVBMHeader->getSkinFamilies();
@@ -5136,7 +5136,7 @@ bool CVBMRenderer::DrawNormalSubmodels( void )
 	if(!SetupRenderer())
 		return false;
 
-	if(!DrawFirst())
+	if(!Draw())
 		return false;
 
 	if(!RestoreRenderer())
@@ -5203,7 +5203,7 @@ bool CVBMRenderer::DrawFlexedSubmodels( void )
 		if(!SetupRenderer())
 			return false;
 
-		if(!DrawFirst())
+		if(!Draw())
 			return false;
 
 		if(!RestoreRenderer())

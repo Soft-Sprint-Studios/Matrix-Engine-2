@@ -517,8 +517,8 @@ private:
 	// Prepares for rendering an object
 	bool Prepare( void );
 
-	// Renders first render pass
-	bool DrawFirst( void );
+	// Renders render pass
+	bool Draw( void );
 
 	// Prepares for VSM rendering
 	void PrepareVSM( void );

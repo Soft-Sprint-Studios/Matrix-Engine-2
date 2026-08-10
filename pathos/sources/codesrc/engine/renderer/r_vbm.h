@@ -595,8 +595,8 @@ private:
 	// Retreives the model for rendering
 	bool SetModel( void );
 
-	// Draws first pass 
-	bool DrawFirst( void );
+	// Draws render pass 
+	bool Draw( void );
 	// Draws a mesh
 	bool DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, bool drawBlended );
 	// Draws in wireframe mode
