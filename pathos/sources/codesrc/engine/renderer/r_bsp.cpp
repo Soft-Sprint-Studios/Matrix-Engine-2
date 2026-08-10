@@ -355,7 +355,7 @@ bool CBSPRenderer::InitGL( void )
 			}
 		}
 
-		for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
+		for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
 		{
 			CString lightcolor;
 			lightcolor << "light_" << i << "_color";
@@ -1902,7 +1902,7 @@ bool CBSPRenderer::Prepare( void )
 	}
 
 	// Reset everything
-	for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
+	for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
 	{
 		m_pShader->DisableSync(m_attribs.lights[i].u_light_color);
 		m_pShader->DisableSync(m_attribs.lights[i].u_light_origin);
@@ -2089,13 +2089,13 @@ bool CBSPRenderer::DrawFirst( void )
 	}
 
 	// Gather up to 4 dynamic lights
-	cl_dlight_t* active_dlights[4] = { nullptr };
+	cl_dlight_t* active_dlights[MAX_DLIGHTS] = { nullptr };
 	Uint32 num_active_dlights = 0;
 	if(g_pCvarDynamicLights->GetValue() >= 1)
 	{
 		CLinkedList<cl_dlight_t*>& dlightlist = gDynamicLights.GetLightList();
 		dlightlist.begin();
-		while(!dlightlist.end() && num_active_dlights < 4)
+		while(!dlightlist.end() && num_active_dlights < MAX_DLIGHTS)
 		{
 			cl_dlight_t* dl = dlightlist.get();
 			if(DL_IsLightVisible(rns.view.frustum, dl->mins, dl->maxs, dl))
@@ -2281,7 +2281,7 @@ bool CBSPRenderer::DrawFirst( void )
 				return false;
 
 			// Bind dynamic lights
-			for (Uint32 l = 0; l < 4; l++)
+			for (Uint32 l = 0; l < MAX_DLIGHTS; l++)
 			{
 				if (l < num_active_dlights)
 				{

@@ -142,6 +142,7 @@ static constexpr Int32 NO_POSITION = -1;
 // Max floating point value
 static constexpr Float MAX_FLOAT_VALUE = 1e30f;
 // Maximum textures bound at once
+// OpenGL is 16 minimum, but nearly all gpus support 32
 static constexpr Uint32 MAX_BOUND_TEXTURES = 32;
 
 // Path to default footstep file for player

@@ -44,7 +44,7 @@ static constexpr Uint32 MAX_MODEL_LIGHTS = 2048;
 // Render pass id for main frame's render pass
 static constexpr Uint32 MAINFRAME_RENDERPASS_ID = 0;
 // Max lights in a single batch
-static constexpr Uint32 MAX_BATCH_LIGHTS = 4;
+static constexpr Uint32 MAX_DLIGHTS = 4;
 // Max active-load shaders per frame
 static constexpr Uint32 MAX_LIGHTMAP_PADDING = 8;
 

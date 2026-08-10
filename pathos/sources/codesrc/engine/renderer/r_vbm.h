@@ -413,7 +413,7 @@ struct vbm_attribs
 	Int32 u_interpolant;
 	Int32 u_d_cubemaps;
 
-	vbm_dlight_attribs_t dlights[MAX_BATCH_LIGHTS];
+	vbm_dlight_attribs_t dlights[MAX_DLIGHTS];
 };
 
 /*

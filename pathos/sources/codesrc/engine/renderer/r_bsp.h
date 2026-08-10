@@ -227,7 +227,7 @@ struct bsp_shader_attribs
 	Int32 u_causticstex2;
 	Int32 u_causticscolor;
 
-	light_attribs_t lights[MAX_BATCH_LIGHTS];
+	light_attribs_t lights[MAX_DLIGHTS];
 };
 
 struct bsp_vertex_t

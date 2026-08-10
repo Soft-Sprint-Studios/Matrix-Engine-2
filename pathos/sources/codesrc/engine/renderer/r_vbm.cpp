@@ -472,7 +472,7 @@ bool CVBMRenderer::InitGL( void )
 		m_pShader->DisableSync(m_attribs.u_modelmatrix);
 		m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
 
-		for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
+		for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
 		{
 			CString lightcolor;
 			lightcolor << "dlight_" << i << "_color";
@@ -3349,7 +3349,7 @@ bool CVBMRenderer::SetupRenderer( void )
 	m_pShader->DisableSync(m_attribs.u_causticsm2);
 	m_pShader->DisableSync(m_attribs.u_light_radius);
 
-	for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
+	for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
 	{
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_color);
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_origin);
@@ -3866,7 +3866,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		SetShaderBoneTransform(m_pWeightBoneTransform, pmesh->getBones(m_pVBMHeader), pmesh->numbones);
 
 	// Bind dynamic lights
-	Uint32 draw_dlights = (m_numDynamicLights > 4) ? 4 : m_numDynamicLights;
+	Uint32 draw_dlights = (m_numDynamicLights > MAX_DLIGHTS) ? MAX_DLIGHTS : m_numDynamicLights;
 	m_pShader->SetUniform1i(m_attribs.u_d_numdlights, draw_dlights);
 
 	for (Uint32 l = 0; l < draw_dlights; l++)
@@ -4018,7 +4018,7 @@ bool CVBMRenderer::DrawWireframe( void )
 	m_pShader->DisableSync(m_attribs.u_light_radius);
 	m_pShader->DisableSync(m_attribs.u_texture0);
 
-	for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
+	for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
 	{
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_color);
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_origin);
@@ -4838,7 +4838,7 @@ bool CVBMRenderer::DrawModelDecals( void )
 	m_pShader->DisableSync(m_attribs.u_sky_dir);
 	m_pShader->DisableSync(m_attribs.u_light_radius);
 
-	for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
+	for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
 	{
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_color);
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_origin);
@@ -5834,7 +5834,7 @@ bool CVBMRenderer::PrepareVSM( cl_dlight_t *dl )
 	m_pShader->EnableSync(m_attribs.u_texture0);
 	m_pShader->EnableSync(m_attribs.u_light_radius);
 
-	for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
+	for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
 	{
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_color);
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_origin);
@@ -6110,7 +6110,7 @@ bool CVBMRenderer::PrepAuraPass( void )
 	m_pShader->DisableSync(m_attribs.u_fogcolor);
 	m_pShader->DisableSync(m_attribs.u_fogparams);
 
-	for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
+	for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
 	{
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_color);
 		m_pShader->DisableSync(m_attribs.dlights[i].u_light_origin);
