@@ -151,7 +151,7 @@
       <ProgramDatabaseFile>.\Release/vbmcompiler.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>SDL2.lib;SDL2Main.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:\VS2022PROJECTS\Matrix-Engine-2\pathos\sources\codesrc\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
