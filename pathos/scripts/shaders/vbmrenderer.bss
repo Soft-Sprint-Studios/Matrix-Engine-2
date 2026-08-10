@@ -1004,7 +1004,7 @@ void main()
 			vec4 lightColor = (dlight_3_cone_size > 0.0) ? AddProjLight(dlight_3_radius, dlight_3_origin, dlight_3_color.xyz, ps_vertexpos, ps_dlight_3_vertexcoord, v_normal, dlight_3_projtexture, mrao, textureColor.rgb, dlight_3_cone_size, dlight_3_spotdirection, specLight) : AddPointLight(dlight_3_radius, dlight_3_origin, dlight_3_color.xyz, ps_vertexpos, ps_dlight_3_vertexcoord, v_normal, mrao, textureColor.rgb, specLight);
 			if( d_dlight3_shadow == 1 )
 			{
-				float shadowFactor = (dlight_3_cone_size > 0.0) ? GetProjLightShadowing(dlight_3_radius, dlight_3_origin, ps_vertexpos, ps_dlight_3_vertexcoord, dlight_3_shadowmap) : GetPointLightShadowing(dlight_3_radius, ps_dlight_3_vertexcoord, dlight_0_cubemap);
+				float shadowFactor = (dlight_3_cone_size > 0.0) ? GetProjLightShadowing(dlight_3_radius, dlight_3_origin, ps_vertexpos, ps_dlight_3_vertexcoord, dlight_3_shadowmap) : GetPointLightShadowing(dlight_3_radius, ps_dlight_3_vertexcoord, dlight_3_cubemap);
 				lightColor *= shadowFactor;
 				specLight *= shadowFactor;
 			}

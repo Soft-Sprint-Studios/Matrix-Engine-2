@@ -2088,45 +2088,6 @@ bool CBSPRenderer::DrawFirst( void )
 		m_pShader->SetUniform1fv(m_attribs.u_lightstyle_values, &((*m_pLightStyleValuesArray)[0]), 256);
 	}
 
-	if (rns.inwater && g_pCvarCaustics->GetValue() >= 1)
-	{
-		const water_settings_t* psettings = gWaterShader.GetActiveSettings();
-		if (psettings && !psettings->cheaprefraction && psettings->causticscale > 0 && psettings->causticstrength > 0 && !rns.objects.caustics_textures.empty())
-		{
-			GLfloat splane[4] = { static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f, 0.0f };
-			GLfloat tplane[4] = { 0.0f, static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f };
-
-			Float causticsTime = rns.time * 10.0f * psettings->causticstimescale;
-			Int32 causticsCurFrame = static_cast<Int32>(causticsTime) % rns.objects.caustics_textures.size();
-			Int32 causticsNextFrame = (causticsCurFrame + 1) % rns.objects.caustics_textures.size();
-			Float causticsInterp = causticsTime - static_cast<Int32>(causticsTime);
-
-			Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
-			R_Bind2DTexture(GL_TEXTURE0 + texUnit1, rns.objects.caustics_textures[causticsCurFrame]->palloc->gl_index);
-
-			Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
-			R_Bind2DTexture(GL_TEXTURE0 + texUnit2, rns.objects.caustics_textures[causticsNextFrame]->palloc->gl_index);
-
-			m_pShader->SetUniform4f(m_attribs.u_causticsm1, splane[0], splane[1], splane[2], splane[3]);
-			m_pShader->SetUniform4f(m_attribs.u_causticsm2, tplane[0], tplane[1], tplane[2], tplane[3]);
-			m_pShader->SetUniform1f(m_attribs.u_interpolant, causticsInterp);
-
-			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 
-				psettings->fogparams.color[0] * psettings->causticstrength,
-				psettings->fogparams.color[1] * psettings->causticstrength,
-				psettings->fogparams.color[2] * psettings->causticstrength,
-				1.0f);
-		}
-		else
-		{
-			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
-		}
-	}
-	else
-	{
-		m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
-	}
-
 	// Gather up to 4 dynamic lights
 	cl_dlight_t* active_dlights[4] = { nullptr };
 	Uint32 num_active_dlights = 0;
@@ -2888,6 +2849,45 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 		m_pShader->EnableAttribute(m_attribs.a_binormal);
 	else
 		m_pShader->DisableAttribute(m_attribs.a_binormal);
+
+	if (rns.inwater && g_pCvarCaustics->GetValue() >= 1)
+	{
+		const water_settings_t* psettings = gWaterShader.GetActiveSettings();
+		if (psettings && !psettings->cheaprefraction && psettings->causticscale > 0 && psettings->causticstrength > 0 && !rns.objects.caustics_textures.empty())
+		{
+			GLfloat splane[4] = { static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f, 0.0f };
+			GLfloat tplane[4] = { 0.0f, static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f };
+
+			Float causticsTime = rns.time * 10.0f * psettings->causticstimescale;
+			Int32 causticsCurFrame = static_cast<Int32>(causticsTime) % rns.objects.caustics_textures.size();
+			Int32 causticsNextFrame = (causticsCurFrame + 1) % rns.objects.caustics_textures.size();
+			Float causticsInterp = causticsTime - static_cast<Int32>(causticsTime);
+
+			Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
+			R_Bind2DTexture(GL_TEXTURE0 + texUnit1, rns.objects.caustics_textures[causticsCurFrame]->palloc->gl_index);
+
+			Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
+			R_Bind2DTexture(GL_TEXTURE0 + texUnit2, rns.objects.caustics_textures[causticsNextFrame]->palloc->gl_index);
+
+			m_pShader->SetUniform4f(m_attribs.u_causticsm1, splane[0], splane[1], splane[2], splane[3]);
+			m_pShader->SetUniform4f(m_attribs.u_causticsm2, tplane[0], tplane[1], tplane[2], tplane[3]);
+			m_pShader->SetUniform1f(m_attribs.u_interpolant, causticsInterp);
+
+			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 
+				psettings->fogparams.color[0] * psettings->causticstrength,
+				psettings->fogparams.color[1] * psettings->causticstrength,
+				psettings->fogparams.color[2] * psettings->causticstrength,
+				1.0f);
+		}
+		else
+		{
+			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+	}
+	else
+	{
+		m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
+	}
 
 	if(!m_pShader->VerifyDeterminators())
 		return false;
