@@ -228,8 +228,6 @@ $begin
 #version 130
 #extension GL_ARB_texture_rectangle : enable
 
-//Specular is treated as PBR MRAO map
-
 uniform sampler2D texture0;
 uniform sampler2D texture1;
 uniform sampler2DRect rectangle;
@@ -243,7 +241,7 @@ uniform float light_radius;
 uniform vec3 fogcolor;
 uniform vec2 fogparams;
 
-uniform sampler2D spectexture;
+uniform sampler2D mraotexture;
 uniform sampler2D lumtexture;
 uniform sampler2D normalmap;
 
@@ -305,7 +303,7 @@ uniform highp int d_dlight2_shadow;
 uniform highp int d_dlight3_shadow;
 
 uniform int d_num_lights;
-uniform int d_specular;
+uniform int d_mrao;
 uniform int d_luminance;
 
 uniform vec3 dlight_0_origin;
@@ -511,7 +509,7 @@ vec4 AddPointLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, 
 	outColor.xyz = kD * attn * l_color;
 	
 	specOut = vec3(0.0);
-	if(d_specular == 1)
+	if(d_mrao == 1)
 	{
 		// Add specular if any
 		specOut = CookTorranceSpecular(v_origin, v_normal, -dir, mrao.y, F0) * attn * l_color;
@@ -562,7 +560,7 @@ vec4 AddProjLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, v
 	outColor.xyz = kD * texColor.xyz * attn * l_color * dp * spotfactor;
 	
 	specOut = vec3(0.0);
-	if (d_specular == 1)
+	if (d_mrao == 1)
 	{
 		// Add specular if any
 		float lightStrength = ((texColor.x + texColor.y + texColor.z) / 3.0)*2.0;
@@ -605,7 +603,7 @@ vec4 AddModelLight( vec3 l_origin, vec3 l_color, float l_radius, vec3 v_origin, 
 	outColor.xyz = kD * l_color * attn * max(dp, 0.0);
 	
 	specOut = vec3(0.0);
-	if(d_specular == 1)
+	if(d_mrao == 1)
 	{
 		// Add specular if any
 		specOut = CookTorranceSpecular(v_origin, v_normal, -dir, mrao.y, F0) * attn * max(dp, 0.0) * l_color;
@@ -631,7 +629,7 @@ vec4 AddBaseLight( vec3 s_lightdir, vec3 s_ambient, vec3 s_diffuse, vec3 v_norma
 	outColor.xyz = kD * (s_ambient + (fldot * s_diffuse));
 	
 	specOut = vec3(0.0);
-	if (d_specular == 1)
+	if (d_mrao == 1)
 	{
 		specOut = CookTorranceSpecular(v_origin, v_normal, s_lightdir, mrao.y, F0) * s_diffuse;
 	}
@@ -822,9 +820,9 @@ void main()
 		finalColor.xyz += texture(lumtexture, ps_texcoord1).xyz;
 	
 	// Get the MRAO texture if needed
-	if (d_specular == 1 || d_cubemaps >= 1)
+	if (d_mrao == 1 || d_cubemaps >= 1)
 	{
-		mrao = texture(spectexture, ps_texcoord1).zyx;
+		mrao = texture(mraotexture, ps_texcoord1).zyx;
 	}
 	
 	// Build the TBN matrix if required

@@ -159,7 +159,7 @@ bool CWaterShader::InitGL( void )
 		m_attribs.d_fog = m_pShader->GetDeterminatorIndex("fog");
 		m_attribs.d_side = m_pShader->GetDeterminatorIndex("side");
 		m_attribs.d_rectrefract = m_pShader->GetDeterminatorIndex("rectrefract");
-		m_attribs.d_specular = m_pShader->GetDeterminatorIndex("specular");
+		m_attribs.d_mrao = m_pShader->GetDeterminatorIndex("mrao");
 		m_attribs.d_flowmap = m_pShader->GetDeterminatorIndex("flowmap");
 		m_attribs.d_lightonly = m_pShader->GetDeterminatorIndex("lightonly");
 		m_attribs.d_lightmap_bicubic = m_pShader->GetDeterminatorIndex("lightmap_bicubic");
@@ -167,7 +167,7 @@ bool CWaterShader::InitGL( void )
 		if(!R_CheckShaderDeterminator(m_attribs.d_fog, "fog", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_side, "side", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_rectrefract, "rectrefract", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderDeterminator(m_attribs.d_specular, "specular", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderDeterminator(m_attribs.d_mrao, "mrao", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_flowmap, "flowmap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_lightonly, "lightonly", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_lightmap_bicubic, "lightmap_bicubic", m_pShader, Sys_ErrorPopup))
@@ -2010,11 +2010,11 @@ bool CWaterShader::DrawWater( bool skybox )
 		m_pShader->SetUniform1i(m_attribs.u_lightmap, textureUnit);
 		R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_textures[BASE_LIGHTMAP_INDEX]->gl_index);
 
-		if(g_pCvarSpecular->GetValue() >= 1
+		if(g_pCvarMrao->GetValue() >= 1
 			&& m_pCurrentWater->plightmap_diffuse_textures[BASE_LIGHTMAP_INDEX] 
 			&& m_pCurrentWater->plightmap_lightvecs_textures[BASE_LIGHTMAP_INDEX])
 		{
-			result = m_pShader->SetDeterminator(m_attribs.d_specular, TRUE);
+			result = m_pShader->SetDeterminator(m_attribs.d_mrao, TRUE);
 			if(!result)
 				break;
 
@@ -2028,7 +2028,7 @@ bool CWaterShader::DrawWater( bool skybox )
 		}
 		else
 		{
-			result = m_pShader->SetDeterminator(m_attribs.d_specular, FALSE);
+			result = m_pShader->SetDeterminator(m_attribs.d_mrao, FALSE);
 			if(!result)
 				break;
 		}
@@ -2083,11 +2083,11 @@ bool CWaterShader::DrawWater( bool skybox )
 
 					m_pShader->SetUniform1f(m_attribs.u_stylestrength, styleStrength);
 
-					if(g_pCvarSpecular->GetValue() >= 1 
+					if(g_pCvarMrao->GetValue() >= 1 
 						&& m_pCurrentWater->plightmap_diffuse_textures[k] 
 						&& m_pCurrentWater->plightmap_lightvecs_textures[k])
 					{
-						result = m_pShader->SetDeterminator(m_attribs.d_specular, 1);
+						result = m_pShader->SetDeterminator(m_attribs.d_mrao, 1);
 						if(!result)
 							break;
 
@@ -2101,7 +2101,7 @@ bool CWaterShader::DrawWater( bool skybox )
 					}
 					else
 					{
-						result = m_pShader->SetDeterminator(m_attribs.d_specular, 0);
+						result = m_pShader->SetDeterminator(m_attribs.d_mrao, 0);
 						if(!result)
 							break;
 					}

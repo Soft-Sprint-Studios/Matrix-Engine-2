@@ -1,4 +1,4 @@
-$global_determinator specular 0 1
+$global_determinator mrao 0 1
 $global_determinator flowmap 0 1
 $shader_vertex $begin
 #version 130
@@ -26,7 +26,7 @@ $begin
     out vec2 ps_flowcoords;
 $end
 
-$branch specular == 1
+$branch mrao == 1
 $begin
 	out vec3 ps_tangent;
 	out vec3 ps_binormal;
@@ -46,7 +46,7 @@ void main()
         ps_flowcoords = in_texcoords;
     $end
 
-	$branch specular == 1
+	$branch mrao == 1
 	$begin
 		ps_tangent = (normalmatrix_v*vec4(in_tangent, 0.0)).xyz;
 		ps_binormal = (normalmatrix_v*vec4(in_binormal, 0.0)).xyz;
@@ -107,7 +107,7 @@ $begin
     in vec2 ps_flowcoords;
 $end
 
-$branch specular == 1
+$branch mrao == 1
 $begin
 	in vec3 ps_tangent;
 	in vec3 ps_binormal;
@@ -205,7 +205,7 @@ vec4 SampleLightmap(sampler2D tex, vec2 uv)
 	$end
 }
 
-$branch specular == 1
+$branch mrao == 1
 $begin
 float CalcShininess( vec3 v_origin, vec3 v_normal, vec3 l_origin )
 {
@@ -371,7 +371,7 @@ void main()
 			vec4 lightmapcolor = SampleLightmap(lightMap, ps_lightcoords);
 			finalColor = refractcolor + lightmapcolor * lightstrength;
 			
-			$branch specular == 1
+			$branch mrao == 1
 			$begin
 				vec3 vnormal_texture = normalize((normalmatrix*vec4(norm_combine, 0)).xyz);
 				finalColor += GetUnderwaterRefracton( ps_eyecoords, vnormal_texture );
@@ -404,7 +404,7 @@ void main()
 			vec4 lightmapcolor = SampleLightmap(lightMap, ps_lightcoords);
 			finalColor = combinedColor + lightmapcolor * lightstrength;
 			
-			$branch specular == 1
+			$branch mrao == 1
 			$begin
 				finalColor += GetLightmappedSpecular( ps_eyecoords, vnormal_texture );
 			$end
@@ -415,12 +415,12 @@ void main()
 		vec4 lightmapcolor = SampleLightmap(lightMap, ps_lightcoords);
 		finalColor = lightmapcolor * lightstrength * stylestrength;		
 	
-		$branch side == 0 && specular == 1
+		$branch side == 0 && mrao == 1
 		$begin
 			vec3 vnormal_texture = normalize((normalmatrix*vec4(norm_combine, 0)).xyz);
 			finalColor += GetUnderwaterRefracton( ps_eyecoords, vnormal_texture ) * stylestrength;
 		$end
-		$branch side == 1 && specular == 1
+		$branch side == 1 && mrao == 1
 		$begin
 			vec3 fresnel_normal = norm_combine * wavefresnelstrength + (1.0 - wavefresnelstrength)*vec3(0, 0, 1);
 			vec3 vnormal_texture = normalize((normalmatrix*vec4(fresnel_normal, 0)).xyz);

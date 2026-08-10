@@ -174,7 +174,7 @@ bool CBSPRenderer::InitGL( void )
 
 		m_attribs.u_d_fogtype = m_pShader->InitUniform("d_fogtype", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_bumpmapping = m_pShader->InitUniform("d_bumpmapping", CGLSLShader::UNIFORM_INT1);
-		m_attribs.u_d_specular = m_pShader->InitUniform("d_specular", CGLSLShader::UNIFORM_INT1);
+		m_attribs.u_d_mrao = m_pShader->InitUniform("d_mrao", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_cubemaps = m_pShader->InitUniform("d_cubemaps", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_luminance = m_pShader->InitUniform("d_luminance", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_numlights = m_pShader->InitUniform("d_numlights", CGLSLShader::UNIFORM_INT1);
@@ -182,7 +182,7 @@ bool CBSPRenderer::InitGL( void )
 
 		if(!R_CheckShaderUniform(m_attribs.u_d_fogtype, "d_fogtype", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_bumpmapping, "d_bumpmapping", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_d_specular, "d_specular", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_d_mrao, "d_mrao", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_luminance, "d_luminance", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_numlights, "d_numlights", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_lightmap_bicubic, "d_lightmap_bicubic", m_pShader, Sys_ErrorPopup)
@@ -274,8 +274,8 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_normalmap = m_pShader->InitUniform("normalmap", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_normalmap2 = m_pShader->InitUniform("normalmap2", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_luminance = m_pShader->InitUniform("luminance", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_specular = m_pShader->InitUniform("speculartex", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_specular2 = m_pShader->InitUniform("speculartex2", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_mrao = m_pShader->InitUniform("mraotex", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_mrao2 = m_pShader->InitUniform("mraotex2", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_color = m_pShader->InitUniform("color", CGLSLShader::UNIFORM_FLOAT4);
 		m_attribs.u_light_radius = m_pShader->InitUniform("light_radius", CGLSLShader::UNIFORM_FLOAT1);
 
@@ -320,8 +320,8 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_chrometex, "chrometex", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmap, "normalmap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmap2, "normalmap2", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_specular, "speculartex", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_specular2, "speculartex2", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_mrao, "mraotex", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_mrao2, "mraotex2", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_color, "color", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_light_radius, "light_radius", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_fogcolor, "fogcolor", m_pShader, Sys_ErrorPopup)
@@ -1879,7 +1879,7 @@ bool CBSPRenderer::Prepare( void )
 	}
 
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, false);
-	m_pShader->SetUniform1i(m_attribs.u_d_specular, false);
+	m_pShader->SetUniform1i(m_attribs.u_d_mrao, false);
 	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
 	m_pShader->SetUniform1i(m_attribs.u_d_lightmap_bicubic, g_pCvarBicubicLightmaps->GetValue() > 0 ? 1 : 0);
@@ -2153,7 +2153,7 @@ bool CBSPRenderer::Draw( void )
 
 			// Make sure these are disabled
 			m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
-			m_pShader->SetUniform1i(m_attribs.u_d_specular, FALSE);
+			m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 			m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 
@@ -2504,7 +2504,7 @@ bool CBSPRenderer::Draw( void )
 
 			m_pShader->SetUniform4f(m_attribs.u_color, 1.0, 1.0, 1.0, 1.0);
 			m_pShader->SetUniform1i(m_attribs.u_d_fogtype, fog_none);
-			m_pShader->SetUniform1i(m_attribs.u_d_specular, FALSE);
+			m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 			m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 			m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
@@ -2547,7 +2547,7 @@ bool CBSPRenderer::Draw( void )
 	m_pShader->DisableAttribute(m_attribs.a_tangent);
 	m_pShader->DisableAttribute(m_attribs.a_binormal);
 
-	m_pShader->SetUniform1i(m_attribs.u_d_specular, FALSE);
+	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, FALSE);
 
 	// Make sure this gets disabled
@@ -2617,7 +2617,7 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 	bool enableNormal = false;
 	bool enableTangent = false;
 	bool enableBinormal = false;
-	bool specularTexBound = false;
+	bool mraoTexBound = false;
 	bool normalTexBound = false;
 
 	// Reset this to 0
@@ -2652,32 +2652,32 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 
 		normalTexBound = true;
 		
-		en_texture_t* pspecular = pmaterial->ptextures[MT_TX_MRAO];
-		en_texture_t* pspecular2 = pmaterial->ptextures[MT_TX_MRAO2];
-		if(pspecular && g_pCvarSpecular->GetValue() > 0)
+		en_texture_t* pmrao = pmaterial->ptextures[MT_TX_MRAO];
+		en_texture_t* pmrao2 = pmaterial->ptextures[MT_TX_MRAO2];
+		if(pmrao && g_pCvarMrao->GetValue() > 0)
 		{
-			m_pShader->SetUniform1i(m_attribs.u_d_specular, TRUE);
+			m_pShader->SetUniform1i(m_attribs.u_d_mrao, TRUE);
 			enableNormal = enableBinormal = enableTangent = true;
 
-			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_specular);
-			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pspecular->palloc->gl_index);
-			specularTexBound = true;
+			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_mrao);
+			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmrao->palloc->gl_index);
+			mraoTexBound = true;
 		}
 		else
 		{
-			m_pShader->SetUniform1i(m_attribs.u_d_specular, FALSE);
+			m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 		}
 
 		if (pmaterial->ptextures[MT_TX_MRAO2])
 		{
-			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_specular2);
-			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pspecular2->palloc->gl_index);
+			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_mrao2);
+			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmrao2->palloc->gl_index);
 		}
 	}
 	else
 	{
 		m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
-		m_pShader->SetUniform1i(m_attribs.u_d_specular, FALSE);
+		m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 		
 		for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
 		{
@@ -2785,15 +2785,15 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_NORMALMAP2]->palloc->gl_index);
 		}
 
-		if(!specularTexBound)
+		if(!mraoTexBound)
 		{
-			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_specular);
+			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_mrao);
 			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
 		}
 
 		if (pmaterial->ptextures[MT_TX_MRAO2])
 		{
-			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_specular2);
+			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_mrao2);
 			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_MRAO2]->palloc->gl_index);
 		}
 

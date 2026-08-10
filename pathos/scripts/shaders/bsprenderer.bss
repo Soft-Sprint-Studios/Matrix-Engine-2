@@ -37,7 +37,7 @@ uniform vec4 caustics_m2;
 // Determinators turned into uniforms
 uniform highp int d_fogtype;
 uniform highp int d_bumpmapping;
-uniform highp int d_specular;
+uniform highp int d_mrao;
 uniform highp int d_cubemaps;
 uniform highp int d_luminance;
 uniform highp int d_numlights;
@@ -114,7 +114,7 @@ void main()
 		ps_texcoord = (centered_texcoord * decalscale) + vec2(0.5, 0.5);
 	$end	
 	
-	if(d_specular == 1)
+	if(d_mrao == 1)
 	{
 		ps_tangent = (normalmatrix*vec4(in_tangent, 0.0)).xyz;
 		ps_binormal = (normalmatrix*vec4(in_binormal, 0.0)).xyz;
@@ -177,8 +177,6 @@ $shader_fragment $begin
 #version 130
 #define M_PI 3.14159265358979323846264338327950288
 
-//Specular is treated as PBR MRAO map
-
 uniform samplerCube cubemap;
 uniform samplerCube cubemap_prev;
 uniform float u_lightstyle_values[256];
@@ -189,7 +187,7 @@ uniform sampler2D maintexture;
 uniform sampler2D detailtex;
 uniform sampler2D chrometex;
 uniform sampler2D normalmap;
-uniform sampler2D speculartex;
+uniform sampler2D mraotex;
 uniform sampler2D luminance;
 
 uniform sampler2D causticstex1;
@@ -200,7 +198,7 @@ $branch blended == 1
 $begin
 uniform sampler2D maintexture2;
 uniform sampler2D normalmap2;
-uniform sampler2D speculartex2;
+uniform sampler2D mraotex2;
 $end
 
 uniform vec3 light_0_origin;
@@ -262,7 +260,7 @@ uniform vec4 color;
 // Determinators turned into uniforms
 uniform highp int d_fogtype;
 uniform highp int d_bumpmapping;
-uniform highp int d_specular;
+uniform highp int d_mrao;
 uniform highp int d_cubemaps;
 uniform highp int d_luminance;
 uniform highp int d_numlights;
@@ -329,10 +327,10 @@ vec3 GetNormalMapSample()
 
 vec4 GetMRAOSample()
 {
-	vec4 mrao1 = texture(speculartex, ps_texcoord);
+	vec4 mrao1 = texture(mraotex, ps_texcoord);
 	$branch blended == 1
 	$begin
-		vec4 mrao2 = texture(speculartex2, ps_texcoord);
+		vec4 mrao2 = texture(mraotex2, ps_texcoord);
 		return mix(mrao1, mrao2, ps_alpha);
 	$end
 	$branch blended == 0
@@ -490,7 +488,7 @@ vec4 AddPointLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, 
 	outColor.xyz = kD * attn * l_color;
 	
 	specOut = vec3(0.0);
-	if (d_specular == 1)
+	if (d_mrao == 1)
 	{
 		specOut = CookTorranceSpecular(v_origin, v_normal, -dir, mrao.y, F0) * attn * l_color;
 	}
@@ -539,7 +537,7 @@ vec4 AddProjLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, v
 	outColor.xyz = kD * texColor.xyz * attn * l_color * dp * spotfactor;
 	
 	specOut = vec3(0.0);
-	if(d_specular == 1)
+	if(d_mrao == 1)
 	{
 		float lightStrength = (texColor.x + texColor.y + texColor.z) / 3.0;
 		specOut = CookTorranceSpecular(v_origin, v_normal, -dir, mrao.y, F0) * attn * dp * lightStrength * spotfactor * l_color;
@@ -833,7 +831,7 @@ vec4 EvaluateExtraLightstyleLayers( vec3 v_normal, vec3 v_origin, vec3 mrao, vec
 				vec4 diff = GetDiffuseLightLayer(difflightmap[i], ps_lmapcoord[i]);
 				extraColor += AddBaseLightLayer(baselightmap[i], diff, dir, v_normal, ps_lmapcoord[i]) * styleVal;
 
-				if (d_specular == 1)
+				if (d_mrao == 1)
 				{
 					vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(dir[0], -dir[1], dir[2]));
 					vec3 F0 = mix(vec3(0.04), albedoColor, mrao.x);
@@ -860,7 +858,7 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao )
 	vec3 extraSpecular = vec3(0.0);
 	finalColor += EvaluateExtraLightstyleLayers(v_normal, v_origin, mrao, albedoColor, tbnMatrix, extraSpecular);
 
-	if (d_specular == 1)
+	if (d_mrao == 1)
 	{
 		vec3 eyeSpaceNormal = normalize(tbnMatrix * v_normal);
 		vec3 F0 = mix(vec3(0.04), albedoColor, mrao.x);
@@ -993,7 +991,7 @@ void main()
 	vec3 mrao = vec3(0.0, 1.0, 1.0);
 	vec4 finalColor = vec4(0, 0, 0, 0);
 
-	if( d_specular == 1 || d_cubemaps >= 1 )
+	if( d_mrao == 1 || d_cubemaps >= 1 )
 	{
 		mrao = GetMRAOSample().zyx;
 	}

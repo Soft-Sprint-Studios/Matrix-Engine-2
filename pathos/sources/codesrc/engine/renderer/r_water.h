@@ -189,7 +189,7 @@ struct water_attribs
 		d_side(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_fog(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_rectrefract(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_specular(CGLSLShader::PROPERTY_UNAVAILABLE),
+		d_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_flowmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_lightonly(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_lightmap_bicubic(CGLSLShader::PROPERTY_UNAVAILABLE)
@@ -234,7 +234,7 @@ struct water_attribs
 	Int32 d_side;
 	Int32 d_fog;
 	Int32 d_rectrefract;
-	Int32 d_specular;
+	Int32 d_mrao;
 	Int32 d_flowmap;
 	Int32 d_lightonly;
 	Int32 d_lightmap_bicubic;
@@ -265,10 +265,6 @@ public:
 	};
 
 public:
-	// Default phong exponent value
-	static const Float DEFAULT_PHONG_EXPONENT;
-	// Default phong exponent value
-	static const Float DEFAULT_SPECULAR_FACTOR;
 	// Water shader default normalmap texture path
 	static const Char WATER_DEFAULT_NORMALMAP_PATH[];
 	// Script base path

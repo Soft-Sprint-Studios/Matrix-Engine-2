@@ -87,7 +87,7 @@ struct bsp_shader_attribs
 		d_blended(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_fogtype(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_specular(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_d_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_cubemaps(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -129,8 +129,8 @@ struct bsp_shader_attribs
 		u_normalmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmap2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_specular(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_specular2(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_mrao2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_color(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_light_radius(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogcolor(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -154,7 +154,7 @@ struct bsp_shader_attribs
 
 	Int32 u_d_fogtype;
 	Int32 u_d_bumpmapping;
-	Int32 u_d_specular;
+	Int32 u_d_mrao;
 	Int32 u_d_cubemaps;
 	Int32 u_d_luminance;
 	Int32 u_d_numlights;
@@ -215,8 +215,8 @@ struct bsp_shader_attribs
 	Int32 u_luminance;
 	Int32 u_difflightmap[MAX_SURFACE_STYLES];
 	Int32 u_lightvecstex[MAX_SURFACE_STYLES];
-	Int32 u_specular;
-	Int32 u_specular2;
+	Int32 u_mrao;
+	Int32 u_mrao2;
 	Int32 u_color;
 	Int32 u_light_radius;
 
