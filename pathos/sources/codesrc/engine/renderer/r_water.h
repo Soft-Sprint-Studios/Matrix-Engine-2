@@ -104,10 +104,8 @@ struct water_settings_t
 		timescale(0),
 		texscale(0),
 		lightstrength(0),
-		specularstrength(0),
 		wavefresnelstrength(0),
 		flowmapspeed(0),
-		phongexponent(0),
 		refractonly(false),
 		cheaprefraction(false),
 		pnormalmap(nullptr),
@@ -125,10 +123,8 @@ struct water_settings_t
 	Float timescale;
 	Float texscale;
 	Float lightstrength;
-	Float specularstrength;
 	Float wavefresnelstrength;
 	Float flowmapspeed;
-	Float phongexponent;
 	bool refractonly;
 	bool cheaprefraction;
 	
@@ -185,8 +181,6 @@ struct water_attribs
 		u_texscale(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_rectscale(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_lightstrength(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_specularstrength(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_phongexponent(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_wavefresnelstrength(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_modelview(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_projection(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -230,8 +224,6 @@ struct water_attribs
 	Int32 u_texscale;
 	Int32 u_rectscale;
 	Int32 u_lightstrength;
-	Int32 u_specularstrength;
-	Int32 u_phongexponent;
 	Int32 u_wavefresnelstrength;
 	Int32 u_flowspeed;
 	Int32 u_stylestrength;

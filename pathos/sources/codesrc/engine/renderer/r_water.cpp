@@ -35,11 +35,6 @@ All Rights Reserved.
 #include "r_lightstyles.h"
 #include "modelcache.h"
 
-// Default phong exponent value
-const Float CWaterShader::DEFAULT_PHONG_EXPONENT = 16.0f;
-// Default phong exponent value
-const Float CWaterShader::DEFAULT_SPECULAR_FACTOR = 2.0;
-
 // Water shader default normalmap texture path
 const Char CWaterShader::WATER_DEFAULT_NORMALMAP_PATH[] = "general/watershader.tga";
 // Script base path
@@ -187,10 +182,8 @@ bool CWaterShader::InitGL( void )
 		m_attribs.u_texscale = m_pShader->InitUniform("texscale", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_rectscale = m_pShader->InitUniform("rectscale", CGLSLShader::UNIFORM_FLOAT2);
 		m_attribs.u_lightstrength = m_pShader->InitUniform("lightstrength", CGLSLShader::UNIFORM_FLOAT1);
-		m_attribs.u_specularstrength = m_pShader->InitUniform("specularstrength", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_wavefresnelstrength = m_pShader->InitUniform("wavefresnelstrength", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_flowspeed = m_pShader->InitUniform("flowSpeed", CGLSLShader::UNIFORM_FLOAT1);
-		m_attribs.u_phongexponent = m_pShader->InitUniform("phongexponent", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_normalmatrix = m_pShader->InitUniform("normalmatrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_normalmatrix_v = m_pShader->InitUniform("normalmatrix_v", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_normalmap = m_pShader->InitUniform("normalMap", CGLSLShader::UNIFORM_SAMPLER2D);
@@ -214,10 +207,8 @@ bool CWaterShader::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_texscale, "texscale", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_rectscale, "rectscale", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_lightstrength, "lightstrength", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_specularstrength, "specularstrength", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_wavefresnelstrength, "wavefresnelstrength", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_flowspeed, "flowSpeed", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_phongexponent, "phongexponent", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmatrix, "normalmatrix", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmatrix_v, "normalmatrix_v", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmap, "normalMap", m_pShader, Sys_ErrorPopup)
@@ -647,8 +638,6 @@ void CWaterShader::ParseScript( const Char* pstrFilename, water_settings_t *pset
 		// Set defaults
 		psettings->wavefresnelstrength = 1.0;
 		psettings->lightstrength = 0.2;
-		psettings->phongexponent = DEFAULT_PHONG_EXPONENT;
-		psettings->specularstrength = DEFAULT_SPECULAR_FACTOR;
 
 		if(!qstrcmp(szField, "fresnel"))
 			psettings->fresnel = atof(szValue);
@@ -670,10 +659,6 @@ void CWaterShader::ParseScript( const Char* pstrFilename, water_settings_t *pset
 			psettings->causticstimescale = atof(szValue);
 		else if(!qstrcmp(szField, "lightstrength"))
 			psettings->lightstrength = atof(szValue);
-		else if(!qstrcmp(szField, "specularstrength"))
-			psettings->specularstrength = atof(szValue);
-		else if(!qstrcmp(szField, "phongexponent"))
-			psettings->phongexponent = atof(szValue);
 		else if(!qstrcmp(szField, "wavefresnelstrength"))
 			psettings->wavefresnelstrength = atof(szValue);
 		else if(!qstrcmp(szField, "scrollu"))
@@ -869,8 +854,6 @@ void CWaterShader::LoadScripts( void )
 			pSettings->refractonly = false;
 			pSettings->cheaprefraction = false;
 			pSettings->lightstrength = 0.2;
-			pSettings->specularstrength = DEFAULT_SPECULAR_FACTOR;
-			pSettings->phongexponent = DEFAULT_PHONG_EXPONENT;
 			pSettings->wavefresnelstrength = 1.0;
 			pSettings->flowmapspeed = 1.0;
 
@@ -1942,8 +1925,6 @@ bool CWaterShader::DrawWater( bool skybox )
 		m_pShader->SetUniform1f(m_attribs.u_time, rns.time*psettings->timescale);
 		m_pShader->SetUniform2f(m_attribs.u_scroll, psettings->scrollu*rns.time, psettings->scrollv*rns.time);
 		m_pShader->SetUniform1f(m_attribs.u_lightstrength, psettings->lightstrength);
-		m_pShader->SetUniform1f(m_attribs.u_specularstrength, psettings->specularstrength);
-		m_pShader->SetUniform1f(m_attribs.u_phongexponent, psettings->phongexponent);
 		m_pShader->SetUniform1f(m_attribs.u_wavefresnelstrength, psettings->wavefresnelstrength);
 		m_pShader->SetUniform1f(m_attribs.u_flowspeed, psettings->flowmapspeed);
 
@@ -2029,7 +2010,7 @@ bool CWaterShader::DrawWater( bool skybox )
 		m_pShader->SetUniform1i(m_attribs.u_lightmap, textureUnit);
 		R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_textures[BASE_LIGHTMAP_INDEX]->gl_index);
 
-		if(g_pCvarSpecular->GetValue() >= 1 && psettings->specularstrength 
+		if(g_pCvarSpecular->GetValue() >= 1
 			&& m_pCurrentWater->plightmap_diffuse_textures[BASE_LIGHTMAP_INDEX] 
 			&& m_pCurrentWater->plightmap_lightvecs_textures[BASE_LIGHTMAP_INDEX])
 		{
@@ -2102,7 +2083,7 @@ bool CWaterShader::DrawWater( bool skybox )
 
 					m_pShader->SetUniform1f(m_attribs.u_stylestrength, styleStrength);
 
-					if(g_pCvarSpecular->GetValue() >= 1 && psettings->specularstrength 
+					if(g_pCvarSpecular->GetValue() >= 1 
 						&& m_pCurrentWater->plightmap_diffuse_textures[k] 
 						&& m_pCurrentWater->plightmap_lightvecs_textures[k])
 					{

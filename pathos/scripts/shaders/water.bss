@@ -71,6 +71,8 @@ $begin
 #version 130
 #extension GL_ARB_texture_rectangle : enable
 
+#define M_PI 3.14159265358979323846264338327950288
+
 uniform sampler2D normalMap;
 uniform sampler2D lightMap;
 uniform sampler2D refractMap;
@@ -89,8 +91,6 @@ uniform float fresnel;
 uniform float time;
 uniform float strength;
 uniform float lightstrength;
-uniform float specularstrength;
-uniform float phongexponent;
 uniform float wavefresnelstrength;
 uniform float flowSpeed;
 uniform float stylestrength;
@@ -213,77 +213,120 @@ float CalcShininess( vec3 v_origin, vec3 v_normal, vec3 l_origin )
 	return max(dot(halfVec, v_normal), 0.0);
 }
 
-float CalcSpecular( vec3 v_origin, vec3 v_normal, vec3 lightDir, float specularStrength )
+float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
-	// Eye vector (towards the camera)
-	// All coordinates are in eye space
-	vec3 eyeVec = normalize( -v_origin );
-	
-	// Halfway vector between eye vector and light source (pointing to light)
-	vec3 halfVec = normalize( -lightDir + eyeVec );
-	
-	// Cosine of the angle between the normal and the halfway vector
-	float cosAlpha = clamp( dot( v_normal, halfVec ), 0.0, 1.0 );
-	
-	// Currently specular color is light color times two
-	return pow( cosAlpha, phongexponent ) * specularStrength;
+	float a = roughness * roughness;
+	float a2 = a * a;
+	float NdotH = max(dot(N, H), 0.0);
+	float NdotH2 = NdotH * NdotH;
+
+	float nom = a2;
+	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+	denom = M_PI * denom * denom;
+
+	return nom / denom;
 }
 
-float CalcRefractSpecular( vec3 v_origin, vec3 v_normal, vec3 lightDir, float specularStrength )
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+	float r = roughness + 1.0;
+	float k = (r * r) / 8.0;
+
+	float nom = NdotV;
+	float denom = NdotV * (1.0 - k) + k;
+
+	return nom / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+	float NdotV = max(dot(N, V), 0.0);
+	float NdotL = max(dot(N, L), 0.0);
+	float ggx1 = GeometrySchlickGGX(NdotV, roughness);
+	float ggx2 = GeometrySchlickGGX(NdotL, roughness);
+
+	return ggx1 * ggx2;
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+	return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+vec3 CookTorranceSpecular( vec3 v_origin, vec3 v_normal, vec3 lightDir, float roughness, vec3 F0 )
 {
 	// Eye vector (towards the camera)
 	// All coordinates are in eye space
 	vec3 eyeVec = normalize( -v_origin );
+	
+	// Light vector (surface to light source)
+	vec3 lightVec = normalize( -lightDir );
+	
+	// Halfway vector between eye vector and light source (pointing to light)
+	vec3 halfVec = normalize( lightVec + eyeVec );
+	
+	float NDF = DistributionGGX(v_normal, halfVec, roughness);
+	float G = GeometrySmith(v_normal, eyeVec, lightVec, roughness);
+	vec3 F = FresnelSchlick(clamp(dot(halfVec, eyeVec), 0.0, 1.0), F0);
+	
+	// Cosine of the angle between the normal and the halfway vector
+	float NdotV = max(dot(v_normal, eyeVec), 0.0);
+	float NdotL = max(dot(v_normal, lightVec), 0.0);
+	
+	float denom = 4.0 * NdotV * NdotL + 0.0001;
+	
+	return (NDF * G * F) / denom;
+}
+
+vec4 GetLightmappedSpecular( vec3 v_origin, vec3 v_normal )
+{
+	// Get light vector from lightmap
+	vec3 lightDir = (2.0 * SampleLightmap(lightvecsMap, ps_lightcoords).xyz) - 1.0;
+	lightDir = normalize(lightDir);
+
+	// Get diffuse light component
+	vec4 lightDiffuse = SampleLightmap(diffuseMap, ps_lightcoords);
+	
+	// Add specular if any
+	mat3 tbnMatrix = mat3(ps_tangent, ps_binormal, ps_normal);
+	vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(lightDir[0], -lightDir[1], lightDir[2]));
+	
+	float shineFactor = CalcShininess(normalize(v_origin), v_normal, eyeSpaceDir);
+	
+	// Dielectric water surface (smooth roughness ~0.05, dielectric F0 ~0.02)
+	vec3 specularValue = CookTorranceSpecular(v_origin, v_normal, -eyeSpaceDir, 0.1, vec3(0.02));
+	
+	// Currently specular color is light color times two
+	vec4 finalColor = vec4(specularValue, 1.0) * lightDiffuse * shineFactor;
+	return finalColor;
+}
+
+vec4 GetUnderwaterRefracton( vec3 v_origin, vec3 v_normal )
+{
+	// Get light vector from lightmap
+	vec3 lightDir = (2.0 * SampleLightmap(lightvecsMap, ps_lightcoords).xyz) - 1.0;
+	lightDir = normalize(lightDir);
+
+	// Get diffuse light component
+	vec4 lightDiffuse = SampleLightmap(diffuseMap, ps_lightcoords);
+	
+	// Add specular if any
+	mat3 tbnMatrix = mat3(ps_tangent, ps_binormal, ps_normal);
+	vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(lightDir[0], -lightDir[1], lightDir[2]));
 	
 	// Cosine of the angle between the Eye vector and the Reflect vector,
 	// clamped to 0
 	//  - Looking into the reflection -> 1
 	//  - Looking elsewhere -> < 1
-	float cosAlpha = clamp( dot( eyeVec, lightDir ), 0,1 );	
+	float shineFactor = CalcShininess(normalize(v_origin), v_normal, eyeSpaceDir);
+	vec3 specularValue = CookTorranceSpecular(v_origin, v_normal, -eyeSpaceDir, 0.1, vec3(0.02));
 	
 	// Currently specular color is light color times two
-	return pow( cosAlpha, phongexponent ) * specularStrength;
-}
-
-vec4 GetLightmappedSpecular( vec3 v_origin, vec3 v_normal, float specularStrength )
-{
-	// Get light vector from lightmap
-	vec3 lightDir = (2.0 * SampleLightmap(lightvecsMap, ps_lightcoords).xyz) - 1.0;
-	lightDir = normalize(lightDir);
-
-	// Get diffuse light component
-	vec4 lightDiffuse = SampleLightmap(diffuseMap, ps_lightcoords);
-	
-	// Add specular if any
-	mat3 tbnMatrix = mat3(ps_tangent, ps_binormal, ps_normal);
-	vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(lightDir[0], -lightDir[1], lightDir[2]));
-	
-	float shineFactor = CalcShininess(normalize(v_origin), v_normal, eyeSpaceDir);
-	float specularValue = CalcSpecular(v_origin, v_normal, -eyeSpaceDir, specularStrength);
-	
-	vec4 finalColor = specularValue * lightDiffuse * shineFactor;
-	return finalColor;
-}
-vec4 GetUnderwaterRefracton( vec3 v_origin, vec3 v_normal, float specularStrength )
-{
-	// Get light vector from lightmap
-	vec3 lightDir = (2.0 * SampleLightmap(lightvecsMap, ps_lightcoords).xyz) - 1.0;
-	lightDir = normalize(lightDir);
-
-	// Get diffuse light component
-	vec4 lightDiffuse = SampleLightmap(diffuseMap, ps_lightcoords);
-	
-	// Add specular if any
-	mat3 tbnMatrix = mat3(ps_tangent, ps_binormal, ps_normal);
-	vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(lightDir[0], -lightDir[1], lightDir[2]));
-	
-	float shineFactor = CalcShininess(normalize(v_origin), v_normal, eyeSpaceDir);
-	float specularValue = CalcRefractSpecular(v_origin, v_normal, -eyeSpaceDir, specularStrength);
-	
-	vec4 finalColor = specularValue * lightDiffuse * shineFactor;
+	vec4 finalColor = vec4(specularValue, 1.0) * lightDiffuse * shineFactor;
 	return finalColor;
 }
 $end
+
 void main()
 {
 	vec4 finalColor;
@@ -331,7 +374,7 @@ void main()
 			$branch specular == 1
 			$begin
 				vec3 vnormal_texture = normalize((normalmatrix*vec4(norm_combine, 0)).xyz);
-				finalColor += GetUnderwaterRefracton( ps_eyecoords, vnormal_texture, specularstrength );
+				finalColor += GetUnderwaterRefracton( ps_eyecoords, vnormal_texture );
 			$end
 		$end
 		$branch side == 1
@@ -363,7 +406,7 @@ void main()
 			
 			$branch specular == 1
 			$begin
-				finalColor += GetLightmappedSpecular( ps_eyecoords, vnormal_texture, specularstrength );
+				finalColor += GetLightmappedSpecular( ps_eyecoords, vnormal_texture );
 			$end
 		$end
 	$end
@@ -375,13 +418,13 @@ void main()
 		$branch side == 0 && specular == 1
 		$begin
 			vec3 vnormal_texture = normalize((normalmatrix*vec4(norm_combine, 0)).xyz);
-			finalColor += GetUnderwaterRefracton( ps_eyecoords, vnormal_texture, specularstrength ) * stylestrength;
+			finalColor += GetUnderwaterRefracton( ps_eyecoords, vnormal_texture ) * stylestrength;
 		$end
 		$branch side == 1 && specular == 1
 		$begin
 			vec3 fresnel_normal = norm_combine * wavefresnelstrength + (1.0 - wavefresnelstrength)*vec3(0, 0, 1);
 			vec3 vnormal_texture = normalize((normalmatrix*vec4(fresnel_normal, 0)).xyz);
-			finalColor += GetLightmappedSpecular( ps_eyecoords, vnormal_texture, specularstrength ) * stylestrength;
+			finalColor += GetLightmappedSpecular( ps_eyecoords, vnormal_texture ) * stylestrength;
 		$end
 	$end
 	
