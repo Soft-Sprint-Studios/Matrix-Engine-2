@@ -43,7 +43,7 @@ static constexpr Float NEAR_CLIP_DISTANCE = 4.0f;
 static constexpr Uint32 MAX_MODEL_LIGHTS = 2048;
 // Render pass id for main frame's render pass
 static constexpr Uint32 MAINFRAME_RENDERPASS_ID = 0;
-// Max lights in a single batch
+// Max dynamic lights
 static constexpr Uint32 MAX_DLIGHTS = 4;
 // Max active-load shaders per frame
 static constexpr Uint32 MAX_LIGHTMAP_PADDING = 8;
