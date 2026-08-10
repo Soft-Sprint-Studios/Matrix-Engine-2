@@ -2923,7 +2923,7 @@ void CGLSLShader :: ShiftOverlappingSamplers( void )
 		}
 
 		// Set unit for this sampler
-		SetUniform1i(i, shiftedIndex);
+		SetUniform1i(i, bindIndex);
 	}
 
 	m_recheckSamplerUniforms = false;

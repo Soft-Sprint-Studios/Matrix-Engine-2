@@ -3819,6 +3819,9 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		m_pShader->SetUniform2f(m_attribs.u_scroll, 0, 0);
 	}
 
+	Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
+	Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
+
 	if (rns.inwater && g_pCvarCaustics->GetValue() >= 1)
 	{
 		const water_settings_t* psettings = gWaterShader.GetActiveSettings();
@@ -3832,10 +3835,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 			Int32 causticsNextFrame = (causticsCurFrame + 1) % rns.objects.caustics_textures.size();
 			Float causticsInterp = causticsTime - static_cast<Int32>(causticsTime);
 
-			Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
 			R_Bind2DTexture(GL_TEXTURE0 + texUnit1, rns.objects.caustics_textures[causticsCurFrame]->palloc->gl_index);
-
-			Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
 			R_Bind2DTexture(GL_TEXTURE0 + texUnit2, rns.objects.caustics_textures[causticsNextFrame]->palloc->gl_index);
 
 			m_pShader->SetUniform4f(m_attribs.u_causticsm1, splane[0], splane[1], splane[2], splane[3]);
@@ -3869,7 +3869,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 	Uint32 draw_dlights = (m_numDynamicLights > 4) ? 4 : m_numDynamicLights;
 	m_pShader->SetUniform1i(m_attribs.u_d_numdlights, draw_dlights);
 
-	for(Uint32 l = 0; l < draw_dlights; l++)
+	for (Uint32 l = 0; l < draw_dlights; l++)
 	{
 		cl_dlight_t* pdlight = m_pDynamicLights[l];
 
@@ -3894,7 +3894,11 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		m_pShader->SetUniform3f(m_attribs.dlights[l].u_light_origin, vtransorigin[0], vtransorigin[1], vtransorigin[2]);
 		m_pShader->SetUniform1f(m_attribs.dlights[l].u_light_radius, pdlight->radius);
 
-		if(pdlight->cone_size)
+		Uint32 projUnit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_projtexture);
+		Uint32 shadowUnit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_shadowmap);
+		Uint32 cubeUnit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_cubemap);
+
+		if (pdlight->cone_size > 0.0f)
 		{
 			Vector vforward, vtarget;
 			Vector angles = pdlight->angles;
@@ -3903,27 +3907,31 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 			Math::VectorMA(pdlight->origin, pdlight->radius, vforward, vtarget);
 
 			Int32 ltexIndex = pdlight->textureindex;
-			if(ltexIndex >= rns.objects.projective_textures.size()) ltexIndex = 0;
+			if (ltexIndex >= rns.objects.projective_textures.size())
+			{
+				ltexIndex = 0;
+			}
 
-			Int32 texunit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_projtexture);
-			R_Bind2DTexture(GL_TEXTURE0 + texunit, rns.objects.projective_textures[ltexIndex]->palloc->gl_index);
+			R_Bind2DTexture(GL_TEXTURE0 + projUnit, rns.objects.projective_textures[ltexIndex]->palloc->gl_index);
 
-			if(DL_CanShadow(pdlight))
+			if (DL_CanShadow(pdlight))
 			{
 				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, TRUE);
-				texunit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_shadowmap);
-				R_Bind2DTexture(GL_TEXTURE0 + texunit, pdlight->getProjShadowMap()->pfbo->ptexture1->gl_index);
+				R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, pdlight->getProjShadowMap()->pfbo->ptexture1->gl_index);
 			}
 			else
 			{
 				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, FALSE);
+				R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
 			}
+
+			R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, 0);
 
 			CMatrix matrix;
 			matrix.LoadIdentity();
 			matrix.Translate(0.5, 0.5, 0.5);
 			matrix.Scale(0.5, 0.5, 1.0);
-			Float flsize = tan((M_PI/360) * pdlight->cone_size);
+			Float flsize = tan((M_PI / 360) * pdlight->cone_size);
 			matrix.SetFrustum(-flsize, flsize, -flsize, flsize, 1, pdlight->radius);
 			matrix.LookAt(pdlight->origin[0], pdlight->origin[1], pdlight->origin[2], vtarget[0], vtarget[1], vtarget[2], 0, 0, Common::IsPitchReversed(angles[PITCH]) ? -1 : 1);
 
@@ -3937,11 +3945,13 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		else
 		{
 			m_pShader->SetUniform1f(m_attribs.dlights[l].u_light_cone_size, 0.0f);
-			if(DL_CanShadow(pdlight))
+			R_Bind2DTexture(GL_TEXTURE0 + projUnit, 0);
+			R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
+
+			if (DL_CanShadow(pdlight))
 			{
 				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, TRUE);
-				Int32 texunit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_cubemap);
-				R_BindCubemapTexture(GL_TEXTURE0 + texunit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
+				R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
 				glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 				CMatrix matrix;
@@ -3954,6 +3964,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 			else
 			{
 				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, FALSE);
+				R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, 0);
 			}
 		}
 	}

@@ -2308,7 +2308,11 @@ bool CBSPRenderer::DrawFirst( void )
 					m_pShader->SetUniform3f(m_attribs.lights[l].u_light_origin, vtransorigin[0], vtransorigin[1], vtransorigin[2]);
 					m_pShader->SetUniform1f(m_attribs.lights[l].u_light_radius, pdlight->radius);
 
-					if (pdlight->cone_size)
+					Uint32 projUnit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_projtexture);
+					Uint32 shadowUnit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_shadowmap);
+					Uint32 cubeUnit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_cubemap);
+
+					if (pdlight->cone_size > 0.0f)
 					{
 						Vector vforward, vtarget;
 						Vector angles = pdlight->angles;
@@ -2317,25 +2321,25 @@ bool CBSPRenderer::DrawFirst( void )
 						Math::VectorMA(pdlight->origin, pdlight->radius, vforward, vtarget);
 
 						Int32 textureIndex = pdlight->textureindex;
-						if (textureIndex >= rns.objects.projective_textures.size()) textureIndex = 0;
+						if (textureIndex >= rns.objects.projective_textures.size())
+						{
+							textureIndex = 0;
+						}
 
-						Int32 texunit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_projtexture);
-						R_Bind2DTexture(GL_TEXTURE0 + texunit, rns.objects.projective_textures[textureIndex]->palloc->gl_index);
+						R_Bind2DTexture(GL_TEXTURE0 + projUnit, rns.objects.projective_textures[textureIndex]->palloc->gl_index);
 
 						if (DL_CanShadow(pdlight))
 						{
 							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, TRUE);
-							texunit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_shadowmap);
-							R_Bind2DTexture(GL_TEXTURE0 + texunit, pdlight->getProjShadowMap()->pfbo->ptexture1->gl_index);
+							R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, pdlight->getProjShadowMap()->pfbo->ptexture1->gl_index);
 						}
 						else
 						{
 							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
-							m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
+							R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
 						}
 
-						// Direct unused cubemap sampler to valid cubemap unit
-						m_pShader->SetUniform1i(m_attribs.lights[l].u_light_cubemap, 6);
+						R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, 0);
 
 						CMatrix matrix;
 						matrix.LoadIdentity();
@@ -2354,17 +2358,14 @@ bool CBSPRenderer::DrawFirst( void )
 					}
 					else
 					{
-						// Point light: Reset 2D samplers to 0 so they don't leak previous spotlight texture units
 						m_pShader->SetUniform1f(m_attribs.lights[l].u_light_cone_size, 0.0f);
-						m_pShader->SetUniform1i(m_attribs.lights[l].u_light_projtexture, 0);
+						R_Bind2DTexture(GL_TEXTURE0 + projUnit, 0);
+						R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
 
 						if (DL_CanShadow(pdlight))
 						{
 							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, TRUE);
-							m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
-
-							Int32 texunit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_cubemap);
-							R_BindCubemapTexture(GL_TEXTURE0 + texunit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
+							R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
 							glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 							CMatrix matrix;
@@ -2377,14 +2378,12 @@ bool CBSPRenderer::DrawFirst( void )
 						else
 						{
 							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
-							m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
-							m_pShader->SetUniform1i(m_attribs.lights[l].u_light_cubemap, 6);
+							R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, 0);
 						}
 					}
 				}
 				else
 				{
-					// Inactive light slot: Reset all samplers
 					m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
 					m_pShader->SetUniform1i(m_attribs.lights[l].u_light_projtexture, 0);
 					m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
@@ -2850,6 +2849,9 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 	else
 		m_pShader->DisableAttribute(m_attribs.a_binormal);
 
+	Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
+	Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
+
 	if (rns.inwater && g_pCvarCaustics->GetValue() >= 1)
 	{
 		const water_settings_t* psettings = gWaterShader.GetActiveSettings();
@@ -2863,10 +2865,7 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 			Int32 causticsNextFrame = (causticsCurFrame + 1) % rns.objects.caustics_textures.size();
 			Float causticsInterp = causticsTime - static_cast<Int32>(causticsTime);
 
-			Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
 			R_Bind2DTexture(GL_TEXTURE0 + texUnit1, rns.objects.caustics_textures[causticsCurFrame]->palloc->gl_index);
-
-			Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
 			R_Bind2DTexture(GL_TEXTURE0 + texUnit2, rns.objects.caustics_textures[causticsNextFrame]->palloc->gl_index);
 
 			m_pShader->SetUniform4f(m_attribs.u_causticsm1, splane[0], splane[1], splane[2], splane[3]);
