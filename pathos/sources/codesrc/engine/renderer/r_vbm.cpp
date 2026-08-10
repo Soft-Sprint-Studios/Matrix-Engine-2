@@ -3766,6 +3766,99 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 	if(pmesh->numbones)
 		SetShaderBoneTransform(m_pWeightBoneTransform, pmesh->getBones(m_pVBMHeader), pmesh->numbones);
 
+	// Bind dynamic lights
+	Uint32 draw_dlights = (m_numDynamicLights > 4) ? 4 : m_numDynamicLights;
+	m_pShader->SetUniform1i(m_attribs.u_d_numdlights, draw_dlights);
+
+	for(Uint32 l = 0; l < draw_dlights; l++)
+	{
+		cl_dlight_t* pdlight = m_pDynamicLights[l];
+
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_color);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_origin);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_radius);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_cubemap);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_projtexture);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_shadowmap);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_matrix);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_cone_size);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_spotdirection);
+
+		Vector vtransorigin;
+		Math::MatMultPosition(rns.view.modelview.Transpose(), pdlight->origin, &vtransorigin);
+
+		Vector lcolor;
+		Math::VectorCopy(pdlight->color, lcolor);
+		gLightStyles.ApplyLightStyle(pdlight, lcolor);
+
+		m_pShader->SetUniform4f(m_attribs.dlights[l].u_light_color, lcolor[0], lcolor[1], lcolor[2], 1.0);
+		m_pShader->SetUniform3f(m_attribs.dlights[l].u_light_origin, vtransorigin[0], vtransorigin[1], vtransorigin[2]);
+		m_pShader->SetUniform1f(m_attribs.dlights[l].u_light_radius, pdlight->radius);
+
+		if(pdlight->cone_size)
+		{
+			Vector vforward, vtarget;
+			Vector angles = pdlight->angles;
+			Common::FixVector(angles);
+			Math::AngleVectors(angles, &vforward, nullptr, nullptr);
+			Math::VectorMA(pdlight->origin, pdlight->radius, vforward, vtarget);
+
+			Int32 ltexIndex = pdlight->textureindex;
+			if(ltexIndex >= rns.objects.projective_textures.size()) ltexIndex = 0;
+
+			Int32 texunit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_projtexture);
+			R_Bind2DTexture(GL_TEXTURE0 + texunit, rns.objects.projective_textures[ltexIndex]->palloc->gl_index);
+
+			if(DL_CanShadow(pdlight))
+			{
+				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, TRUE);
+				texunit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_shadowmap);
+				R_Bind2DTexture(GL_TEXTURE0 + texunit, pdlight->getProjShadowMap()->pfbo->ptexture1->gl_index);
+			}
+			else
+			{
+				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, FALSE);
+			}
+
+			CMatrix matrix;
+			matrix.LoadIdentity();
+			matrix.Translate(0.5, 0.5, 0.5);
+			matrix.Scale(0.5, 0.5, 1.0);
+			Float flsize = tan((M_PI/360) * pdlight->cone_size);
+			matrix.SetFrustum(-flsize, flsize, -flsize, flsize, 1, pdlight->radius);
+			matrix.LookAt(pdlight->origin[0], pdlight->origin[1], pdlight->origin[2], vtarget[0], vtarget[1], vtarget[2], 0, 0, Common::IsPitchReversed(angles[PITCH]) ? -1 : 1);
+
+			m_pShader->SetUniformMatrix4fv(m_attribs.dlights[l].u_light_matrix, matrix.Transpose());
+			m_pShader->SetUniform1f(m_attribs.dlights[l].u_light_cone_size, pdlight->cone_size);
+
+			Vector transdirection;
+			Math::MatMult(rns.view.modelview.Transpose(), vforward, &transdirection);
+			m_pShader->SetUniform3f(m_attribs.dlights[l].u_light_spotdirection, transdirection[0], transdirection[1], transdirection[2]);
+		}
+		else
+		{
+			m_pShader->SetUniform1f(m_attribs.dlights[l].u_light_cone_size, 0.0f);
+			if(DL_CanShadow(pdlight))
+			{
+				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, TRUE);
+				Int32 texunit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_cubemap);
+				R_BindCubemapTexture(GL_TEXTURE0 + texunit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
+				glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+				CMatrix matrix;
+				matrix.LoadIdentity();
+				matrix.Rotate(-90, 1, 0, 0);
+				matrix.Rotate(90, 0, 0, 1);
+				matrix.Translate(-pdlight->origin[0], -pdlight->origin[1], -pdlight->origin[2]);
+				m_pShader->SetUniformMatrix4fv(m_attribs.dlights[l].u_light_matrix, matrix.GetMatrix(), true);
+			}
+			else
+			{
+				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, FALSE);
+			}
+		}
+	}
+
 	if(pmaterial->flags & TX_FL_NO_CULLING)
 		glDisable(GL_CULL_FACE);
 

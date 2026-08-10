@@ -48,6 +48,8 @@ const Char* CTextureManager::TEXTURE_FORMAT_EXTENSIONS[] =
 //=============================================
 CTextureManager::CTextureManager( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, const CGLExtF& glExtF, bool onlyMaterials ):
 	m_pDummyTexture(nullptr),
+	m_pDefaultNormalTexture(nullptr),
+	m_pDefaultMRAOTexture(nullptr),
 	m_pDummyMaterial(nullptr),
 	m_currentAnisotropySetting(0),
 	m_currentAnisotropyValue(ANISOTROPY_OFF_VALUE),
@@ -385,7 +387,11 @@ void CTextureManager::DeleteTextures( rs_level_t level, bool keepentry )
 	}
 
 	if(level == RS_WINDOW_LEVEL && !keepentry)
+	{
 		m_pDummyTexture = nullptr;
+		m_pDefaultNormalTexture = nullptr;
+		m_pDefaultMRAOTexture = nullptr;
+	}
 
 	// Delete any non-texture file binds
 	DeleteBinds(level);
@@ -540,6 +546,75 @@ void CTextureManager::CreateDummyTexture( void )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	// Create Default Normal
+	pdata = new byte[dataSize];
+	pdest = pdata;
+	for(Uint32 i = 0; i < dummyTextureSize * dummyTextureSize; i++)
+	{
+		*pdest++ = 128;
+		*pdest++ = 128;
+		*pdest++ = 255;
+		*pdest++ = 255;
+	}
+
+	HashResourceTypeKey_t normKey("default_normal", RS_WINDOW_LEVEL);
+	if(!m_pDefaultNormalTexture)
+	{
+		m_pDefaultNormalTexture = AllocTexture(normKey);
+		m_pDefaultNormalTexture->filepath = "default_normal";
+		m_pDefaultNormalTexture->bpp = 4;
+		m_pDefaultNormalTexture->width = dummyTextureSize;
+		m_pDefaultNormalTexture->height = dummyTextureSize;
+		m_pDefaultNormalTexture->level = RS_WINDOW_LEVEL;
+	}
+
+	m_pDefaultNormalTexture->palloc = GenTextureIndex(m_pDefaultNormalTexture->level);
+	m_pDefaultNormalTexture->needsload = false;
+
+	// Bind it in OpenGL
+	glBindTexture(GL_TEXTURE_2D, m_pDefaultNormalTexture->palloc->gl_index);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_pDefaultNormalTexture->width, m_pDefaultNormalTexture->height, FALSE, GL_RGBA, GL_UNSIGNED_BYTE, pdata);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	delete[] pdata;
+
+	// Create Default MRAO Texture
+	pdata = new byte[dataSize];
+	pdest = pdata;
+	for(Uint32 i = 0; i < dummyTextureSize * dummyTextureSize; i++)
+	{
+		*pdest++ = 255;
+		*pdest++ = 255;
+		*pdest++ = 0;
+		*pdest++ = 255;
+	}
+
+	HashResourceTypeKey_t mraoKey("default_mrao", RS_WINDOW_LEVEL);
+	if(!m_pDefaultMRAOTexture)
+	{
+		m_pDefaultMRAOTexture = AllocTexture(mraoKey);
+		m_pDefaultMRAOTexture->filepath = "default_mrao";
+		m_pDefaultMRAOTexture->bpp = 4;
+		m_pDefaultMRAOTexture->width = dummyTextureSize;
+		m_pDefaultMRAOTexture->height = dummyTextureSize;
+		m_pDefaultMRAOTexture->level = RS_WINDOW_LEVEL;
+	}
+
+	m_pDefaultMRAOTexture->palloc = GenTextureIndex(m_pDefaultMRAOTexture->level);
+	m_pDefaultMRAOTexture->needsload = false;
+
+	// Bind it in OpenGL
+	glBindTexture(GL_TEXTURE_2D, m_pDefaultMRAOTexture->palloc->gl_index);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_pDefaultMRAOTexture->width, m_pDefaultMRAOTexture->height, FALSE, GL_RGBA, GL_UNSIGNED_BYTE, pdata);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -975,6 +1050,12 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 
 	if(!pmaterial->ptextures[MT_TX_DIFFUSE] && pmaterial->containername.empty())
 		pmaterial->ptextures[MT_TX_DIFFUSE] = GetDummyTexture();
+
+	if(!pmaterial->ptextures[MT_TX_NORMALMAP])
+		pmaterial->ptextures[MT_TX_NORMALMAP] = GetDefaultNormalTexture();
+
+	if(!pmaterial->ptextures[MT_TX_MRAO])
+		pmaterial->ptextures[MT_TX_MRAO] = GetDefaultMRAOTexture();
 
 	// Add it to the index list
 	m_materialsIndexPtrArray.push_back(pmaterial);

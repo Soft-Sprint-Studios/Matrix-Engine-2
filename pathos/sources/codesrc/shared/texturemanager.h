@@ -102,6 +102,10 @@ public:
 	en_texalloc_t* GenTextureIndex( rs_level_t level );
 	// Returns the dummy texture pointer
 	en_texture_t* GetDummyTexture( void ) { return m_pDummyTexture; };
+	// Returns the default normal texture pointer
+	en_texture_t* GetDefaultNormalTexture( void ) { return m_pDefaultNormalTexture; };
+	// Returns the default MRAO texture pointer
+	en_texture_t* GetDefaultMRAOTexture( void ) { return m_pDefaultMRAOTexture; };
 	// Returns the dummy material pointer
 	en_material_t* GetDummyMaterial( void ) { return m_pDummyMaterial; };
 
@@ -164,7 +168,11 @@ private:
 
 	// Dummy texture's pointer
 	en_texture_t* m_pDummyTexture;
-	// Dummy texture's pointer
+	// Default normal texture pointer
+	en_texture_t* m_pDefaultNormalTexture;
+	// Default MRAO texture pointer
+	en_texture_t* m_pDefaultMRAOTexture;
+	// Dummy material's pointer
 	en_material_t* m_pDummyMaterial;
 
 	// Valid anisotropy values

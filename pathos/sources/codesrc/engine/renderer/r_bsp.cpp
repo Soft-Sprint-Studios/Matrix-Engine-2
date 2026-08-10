@@ -2005,6 +2005,27 @@ bool CBSPRenderer::DrawFirst( void )
 
 	m_pShader->SetUniform2f(m_attribs.u_uvoffset, 0, 0);
 
+	// Gather up to 4 dynamic lights
+	cl_dlight_t* active_dlights[4] = { nullptr };
+	Uint32 num_active_dlights = 0;
+	if(g_pCvarDynamicLights->GetValue() >= 1)
+	{
+		CLinkedList<cl_dlight_t*>& dlightlist = gDynamicLights.GetLightList();
+		dlightlist.begin();
+		while(!dlightlist.end() && num_active_dlights < 4)
+		{
+			cl_dlight_t* dl = dlightlist.get();
+			if(DL_IsLightVisible(rns.view.frustum, dl->mins, dl->maxs, dl))
+			{
+				active_dlights[num_active_dlights] = dl;
+				num_active_dlights++;
+			}
+			dlightlist.next();
+		}
+	}
+
+	m_pShader->SetUniform1i(m_attribs.u_d_numlights, num_active_dlights);
+
 	// Render normal ones first
 	for(Uint32 i = 0; i < m_texturesArray.size(); i++)
 	{
@@ -2160,6 +2181,118 @@ bool CBSPRenderer::DrawFirst( void )
 			// Set up binds
 			if(!BindTextures(ptexturehandle, pcubemapinfo, pprevcubemapinfo, cubemapUnit, alphaToCoverageEnabled))
 				return false;
+
+			// Bind dynamic lights
+			for (Uint32 l = 0; l < 4; l++)
+			{
+				if (l < num_active_dlights)
+				{
+					cl_dlight_t* pdlight = active_dlights[l];
+
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_color);
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_origin);
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_radius);
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_cubemap);
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_projtexture);
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_shadowmap);
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_matrix);
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_cone_size);
+					m_pShader->EnableSync(m_attribs.lights[l].u_light_spotdirection);
+
+					Vector vtransorigin;
+					Math::MatMultPosition(rns.view.modelview.Transpose(), pdlight->origin, &vtransorigin);
+
+					Vector color;
+					Math::VectorCopy(pdlight->color, color);
+					gLightStyles.ApplyLightStyle(pdlight, color);
+
+					m_pShader->SetUniform4f(m_attribs.lights[l].u_light_color, color[0], color[1], color[2], 1.0);
+					m_pShader->SetUniform3f(m_attribs.lights[l].u_light_origin, vtransorigin[0], vtransorigin[1], vtransorigin[2]);
+					m_pShader->SetUniform1f(m_attribs.lights[l].u_light_radius, pdlight->radius);
+
+					if (pdlight->cone_size)
+					{
+						Vector vforward, vtarget;
+						Vector angles = pdlight->angles;
+						Common::FixVector(angles);
+						Math::AngleVectors(angles, &vforward, nullptr, nullptr);
+						Math::VectorMA(pdlight->origin, pdlight->radius, vforward, vtarget);
+
+						Int32 textureIndex = pdlight->textureindex;
+						if (textureIndex >= rns.objects.projective_textures.size()) textureIndex = 0;
+
+						Int32 texunit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_projtexture);
+						R_Bind2DTexture(GL_TEXTURE0 + texunit, rns.objects.projective_textures[textureIndex]->palloc->gl_index);
+
+						if (DL_CanShadow(pdlight))
+						{
+							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, TRUE);
+							texunit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_shadowmap);
+							R_Bind2DTexture(GL_TEXTURE0 + texunit, pdlight->getProjShadowMap()->pfbo->ptexture1->gl_index);
+						}
+						else
+						{
+							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
+							m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
+						}
+
+						// Direct unused cubemap sampler to valid cubemap unit
+						m_pShader->SetUniform1i(m_attribs.lights[l].u_light_cubemap, 6);
+
+						CMatrix matrix;
+						matrix.LoadIdentity();
+						matrix.Translate(0.5, 0.5, 0.5);
+						matrix.Scale(0.5, 0.5, 1.0);
+						Float flsize = tan((M_PI / 360) * pdlight->cone_size);
+						matrix.SetFrustum(-flsize, flsize, -flsize, flsize, 1, pdlight->radius);
+						matrix.LookAt(pdlight->origin[0], pdlight->origin[1], pdlight->origin[2], vtarget[0], vtarget[1], vtarget[2], 0, 0, Common::IsPitchReversed(angles[PITCH]) ? -1 : 1);
+
+						m_pShader->SetUniformMatrix4fv(m_attribs.lights[l].u_light_matrix, matrix.Transpose());
+						m_pShader->SetUniform1f(m_attribs.lights[l].u_light_cone_size, pdlight->cone_size);
+
+						Vector transdirection;
+						Math::MatMult(rns.view.modelview.Transpose(), vforward, &transdirection);
+						m_pShader->SetUniform3f(m_attribs.lights[l].u_light_spotdirection, transdirection[0], transdirection[1], transdirection[2]);
+					}
+					else
+					{
+						// Point light: Reset 2D samplers to 0 so they don't leak previous spotlight texture units
+						m_pShader->SetUniform1f(m_attribs.lights[l].u_light_cone_size, 0.0f);
+						m_pShader->SetUniform1i(m_attribs.lights[l].u_light_projtexture, 0);
+
+						if (DL_CanShadow(pdlight))
+						{
+							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, TRUE);
+							m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
+
+							Int32 texunit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_cubemap);
+							R_BindCubemapTexture(GL_TEXTURE0 + texunit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
+							glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+							CMatrix matrix;
+							matrix.LoadIdentity();
+							matrix.Rotate(-90, 1, 0, 0);
+							matrix.Rotate(90, 0, 0, 1);
+							matrix.Translate(-pdlight->origin[0], -pdlight->origin[1], -pdlight->origin[2]);
+							m_pShader->SetUniformMatrix4fv(m_attribs.lights[l].u_light_matrix, matrix.GetMatrix(), true);
+						}
+						else
+						{
+							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
+							m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
+							m_pShader->SetUniform1i(m_attribs.lights[l].u_light_cubemap, 6);
+						}
+					}
+				}
+				else
+				{
+					// Inactive light slot: Reset all samplers
+					m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
+					m_pShader->SetUniform1i(m_attribs.lights[l].u_light_projtexture, 0);
+					m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
+					m_pShader->SetUniform1i(m_attribs.lights[l].u_light_cubemap, 6);
+				}
+			}
 
 			// Reset cubemap bind
 			if(pcubemapinfo && g_pCvarCubemaps->GetValue() > 0)
@@ -3920,6 +4053,9 @@ bool CBSPRenderer::DrawDecals( bool transparents )
 {
 	if(m_staticDecalsArray.empty() && m_decalsList.empty())
 		return true;
+
+	if(!m_pShader->SetDeterminator(m_attribs.d_blended, 0, false))
+		return false;
 
 	if(rns.fog.settings.active)
 	{

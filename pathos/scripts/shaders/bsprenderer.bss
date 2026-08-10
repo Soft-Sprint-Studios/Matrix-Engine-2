@@ -12,6 +12,12 @@ uniform mat4 modelview;
 uniform mat4 modelmatrix;
 uniform highp mat4 inv_modelmatrix;
 
+// lighting
+uniform mat4 light_0_matrix;
+uniform mat4 light_1_matrix;
+uniform mat4 light_2_matrix;
+uniform mat4 light_3_matrix;
+
 uniform mat4 normalmatrix;
 
 // chrome
@@ -30,6 +36,11 @@ uniform highp int d_bumpmapping;
 uniform highp int d_specular;
 uniform highp int d_cubemaps;
 uniform highp int d_luminance;
+uniform highp int d_numlights;
+uniform highp int d_light0_shadowmap;
+uniform highp int d_light1_shadowmap;
+uniform highp int d_light2_shadowmap;
+uniform highp int d_light3_shadowmap;
 
 in vec4 in_position;
 in vec3 in_normal;
@@ -49,6 +60,11 @@ out vec2 ps_chromecoord;
 out vec3 ps_tangent;
 out vec3 ps_binormal;
 out vec3 ps_normal;
+
+out vec4 ps_light_0_vertexcoord; // projection space
+out vec4 ps_light_1_vertexcoord; // projection space
+out vec4 ps_light_2_vertexcoord; // projection space
+out vec4 ps_light_3_vertexcoord; // projection space
 
 out float ps_fogcoord; // static fogcoord
 out float ps_alpha;
@@ -131,6 +147,15 @@ void main()
 		ps_chromecoord.y = (n*0.5) + 0.5;
 	$end
 	
+	if (d_numlights >= 1)
+		ps_light_0_vertexcoord = light_0_matrix * in_position;
+	if (d_numlights >= 2)
+		ps_light_1_vertexcoord = light_1_matrix * in_position;
+	if (d_numlights >= 3)
+		ps_light_2_vertexcoord = light_2_matrix * in_position;
+	if (d_numlights >= 4)
+		ps_light_3_vertexcoord = light_3_matrix * in_position;
+	
 	gl_Position = position*projection;
 }
 $end
@@ -159,6 +184,42 @@ uniform sampler2D normalmap2;
 uniform sampler2D speculartex2;
 $end
 
+uniform vec3 light_0_origin;
+uniform float light_0_radius;
+uniform vec4 light_0_color;
+uniform sampler2D light_0_projtexture;
+uniform float light_0_cone_size;
+uniform vec3 light_0_spotdirection;
+uniform samplerCube light_0_cubemap;
+uniform sampler2D light_0_shadowmap;
+
+uniform vec3 light_1_origin;
+uniform float light_1_radius;
+uniform vec4 light_1_color;
+uniform sampler2D light_1_projtexture;
+uniform float light_1_cone_size;
+uniform vec3 light_1_spotdirection;
+uniform samplerCube light_1_cubemap;
+uniform sampler2D light_1_shadowmap;
+
+uniform vec3 light_2_origin;
+uniform float light_2_radius;
+uniform vec4 light_2_color;
+uniform sampler2D light_2_projtexture;
+uniform float light_2_cone_size;
+uniform vec3 light_2_spotdirection;
+uniform samplerCube light_2_cubemap;
+uniform sampler2D light_2_shadowmap;
+
+uniform vec3 light_3_origin;
+uniform float light_3_radius;
+uniform vec4 light_3_color;
+uniform sampler2D light_3_projtexture;
+uniform float light_3_cone_size;
+uniform vec3 light_3_spotdirection;
+uniform samplerCube light_3_cubemap;
+uniform sampler2D light_3_shadowmap;
+
 uniform float interpolant;
 uniform float cubemapstrength;
 
@@ -185,6 +246,11 @@ uniform highp int d_bumpmapping;
 uniform highp int d_specular;
 uniform highp int d_cubemaps;
 uniform highp int d_luminance;
+uniform highp int d_numlights;
+uniform highp int d_light0_shadowmap;
+uniform highp int d_light1_shadowmap;
+uniform highp int d_light2_shadowmap;
+uniform highp int d_light3_shadowmap;
 uniform highp int d_lightmap_bicubic;
 
 in vec2 ps_lmapcoord;
@@ -194,6 +260,11 @@ in vec2 ps_chromecoord;
 in vec3 ps_normal;
 in vec3 ps_tangent;
 in vec3 ps_binormal;
+
+in vec4 ps_light_0_vertexcoord; // projection space
+in vec4 ps_light_1_vertexcoord; // projection space
+in vec4 ps_light_2_vertexcoord; // projection space
+in vec4 ps_light_3_vertexcoord; // projection space
 
 in float ps_fogcoord; // static fogcoord
 in float ps_alpha;
@@ -335,6 +406,151 @@ vec4 EncodeDepth( vec3 v_origin, float l_radius )
 	finalColor.zw = fracval;
 	
 	return finalColor;
+}
+
+float LinearStep(float in1, float in2, float pmax)  
+{  
+	float value = (pmax-in1)/(in2-in1);
+	return clamp(value, 0.0, 1.0);
+}
+
+float ReduceLightBleeding(float p_max, float Amount)  
+{    
+	return LinearStep(Amount, 1, p_max);  
+}
+
+float DepthTestCube( float depthcoord, samplerCube shadowmap, vec3 coord )
+{
+	vec4 momments = texture(shadowmap, coord);
+	momments.xy = momments.xy+momments.zw/32;
+	float diff = depthcoord-momments.x;
+	float sgn = max(sign(diff), 0);
+	float variance = momments.y-(momments.x*momments.x);
+	variance = max(variance, 0.00005);
+	float d = depthcoord-momments.x;
+	float p_max = variance/(variance+d*d);
+	return p_max*sgn+(1.0-sgn);
+}
+
+float DepthTestProj( float depthcoord, sampler2D shadowmap, vec4 coord )
+{
+	vec4 momments = textureProj(shadowmap, coord);
+	momments.xy = momments.xy+momments.zw/32;
+	float diff = depthcoord-momments.x;
+	float sgn = max(sign(diff), 0);
+	float variance = momments.y-(momments.x*momments.x);
+	variance = max(variance, 0.00005);
+	float d = depthcoord-momments.x;
+	float p_max = variance/(variance+d*d);
+	return p_max*sgn+(1.0-sgn);
+}
+
+vec4 AddPointLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, vec3 v_normal, vec3 mrao, vec3 albedo, out vec3 specOut )
+{
+	float rad = l_radius * l_radius;
+	vec3 dir = l_origin - v_origin;
+	
+	float dist = dot(dir, dir);
+	float attn = (dist/rad-1.0)*-1.0;
+	
+	dir = normalize(dir);
+	attn = clamp(attn, 0.0, 1.0);
+	
+	float dp = dot(dir, v_normal);
+	attn = max(dp, 0.0)*attn;
+	
+	vec3 eyeVec = normalize(-v_origin);
+	vec3 halfVec = normalize(dir + eyeVec);
+	vec3 F0 = mix(vec3(0.04), albedo, mrao.x);
+	vec3 F = FresnelSchlick(clamp(dot(halfVec, eyeVec), 0.0, 1.0), F0);
+	vec3 kD = ((vec3(1.0) - F) * (1.0 - mrao.x)) / M_PI;
+
+	vec4 outColor;
+	outColor.xyz = kD * attn * l_color;
+	
+	specOut = vec3(0.0);
+	if (d_specular == 1)
+	{
+		specOut = CookTorranceSpecular(v_origin, v_normal, -dir, mrao.y, F0) * attn * l_color;
+	}
+	
+	outColor.w = 0.0;
+	return outColor;
+}
+
+float GetPointLightShadowing( float l_radius, vec4 v_coord, samplerCube l_shadowmap )
+{
+	float fldistance = clamp((length(v_coord.xyz)/l_radius), 0.0, 1.0);
+	float flresult = DepthTestCube(fldistance, l_shadowmap, normalize(v_coord.xyz));
+	return ReduceLightBleeding(flresult, 0.4);
+}
+
+vec4 AddProjLight( float l_radius, vec3 l_origin, vec3 l_color, vec3 v_origin, vec4 v_coord, vec3 v_normal, sampler2D l_texture, vec3 mrao, vec3 albedo, float l_cone_size, vec3 l_spotdirection, out vec3 specOut )
+{
+	float rad = l_radius*l_radius;
+	vec3 dir = l_origin-v_origin;
+	
+	float dist = dot(dir, dir);
+	float attn = (dist/rad-1.0)*-1.0;
+	attn = clamp(attn, 0.0, 1.0);
+	
+	dir = normalize(dir);
+	float dp = max(dot(dir, v_normal), 0.0);
+	
+	vec4 texclamp = max(v_coord, 0.0);
+	vec4 texColor = textureProj(l_texture, texclamp);
+	
+	float spotcos = cos((l_cone_size*2.0)*0.3*(M_PI*2.0/360.0));
+	
+	vec3 spotdirection = normalize(l_spotdirection);
+	float spotatten = -dot(spotdirection, dir);
+	
+	spotatten = max(spotatten, spotcos);
+	float spotfactor = (spotatten - spotcos)/(1.0 - spotcos);
+	
+	vec3 eyeVec = normalize(-v_origin);
+	vec3 halfVec = normalize(dir + eyeVec);
+	vec3 F0 = mix(vec3(0.04), albedo, mrao.x);
+	vec3 F = FresnelSchlick(clamp(dot(halfVec, eyeVec), 0.0, 1.0), F0);
+	vec3 kD = ((vec3(1.0) - F) * (1.0 - mrao.x)) / M_PI;
+
+	vec4 outColor;
+	outColor.xyz = kD * texColor.xyz * attn * l_color * dp * spotfactor;
+	
+	specOut = vec3(0.0);
+	if(d_specular == 1)
+	{
+		float lightStrength = (texColor.x + texColor.y + texColor.z) / 3.0;
+		specOut = CookTorranceSpecular(v_origin, v_normal, -dir, mrao.y, F0) * attn * dp * lightStrength * spotfactor * l_color;
+	}
+	
+	outColor.w = 0.0;
+	return outColor;
+}
+
+float GetProjLightShadowing( float l_radius, vec3 l_origin, vec3 v_origin, vec4 v_coord, vec3 v_normal, sampler2D l_shadowmap )
+{
+	vec4 texclamp = max(v_coord, 0.0);
+	float fldistance = clamp((length(l_origin-v_origin)/l_radius), 0.0, 1.0);
+	float flresult = DepthTestProj(fldistance, l_shadowmap, texclamp);
+	return ReduceLightBleeding(flresult, 0.4);
+}
+
+vec3 AddDiffuseLight ( vec3 colorIn1, vec3 colorIn2 )
+{
+	vec3 outValue = colorIn1;
+	outValue += colorIn2;
+	return outValue;
+}
+
+vec3 AddDiffuseDynamicLight ( vec3 colorIn1, vec3 colorIn2 )
+{
+	return colorIn1 + colorIn2;
+}
+
+vec3 AddSpecularLight ( vec3 colorIn1, vec3 colorIn2 )
+{
+	return colorIn1 + colorIn2;
 }
 
 // Bicubic lightmapping code based on godot engine implementation
@@ -662,10 +878,71 @@ void main()
 	$begin
 		vec3 v_normal = GetTangentSpaceNormal(ps_texcoord, ps_normal);
 		finalColor = CombineTextureLayers(ps_vertexpos, v_normal, mrao);
+		
+		vec3 dlightDiffuse = vec3(0.0);
+		vec3 specularColor = vec3(0.0);
+		vec3 albedo = GetMainTexture().rgb;
+		
+		vec3 eyeNormal = (d_bumpmapping == 1) ? normalize(mat3(ps_tangent, ps_binormal, ps_normal) * v_normal) : normalize(ps_normal);
+		
+		if(d_numlights >= 1)
+		{
+			vec3 specLight;
+			vec4 lightColor = (light_0_cone_size > 0.0) ? AddProjLight(light_0_radius, light_0_origin, light_0_color.xyz, ps_vertexpos, ps_light_0_vertexcoord, eyeNormal, light_0_projtexture, mrao, albedo, light_0_cone_size, light_0_spotdirection, specLight) : AddPointLight(light_0_radius, light_0_origin, light_0_color.xyz, ps_vertexpos, eyeNormal, mrao, albedo, specLight);
+			if( d_light0_shadowmap == 1 )
+			{
+				float shadowFactor = (light_0_cone_size > 0.0) ? GetProjLightShadowing(light_0_radius, light_0_origin, ps_vertexpos, ps_light_0_vertexcoord, eyeNormal, light_0_shadowmap) : GetPointLightShadowing(light_0_radius, ps_light_0_vertexcoord, light_0_cubemap);
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
+			dlightDiffuse = AddDiffuseDynamicLight(dlightDiffuse, lightColor.xyz);
+			specularColor = AddSpecularLight(specularColor, specLight);
+		}
+		if(d_numlights >= 2)
+		{
+			vec3 specLight;
+			vec4 lightColor = (light_1_cone_size > 0.0) ? AddProjLight(light_1_radius, light_1_origin, light_1_color.xyz, ps_vertexpos, ps_light_1_vertexcoord, eyeNormal, light_1_projtexture, mrao, albedo, light_1_cone_size, light_1_spotdirection, specLight) : AddPointLight(light_1_radius, light_1_origin, light_1_color.xyz, ps_vertexpos, eyeNormal, mrao, albedo, specLight);
+			if( d_light1_shadowmap == 1 )
+			{
+				float shadowFactor = (light_1_cone_size > 0.0) ? GetProjLightShadowing(light_1_radius, light_1_origin, ps_vertexpos, ps_light_1_vertexcoord, eyeNormal, light_1_shadowmap) : GetPointLightShadowing(light_1_radius, ps_light_1_vertexcoord, light_1_cubemap);
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
+			dlightDiffuse = AddDiffuseDynamicLight(dlightDiffuse, lightColor.xyz);
+			specularColor = AddSpecularLight(specularColor, specLight);
+		}
+		if(d_numlights >= 3)
+		{
+			vec3 specLight;
+			vec4 lightColor = (light_2_cone_size > 0.0) ? AddProjLight(light_2_radius, light_2_origin, light_2_color.xyz, ps_vertexpos, ps_light_2_vertexcoord, eyeNormal, light_2_projtexture, mrao, albedo, light_2_cone_size, light_2_spotdirection, specLight) : AddPointLight(light_2_radius, light_2_origin, light_2_color.xyz, ps_vertexpos, eyeNormal, mrao, albedo, specLight);
+			if( d_light2_shadowmap == 1 )
+			{
+				float shadowFactor = (light_2_cone_size > 0.0) ? GetProjLightShadowing(light_2_radius, light_2_origin, ps_vertexpos, ps_light_2_vertexcoord, eyeNormal, light_2_shadowmap) : GetPointLightShadowing(light_2_radius, ps_light_2_vertexcoord, light_2_cubemap);
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
+			dlightDiffuse = AddDiffuseDynamicLight(dlightDiffuse, lightColor.xyz);
+			specularColor = AddSpecularLight(specularColor, specLight);
+		}
+		if(d_numlights >= 4)
+		{
+			vec3 specLight;
+			vec4 lightColor = (light_3_cone_size > 0.0) ? AddProjLight(light_3_radius, light_3_origin, light_3_color.xyz, ps_vertexpos, ps_light_3_vertexcoord, eyeNormal, light_3_projtexture, mrao, albedo, light_3_cone_size, light_3_spotdirection, specLight) : AddPointLight(light_3_radius, light_3_origin, light_3_color.xyz, ps_vertexpos, eyeNormal, mrao, albedo, specLight);
+			if( d_light3_shadowmap == 1 )
+			{
+				float shadowFactor = (light_3_cone_size > 0.0) ? GetProjLightShadowing(light_3_radius, light_3_origin, ps_vertexpos, ps_light_3_vertexcoord, eyeNormal, light_3_shadowmap) : GetPointLightShadowing(light_3_radius, ps_light_3_vertexcoord, light_0_cubemap);
+				lightColor *= shadowFactor;
+				specLight *= shadowFactor;
+			}
+			dlightDiffuse = AddDiffuseDynamicLight(dlightDiffuse, lightColor.xyz);
+			specularColor = AddSpecularLight(specularColor, specLight);
+		}
+		
+		finalColor.xyz += dlightDiffuse * albedo + specularColor;
 		finalColor = finalColor*color;		
 		
 		if( d_cubemaps >= 1 )
-			finalColor.xyz += AddCubemaps(mrao, GetMainTexture().rgb).xyz;
+			finalColor.xyz += AddCubemaps(mrao, albedo).xyz;
 	$end
 	// Texture unit 0 only and texunit 0 * 4
 	$branch shadertype == 3 || shadertype == 12
