@@ -741,7 +741,7 @@ float CalcFogFactor( vec3 v_origin, float fogcoord, vec2 f_params )
 		return 0;
 }
 
-vec3 GetCausticsColor()
+vec3 GetCausticsColor( vec3 surfaceLight )
 {
 	if (causticscolor.w <= 0.0)
 	{
@@ -752,7 +752,7 @@ vec3 GetCausticsColor()
 	vec4 c2 = texture(causticstex2, ps_causticcoord);
 	vec4 c = mix(c1, c2, interpolant);
 
-	return c.rgb * causticscolor.rgb;
+	return c.rgb * causticscolor.rgb * surfaceLight;
 }
 
 vec3 GetTangentSpaceNormal( vec2 texcoord, vec3 v_normal )
@@ -897,7 +897,7 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao )
 		finalColor.xyz += chromeTex.xyz*lightColor.xyz*2*color.w;
 	$end
 	
-	finalColor.rgb += GetCausticsColor();
+	finalColor.rgb += GetCausticsColor(finalColor.rgb);
 	
 	return finalColor;
 }
