@@ -150,42 +150,24 @@ struct vbm_vlight_glvertex_t
 {
 	vbm_vlight_glvertex_t() 
 	{
-		memset(vertexlight0_vector, 0, sizeof(vertexlight0_vector));
-		memset(vertexlight0_ambient, 0, sizeof(vertexlight0_ambient));
-		memset(vertexlight0_diffuse, 0, sizeof(vertexlight0_diffuse));
-
-		memset(vertexlight1_vector, 0, sizeof(vertexlight1_vector));
-		memset(vertexlight1_ambient, 0, sizeof(vertexlight1_ambient));
-		memset(vertexlight1_diffuse, 0, sizeof(vertexlight1_diffuse));
-
-		memset(vertexlight2_vector, 0, sizeof(vertexlight2_vector));
-		memset(vertexlight2_ambient, 0, sizeof(vertexlight2_ambient));
-		memset(vertexlight2_diffuse, 0, sizeof(vertexlight2_diffuse));
-
-		memset(vertexlight3_vector, 0, sizeof(vertexlight3_vector));
-		memset(vertexlight3_ambient, 0, sizeof(vertexlight3_ambient));
-		memset(vertexlight3_diffuse, 0, sizeof(vertexlight3_diffuse));
-
+		memset(vertexlight_vector, 0, sizeof(vertexlight_vector));
+		memset(vertexlight_ambient, 0, sizeof(vertexlight_ambient));
+		memset(vertexlight_diffuse, 0, sizeof(vertexlight_diffuse));
 		memset(pad, 0, sizeof(pad));
 	}
 		
-	byte vertexlight0_vector[3];
-	byte vertexlight0_ambient[3];
-	byte vertexlight0_diffuse[3];
+	byte vertexlight_vector[3];
+	byte vertexlight_ambient[3];
+	byte vertexlight_diffuse[3];
 
-	byte vertexlight1_vector[3];
-	byte vertexlight1_ambient[3];
-	byte vertexlight1_diffuse[3];
+	byte pad[23];
+};
 
-	byte vertexlight2_vector[3];
-	byte vertexlight2_ambient[3];
-	byte vertexlight2_diffuse[3];
-
-	byte vertexlight3_vector[3];
-	byte vertexlight3_ambient[3];
-	byte vertexlight3_diffuse[3];
-
-	byte pad[28];
+struct vbm_raw_vlight_data_t
+{
+	byte vectors[MAX_ENTITY_STYLES][3];
+	byte ambient[MAX_ENTITY_STYLES][3];
+	byte diffuse[MAX_ENTITY_STYLES][3];
 };
 
 struct attrib_light
@@ -211,13 +193,18 @@ struct vlight_vbo_t
 		stylecount(0)
 	{
 		for(Uint32 i = 0; i < MAX_ENTITY_STYLES; i++)
+		{
 			styles[i] = NULL_LIGHTSTYLE_INDEX;
+			last_style_values[i] = -1.0f;
+		}
 	}
 
 	~vlight_vbo_t()
 	{
 		if(pvbo)
+		{
 			delete pvbo;
+		}
 	}
 
 	vbmcache_t* pvbmcache;
@@ -228,6 +215,9 @@ struct vlight_vbo_t
 
 	byte styles[MAX_ENTITY_STYLES];
 	Uint32 stylecount;
+
+	Float last_style_values[MAX_ENTITY_STYLES];
+	CArray<vbm_raw_vlight_data_t> raw_vlight_data;
 };
 
 struct vbm_dlight_attribs_t

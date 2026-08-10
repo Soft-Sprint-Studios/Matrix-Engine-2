@@ -46,13 +46,15 @@ in vec4 in_position;
 in vec3 in_normal;
 in vec3 in_binormal;
 in vec3 in_tangent;
-in vec2 in_lmapcoord;
+in vec2 in_lmapcoord[4];
+in vec4 in_styles;
 in vec2 in_texcoord;
 in vec2 in_dtexcoord;
 in float in_fogcoord;
 in float in_alpha;
 
-out vec2 ps_lmapcoord;
+out vec2 ps_lmapcoord[4];
+flat out vec4 ps_styles;
 out vec2 ps_texcoord;
 out vec2 ps_dtexcoord;
 out vec2 ps_chromecoord;
@@ -86,7 +88,11 @@ void main()
 	
 	$branch shadertype == 0 || shadertype == 1 || shadertype == 2 || shadertype == 3 || shadertype == 5 || shadertype == 12
 	$begin
-		ps_lmapcoord = in_lmapcoord;
+		for (int i = 0; i < 4; i++)
+		{
+			ps_lmapcoord[i] = in_lmapcoord[i];
+		}
+		ps_styles = in_styles;
 	$end
 	
 	$branch shadertype == 0 || shadertype == 1 || shadertype == 2 || shadertype == 4 || shadertype == 5 || shadertype == 8 || shadertype == 9
@@ -167,13 +173,14 @@ $shader_fragment $begin
 
 uniform samplerCube cubemap;
 uniform samplerCube cubemap_prev;
-uniform sampler2D baselightmap;
+uniform float u_lightstyle_values[256];
+uniform sampler2D baselightmap[4];
+uniform sampler2D difflightmap[4];
+uniform sampler2D lightvecstex[4];
 uniform sampler2D maintexture;
 uniform sampler2D detailtex;
 uniform sampler2D chrometex;
 uniform sampler2D normalmap;
-uniform sampler2D difflightmap;
-uniform sampler2D lightvecstex;
 uniform sampler2D speculartex;
 uniform sampler2D luminance;
 
@@ -253,7 +260,8 @@ uniform highp int d_light2_shadowmap;
 uniform highp int d_light3_shadowmap;
 uniform highp int d_lightmap_bicubic;
 
-in vec2 ps_lmapcoord;
+in vec2 ps_lmapcoord[4];
+flat in vec4 ps_styles;
 in vec2 ps_texcoord;
 in vec2 ps_dtexcoord;
 in vec2 ps_chromecoord;
@@ -636,7 +644,7 @@ vec3 GetLightDir( sampler2D vecsLightmap )
 	vec3 lightVec;
 	if(d_bumpmapping == 1)
 	{
-		lightVec = (2.0 * SampleLightmap(vecsLightmap, ps_lmapcoord).xyz) - 1.0;
+		lightVec = (2.0 * SampleLightmap(vecsLightmap, ps_lmapcoord[0]).xyz) - 1.0;
 		return normalize(lightVec);
 	}
 	else
@@ -648,29 +656,37 @@ vec3 GetLightDir( sampler2D vecsLightmap )
 vec4 GetDiffuseLight( sampler2D diffuseTexture )
 {
 	if(d_bumpmapping == 1)
-		return SampleLightmap(diffuseTexture, ps_lmapcoord);
+	{
+		return SampleLightmap(diffuseTexture, ps_lmapcoord[0]);
+	}
 	else
+	{
 		return vec4(0, 0, 0, 0);
+	}
 }
 
 vec4 AddBaseLight( sampler2D ambLightmap, vec4 diffuseColor, vec3 lightDir, vec3 v_normal )
 {
 	if(d_bumpmapping == 0)
 	{
-		vec4 lightmapColor = SampleLightmap(ambLightmap, ps_lmapcoord);
+		vec4 lightmapColor = SampleLightmap(ambLightmap, ps_lmapcoord[0]);
 		if(d_luminance == 1)
+		{
 			lightmapColor.xyz += texture(luminance, ps_texcoord).xyz;
+		}
 
 		return lightmapColor;
 	}
 	else
 	{
 		// Lightmap is always on unit 0
-		vec4 ambientColor = SampleLightmap(ambLightmap, ps_lmapcoord);
+		vec4 ambientColor = SampleLightmap(ambLightmap, ps_lmapcoord[0]);
 		vec4 finalColor = ambientColor + diffuseColor * dot(lightDir, v_normal);
 		
 		if(d_luminance == 1)
+		{
 			finalColor.xyz += texture(luminance, ps_texcoord).xyz;
+		}
 
 		return finalColor;
 	}
@@ -725,12 +741,107 @@ vec3 GetTangentSpaceNormal( vec2 texcoord, vec3 v_normal )
 	}
 }
 
+vec3 GetLightDirLayer( sampler2D vecsLightmap, vec2 lmapcoord )
+{
+	if (d_bumpmapping == 1)
+	{
+		return normalize((2.0 * SampleLightmap(vecsLightmap, lmapcoord).xyz) - 1.0);
+	}
+	else
+	{
+		return vec3(0, 0, 0);
+	}
+}
+
+vec4 GetDiffuseLightLayer( sampler2D diffuseTexture, vec2 lmapcoord )
+{
+	if (d_bumpmapping == 1)
+	{
+		return SampleLightmap(diffuseTexture, lmapcoord);
+	}
+	else
+	{
+		return vec4(0, 0, 0, 0);
+	}
+}
+
+vec4 AddBaseLightLayer( sampler2D ambLightmap, vec4 diffuseColor, vec3 lightDir, vec3 v_normal, vec2 lmapcoord )
+{
+	if (d_bumpmapping == 0)
+	{
+		vec4 lightmapColor = SampleLightmap(ambLightmap, lmapcoord);
+		if (d_luminance == 1)
+		{
+			lightmapColor.xyz += texture(luminance, ps_texcoord).xyz;
+		}
+		return lightmapColor;
+	}
+	else
+	{
+		vec4 ambientColor = SampleLightmap(ambLightmap, lmapcoord);
+		vec4 finalColor = ambientColor + diffuseColor * max(dot(lightDir, v_normal), 0.0);
+		
+		if (d_luminance == 1)
+		{
+			finalColor.xyz += texture(luminance, ps_texcoord).xyz;
+		}
+		return finalColor;
+	}
+}
+
+vec4 EvaluateExtraLightstyleLayers( vec3 v_normal, vec3 v_origin, vec3 mrao, vec3 albedoColor, mat3 tbnMatrix, out vec3 extraSpecular )
+{
+	vec4 extraColor = vec4(0.0);
+	extraSpecular = vec3(0.0);
+
+	for (int i = 1; i < 4; i++)
+	{
+		int styleIndex = int(ps_styles[i] + 0.5);
+		if (styleIndex >= 0 && styleIndex < 254)
+		{
+			float styleVal = u_lightstyle_values[styleIndex];
+			if (styleVal > 0.0)
+			{
+				vec3 dir = GetLightDirLayer(lightvecstex[i], ps_lmapcoord[i]);
+				vec4 diff = GetDiffuseLightLayer(difflightmap[i], ps_lmapcoord[i]);
+				extraColor += AddBaseLightLayer(baselightmap[i], diff, dir, v_normal, ps_lmapcoord[i]) * styleVal;
+
+				if (d_specular == 1)
+				{
+					vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(dir[0], -dir[1], dir[2]));
+					vec3 F0 = mix(vec3(0.04), albedoColor, mrao.x);
+					vec3 eyeSpaceNormal = normalize(tbnMatrix * v_normal);
+					vec3 spec = CookTorranceSpecular(v_origin, eyeSpaceNormal, -eyeSpaceDir, mrao.y, F0);
+					extraSpecular += spec * diff.xyz * mrao.z * styleVal;
+				}
+			}
+		}
+	}
+
+	return extraColor;
+}
+
 vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao )
 {
-	vec3 lightDir = GetLightDir( lightvecstex );
-	vec4 lightDiffuse = GetDiffuseLight( difflightmap );
-	vec4 finalColor = AddBaseLight(baselightmap, lightDiffuse, lightDir, v_normal);
+	vec3 lightDir0 = GetLightDirLayer( lightvecstex[0], ps_lmapcoord[0] );
+	vec4 lightDiffuse0 = GetDiffuseLightLayer( difflightmap[0], ps_lmapcoord[0] );
+	vec4 finalColor = AddBaseLightLayer(baselightmap[0], lightDiffuse0, lightDir0, v_normal, ps_lmapcoord[0]);
+
 	vec3 albedoColor = GetMainTexture().rgb;
+	mat3 tbnMatrix = mat3(ps_tangent, ps_binormal, ps_normal);
+
+	vec3 extraSpecular = vec3(0.0);
+	finalColor += EvaluateExtraLightstyleLayers(v_normal, v_origin, mrao, albedoColor, tbnMatrix, extraSpecular);
+
+	if (d_specular == 1)
+	{
+		vec3 eyeSpaceNormal = normalize(tbnMatrix * v_normal);
+		vec3 F0 = mix(vec3(0.04), albedoColor, mrao.x);
+		vec3 eyeSpaceDir0 = normalize(tbnMatrix * vec3(lightDir0[0], -lightDir0[1], lightDir0[2]));
+		vec3 spec0 = CookTorranceSpecular(v_origin, eyeSpaceNormal, -eyeSpaceDir0, mrao.y, F0);
+		
+		finalColor.xyz += (spec0 * lightDiffuse0.xyz * mrao.z) + extraSpecular;
+	}
 
 	$branch shadertype == 0
 	$begin
@@ -758,19 +869,6 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao )
 		vec4 chromeTex = texture2D(chrometex, ps_chromecoord);
 		finalColor.xyz += chromeTex.xyz*lightColor.xyz*2*color.w;
 	$end
-	
-	if (d_specular == 1)
-	{
-		// Add specular if any
-		mat3 tbnMatrix = mat3(ps_tangent, ps_binormal, ps_normal);
-		vec3 eyeSpaceDir = normalize(tbnMatrix * vec3(lightDir[0], -lightDir[1], lightDir[2]));
-		vec3 eyeSpaceNormal = normalize(tbnMatrix * v_normal);
-		
-		vec3 F0 = mix(vec3(0.04), albedoColor, mrao.x);
-		vec3 specularValue = CookTorranceSpecular(v_origin, eyeSpaceNormal, -eyeSpaceDir, mrao.y, F0);
-		
-		finalColor.xyz += specularValue * lightDiffuse.xyz * mrao.z;
-	}
 	
 	return finalColor;
 }
@@ -947,7 +1045,14 @@ void main()
 	// Texture unit 0 only and texunit 0 * 4
 	$branch shadertype == 3 || shadertype == 12
 	$begin
-		finalColor = SampleLightmap(baselightmap, ps_lmapcoord) * color;
+		finalColor = SampleLightmap(baselightmap[0], ps_lmapcoord[0]);
+		
+		vec3 dummySpec;
+		mat3 dummyTBN = mat3(1.0);
+		finalColor += EvaluateExtraLightstyleLayers(vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), dummyTBN, dummySpec);
+		
+		finalColor *= color;
+		
 		$branch shadertype == 12
 		$begin
 			finalColor.xyz *= 4;
@@ -961,11 +1066,16 @@ void main()
 	// Light alpha
 	$branch shadertype == 5
 	$begin
-		vec3 lightDir = GetLightDir( lightvecstex );
 		vec3 v_normal = GetTangentSpaceNormal(ps_texcoord, ps_normal);
-		vec4 diffuseLight = GetDiffuseLight( difflightmap );
+		vec3 lightDir0 = GetLightDirLayer( lightvecstex[0], ps_lmapcoord[0] );
+		vec4 diffuseLight0 = GetDiffuseLightLayer( difflightmap[0], ps_lmapcoord[0] );
 		
-		finalColor = AddBaseLight(baselightmap, diffuseLight, lightDir, v_normal);		
+		finalColor = AddBaseLightLayer(baselightmap[0], diffuseLight0, lightDir0, v_normal, ps_lmapcoord[0]);
+		
+		vec3 dummySpec;
+		mat3 dummyTBN = mat3(1.0);
+		finalColor += EvaluateExtraLightstyleLayers(v_normal, vec3(0.0), vec3(0.0), vec3(0.0), dummyTBN, dummySpec);
+		
 		finalColor.w = finalColor.w * GetMainTexture().w;
 	$end
 	

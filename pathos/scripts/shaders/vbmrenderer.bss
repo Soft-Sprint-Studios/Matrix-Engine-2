@@ -45,6 +45,8 @@ in vec4 in_boneindexes;
 in vec4 in_boneweights;
 in vec2 in_flexcoord;
 
+uniform vec4 u_lightstyle_values;
+
 $branch vertexlight == 1
 $begin
 in vec3 in_vlight_vectors;
@@ -336,6 +338,8 @@ in vec3 ps_binormal;
 in vec3 ps_normal;
 in vec2 ps_texcoord1;
 in vec2 ps_texcoord2;
+
+uniform vec4 u_lightstyle_values;
 
 $branch vertexlight == 1
 $begin

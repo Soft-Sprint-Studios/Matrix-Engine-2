@@ -96,7 +96,7 @@ struct bsp_shader_attribs
 		a_tangent(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_binormal(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_normal(CGLSLShader::PROPERTY_UNAVAILABLE),
-		a_lmapcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
+		a_styles(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_texcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_dtexcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_fogcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -122,7 +122,6 @@ struct bsp_shader_attribs
 		u_cube_prev_min(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_prev_max(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_prev_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_baselightmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_maintexture(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_maintexture2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_detailtex(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -130,15 +129,21 @@ struct bsp_shader_attribs
 		u_normalmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmap2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_difflightmap(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_lightvecstex(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_specular(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_specular2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_color(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_light_radius(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogcolor(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogparams(CGLSLShader::PROPERTY_UNAVAILABLE)
-	{}
+	{
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			a_lmapcoord[i] = CGLSLShader::PROPERTY_UNAVAILABLE;
+			u_baselightmap[i] = CGLSLShader::PROPERTY_UNAVAILABLE;
+			u_difflightmap[i] = CGLSLShader::PROPERTY_UNAVAILABLE;
+			u_lightvecstex[i] = CGLSLShader::PROPERTY_UNAVAILABLE;
+		}
+	}
 
 	Int32 d_shadertype;
 	Int32 d_alphatest;
@@ -157,7 +162,8 @@ struct bsp_shader_attribs
 	Int32 a_tangent;
 	Int32 a_binormal;
 	Int32 a_normal;
-	Int32 a_lmapcoord;
+	Int32 a_lmapcoord[MAX_SURFACE_STYLES];
+	Int32 a_styles;
 	Int32 a_texcoord;
 	Int32 a_dtexcoord;
 	Int32 a_fogcoord;
@@ -195,7 +201,8 @@ struct bsp_shader_attribs
 	Int32 u_cube_prev_max;
 	Int32 u_cube_prev_origin;
 
-	Int32 u_baselightmap;
+	Int32 u_lightstyle_values;
+	Int32 u_baselightmap[MAX_SURFACE_STYLES];
 	Int32 u_maintexture;
 	Int32 u_maintexture2;
 	Int32 u_detailtex;
@@ -203,8 +210,8 @@ struct bsp_shader_attribs
 	Int32 u_normalmap;
 	Int32 u_normalmap2;
 	Int32 u_luminance;
-	Int32 u_difflightmap;
-	Int32 u_lightvecstex;
+	Int32 u_difflightmap[MAX_SURFACE_STYLES];
+	Int32 u_lightvecstex[MAX_SURFACE_STYLES];
 	Int32 u_specular;
 	Int32 u_specular2;
 	Int32 u_color;
@@ -241,7 +248,8 @@ struct bsp_vertex_t
 
 	Float alpha; // 108
 
-	byte padding[20]; // 128
+	Float styles[MAX_SURFACE_STYLES]; // 112
+	byte padding[4]; // 128
 };
 
 struct drawbatch_t

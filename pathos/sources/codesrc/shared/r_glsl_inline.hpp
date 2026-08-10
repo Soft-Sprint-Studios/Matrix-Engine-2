@@ -166,6 +166,78 @@ inline void CGLSLShader :: SetUniform1f ( Int32 index, Float x )
 };
 
 //=============================================
+// @brief Sets the values of the uniform for num elements
+//
+// @param index Index of the uniform
+// @param v Pointer to the array of floats
+// @param num Number of floats to upload
+//=============================================
+inline void CGLSLShader::SetUniform1fv( Int32 index, const Float* v, Uint32 num )
+{
+	if (index == PROPERTY_UNAVAILABLE)
+	{
+		return;
+	}
+
+	assert(index >= 0 && index < m_uniformsArray.size());
+	glsl_uniform_t* puniform = &m_uniformsArray[index];
+
+	if (num > puniform->elementcount)
+	{
+		return;
+	}
+
+	bool update = false;
+	if (puniform->type != UNIFORM_NOSYNC)
+	{
+		assert(puniform->stride == 1);
+
+		Uint32 i = 0;
+		for (; i < num; i++)
+		{
+			if (puniform->currentvalues[i] != v[i])
+			{
+				break;
+			}
+		}
+
+		if (i != num)
+		{
+			memcpy(&puniform->currentvalues[0], v, sizeof(Float) * num);
+			update = true;
+		}
+	}
+
+	if (!update && puniform->sync)
+	{
+		return;
+	}
+
+	if (puniform->indexes[m_shaderIndex] == PROPERTY_UNAVAILABLE)
+	{
+		return;
+	}
+
+	if (m_isActive)
+	{
+		if (puniform->type != UNIFORM_NOSYNC)
+		{
+			const Float* pvalues = &puniform->currentvalues[0];
+			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * puniform->elementcount * m_shaderIndex;
+			if (memcmp(ptargetvalues, pvalues, sizeof(Float) * num) != 0)
+			{
+				m_glExtF.glUniform1fv(puniform->indexes[m_shaderIndex], num, v);
+				memcpy(ptargetvalues, pvalues, sizeof(Float) * num);
+			}
+		}
+		else
+		{
+			m_glExtF.glUniform1fv(puniform->indexes[m_shaderIndex], num, v);
+		}
+	}
+}
+
+//=============================================
 // @brief Sets the values of the uniform
 //
 // @param index Index of the uniform

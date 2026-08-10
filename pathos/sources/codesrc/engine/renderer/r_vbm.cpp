@@ -313,9 +313,9 @@ bool CVBMRenderer::InitGL( void )
 		if(m_isVertexFetchSupported && !R_CheckShaderVertexAttribute(m_attribs.a_flexcoord, "in_flexcoord", m_pShader, Sys_ErrorPopup))
 			return false;
 
-		m_attribs.a_vertexlight_vectors = m_pShader->InitAttribute("in_vlight_vectors", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight0_vector));
-		m_attribs.a_vertexlight_diffuse = m_pShader->InitAttribute("in_vlight_diffuse", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight0_diffuse));
-		m_attribs.a_vertexlight_ambient = m_pShader->InitAttribute("in_vlight_ambient", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight0_ambient));
+		m_attribs.a_vertexlight_vectors = m_pShader->InitAttribute("in_vlight_vectors", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_vector));
+		m_attribs.a_vertexlight_diffuse = m_pShader->InitAttribute("in_vlight_diffuse", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_diffuse));
+		m_attribs.a_vertexlight_ambient = m_pShader->InitAttribute("in_vlight_ambient", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_ambient));
 
 		if(!R_CheckShaderVertexAttribute(m_attribs.a_vertexlight_vectors, "in_vlight_vectors", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_vertexlight_diffuse, "in_vlight_diffuse", m_pShader, Sys_ErrorPopup)
@@ -3262,13 +3262,67 @@ bool CVBMRenderer::SetupRenderer( void )
 		vlight_vbo_t* pvblightvbo = m_pVertexLightingVBOArray[m_pCurrentEntity->curstate.vlight_vbo_index];
 		m_pShader->SetVBO(pvblightvbo->pvbo, 1);
 
-		m_pShader->SetAttributePointer(m_attribs.a_vertexlight_vectors, OFFSET(vbm_vlight_glvertex_t, vertexlight0_vector), 1);
-		m_pShader->SetAttributePointer(m_attribs.a_vertexlight_ambient, OFFSET(vbm_vlight_glvertex_t, vertexlight0_ambient), 1);
-		m_pShader->SetAttributePointer(m_attribs.a_vertexlight_diffuse, OFFSET(vbm_vlight_glvertex_t, vertexlight0_diffuse), 1);
+		m_pShader->SetAttributePointer(m_attribs.a_vertexlight_vectors, OFFSET(vbm_vlight_glvertex_t, vertexlight_vector), 1);
+		m_pShader->SetAttributePointer(m_attribs.a_vertexlight_ambient, OFFSET(vbm_vlight_glvertex_t, vertexlight_ambient), 1);
+		m_pShader->SetAttributePointer(m_attribs.a_vertexlight_diffuse, OFFSET(vbm_vlight_glvertex_t, vertexlight_diffuse), 1);
 
 		m_pShader->EnableAttribute(m_attribs.a_vertexlight_vectors);
 		m_pShader->EnableAttribute(m_attribs.a_vertexlight_ambient);
 		m_pShader->EnableAttribute(m_attribs.a_vertexlight_diffuse);
+
+		Float styles[MAX_ENTITY_STYLES] = { 1.0f, 0.0f, 0.0f, 0.0f };
+		for (Uint32 i = 1; i < MAX_ENTITY_STYLES; i++)
+		{
+			if (pvblightvbo->styles[i] != NULL_LIGHTSTYLE_INDEX)
+			{
+				styles[i] = gLightStyles.GetLightStyleValue(pvblightvbo->styles[i]);
+			}
+		}
+
+		bool styles_changed = false;
+		for (Uint32 i = 0; i < MAX_ENTITY_STYLES; i++)
+		{
+			if (pvblightvbo->last_style_values[i] != styles[i])
+			{
+				styles_changed = true;
+				pvblightvbo->last_style_values[i] = styles[i];
+			}
+		}
+
+		if (styles_changed)
+		{
+			vbm_vlight_glvertex_t* pblended = new vbm_vlight_glvertex_t[pvblightvbo->vertexcount];
+			for (Uint32 j = 0; j < pvblightvbo->vertexcount; j++)
+			{
+				const vbm_raw_vlight_data_t& raw = pvblightvbo->raw_vlight_data[j];
+				Float amb_sum[3] = { 0.0f, 0.0f, 0.0f };
+				Float diff_sum[3] = { 0.0f, 0.0f, 0.0f };
+
+				for (Uint32 s = 0; s < MAX_ENTITY_STYLES; s++)
+				{
+					if (styles[s] <= 0.0f)
+					{
+						continue;
+					}
+
+					for (Uint32 k = 0; k < 3; k++)
+					{
+						amb_sum[k] += raw.ambient[s][k] * styles[s];
+						diff_sum[k] += raw.diffuse[s][k] * styles[s];
+					}
+				}
+
+				for (Uint32 k = 0; k < 3; k++)
+				{
+					pblended[j].vertexlight_ambient[k] = static_cast<byte>(clamp(amb_sum[k], 0.0f, 255.0f));
+					pblended[j].vertexlight_diffuse[k] = static_cast<byte>(clamp(diff_sum[k], 0.0f, 255.0f));
+					pblended[j].vertexlight_vector[k] = raw.vectors[0][k];
+				}
+			}
+
+			pvblightvbo->pvbo->VBOSubBufferData(0, pblended, pvblightvbo->vertexcount * sizeof(vbm_vlight_glvertex_t));
+			delete[] pblended;
+		}
 
 		if(!m_pShader->SetDeterminator(m_attribs.d_vertexlight, TRUE, false))
 			return false;
@@ -3341,9 +3395,9 @@ bool CVBMRenderer::RestoreRenderer(void)
 	if(m_pCurrentEntity->curstate.vlight_vbo_index != NO_POSITION)
 	{
 		// Disable the attributes used by baked vertex lighting
-		m_pShader->EnableAttribute(m_attribs.a_vertexlight_vectors);
-		m_pShader->EnableAttribute(m_attribs.a_vertexlight_ambient);
-		m_pShader->EnableAttribute(m_attribs.a_vertexlight_diffuse);
+		m_pShader->DisableAttribute(m_attribs.a_vertexlight_vectors);
+		m_pShader->DisableAttribute(m_attribs.a_vertexlight_ambient);
+		m_pShader->DisableAttribute(m_attribs.a_vertexlight_diffuse);
 
 		// Unbind secondary VBO from shader
 		m_pShader->SetVBO(nullptr, 1);
@@ -7250,66 +7304,55 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 		if(i > BASE_LIGHTMAP_INDEX && pvlightvbo->styles[i] == NULL_LIGHTSTYLE_INDEX)
 			continue;
 
+		pvlightvbo->raw_vlight_data.resize(pvbmheader->numverts);
+
 		for(Uint32 j = 0; j < pvbmheader->numverts; j++)
 		{
-			byte* pdest_vector = nullptr;
-			byte* pdest_ambient = nullptr;
-			byte* pdest_diffuse = nullptr;
-			switch(i)
-			{
-			case 1:
-				pdest_vector = pvertexbuffer[j].vertexlight1_vector;
-				pdest_ambient = pvertexbuffer[j].vertexlight1_ambient;
-				pdest_diffuse = pvertexbuffer[j].vertexlight1_diffuse;
-				break;
-			case 2:
-				pdest_vector = pvertexbuffer[j].vertexlight2_vector;
-				pdest_ambient = pvertexbuffer[j].vertexlight2_ambient;
-				pdest_diffuse = pvertexbuffer[j].vertexlight2_diffuse;
-				break;
-			case 3:
-				pdest_vector = pvertexbuffer[j].vertexlight3_vector;
-				pdest_ambient = pvertexbuffer[j].vertexlight3_ambient;
-				pdest_diffuse = pvertexbuffer[j].vertexlight3_diffuse;
-				break;
-			default:
-			case 0:
-				pdest_vector = pvertexbuffer[j].vertexlight0_vector;
-				pdest_ambient = pvertexbuffer[j].vertexlight0_ambient;
-				pdest_diffuse = pvertexbuffer[j].vertexlight0_diffuse;
-				break;
-			}
+			vbm_raw_vlight_data_t& raw = pvlightvbo->raw_vlight_data[j];
 
 			for(Uint32 k = 0; k < 3; k++)
-				pdest_vector[k] = pvlight_vector[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
+				raw.vectors[i][k] = pvlight_vector[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
 
 			for(Uint32 k = 0; k < 3; k++)
-				pdest_ambient[k] = pvlight_ambient[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
+				raw.ambient[i][k] = pvlight_ambient[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
 
 			for(Uint32 k = 0; k < 3; k++)
-				pdest_diffuse[k] = pvlight_diffuse[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
+				raw.diffuse[i][k] = pvlight_diffuse[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
 
 			// Overdarken ambient component
 			Float scale;
 			if(overdarken > 0)
 			{
-				Float intensity = (pdest_ambient[0] + pdest_ambient[1] + pdest_ambient[2])/3;
+				Float intensity = (raw.ambient[i][0] + raw.ambient[i][1] + raw.ambient[i][2])/3.0f;
 				scale = intensity/overdarken;
 				if(scale > 1.0)
 					scale = 1.0;
 			}
 			else
+			{
 				scale = 1.0;
+			}
 
 			for(Uint32 k = 0; k < 3; k++)
-				pdest_ambient[k] *= scale;
+				raw.ambient[i][k] = static_cast<byte>(clamp(raw.ambient[i][k] * scale, 0.0f, 255.0f));
 		}
 
 		offsetindex++;
 	}
 
-	CVBO* pVBO = new CVBO(gGLExtF, pvertexbuffer, pvbmheader->numverts * sizeof(vbm_vlight_glvertex_t), nullptr, 0, false, false);
-	delete[] pvertexbuffer;
+	vbm_vlight_glvertex_t* pinitial = new vbm_vlight_glvertex_t[pvbmheader->numverts];
+	for (Uint32 j = 0; j < pvbmheader->numverts; j++)
+	{
+		for (Uint32 k = 0; k < 3; k++)
+		{
+			pinitial[j].vertexlight_ambient[k] = pvlightvbo->raw_vlight_data[j].ambient[0][k];
+			pinitial[j].vertexlight_diffuse[k] = pvlightvbo->raw_vlight_data[j].diffuse[0][k];
+			pinitial[j].vertexlight_vector[k] = pvlightvbo->raw_vlight_data[j].vectors[0][k];
+		}
+	}
+
+	CVBO* pVBO = new CVBO(gGLExtF, pinitial, pvbmheader->numverts * sizeof(vbm_vlight_glvertex_t), nullptr, 0, true, false);
+	delete[] pinitial;
 
 	pvlightvbo->pvbo = pVBO;
 	return true;

@@ -194,7 +194,16 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.a_tangent = m_pShader->InitAttribute("in_tangent", 3, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, tangent));
 		m_attribs.a_binormal = m_pShader->InitAttribute("in_binormal", 3, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, binormal));
 		m_attribs.a_normal = m_pShader->InitAttribute("in_normal", 3, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, normal));
-		m_attribs.a_lmapcoord = m_pShader->InitAttribute("in_lmapcoord", 2, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, lmapcoord[0]));
+		m_attribs.a_normal = m_pShader->InitAttribute("in_normal", 3, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, normal));
+		
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			CString name;
+			name << "in_lmapcoord[" << i << "]";
+			m_attribs.a_lmapcoord[i] = m_pShader->InitAttribute(name.c_str(), 2, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, lmapcoord[i]));
+		}
+		
+		m_attribs.a_styles = m_pShader->InitAttribute("in_styles", 4, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, styles));
 		m_attribs.a_texcoord = m_pShader->InitAttribute("in_texcoord", 2, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, texcoord));
 		m_attribs.a_dtexcoord = m_pShader->InitAttribute("in_dtexcoord", 2, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, dtexcoord));
 		m_attribs.a_fogcoord = m_pShader->InitAttribute("in_fogcoord", 1, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, fogcoord));
@@ -204,12 +213,21 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_tangent, "in_tangent", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_binormal, "in_binormal", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_normal, "in_normal", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderVertexAttribute(m_attribs.a_lmapcoord, "in_lmapcoord", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_texcoord, "in_texcoord", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_dtexcoord, "in_dtexcoord", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_fogcoord, "in_fogcoord", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_alpha, "in_alpha", m_pShader, Sys_ErrorPopup))
 			return false;
+
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			CString name;
+			name << "in_lmapcoord[" << i << "]";
+			if (!R_CheckShaderVertexAttribute(m_attribs.a_lmapcoord[i], name.c_str(), m_pShader, Sys_ErrorPopup))
+			{
+				return false;
+			}
+		}
 
 		// vertex shader uniforms
 		m_attribs.u_projection = m_pShader->InitUniform("projection", CGLSLShader::UNIFORM_MATRIX4);
@@ -232,7 +250,23 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_decalalpha = m_pShader->InitUniform("decalalpha", CGLSLShader::UNIFORM_NOSYNC);
 		m_attribs.u_decalscale = m_pShader->InitUniform("decalscale", CGLSLShader::UNIFORM_NOSYNC);
 
-		m_attribs.u_baselightmap = m_pShader->InitUniform("baselightmap", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_lightstyle_values = m_pShader->InitUniform("u_lightstyle_values", CGLSLShader::UNIFORM_FLOAT1, 256);
+		
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			CString name;
+			name << "baselightmap[" << i << "]";
+			m_attribs.u_baselightmap[i] = m_pShader->InitUniform(name.c_str(), CGLSLShader::UNIFORM_SAMPLER2D);
+			
+			name.clear();
+			name << "difflightmap[" << i << "]";
+			m_attribs.u_difflightmap[i] = m_pShader->InitUniform(name.c_str(), CGLSLShader::UNIFORM_SAMPLER2D);
+			
+			name.clear();
+			name << "lightvecstex[" << i << "]";
+			m_attribs.u_lightvecstex[i] = m_pShader->InitUniform(name.c_str(), CGLSLShader::UNIFORM_SAMPLER2D);
+		}
+
 		m_attribs.u_maintexture = m_pShader->InitUniform("maintexture", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_maintexture2 = m_pShader->InitUniform("maintexture2", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_detailtex = m_pShader->InitUniform("detailtex", CGLSLShader::UNIFORM_SAMPLER2D);
@@ -240,8 +274,6 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_normalmap = m_pShader->InitUniform("normalmap", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_normalmap2 = m_pShader->InitUniform("normalmap2", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_luminance = m_pShader->InitUniform("luminance", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_difflightmap = m_pShader->InitUniform("difflightmap", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_lightvecstex = m_pShader->InitUniform("lightvecstex", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_specular = m_pShader->InitUniform("speculartex", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_specular2 = m_pShader->InitUniform("speculartex2", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_color = m_pShader->InitUniform("color", CGLSLShader::UNIFORM_FLOAT4);
@@ -278,15 +310,12 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_uvoffset, "uvoffset", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_decalalpha, "decalalpha", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_decalscale, "decalscale", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_baselightmap, "baselightmap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_maintexture, "maintexture", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_maintexture2, "maintexture2", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_detailtex, "detailtex", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_chrometex, "chrometex", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmap, "normalmap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmap2, "normalmap2", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_difflightmap, "difflightmap", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_lightvecstex, "lightvecstex", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_specular, "speculartex", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_specular2, "speculartex2", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_color, "color", m_pShader, Sys_ErrorPopup)
@@ -294,6 +323,30 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_fogcolor, "fogcolor", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_fogparams, "fogparams", m_pShader, Sys_ErrorPopup))
 			return false;
+
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			CString name;
+			name << "baselightmap[" << i << "]";
+			if (!R_CheckShaderUniform(m_attribs.u_baselightmap[i], name.c_str(), m_pShader, Sys_ErrorPopup))
+			{
+				return false;
+			}
+
+			name.clear();
+			name << "difflightmap[" << i << "]";
+			if (!R_CheckShaderUniform(m_attribs.u_difflightmap[i], name.c_str(), m_pShader, Sys_ErrorPopup))
+			{
+				return false;
+			}
+
+			name.clear();
+			name << "lightvecstex[" << i << "]";
+			if (!R_CheckShaderUniform(m_attribs.u_lightvecstex[i], name.c_str(), m_pShader, Sys_ErrorPopup))
+			{
+				return false;
+			}
+		}
 
 		for(Uint32 i = 0; i < MAX_BATCH_LIGHTS; i++)
 		{
@@ -1028,6 +1081,10 @@ void CBSPRenderer::InitVBO( void )
 						vertex.origin[3] = 1.0f;
 						vertex.normal = faceNormal;
 						vertex.alpha = ens.pworld->pdispverts[v_idx].alpha / 255.0f;
+						for (Uint32 s = 0; s < MAX_SURFACE_STYLES; s++)
+						{
+							vertex.styles[s] = static_cast<Float>(psurface->styles[s]);
+						}
 
 						if (rns.fog.specialfog)
 							vertex.fogcoord = CalcFogCoord(vertex.origin[2]);
@@ -1126,6 +1183,10 @@ void CBSPRenderer::InitVBO( void )
 
 				vertex.origin[3] = 1.0;
 				vertex.alpha = 0.0f;
+				for (Uint32 s = 0; s < MAX_SURFACE_STYLES; s++)
+				{
+					vertex.styles[s] = static_cast<Float>(psurface->styles[s]);
+				}
 
 				if(rns.fog.specialfog)
 					vertex.fogcoord = CalcFogCoord(vertex.origin[2]);
@@ -1639,7 +1700,11 @@ bool CBSPRenderer::DrawSkyBox( bool inZElements )
 	// Disable so the others can render
 	m_pShader->DisableAttribute(m_attribs.a_position);
 	m_pShader->DisableAttribute(m_attribs.a_normal);
-	m_pShader->DisableAttribute(m_attribs.a_lmapcoord);
+	for (Uint32 i = 0; i < 4; i++)
+	{
+		m_pShader->DisableAttribute(m_attribs.a_lmapcoord[i]);
+	}
+	m_pShader->DisableAttribute(m_attribs.a_styles);
 	m_pShader->DisableAttribute(m_attribs.a_texcoord);
 	m_pShader->DisableAttribute(m_attribs.a_dtexcoord);
 	m_pShader->DisableAttribute(m_attribs.a_fogcoord);
@@ -2000,10 +2065,21 @@ bool CBSPRenderer::DrawFirst( void )
 	// Flag for whether the view matrix was set
 	bool cubematrixSet = false;
 
-	m_pShader->EnableAttribute(m_attribs.a_lmapcoord);
+	for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+	{
+		m_pShader->EnableAttribute(m_attribs.a_lmapcoord[i]);
+	}
+	
+	m_pShader->EnableAttribute(m_attribs.a_styles);
 	m_pShader->EnableAttribute(m_attribs.a_texcoord);
 
 	m_pShader->SetUniform2f(m_attribs.u_uvoffset, 0, 0);
+	
+	m_pShader->SetUniform2f(m_attribs.u_uvoffset, 0, 0);
+	if (m_pLightStyleValuesArray && !m_pLightStyleValuesArray->empty())
+	{
+		m_pShader->SetUniform1fv(m_attribs.u_lightstyle_values, &((*m_pLightStyleValuesArray)[0]), 256);
+	}
 
 	// Gather up to 4 dynamic lights
 	cl_dlight_t* active_dlights[4] = { nullptr };
@@ -2094,10 +2170,14 @@ bool CBSPRenderer::DrawFirst( void )
 						R_Bind2DTexture(GL_TEXTURE0 + mainsamplerindex, pmaterial->ptextures[MT_TX_DIFFUSE2]->palloc->gl_index);
 					}
 
-					m_pShader->EnableAttribute(m_attribs.a_lmapcoord);
+					for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+					{
+						m_pShader->EnableAttribute(m_attribs.a_lmapcoord[k]);
+					}
+					m_pShader->EnableAttribute(m_attribs.a_styles);
 					m_pShader->EnableAttribute(m_attribs.a_texcoord);
 
-					if(pmaterial->ptextures[MT_TX_DETAIL] && m_pCvarDetailTextures->GetValue() > 0)
+					if (pmaterial->ptextures[MT_TX_DETAIL] && m_pCvarDetailTextures->GetValue() > 0)
 					{
 						// Base texture AND detail texture
 						result = m_pShader->SetDeterminator(m_attribs.d_shadertype, shader_main_detail, false);
@@ -2124,17 +2204,28 @@ bool CBSPRenderer::DrawFirst( void )
 					// Disable both of these
 					m_pShader->DisableAttribute(m_attribs.a_texcoord);
 					m_pShader->DisableAttribute(m_attribs.a_dtexcoord);
-					m_pShader->DisableAttribute(m_attribs.a_lmapcoord);
+					for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+					{
+						m_pShader->DisableAttribute(m_attribs.a_lmapcoord[k]);
+					}
+					m_pShader->DisableAttribute(m_attribs.a_styles);
 				}
 				break;
 			case RENDER_TRANSCOLOR_LIT:
 				{
 					// Only lightmap
-					Uint32 lightnapindex = m_pShader->AutoSetSamplerUniform(m_attribs.u_baselightmap);
-					R_Bind2DTexture(GL_TEXTURE0+lightnapindex, m_ambientLightmapIndexes[BASE_LIGHTMAP_INDEX]);
+					for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+					{
+						Uint32 lightnapindex = m_pShader->AutoSetSamplerUniform(m_attribs.u_baselightmap[k]);
+						R_Bind2DTexture(GL_TEXTURE0 + lightnapindex, m_ambientLightmapIndexes[k] ? m_ambientLightmapIndexes[k] : m_ambientLightmapIndexes[0]);
+					}
 
 					// Enable lightmap coord sends
-					m_pShader->EnableAttribute(m_attribs.a_lmapcoord);
+					for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+					{
+						m_pShader->EnableAttribute(m_attribs.a_lmapcoord[k]);
+					}
+					m_pShader->EnableAttribute(m_attribs.a_styles);
 
 					result = m_pShader->SetDeterminator(m_attribs.d_shadertype, shader_texunit0_x4, false);
 				}
@@ -2388,7 +2479,11 @@ bool CBSPRenderer::DrawFirst( void )
 
 		if(g_pCvarWireFrame->GetValue() >= 1 && !m_isEntityTransparent)
 		{
-			m_pShader->DisableAttribute(m_attribs.a_lmapcoord);
+			for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+			{
+				m_pShader->DisableAttribute(m_attribs.a_lmapcoord[k]);
+			}
+			m_pShader->DisableAttribute(m_attribs.a_styles);
 			m_pShader->DisableAttribute(m_attribs.a_texcoord);
 			m_pShader->DisableAttribute(m_attribs.a_dtexcoord);
 			m_pShader->DisableAttribute(m_attribs.a_normal);
@@ -2423,7 +2518,11 @@ bool CBSPRenderer::DrawFirst( void )
 			if(g_pCvarWireFrame->GetValue() >= 2)
 				glEnable(GL_DEPTH_TEST);
 
-			m_pShader->EnableAttribute(m_attribs.a_lmapcoord);
+			for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+			{
+				m_pShader->EnableAttribute(m_attribs.a_lmapcoord[k]);
+			}
+			m_pShader->EnableAttribute(m_attribs.a_styles);
 			m_pShader->EnableAttribute(m_attribs.a_texcoord);
 
 			if(rns.fog.settings.active)
@@ -2449,7 +2548,11 @@ bool CBSPRenderer::DrawFirst( void )
 	m_pShader->DisableSync(m_attribs.u_modelmatrix);
 	m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
 
-	m_pShader->DisableAttribute(m_attribs.a_lmapcoord);
+	for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+	{
+		m_pShader->DisableAttribute(m_attribs.a_lmapcoord[i]);
+	}
+	m_pShader->DisableAttribute(m_attribs.a_styles);
 	m_pShader->DisableAttribute(m_attribs.a_texcoord);
 	m_pShader->DisableAttribute(m_attribs.a_dtexcoord);
 
@@ -2520,14 +2623,17 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 	{
 		m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, TRUE);
 
-		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_baselightmap);
-		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_ambientLightmapIndexes[BASE_LIGHTMAP_INDEX]);
-
-		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_difflightmap);
-		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_diffuseLightmapIndexes[BASE_LIGHTMAP_INDEX]);
-
-		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_lightvecstex);
-		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_lightVectorsIndexes[BASE_LIGHTMAP_INDEX]);
+		for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+		{
+			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_baselightmap[k]);
+			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_ambientLightmapIndexes[k] ? m_ambientLightmapIndexes[k] : m_ambientLightmapIndexes[0]);
+			
+			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_difflightmap[k]);
+			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_diffuseLightmapIndexes[k] ? m_diffuseLightmapIndexes[k] : m_diffuseLightmapIndexes[0]);
+			
+			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_lightvecstex[k]);
+			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_lightVectorsIndexes[k] ? m_lightVectorsIndexes[k] : m_lightVectorsIndexes[0]);
+		}
 
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_normalmap);
 		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pnormalmap->palloc->gl_index);
@@ -2566,8 +2672,12 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 	{
 		m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 		m_pShader->SetUniform1i(m_attribs.u_d_specular, FALSE);
-		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_baselightmap);
-		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_lightmapIndexes[BASE_LIGHTMAP_INDEX]);
+		
+		for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+		{
+			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_baselightmap[k]);
+			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_lightmapIndexes[k] ? m_lightmapIndexes[k] : m_lightmapIndexes[0]);
+		}
 	}
 
 	// Bind the main texture

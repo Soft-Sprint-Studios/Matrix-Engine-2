@@ -436,6 +436,7 @@ public:
 	inline void SetUniform3f( Int32 index, Float x, Float y, Float z );
 	inline void SetUniform2f( Int32 index, Float x, Float y );
 	inline void SetUniform1f( Int32 index, Float x );
+	inline void SetUniform1fv( Int32 index, const Float* v, Uint32 num );
 	// Uniform int assignment variations
 	inline void SetUniform1i( Int32 index, Int32 x );
 	// Uniform matrix assignment variations
