@@ -369,6 +369,9 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_light_radius = m_pShader->InitUniform("light_radius", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_scope_scale = m_pShader->InitUniform("scope_scale", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_scope_scrsize = m_pShader->InitUniform("scope_scrsize", CGLSLShader::UNIFORM_FLOAT2);
+		m_attribs.u_causticstex1 = m_pShader->InitUniform("causticstex1", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_causticstex2 = m_pShader->InitUniform("causticstex2", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_causticscolor = m_pShader->InitUniform("causticscolor", CGLSLShader::UNIFORM_FLOAT4);
 		m_attribs.u_sky_ambient = m_pShader->InitUniform("skylight_ambient", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_sky_diffuse = m_pShader->InitUniform("skylight_diffuse", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_sky_dir = m_pShader->InitUniform("skylight_dir", CGLSLShader::UNIFORM_FLOAT3);
@@ -393,6 +396,9 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_light_radius, "light_radius", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_scope_scale, "scope_scale", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_scope_scrsize, "scope_scrsize", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_causticstex1, "causticstex1", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_causticstex2, "causticstex2", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_causticscolor, "causticscolor", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_sky_ambient, "skylight_ambient", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_sky_diffuse, "skylight_diffuse", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_sky_dir, "skylight_dir", m_pShader, Sys_ErrorPopup)
@@ -3338,6 +3344,45 @@ bool CVBMRenderer::SetupRenderer( void )
 	}
 
 	m_pShader->SetUniform4f(m_attribs.u_color, 1.0, 1.0, 1.0, m_renderAlpha);
+
+	if (rns.inwater && g_pCvarCaustics->GetValue() >= 1)
+	{
+		const water_settings_t* psettings = gWaterShader.GetActiveSettings();
+		if (psettings && !psettings->cheaprefraction && psettings->causticscale > 0 && psettings->causticstrength > 0 && !rns.objects.caustics_textures.empty())
+		{
+			GLfloat splane[4] = { static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f, 0.0f };
+			GLfloat tplane[4] = { 0.0f, static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f };
+
+			Float causticsTime = rns.time * 10.0f * psettings->causticstimescale;
+			Int32 causticsCurFrame = static_cast<Int32>(causticsTime) % rns.objects.caustics_textures.size();
+			Int32 causticsNextFrame = (causticsCurFrame + 1) % rns.objects.caustics_textures.size();
+			Float causticsInterp = causticsTime - static_cast<Int32>(causticsTime);
+
+			Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
+			R_Bind2DTexture(GL_TEXTURE0 + texUnit1, rns.objects.caustics_textures[causticsCurFrame]->palloc->gl_index);
+
+			Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
+			R_Bind2DTexture(GL_TEXTURE0 + texUnit2, rns.objects.caustics_textures[causticsNextFrame]->palloc->gl_index);
+
+			m_pShader->SetUniform4f(m_attribs.u_causticsm1, splane[0], splane[1], splane[2], splane[3]);
+			m_pShader->SetUniform4f(m_attribs.u_causticsm2, tplane[0], tplane[1], tplane[2], tplane[3]);
+			m_pShader->SetUniform1f(m_attribs.u_caustics_interp, causticsInterp);
+
+			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 
+				psettings->fogparams.color[0] * psettings->causticstrength,
+				psettings->fogparams.color[1] * psettings->causticstrength,
+				psettings->fogparams.color[2] * psettings->causticstrength,
+				1.0f);
+		}
+		else
+		{
+			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+	}
+	else
+	{
+		m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
+	}
 
 	m_pShader->DisableSync(m_attribs.u_causticsm1);
 	m_pShader->DisableSync(m_attribs.u_causticsm2);

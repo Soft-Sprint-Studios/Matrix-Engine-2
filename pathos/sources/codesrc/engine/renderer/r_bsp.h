@@ -134,7 +134,10 @@ struct bsp_shader_attribs
 		u_color(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_light_radius(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogcolor(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_fogparams(CGLSLShader::PROPERTY_UNAVAILABLE)
+		u_fogparams(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_causticstex1(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_causticstex2(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_causticscolor(CGLSLShader::PROPERTY_UNAVAILABLE)
 	{
 		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
 		{
@@ -219,6 +222,10 @@ struct bsp_shader_attribs
 
 	Int32 u_fogcolor;
 	Int32 u_fogparams;
+
+	Int32 u_causticstex1;
+	Int32 u_causticstex2;
+	Int32 u_causticscolor;
 
 	light_attribs_t lights[MAX_BATCH_LIGHTS];
 };

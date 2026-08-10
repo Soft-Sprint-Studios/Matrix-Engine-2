@@ -296,6 +296,10 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_fogcolor = m_pShader->InitUniform("fogcolor", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_fogparams = m_pShader->InitUniform("fogparams", CGLSLShader::UNIFORM_FLOAT2);
 
+		m_attribs.u_causticstex1 = m_pShader->InitUniform("causticstex1", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_causticstex2 = m_pShader->InitUniform("causticstex2", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_causticscolor = m_pShader->InitUniform("causticscolor", CGLSLShader::UNIFORM_FLOAT4);
+
 		if(!R_CheckShaderUniform(m_attribs.u_projection, "projection", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_modelview, "modelview", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmatrix, "normalmatrix", m_pShader, Sys_ErrorPopup)
@@ -321,7 +325,10 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_color, "color", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_light_radius, "light_radius", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_fogcolor, "fogcolor", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_fogparams, "fogparams", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderUniform(m_attribs.u_fogparams, "fogparams", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_causticstex1, "causticstex1", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_causticstex2, "causticstex2", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_causticscolor, "causticscolor", m_pShader, Sys_ErrorPopup))
 			return false;
 
 		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
@@ -2079,6 +2086,45 @@ bool CBSPRenderer::DrawFirst( void )
 	if (m_pLightStyleValuesArray && !m_pLightStyleValuesArray->empty())
 	{
 		m_pShader->SetUniform1fv(m_attribs.u_lightstyle_values, &((*m_pLightStyleValuesArray)[0]), 256);
+	}
+
+	if (rns.inwater && g_pCvarCaustics->GetValue() >= 1)
+	{
+		const water_settings_t* psettings = gWaterShader.GetActiveSettings();
+		if (psettings && !psettings->cheaprefraction && psettings->causticscale > 0 && psettings->causticstrength > 0 && !rns.objects.caustics_textures.empty())
+		{
+			GLfloat splane[4] = { static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f, 0.0f };
+			GLfloat tplane[4] = { 0.0f, static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f };
+
+			Float causticsTime = rns.time * 10.0f * psettings->causticstimescale;
+			Int32 causticsCurFrame = static_cast<Int32>(causticsTime) % rns.objects.caustics_textures.size();
+			Int32 causticsNextFrame = (causticsCurFrame + 1) % rns.objects.caustics_textures.size();
+			Float causticsInterp = causticsTime - static_cast<Int32>(causticsTime);
+
+			Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
+			R_Bind2DTexture(GL_TEXTURE0 + texUnit1, rns.objects.caustics_textures[causticsCurFrame]->palloc->gl_index);
+
+			Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
+			R_Bind2DTexture(GL_TEXTURE0 + texUnit2, rns.objects.caustics_textures[causticsNextFrame]->palloc->gl_index);
+
+			m_pShader->SetUniform4f(m_attribs.u_causticsm1, splane[0], splane[1], splane[2], splane[3]);
+			m_pShader->SetUniform4f(m_attribs.u_causticsm2, tplane[0], tplane[1], tplane[2], tplane[3]);
+			m_pShader->SetUniform1f(m_attribs.u_interpolant, causticsInterp);
+
+			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 
+				psettings->fogparams.color[0] * psettings->causticstrength,
+				psettings->fogparams.color[1] * psettings->causticstrength,
+				psettings->fogparams.color[2] * psettings->causticstrength,
+				1.0f);
+		}
+		else
+		{
+			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+	}
+	else
+	{
+		m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
 	}
 
 	// Gather up to 4 dynamic lights
