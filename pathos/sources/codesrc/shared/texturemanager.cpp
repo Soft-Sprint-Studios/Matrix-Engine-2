@@ -797,6 +797,7 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 
 		// Set defaults
 		pmaterial->alpha = 1.0;
+		pmaterial->heightscale = 0.0;
 	}
 
 	static Char line[MAX_LINE_LENGTH];
@@ -892,7 +893,8 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 					|| !qstrcmp(token, "$alpha") || !qstrcmp(token, "$phong_exp")
 					|| !qstrcmp(token, "$spec") || !qstrcmp(token, "$scopescale") 
 					|| !qstrcmp(token, "$container")
-					|| !qstrcmp(token, "$scrollu") || !qstrcmp(token, "$scrollv"))
+					|| !qstrcmp(token, "$scrollu") || !qstrcmp(token, "$scrollv")
+					|| !qstrcmp(token, "$heightscale"))
 			{
 				if(!pchar)
 				{
@@ -914,6 +916,8 @@ en_material_t* CTextureManager::LoadMaterialScript( const Char* pstrFilename, rs
 					pmaterial->dt_scalex = SDL_atof(value);
 				else if(!qstrcmp(token, "$dt_scaley"))
 					pmaterial->dt_scaley = SDL_atof(value);
+				else if(!qstrcmp(token, "$heightscale"))
+					pmaterial->heightscale = static_cast<Float>(SDL_atof(value));
 				else if(!qstrcmp(token, "$int_width"))
 					pmaterial->int_width = SDL_atoi(value);
 				else if(!qstrcmp(token, "$int_height"))
@@ -1744,6 +1748,9 @@ void CTextureManager::WritePMFFile( en_material_t* pmaterial )
 		if(pmaterial->dt_scaley)
 			data << "\t$dt_scaley " << pmaterial->dt_scaley << NEWLINE;
 	}
+
+	if(pmaterial->heightscale)
+		data << "\t$heightscale " << pmaterial->heightscale << NEWLINE;
 
 	if(pmaterial->int_width)
 		data << "\t$int_width " << pmaterial->int_width << NEWLINE;

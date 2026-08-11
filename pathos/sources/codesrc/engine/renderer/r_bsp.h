@@ -122,6 +122,7 @@ struct bsp_shader_attribs
 		u_cube_prev_min(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_prev_max(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_prev_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_heightscale(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_maintexture(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_maintexture2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_detailtex(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -203,6 +204,8 @@ struct bsp_shader_attribs
 	Int32 u_cube_prev_min;
 	Int32 u_cube_prev_max;
 	Int32 u_cube_prev_origin;
+
+	Int32 u_heightscale;
 
 	Int32 u_lightstyle_values;
 	Int32 u_baselightmap[MAX_SURFACE_STYLES];

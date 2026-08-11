@@ -293,6 +293,8 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_cube_max = m_pShader->InitUniform("u_cube_max", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_cube_origin = m_pShader->InitUniform("u_cube_origin", CGLSLShader::UNIFORM_FLOAT3);
 
+		m_attribs.u_heightscale = m_pShader->InitUniform("u_heightscale", CGLSLShader::UNIFORM_FLOAT1);
+
 		m_attribs.u_fogcolor = m_pShader->InitUniform("fogcolor", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_fogparams = m_pShader->InitUniform("fogparams", CGLSLShader::UNIFORM_FLOAT2);
 
@@ -309,6 +311,7 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_cube_min, "u_cube_min", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_max, "u_cube_max", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_origin, "u_cube_origin", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_heightscale, "u_heightscale", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_vorigin, "v_origin", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_vright, "v_right", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_uvoffset, "uvoffset", m_pShader, Sys_ErrorPopup)
@@ -2847,6 +2850,8 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 		m_pShader->EnableAttribute(m_attribs.a_binormal);
 	else
 		m_pShader->DisableAttribute(m_attribs.a_binormal);
+
+	m_pShader->SetUniform1f(m_attribs.u_heightscale, pmaterial->heightscale);
 
 	Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
 	Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);

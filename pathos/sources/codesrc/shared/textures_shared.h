@@ -163,6 +163,7 @@ struct en_material_t
 
 	Float alpha;
 	Float scale;
+	Float heightscale;
 	Float scrollu;
 	Float scrollv;
 
