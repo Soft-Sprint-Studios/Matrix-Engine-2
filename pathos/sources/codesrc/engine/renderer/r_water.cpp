@@ -2010,8 +2010,7 @@ bool CWaterShader::DrawWater( bool skybox )
 		m_pShader->SetUniform1i(m_attribs.u_lightmap, textureUnit);
 		R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_textures[BASE_LIGHTMAP_INDEX]->gl_index);
 
-		if(g_pCvarMrao->GetValue() >= 1
-			&& m_pCurrentWater->plightmap_diffuse_textures[BASE_LIGHTMAP_INDEX] 
+		if(m_pCurrentWater->plightmap_diffuse_textures[BASE_LIGHTMAP_INDEX] 
 			&& m_pCurrentWater->plightmap_lightvecs_textures[BASE_LIGHTMAP_INDEX])
 		{
 			result = m_pShader->SetDeterminator(m_attribs.d_mrao, TRUE);
@@ -2083,8 +2082,7 @@ bool CWaterShader::DrawWater( bool skybox )
 
 					m_pShader->SetUniform1f(m_attribs.u_stylestrength, styleStrength);
 
-					if(g_pCvarMrao->GetValue() >= 1 
-						&& m_pCurrentWater->plightmap_diffuse_textures[k] 
+					if(m_pCurrentWater->plightmap_diffuse_textures[k] 
 						&& m_pCurrentWater->plightmap_lightvecs_textures[k])
 					{
 						result = m_pShader->SetDeterminator(m_attribs.d_mrao, 1);

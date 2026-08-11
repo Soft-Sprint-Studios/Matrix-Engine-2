@@ -3645,9 +3645,9 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 	// Set the determinator states
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, (pmaterial->flags & (TX_FL_CHROME) || (pmaterial->flags & TX_FL_EYEGLINT && drawBlended)) ? TRUE : FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, (pmaterial->flags & (TX_FL_FULLBRIGHT|TX_FL_SCOPE)) ? 0 : m_numModelLights);
-	m_pShader->SetUniform1i(m_attribs.u_d_mrao, (pmaterial->ptextures[MT_TX_MRAO]) && !(pmaterial->flags & TX_FL_FULLBRIGHT) && g_pCvarMrao->GetValue() > 0 ? true : false);
+	m_pShader->SetUniform1i(m_attribs.u_d_mrao, (pmaterial->ptextures[MT_TX_MRAO]) && !(pmaterial->flags & TX_FL_FULLBRIGHT) ? true : false);
 	m_pShader->SetUniform1i(m_attribs.u_d_luminance, (pmaterial->ptextures[MT_TX_LUMINANCE]) && !(pmaterial->flags & TX_FL_FULLBRIGHT));
-	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, (pmaterial->ptextures[MT_TX_NORMALMAP]) && !(pmaterial->flags & TX_FL_FULLBRIGHT) && g_pCvarBumpMaps->GetValue() > 0);
+	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, (pmaterial->ptextures[MT_TX_NORMALMAP]) && !(pmaterial->flags & TX_FL_FULLBRIGHT));
 
 	// Alpha testing needs to be handled specially
 	Int32 alphatestMode = ALPHATEST_DISABLED;
@@ -3707,7 +3707,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		R_BindRectangleTexture(GL_TEXTURE0_ARB + textureIndex, m_pScreenTexture->palloc->gl_index);
 	}
 
-	if (pmaterial->ptextures[MT_TX_MRAO] && g_pCvarMrao->GetValue() > 0)
+	if (pmaterial->ptextures[MT_TX_MRAO])
 	{
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_mraotexture);
 		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
@@ -3800,7 +3800,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_LUMINANCE]->palloc->gl_index);
 	}
 
-	if(pmaterial->ptextures[MT_TX_NORMALMAP] && g_pCvarBumpMaps->GetValue() > 0)
+	if(pmaterial->ptextures[MT_TX_NORMALMAP])
 	{
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_normalmap);
 		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_NORMALMAP]->palloc->gl_index);

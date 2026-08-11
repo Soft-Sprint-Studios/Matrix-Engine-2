@@ -789,8 +789,7 @@ void CBSPRenderer::InitLightmaps( void )
 	// Now process any bump mapped ones
 	//
 	
-	if(g_pCvarBumpMaps->GetValue() >= 1
-		&& ens.pworld->plightdata[SURF_LIGHTMAP_AMBIENT]
+	if(ens.pworld->plightdata[SURF_LIGHTMAP_AMBIENT]
 		&& ens.pworld->plightdata[SURF_LIGHTMAP_DIFFUSE]
 		&& ens.pworld->plightdata[SURF_LIGHTMAP_VECTORS])
 	{
@@ -2625,7 +2624,7 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 
 	en_texture_t* pnormalmap = pmaterial->ptextures[MT_TX_NORMALMAP];
 	en_texture_t* pnormalmap2 = pmaterial->ptextures[MT_TX_NORMALMAP2];
-	if(m_bumpMaps && pnormalmap && g_pCvarBumpMaps->GetValue() > 0)
+	if(m_bumpMaps && pnormalmap)
 	{
 		m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, TRUE);
 
@@ -2654,7 +2653,7 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 		
 		en_texture_t* pmrao = pmaterial->ptextures[MT_TX_MRAO];
 		en_texture_t* pmrao2 = pmaterial->ptextures[MT_TX_MRAO2];
-		if(pmrao && g_pCvarMrao->GetValue() > 0)
+		if(pmrao)
 		{
 			m_pShader->SetUniform1i(m_attribs.u_d_mrao, TRUE);
 			enableNormal = enableBinormal = enableTangent = true;

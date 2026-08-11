@@ -82,10 +82,8 @@ All Rights Reserved.
 #include "sv_bulletphysics.h"
 
 // Global cvars
-CCVar* g_pCvarBumpMaps = nullptr;
 CCVar* g_pCvarDrawEntities = nullptr;
 CCVar* g_pCvarWireFrame = nullptr;
-CCVar* g_pCvarMrao = nullptr;
 CCVar* g_pCvarCaustics = nullptr;
 CCVar* g_pCvarFarZ = nullptr;
 CCVar* g_pCvarShadows = nullptr;
@@ -183,8 +181,6 @@ enum lightmapcompression_t
 bool R_Init( void )
 {
 	// Init cvars
-	g_pCvarBumpMaps = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT), "r_bumpmaps", "1", "Toggles normal mapping");
-	g_pCvarMrao = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT), "r_mrao", "1", "Toggles specular highlights");
 	g_pCvarDrawEntities = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_drawentities", "1", "Toggles rendering of entities");
 	g_pCvarWireFrame = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_wireframe", "0", "Toggle wireframe rendering");
 	g_pCvarCaustics = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_water_caustics", "1", "Toggle water caustics");
