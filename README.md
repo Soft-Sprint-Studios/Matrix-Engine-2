@@ -16,3 +16,9 @@ High Dynamic Range
 Discord RPC and Sentry crash report integration
 
 Custom PBSPV3 updated to have checksum and displacements + map sizes bigger then 32k
+
+Blended textures
+
+Deleted multipass
+
+Parallax Occlusion Mapping
