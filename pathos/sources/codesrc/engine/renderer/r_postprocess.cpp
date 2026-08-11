@@ -18,6 +18,7 @@ All Rights Reserved.
 #include "r_main.h"
 #include "cl_main.h"
 #include "r_fbo.h"
+#include "r_fbocache.h"
 #include "cvar.h"
 #include "r_postprocess.h"
 #include "r_rttcache.h"
@@ -83,6 +84,11 @@ CPostProcess::CPostProcess( void ):
 	m_pCvarBloomBrightenMultiplier(nullptr),
 	m_pCvarBloomBrightnessTreshold(nullptr),
 	m_pCvarTonemap(nullptr),
+	m_pCvarAutoExposure(nullptr),
+	m_pCvarAutoExposureMin(nullptr),
+	m_pCvarAutoExposureMax(nullptr),
+	m_pCvarAutoExposureSpeed(nullptr),
+	m_pCvarAutoExposureKey(nullptr),
 	m_pScreenRTT(nullptr),
 	m_pBlurScreenTexture(nullptr),
 	m_vignetteActive(false),
@@ -93,7 +99,9 @@ CPostProcess::CPostProcess( void ):
 	m_blackAndWhiteActive(false),
 	m_blackAndWhiteStrength(0.0f) ,
 	m_filmGrainStrength(0.0f),
-	m_filmGrainActive(0.0f)
+	m_filmGrainActive(0.0f),
+	m_currentExposure(1.0f),
+	m_lastAvgLum(0.0f)
 {
 }
 
@@ -124,6 +132,12 @@ bool CPostProcess :: Init( void )
 	m_pCvarBloomBrightnessTreshold = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_bloom_brightness_treshold", "1", "Controls lower cutoff brightness for bloom.");
 
 	m_pCvarTonemap = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_tonemap", "0", "Enable ACES tonemapping.");
+
+	m_pCvarAutoExposure = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_autoexposure", "0", "Enable auto-exposure.");
+	m_pCvarAutoExposureMin = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_autoexposure_min", "0.9", "Minimum auto-exposure multiplier.");
+	m_pCvarAutoExposureMax = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_autoexposure_max", "1.5", "Maximum auto-exposure multiplier.");
+	m_pCvarAutoExposureSpeed = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_autoexposure_speed", "1.5", "Auto-exposure adaptation speed.");
+	m_pCvarAutoExposureKey = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT | FL_CV_SAVE, "r_autoexposure_key", "0.18", "Target key (middle-grey) for auto-exposure.");
 
 	return true;
 }
@@ -163,6 +177,7 @@ bool CPostProcess :: InitGL( void )
 		m_attribs.u_offset = m_pShader->InitUniform("offset", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_color = m_pShader->InitUniform("u_color", CGLSLShader::UNIFORM_FLOAT4);
 		m_attribs.u_gamma = m_pShader->InitUniform("gamma", CGLSLShader::UNIFORM_FLOAT1);
+		m_attribs.u_exposure = m_pShader->InitUniform("u_exposure", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_screenwidth = m_pShader->InitUniform("screenwidth", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_screenheight = m_pShader->InitUniform("screenheight", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_timer = m_pShader->InitUniform("timer", CGLSLShader::UNIFORM_FLOAT1);
@@ -187,6 +202,7 @@ bool CPostProcess :: InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_offset, "offset", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_color, "u_color", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_gamma, "gamma", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_exposure, "u_exposure", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_screenwidth, "screenwidth", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_screenheight, "screenheight", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_timer, "timer", m_pShader, Sys_ErrorPopup)
@@ -312,6 +328,8 @@ void CPostProcess :: ClearGame( void )
 	if(!m_screenOverlays.empty())
 		m_screenOverlays.clear();
 
+	m_currentExposure = 1.0f;
+	m_lastAvgLum = 0.0f;
 	m_pBlurScreenTexture = nullptr;
 }
 
@@ -566,6 +584,65 @@ bool CPostProcess::DrawVignette( void )
 
 	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
 	return true;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CPostProcess::CalculateAutoExposure(void)
+{
+	FetchScreen(&m_pScreenRTT);
+
+	CFBOCache::cache_fbo_t* pLumFBO = gFBOCache.Alloc(256, 256, false);
+	if (!pLumFBO)
+		return;
+
+	R_BindFBO(&pLumFBO->fbo);
+	glViewport(0, 0, 256, 256);
+
+	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+
+	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_LOG_LUMINANCE))
+	{
+		Sys_ErrorPopup("Shader error: %s.", m_pShader->GetError());
+		R_BindFBO(nullptr);
+		glViewport(0, 0, rns.screenwidth, rns.screenheight);
+		gFBOCache.Free(pLumFBO);
+		return;
+	}
+
+	m_pShader->SetUniform2f(m_attribs.u_tcscale, rns.screenwidth, rns.screenheight);
+
+	R_ValidateShader(m_pShader);
+
+	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
+
+	R_BindFBO(nullptr);
+	glViewport(0, 0, rns.screenwidth, rns.screenheight);
+
+	R_Bind2DTexture(GL_TEXTURE0, pLumFBO->fbo.ptexture1->gl_index);
+	gGLExtF.glGenerateMipmap(GL_TEXTURE_2D);
+
+	Float rawNorm = 0.0f;
+	glGetTexImage(GL_TEXTURE_2D, 8, GL_RED, GL_FLOAT, &rawNorm);
+
+	gFBOCache.Free(pLumFBO);
+
+	Float logAvgLum = (rawNorm * 20.0f) - 14.0f;
+	Float avgLum = exp2(logAvgLum);
+
+	m_lastAvgLum = avgLum;
+
+	Float key = m_pCvarAutoExposureKey ? m_pCvarAutoExposureKey->GetValue() : 0.18f;
+	Float targetExposure = key / ((avgLum > 0.0001f) ? avgLum : 0.0001f);
+
+	Float minExp = m_pCvarAutoExposureMin ? m_pCvarAutoExposureMin->GetValue() : 0.1f;
+	Float maxExp = m_pCvarAutoExposureMax ? m_pCvarAutoExposureMax->GetValue() : 5.0f;
+	targetExposure = clamp(targetExposure, minExp, maxExp);
+
+	Float speed = m_pCvarAutoExposureSpeed ? m_pCvarAutoExposureSpeed->GetValue() : 2.0f;
+	m_currentExposure += (targetExposure - m_currentExposure) * (1.0f - exp(-rns.frametime * speed));
 }
 
 //=============================================
@@ -949,6 +1026,18 @@ bool CPostProcess :: Draw( bool noFilmGrain )
 
 	if(m_pCvarPostProcess->GetValue() > 0)
 	{
+		// Calculate Auto-exposure if needed
+		if (m_pCvarAutoExposure && m_pCvarAutoExposure->GetValue() >= 1)
+		{
+			CalculateAutoExposure();
+		}
+		else
+		{
+			m_currentExposure = 1.0f;
+		}
+
+		m_pShader->SetUniform1f(m_attribs.u_exposure, m_currentExposure);
+
 		// Apply tonemapping if needed
 		if (m_pCvarTonemap->GetValue() >= 1)
 		{
@@ -960,8 +1049,8 @@ bool CPostProcess :: Draw( bool noFilmGrain )
 			}
 		}
 
-		// Apply gamma if needed
-		if(m_pCvarGamma->GetValue() != 1.8)
+		// Apply gamma or exposure pass
+		if(m_pCvarGamma->GetValue() != 1.8 || (m_pCvarAutoExposure && m_pCvarAutoExposure->GetValue() >= 1))
 		{
 			if(!DrawGamma())
 			{

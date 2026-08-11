@@ -18,7 +18,7 @@ void main()
 }
 $end
 $shader_fragment 
-$determinator pp_type 0 17
+$determinator pp_type 0 18
 $begin
 #version 130
 #extension GL_ARB_texture_rectangle : enable
@@ -36,6 +36,7 @@ uniform float blur_brightness;
 uniform int blur_radius;
 uniform float brightness_treshold;
 uniform float grainamount;
+uniform float u_exposure;
 
 $branch pp_type == 0
 $begin
@@ -185,7 +186,7 @@ void main()
 	$branch pp_type == 0
 	$begin
 		vec4 color = texture0Func(ps_texcoord);
-		color.rgb = max(vec3(0.0), color.rgb);
+		color.rgb = max(vec3(0.0), color.rgb) * u_exposure;
 		for(int i = 0; i < 4; i++)
 			oColor[i] = pow(color[i], 1.0/gamma);
 		oColor.rgb = max(vec3(0.0), oColor.rgb);
@@ -376,8 +377,16 @@ void main()
 	$branch pp_type == 17
 	$begin
 		vec4 color = texture0Func(ps_texcoord);
-		color.rgb = max(vec3(0.0), color.rgb);
+		color.rgb = max(vec3(0.0), color.rgb) * u_exposure;
 		oColor = vec4(aces(color.rgb), color.a);
+	$end
+	$branch pp_type == 18
+	$begin
+		vec4 color = texture0Func(ps_texcoord);
+		color.rgb = max(vec3(0.0), color.rgb);
+		float lum = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+		float logLum = (log2(clamp(lum, 0.0001, 16.0)) + 14.0) / 20.0;
+		oColor = vec4(vec3(logLum), color.a);
 	$end
 }
 $end

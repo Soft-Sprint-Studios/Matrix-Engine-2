@@ -32,7 +32,8 @@ enum pp_shadertypes_t
 	SHADER_VIGNETTE,
 	SHADER_2DTEXTURE,
 	SHADER_2DTEXTURE_ALPHATEST,
-	SHADER_TONEMAP
+	SHADER_TONEMAP,
+	SHADER_LOG_LUMINANCE
 };
 
 struct pp_shader_attribs
@@ -44,6 +45,7 @@ struct pp_shader_attribs
 		u_offset(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_color(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_gamma(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_exposure(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_screenwidth(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_screenheight(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_timer(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -74,6 +76,7 @@ struct pp_shader_attribs
 	Int32	u_offset;
 	Int32	u_color;
 	Int32	u_gamma;
+	Int32	u_exposure;
 
 	Int32	u_screenwidth;
 	Int32	u_screenheight;
@@ -189,6 +192,8 @@ private:
 	bool DrawBlackAndWhite( void );
 	// Draw vignette effect
 	bool DrawVignette( void );
+	// Calculate Auto-exposure
+	void CalculateAutoExposure( void );
 	// Draw tonemapping
 	bool DrawTonemap(void);
 	// Draw overlay effects
@@ -295,6 +300,16 @@ private:
 	CCVar*			m_pCvarBloomBrightnessTreshold;
 	// Tonemap cvar
 	CCVar*			m_pCvarTonemap;
+	// Auto-exposure cvars
+	CCVar* m_pCvarAutoExposure;
+	CCVar* m_pCvarAutoExposureMin;
+	CCVar* m_pCvarAutoExposureMax;
+	CCVar* m_pCvarAutoExposureSpeed;
+	CCVar* m_pCvarAutoExposureKey;
+
+	// Auto-exposure
+	Float			m_currentExposure;
+	Float			m_lastAvgLum;
 
 	// Screen RTT
 	rtt_texture_t*	m_pScreenRTT;
