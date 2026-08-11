@@ -106,7 +106,6 @@ CCVar* g_pCvarGraphHeight = nullptr;
 CCVar* g_pCvarTimeGraph = nullptr;
 CCVar* g_pCvarOcclusionQueries = nullptr;
 CCVar* g_pCvarTraceGlow = nullptr;
-CCVar* g_pCvarBatchDynamicLights = nullptr;
 CCVar* g_pCvarOverdarkenTreshold = nullptr;
 CCVar* g_pCvarDumpLightmaps = nullptr;
 CCVar* g_pCvarLightmapCompression = nullptr;
@@ -205,7 +204,6 @@ bool R_Init( void )
 	g_pCvarTimeGraph = gConsole.CreateCVar( CVAR_FLOAT, FL_CV_CLIENT, "r_timegraph", "0", "Show render performance timegraph." );
 	g_pCvarOcclusionQueries = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_glowocclusion", "1", "Toggles the use of occlusion queries for glows." );
 	g_pCvarTraceGlow = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_traceglow", "0", "Enable/disable performance intensive trace tests." );
-	g_pCvarBatchDynamicLights = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_lightbatches", "0", "Controls whether light rendering is batched based on proximity and type of light." );
 	g_pCvarOverdarkenTreshold = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_overdarken_treshold", "35", "Overdarkening treshold setting, default is 35." );
 	g_pCvarDumpLightmaps = gConsole.CreateCVar( CVAR_FLOAT, FL_CV_CLIENT, "r_lightmap_dumping", "0", "Toggle whether lightmap data should be exported to TGAs on level load." );
 	g_pCvarLightmapCompression = gConsole.CreateCVar( CVAR_FLOAT, FL_CV_CLIENT, "r_lightmap_compression", "0", "Controls whether lightmap data is compressed to the DXT1 format(Experimental)." );

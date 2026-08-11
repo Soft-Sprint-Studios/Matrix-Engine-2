@@ -487,7 +487,6 @@ extern CCVar* g_pCvarGLSLValidate;
 extern CCVar* g_pCvarSkipFrames;
 extern CCVar* g_pCvarOcclusionQueries;
 extern CCVar* g_pCvarTraceGlow;
-extern CCVar* g_pCvarBatchDynamicLights;
 extern CCVar* g_pCvarOverdarkenTreshold;
 extern CCVar* g_pCvarDumpLightmaps;
 extern CCVar* g_pCvarLightmapPadding;
