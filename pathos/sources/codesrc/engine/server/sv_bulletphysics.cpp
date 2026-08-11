@@ -629,6 +629,9 @@ void CBulletPhysics::SyncEntityToPhysics(edict_t* pedict, Uint32 entindex)
 	m_bodyIds[entindex] = body;
 }
 
+//=============================================
+//
+//=============================================
 void CBulletPhysics::SyncPhysicsToEntity(edict_t* pedict, Uint32 entindex)
 {
 	btRigidBody* body = m_bodyIds[entindex];
