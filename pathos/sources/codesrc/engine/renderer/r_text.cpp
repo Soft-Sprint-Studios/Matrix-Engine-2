@@ -988,6 +988,11 @@ void CText::DrawSimpleStringChars( const Char* pstrString, const font_glyph_t* p
 	Int32 _x = x;
 	Int32 _y = y;
 
+	m_pShader->SetUniform2f(m_attribs.u_offset, 0, 0);
+
+	static CArray<font_vertex_t> vertBatch;
+	vertBatch.clear();
+
 	const char *pstr = pstrString;
 	while(*pstr)
 	{
@@ -1000,10 +1005,31 @@ void CText::DrawSimpleStringChars( const Char* pstrString, const font_glyph_t* p
 
 		const font_glyph_t *pglyph = &pglyphs[glyphindex];
 
-		if(!SDL_isspace(*pstr))
+		if(!SDL_isspace(*pstr) && pglyph->width > 0 && pglyph->height > 0)
 		{
-			m_pShader->SetUniform2f(m_attribs.u_offset, static_cast<Float>(_x), static_cast<Float>(_y));
-			m_pShader->DrawArrays(GL_TRIANGLES, pglyph->start_vertex, 6);
+			Float flwidth = pglyph->width;
+			Float flheight = pglyph->height;
+			Float xstart = _x + pglyph->bitmap_left;
+			Float ystart = _y - pglyph->bitmap_top;
+
+			font_vertex_t v[6];
+			v[0].position[0] = xstart;           v[0].position[1] = ystart;           v[0].position[2] = -1; v[0].position[3] = 1;
+			v[0].texcoord[0] = pglyph->texcoords[0][0]; v[0].texcoord[1] = pglyph->texcoords[0][1];
+
+			v[1].position[0] = xstart + flwidth; v[1].position[1] = ystart;           v[1].position[2] = -1; v[1].position[3] = 1;
+			v[1].texcoord[0] = pglyph->texcoords[1][0]; v[1].texcoord[1] = pglyph->texcoords[1][1];
+
+			v[2].position[0] = xstart + flwidth; v[2].position[1] = ystart + flheight; v[2].position[2] = -1; v[2].position[3] = 1;
+			v[2].texcoord[0] = pglyph->texcoords[2][0]; v[2].texcoord[1] = pglyph->texcoords[2][1];
+
+			v[3] = v[0];
+			v[4] = v[2];
+
+			v[5].position[0] = xstart;           v[5].position[1] = ystart + flheight; v[5].position[2] = -1; v[5].position[3] = 1;
+			v[5].texcoord[0] = pglyph->texcoords[3][0]; v[5].texcoord[1] = pglyph->texcoords[3][1];
+
+			for(int k = 0; k < 6; k++)
+				vertBatch.push_back(v[k]);
 		}
 
 		_x += pglyph->advancex; 
@@ -1016,6 +1042,12 @@ void CText::DrawSimpleStringChars( const Char* pstrString, const font_glyph_t* p
 			(*padvancey) += pglyph->advancey;
 
 		pstr++;
+	}
+
+	if(!vertBatch.empty())
+	{
+		m_pCurrentSetInfo->pvbo->VBOSubBufferData(0, &vertBatch[0], vertBatch.size() * sizeof(font_vertex_t));
+		m_pShader->DrawArrays(GL_TRIANGLES, 0, vertBatch.size());
 	}
 }
 
