@@ -690,8 +690,6 @@ mt_texture_t CTextureManager::GetTextureType( const Char* pstrTypename )
 		return MT_TX_MRAO;
 	else if (!qstrcmp(pstrTypename, "mrao2"))
 		return MT_TX_MRAO2;
-	else if(!qstrcmp(pstrTypename, "luminance"))
-		return MT_TX_LUMINANCE;
 	else
 		return MT_TX_UNKNOWN;
 }
@@ -1796,9 +1794,6 @@ void CTextureManager::WritePMFFile( en_material_t* pmaterial )
 
 	if (pmaterial->ptextures[MT_TX_MRAO2])
 		data << "\t$texture mrao2 " << pmaterial->ptextures[MT_TX_MRAO2]->filepath << NEWLINE;
-
-	if(pmaterial->ptextures[MT_TX_LUMINANCE])
-		data << "\t$texture luminance " << pmaterial->ptextures[MT_TX_LUMINANCE]->filepath << NEWLINE;
 
 	data << "}" << NEWLINE;
 

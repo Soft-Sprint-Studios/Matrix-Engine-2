@@ -176,14 +176,12 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_d_bumpmapping = m_pShader->InitUniform("d_bumpmapping", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_mrao = m_pShader->InitUniform("d_mrao", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_cubemaps = m_pShader->InitUniform("d_cubemaps", CGLSLShader::UNIFORM_INT1);
-		m_attribs.u_d_luminance = m_pShader->InitUniform("d_luminance", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_numlights = m_pShader->InitUniform("d_numlights", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_lightmap_bicubic = m_pShader->InitUniform("d_lightmap_bicubic", CGLSLShader::UNIFORM_INT1);
 
 		if(!R_CheckShaderUniform(m_attribs.u_d_fogtype, "d_fogtype", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_bumpmapping, "d_bumpmapping", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_mrao, "d_mrao", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_d_luminance, "d_luminance", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_numlights, "d_numlights", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_lightmap_bicubic, "d_lightmap_bicubic", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_cubemaps, "d_cubemaps", m_pShader, Sys_ErrorPopup))
@@ -273,7 +271,6 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.u_chrometex = m_pShader->InitUniform("chrometex", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_normalmap = m_pShader->InitUniform("normalmap", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_normalmap2 = m_pShader->InitUniform("normalmap2", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_luminance = m_pShader->InitUniform("luminance", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_mrao = m_pShader->InitUniform("mraotex", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_mrao2 = m_pShader->InitUniform("mraotex2", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_color = m_pShader->InitUniform("color", CGLSLShader::UNIFORM_FLOAT4);
@@ -2157,7 +2154,6 @@ bool CBSPRenderer::Draw( void )
 			m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 			m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
-			m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 
 			if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, shader_chrome, false))
 				return false;
@@ -2508,7 +2504,6 @@ bool CBSPRenderer::Draw( void )
 			m_pShader->SetUniform1i(m_attribs.u_d_fogtype, fog_none);
 			m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 			m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
-			m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
 			if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, shader_solidcolor, false)
@@ -2569,7 +2564,6 @@ bool CBSPRenderer::Draw( void )
 		return false;
 
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 
 	return true;
 }
@@ -2821,19 +2815,6 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 	else
 	{
 		m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
-	}
-
-	if(pmaterial->ptextures[MT_TX_LUMINANCE])
-	{
-		en_texture_t* pluminancetexture = pmaterial->ptextures[MT_TX_LUMINANCE];
-
-		m_pShader->SetUniform1i(m_attribs.u_d_luminance, TRUE);
-		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_luminance);
-		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pluminancetexture->palloc->gl_index);
-	}
-	else
-	{
-		m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	}
 
 	if(enableNormal)

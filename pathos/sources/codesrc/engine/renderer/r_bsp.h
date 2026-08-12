@@ -89,7 +89,6 @@ struct bsp_shader_attribs
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_cubemaps(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_lightmap_bicubic(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_position(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -129,7 +128,6 @@ struct bsp_shader_attribs
 		u_chrometex(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmap2(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_mrao2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_color(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -157,7 +155,6 @@ struct bsp_shader_attribs
 	Int32 u_d_bumpmapping;
 	Int32 u_d_mrao;
 	Int32 u_d_cubemaps;
-	Int32 u_d_luminance;
 	Int32 u_d_numlights;
 	Int32 u_d_lightmap_bicubic;
 
@@ -215,7 +212,6 @@ struct bsp_shader_attribs
 	Int32 u_chrometex;
 	Int32 u_normalmap;
 	Int32 u_normalmap2;
-	Int32 u_luminance;
 	Int32 u_difflightmap[MAX_SURFACE_STYLES];
 	Int32 u_lightvecstex[MAX_SURFACE_STYLES];
 	Int32 u_mrao;

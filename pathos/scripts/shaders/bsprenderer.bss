@@ -39,7 +39,6 @@ uniform highp int d_fogtype;
 uniform highp int d_bumpmapping;
 uniform highp int d_mrao;
 uniform highp int d_cubemaps;
-uniform highp int d_luminance;
 uniform highp int d_numlights;
 uniform highp int d_light0_shadowmap;
 uniform highp int d_light1_shadowmap;
@@ -104,9 +103,6 @@ void main()
 	$begin
 		ps_texcoord = in_texcoord+uvoffset;
 	$end
-	
-	if(d_luminance == 1)
-		ps_texcoord = in_texcoord+uvoffset;
 	
 	$branch shadertype == 10 || shadertype == 11
 	$begin
@@ -188,7 +184,6 @@ uniform sampler2D detailtex;
 uniform sampler2D chrometex;
 uniform sampler2D normalmap;
 uniform sampler2D mraotex;
-uniform sampler2D luminance;
 
 uniform sampler2D causticstex1;
 uniform sampler2D causticstex2;
@@ -264,7 +259,6 @@ uniform highp int d_fogtype;
 uniform highp int d_bumpmapping;
 uniform highp int d_mrao;
 uniform highp int d_cubemaps;
-uniform highp int d_luminance;
 uniform highp int d_numlights;
 uniform highp int d_light0_shadowmap;
 uniform highp int d_light1_shadowmap;
@@ -683,11 +677,6 @@ vec4 AddBaseLight( sampler2D ambLightmap, vec4 diffuseColor, vec3 lightDir, vec3
 	if(d_bumpmapping == 0)
 	{
 		vec4 lightmapColor = SampleLightmap(ambLightmap, ps_lmapcoord[0]);
-		if(d_luminance == 1)
-		{
-			lightmapColor.xyz += texture(luminance, ps_texcoord).xyz;
-		}
-
 		return lightmapColor;
 	}
 	else
@@ -695,12 +684,6 @@ vec4 AddBaseLight( sampler2D ambLightmap, vec4 diffuseColor, vec3 lightDir, vec3
 		// Lightmap is always on unit 0
 		vec4 ambientColor = SampleLightmap(ambLightmap, ps_lmapcoord[0]);
 		vec4 finalColor = ambientColor + diffuseColor * dot(lightDir, v_normal);
-		
-		if(d_luminance == 1)
-		{
-			finalColor.xyz += texture(luminance, ps_texcoord).xyz;
-		}
-
 		return finalColor;
 	}
 }
@@ -797,21 +780,12 @@ vec4 AddBaseLightLayer( sampler2D ambLightmap, vec4 diffuseColor, vec3 lightDir,
 	if (d_bumpmapping == 0)
 	{
 		vec4 lightmapColor = SampleLightmap(ambLightmap, lmapcoord);
-		if (d_luminance == 1)
-		{
-			lightmapColor.xyz += texture(luminance, ps_texcoord).xyz;
-		}
 		return lightmapColor;
 	}
 	else
 	{
 		vec4 ambientColor = SampleLightmap(ambLightmap, lmapcoord);
 		vec4 finalColor = ambientColor + diffuseColor * max(dot(lightDir, v_normal), 0.0);
-		
-		if (d_luminance == 1)
-		{
-			finalColor.xyz += texture(luminance, ps_texcoord).xyz;
-		}
 		return finalColor;
 	}
 }
@@ -902,11 +876,15 @@ vec2 ParallaxMapping(sampler2D heightMapSampler, vec2 texCoords, float hScale, v
 	return texCoordsEnd;
 }
 
-vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao, vec2 uv )
+vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao, float mraoAlpha, vec2 uv )
 {
 	vec3 lightDir0 = GetLightDirLayer( lightvecstex[0], ps_lmapcoord[0] );
 	vec4 lightDiffuse0 = GetDiffuseLightLayer( difflightmap[0], ps_lmapcoord[0] );
 	vec4 finalColor = AddBaseLightLayer(baselightmap[0], lightDiffuse0, lightDir0, v_normal, ps_lmapcoord[0]);
+	if (d_mrao == 1)
+	{
+		finalColor.xyz += vec3(1.0 - mraoAlpha);
+	}
 
 	vec3 albedoColor = GetMainTexture(uv).rgb;
 	mat3 tbnMatrix = mat3(ps_tangent, ps_binormal, ps_normal);
@@ -1055,11 +1033,13 @@ void main()
 	}
 
 	vec3 mrao = vec3(0.0, 1.0, 1.0);
+	vec4 mraoSample = vec4(0.0, 1.0, 1.0, 1.0);
 	vec4 finalColor = vec4(0, 0, 0, 0);
 
 	if( d_mrao == 1 || d_cubemaps >= 1 )
 	{
-		mrao = GetMRAOSample(texCoord).zyx;
+		mraoSample = GetMRAOSample(texCoord);
+		mrao = mraoSample.zyx;
 	}
 	
 	// 0 -> main * detail texture * lightmapping
@@ -1068,7 +1048,7 @@ void main()
 	$branch shadertype == 0 || shadertype == 1 || shadertype == 2
 	$begin
 		vec3 v_normal = GetTangentSpaceNormal(texCoord, ps_normal);
-		finalColor = CombineTextureLayers(ps_vertexpos, v_normal, mrao, texCoord);
+		finalColor = CombineTextureLayers(ps_vertexpos, v_normal, mrao, mraoSample.a, texCoord);
 		
 		vec3 dlightDiffuse = vec3(0.0);
 		vec3 specularColor = vec3(0.0);

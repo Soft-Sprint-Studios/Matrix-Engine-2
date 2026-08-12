@@ -242,7 +242,6 @@ uniform vec3 fogcolor;
 uniform vec2 fogparams;
 
 uniform sampler2D mraotexture;
-uniform sampler2D lumtexture;
 uniform sampler2D normalmap;
 
 uniform sampler2D causticstex1;
@@ -304,7 +303,6 @@ uniform highp int d_dlight3_shadow;
 
 uniform int d_num_lights;
 uniform int d_mrao;
-uniform int d_luminance;
 
 uniform vec3 dlight_0_origin;
 uniform float dlight_0_radius;
@@ -812,17 +810,20 @@ void main()
 {
 	mat3 tbnMatrix;
 	vec3 mrao = vec3(0.0, 1.0, 1.0);
+	vec4 mraoSample = vec4(0.0, 1.0, 1.0, 1.0);
 	vec3 specularColor = vec3(0.0, 0.0, 0.0);
 	vec4 finalColor = vec4(0.0, 0.0, 0.0, 1.0);
-	
-	// Add luminance if any
-	if (d_luminance == 1)
-		finalColor.xyz += texture(lumtexture, ps_texcoord1).xyz;
 	
 	// Get the MRAO texture if needed
 	if (d_mrao == 1 || d_cubemaps >= 1)
 	{
-		mrao = texture(mraotexture, ps_texcoord1).zyx;
+		mraoSample = texture(mraotexture, ps_texcoord1);
+		mrao = mraoSample.zyx;
+	}
+	
+	if (d_mrao == 1)
+	{
+		finalColor.xyz += vec3(1.0 - mraoSample.a);
 	}
 	
 	// Build the TBN matrix if required

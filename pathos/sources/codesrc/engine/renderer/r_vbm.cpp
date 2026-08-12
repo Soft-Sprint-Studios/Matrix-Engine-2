@@ -362,7 +362,6 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_texture1 = m_pShader->InitUniform("texture1", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_rectangle = m_pShader->InitUniform("rectangle", CGLSLShader::UNIFORM_SAMPLERRECT);
 		m_attribs.u_mraotexture = m_pShader->InitUniform("mraotexture", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_lumtexture = m_pShader->InitUniform("lumtexture", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_normalmap = m_pShader->InitUniform("normalmap", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_fogcolor = m_pShader->InitUniform("fogcolor", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_fogparams = m_pShader->InitUniform("fogparams", CGLSLShader::UNIFORM_FLOAT2);
@@ -389,7 +388,6 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_texture1, "texture1", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_rectangle, "rectangle", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_mraotexture, "mraoexture", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_lumtexture, "lumtexture", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmap, "normalmap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_fogcolor, "fogcolor", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_fogparams, "fogparams", m_pShader, Sys_ErrorPopup)
@@ -430,7 +428,6 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_d_numlights = m_pShader->InitUniform("d_num_lights", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_chrome = m_pShader->InitUniform("d_chrome", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_mrao = m_pShader->InitUniform("d_mrao", CGLSLShader::UNIFORM_INT1);
-		m_attribs.u_d_luminance = m_pShader->InitUniform("d_luminance", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_bumpmapping = m_pShader->InitUniform("d_bumpmapping", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_numdlights = m_pShader->InitUniform("d_numdlights", CGLSLShader::UNIFORM_INT1);
 
@@ -453,7 +450,6 @@ bool CVBMRenderer::InitGL( void )
 		if (!R_CheckShaderUniform(m_attribs.u_d_numlights, "num_lights", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_chrome, "chrome", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_mrao, "mrao", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_d_luminance, "luminance", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_bumpmapping, "bumpmapping", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cubemap, "cubemap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cubemap_prev, "cubemap_prev", m_pShader, Sys_ErrorPopup)
@@ -3253,7 +3249,6 @@ bool CVBMRenderer::SetupRenderer( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, m_numModelLights);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
@@ -3386,7 +3381,6 @@ bool CVBMRenderer::SetupRenderer( void )
 bool CVBMRenderer::RestoreRenderer(void)
 {
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 	m_pShader->DisableSync(m_attribs.u_modelmatrix);
@@ -3646,7 +3640,6 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, (pmaterial->flags & (TX_FL_CHROME) || (pmaterial->flags & TX_FL_EYEGLINT && drawBlended)) ? TRUE : FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, (pmaterial->flags & (TX_FL_FULLBRIGHT|TX_FL_SCOPE)) ? 0 : m_numModelLights);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, (pmaterial->ptextures[MT_TX_MRAO]) && !(pmaterial->flags & TX_FL_FULLBRIGHT) ? true : false);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, (pmaterial->ptextures[MT_TX_LUMINANCE]) && !(pmaterial->flags & TX_FL_FULLBRIGHT));
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, (pmaterial->ptextures[MT_TX_NORMALMAP]) && !(pmaterial->flags & TX_FL_FULLBRIGHT));
 
 	// Alpha testing needs to be handled specially
@@ -3792,12 +3785,6 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 	else
 	{
 		m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
-	}
-
-	if (pmaterial->ptextures[MT_TX_LUMINANCE])
-	{
-		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_lumtexture);
-		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_LUMINANCE]->palloc->gl_index);
 	}
 
 	if(pmaterial->ptextures[MT_TX_NORMALMAP])
@@ -4065,7 +4052,6 @@ bool CVBMRenderer::DrawWireframe( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, 0);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, 0);
 
 	if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, vbm_solid))
@@ -4868,7 +4854,6 @@ bool CVBMRenderer::DrawModelDecals( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 
 	m_pShader->EnableAttribute(m_attribs.a_texcoord1);
@@ -5803,7 +5788,6 @@ bool CVBMRenderer::PrepareVSM( cl_dlight_t *dl )
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 
 	if(!m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false) 
@@ -6089,7 +6073,6 @@ bool CVBMRenderer::PrepAuraPass( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 
 	if(!m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false) 
@@ -6347,7 +6330,6 @@ bool CVBMRenderer::DrawBones( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 
 	if(m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false) 
@@ -6418,7 +6400,6 @@ bool CVBMRenderer::DrawHitBoxes( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 
 	if(m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false) 
@@ -6466,7 +6447,6 @@ bool CVBMRenderer::DrawBoundingBox( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 
 	if(m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false) 
@@ -6544,7 +6524,6 @@ bool CVBMRenderer::DrawLightVectors( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 
 	if(m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false) 
@@ -6928,7 +6907,6 @@ bool CVBMRenderer::DrawAttachments( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 
 	if(m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false) 
@@ -7025,7 +7003,6 @@ bool CVBMRenderer::DrawHullBoundingBox( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, 0);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_chrome, FALSE);
-	m_pShader->SetUniform1i(m_attribs.u_d_luminance, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 
 	if(m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false) 

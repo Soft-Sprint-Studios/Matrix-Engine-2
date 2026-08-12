@@ -280,7 +280,6 @@ struct vbm_attribs
 		u_texture1(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_rectangle(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_mraotexture(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_lumtexture(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_sky_ambient(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_sky_diffuse(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -301,7 +300,6 @@ struct vbm_attribs
 		d_vertexlight(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_chrome(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numdlights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cubemap(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -362,7 +360,6 @@ struct vbm_attribs
 	Int32 u_texture1;
 	Int32 u_rectangle;
 	Int32 u_mraotexture;
-	Int32 u_lumtexture;
 	Int32 u_normalmap;
 
 	Int32 u_sky_ambient;
@@ -393,7 +390,6 @@ struct vbm_attribs
 	Int32 u_d_numlights;
 	Int32 u_d_chrome;
 	Int32 u_d_mrao;
-	Int32 u_d_luminance;
 	Int32 u_d_bumpmapping;
 	Int32 u_d_numdlights;
 
