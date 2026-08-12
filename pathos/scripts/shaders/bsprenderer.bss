@@ -1109,7 +1109,7 @@ void main()
 			specularColor = AddSpecularLight(specularColor, specLight);
 		}
 		
-		finalColor.xyz += dlightDiffuse * albedo + specularColor;
+		finalColor.xyz += dlightDiffuse * albedo * 2.0 + specularColor;
 		finalColor = finalColor*color;		
 		
 		if( d_cubemaps >= 1 )

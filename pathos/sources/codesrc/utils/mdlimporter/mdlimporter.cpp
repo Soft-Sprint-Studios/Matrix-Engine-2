@@ -41,6 +41,12 @@
 
 namespace fs = std::filesystem;
 
+enum class ExportMode
+{
+    Model,
+    Texture
+};
+
 struct AppConfig
 {
     std::string nvcompress = "C:\\Program Files\\NVIDIA Corporation\\NVIDIA Texture Tools\\nvcompress.exe";
@@ -163,8 +169,9 @@ bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
 {
     const cgltf_image* mr_image = mat.pbr_metallic_roughness.metallic_roughness_texture.texture ? mat.pbr_metallic_roughness.metallic_roughness_texture.texture->image : nullptr;
     const cgltf_image* occ_image = mat.occlusion_texture.texture ? mat.occlusion_texture.texture->image : nullptr;
+    const cgltf_image* em_image = mat.emissive_texture.texture ? mat.emissive_texture.texture->image : nullptr;
 
-    if (!mr_image && !occ_image)
+    if (!mr_image && !occ_image && !em_image)
     {
         return false;
     }
@@ -197,16 +204,17 @@ bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
 
     Gdiplus::Bitmap* mr_source = LoadBitmapFromImage(mr_image);
     Gdiplus::Bitmap* occ_source = LoadBitmapFromImage(occ_image);
+    Gdiplus::Bitmap* em_source = LoadBitmapFromImage(em_image);
 
-    if (!mr_source && !occ_source)
+    if (!mr_source && !occ_source && !em_source)
     {
         return false;
     }
 
-    UINT width = mr_source ? mr_source->GetWidth() : occ_source->GetWidth();
-    UINT height = mr_source ? mr_source->GetHeight() : occ_source->GetHeight();
+    UINT width = mr_source ? mr_source->GetWidth() : (occ_source ? occ_source->GetWidth() : em_source->GetWidth());
+    UINT height = mr_source ? mr_source->GetHeight() : (occ_source ? occ_source->GetHeight() : em_source->GetHeight());
 
-    Gdiplus::Bitmap target(width, height, PixelFormat24bppRGB);
+    Gdiplus::Bitmap target(width, height, PixelFormat32bppARGB);
 
     for (UINT y = 0; y < height; ++y)
     {
@@ -215,6 +223,7 @@ bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
             BYTE ao = 255;
             BYTE roughness = 128;
             BYTE metallic = 0;
+            BYTE alpha = 255;
 
             if (mr_source)
             {
@@ -238,7 +247,18 @@ bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
                 ao = c_occ.GetR();
             }
 
-            target.SetPixel(x, y, Gdiplus::Color(ao, roughness, metallic));
+            if (em_source)
+            {
+                UINT em_x = (x * em_source->GetWidth()) / width;
+                UINT em_y = (y * em_source->GetHeight()) / height;
+                Gdiplus::Color c_em;
+                em_source->GetPixel(em_x, em_y, &c_em);
+
+                BYTE emission = static_cast<BYTE>((c_em.GetR() + c_em.GetG() + c_em.GetB()) / 3);
+                alpha = 255 - emission;
+            }
+
+            target.SetPixel(x, y, Gdiplus::Color(alpha, ao, roughness, metallic));
         }
     }
 
@@ -263,12 +283,13 @@ bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
 
     delete mr_source;
     delete occ_source;
+    delete em_source;
     return true;
 }
 
-void ConvertBMPToDDS(const std::string& inputBmp, const std::string& outputDds)
+void ConvertBMPToDDS(const std::string& inputBmp, const std::string& outputDds, const std::string& format = "-bc1 -alpha")
 {
-    std::string command = "\"" + g_Config.nvcompress + "\" -bc1 -alpha \"" + inputBmp + "\" \"" + outputDds + "\"";
+    std::string command = "\"" + g_Config.nvcompress + "\" " + format + " \"" + inputBmp + "\" \"" + outputDds + "\"";
 
     STARTUPINFOA si = { sizeof(si) };
     PROCESS_INFORMATION pi;
@@ -373,28 +394,27 @@ void WriteQC(const std::string& qc_filename, const std::string& model_name)
         << "$sequence \"idle1\" \"" << model_name << "\" fps 1\n";
 }
 
-void WritePMF(const std::string& pmf_filename, const std::string& model_name, bool hasLuminance = false)
+void WritePMF(const std::string& pmf_filename, const std::string& asset_name, ExportMode mode)
 {
     std::ofstream out(pmf_filename);
     if (!out.is_open())
     {
         return;
     }
+
+    std::string prefix = (mode == ExportMode::Model) ? ("models/" + asset_name + "/") : "world/";
+
     out << "$texture\n{\n";
-    out << "    $texture diffuse models/" << model_name << "/" << model_name << "_diff.dds\n";
-    out << "    $texture normal models/" << model_name << "/" << model_name << "_normal.dds\n";
-    out << "    $texture specular models/" << model_name << "/" << model_name << "_specular.dds\n";
-    if (hasLuminance)
-    {
-        out << "    $texture luminance models/" << model_name << "/" << model_name << "_lum.dds\n";
-    }
+    out << "    $texture diffuse " << prefix << asset_name << "_diff.dds\n";
+    out << "    $texture normal " << prefix << asset_name << "_normal.dds\n";
+    out << "    $texture mrao " << prefix << asset_name << "_mrao.dds\n";
     out << "    $cubemaps\n}\n";
 }
 
-void ProcessFile(const fs::path& glbPath)
+void ProcessFile(const fs::path& glbPath, ExportMode mode)
 {
-    std::string modelName = glbPath.stem().string();
-    std::string workDir = "temp_output/" + modelName;
+    std::string assetName = glbPath.stem().string();
+    std::string workDir = "temp_output/" + assetName;
     fs::create_directories(workDir);
 
     cgltf_options options = {};
@@ -405,9 +425,7 @@ void ProcessFile(const fs::path& glbPath)
     }
     cgltf_load_buffers(&options, data, glbPath.string().c_str());
 
-    std::string bmpPath = workDir + "/" + modelName + ".bmp";
-
-    bool hasLuminance = false;
+    std::string bmpPath = workDir + "/" + assetName + ".bmp";
 
     if (data->materials_count > 0)
     {
@@ -416,7 +434,7 @@ void ProcessFile(const fs::path& glbPath)
         {
             if (SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, PixelFormat24bppRGB, 0, 0))
             {
-                ConvertBMPToDDS(bmpPath, workDir + "/" + modelName + "_diff.dds");
+                ConvertBMPToDDS(bmpPath, workDir + "/" + assetName + "_diff.dds");
                 SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, PixelFormat8bppIndexed, 512, 512);
             }
         }
@@ -424,59 +442,86 @@ void ProcessFile(const fs::path& glbPath)
         {
             if (SaveGLTFImageAsBMP(mat.normal_texture.texture->image, workDir + "/temp_n.bmp", PixelFormat24bppRGB))
             {
-                ConvertBMPToDDS(workDir + "/temp_n.bmp", workDir + "/" + modelName + "_normal.dds");
+                ConvertBMPToDDS(workDir + "/temp_n.bmp", workDir + "/" + assetName + "_normal.dds");
             }
         }
 
         if (SaveMRAOTexture(mat, workDir + "/temp_s.bmp"))
         {
-            ConvertBMPToDDS(workDir + "/temp_s.bmp", workDir + "/" + modelName + "_specular.dds");
-        }
-
-        if (mat.emissive_texture.texture)
-        {
-            if (SaveGLTFImageAsBMP(mat.emissive_texture.texture->image, workDir + "/temp_l.bmp", PixelFormat24bppRGB))
-            {
-                ConvertBMPToDDS(workDir + "/temp_l.bmp", workDir + "/" + modelName + "_lum.dds");
-                hasLuminance = true;
-            }
+            ConvertBMPToDDS(workDir + "/temp_s.bmp", workDir + "/" + assetName + "_mrao.dds", "-bc3");
         }
     }
 
-    WriteSMD(workDir + "/" + modelName + ".smd", data, modelName + ".bmp");
-    WriteQC(workDir + "/" + modelName + ".qc", modelName);
-    WritePMF(workDir + "/" + modelName + ".pmf", modelName, hasLuminance);
+    WritePMF(workDir + "/" + assetName + ".pmf", assetName, mode);
 
-    fs::path targetPath = fs::path(g_Config.target) / modelName;
+    fs::path targetPath = fs::path(g_Config.target) / assetName;
     fs::create_directories(targetPath);
+
     for (const auto& entry : fs::directory_iterator(workDir))
     {
         fs::copy_file(entry.path(), targetPath / entry.path().filename(), fs::copy_options::overwrite_existing);
     }
 
-    cgltf_free(data);
-    RunCompiler(modelName);
-
-    fs::path gameModelsRoot = fs::path(g_Config.game) / "models";
-    fs::path gameTexturesRoot = fs::path(g_Config.game) / "textures" / "models" / modelName;
-
-    fs::create_directories(gameModelsRoot);
-    fs::create_directories(gameTexturesRoot);
-
-    fs::copy_file(targetPath / (modelName + ".mdl"), gameModelsRoot / (modelName + ".mdl"), fs::copy_options::overwrite_existing);
-    fs::copy_file(targetPath / (modelName + ".mcd"), gameModelsRoot / (modelName + ".mcd"), fs::copy_options::overwrite_existing);
-    fs::copy_file(targetPath / (modelName + ".vbm"), gameModelsRoot / (modelName + ".vbm"), fs::copy_options::overwrite_existing);
-    fs::copy_file(targetPath / (modelName + ".pmf"), gameTexturesRoot / (modelName + ".pmf"), fs::copy_options::overwrite_existing);
-
-    for (const auto& entry : fs::directory_iterator(targetPath))
+    if (mode == ExportMode::Model)
     {
-        if (entry.path().extension() == ".dds")
+        WriteSMD(workDir + "/" + assetName + ".smd", data, assetName + ".bmp");
+        WriteQC(workDir + "/" + assetName + ".qc", assetName);
+
+        fs::copy_file(workDir + "/" + assetName + ".smd", targetPath / (assetName + ".smd"), fs::copy_options::overwrite_existing);
+        fs::copy_file(workDir + "/" + assetName + ".qc", targetPath / (assetName + ".qc"), fs::copy_options::overwrite_existing);
+
+        cgltf_free(data);
+        RunCompiler(assetName);
+
+        fs::path gameModelsRoot = fs::path(g_Config.game) / "models";
+        fs::path gameTexturesRoot = fs::path(g_Config.game) / "textures" / "models" / assetName;
+
+        fs::create_directories(gameModelsRoot);
+        fs::create_directories(gameTexturesRoot);
+
+        if (fs::exists(targetPath / (assetName + ".mdl")))
+            fs::copy_file(targetPath / (assetName + ".mdl"), gameModelsRoot / (assetName + ".mdl"), fs::copy_options::overwrite_existing);
+
+        if (fs::exists(targetPath / (assetName + ".mcd")))
+            fs::copy_file(targetPath / (assetName + ".mcd"), gameModelsRoot / (assetName + ".mcd"), fs::copy_options::overwrite_existing);
+
+        if (fs::exists(targetPath / (assetName + ".vbm")))
+            fs::copy_file(targetPath / (assetName + ".vbm"), gameModelsRoot / (assetName + ".vbm"), fs::copy_options::overwrite_existing);
+
+        fs::copy_file(targetPath / (assetName + ".pmf"), gameTexturesRoot / (assetName + ".pmf"), fs::copy_options::overwrite_existing);
+
+        for (const auto& entry : fs::directory_iterator(targetPath))
         {
-            fs::copy_file(entry.path(), gameTexturesRoot / entry.path().filename(), fs::copy_options::overwrite_existing);
+            if (entry.path().extension() == ".dds")
+            {
+                fs::copy_file(entry.path(), gameTexturesRoot / entry.path().filename(), fs::copy_options::overwrite_existing);
+            }
+        }
+    }
+    else
+    {
+        cgltf_free(data);
+
+        fs::path gameWorldTexturesRoot = fs::path(g_Config.game) / "textures" / "world";
+        fs::create_directories(gameWorldTexturesRoot);
+
+        fs::copy_file(targetPath / (assetName + ".pmf"), gameWorldTexturesRoot / (assetName + ".pmf"), fs::copy_options::overwrite_existing);
+
+        for (const auto& entry : fs::directory_iterator(targetPath))
+        {
+            if (entry.path().extension() == ".dds")
+            {
+                fs::copy_file(entry.path(), gameWorldTexturesRoot / entry.path().filename(), fs::copy_options::overwrite_existing);
+            }
         }
     }
 
-    std::cout << "Finished and Copied: " << modelName << "\n";
+    std::cout << "Finished and Copied: " << assetName << (mode == ExportMode::Model ? " (Model)" : " (Texture)") << "\n";
+}
+
+void PrintUsage()
+{
+    std::cout << "Usage:\n" << "  importer -model <file.glb>\n" << "  importer -texture <file.glb>\n" << "  importer -batch <folder> -model\n" << "  importer -batch <folder> -texture\n";
 }
 
 int main(int argc, char* argv[])
@@ -484,24 +529,43 @@ int main(int argc, char* argv[])
     LoadConfig();
     InitGDIPlus();
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        std::cout << "Usage:\n  importer <file.glb>\n  importer -batch <folder>\n";
+        PrintUsage();
         ShutdownGDIPlus();
         return 0;
     }
 
     std::string arg1 = argv[1];
+
     if (arg1 == "-batch")
     {
-        if (argc < 3)
+        if (argc < 4)
         {
+            PrintUsage();
+            ShutdownGDIPlus();
             return 1;
         }
 
         fs::path searchDir = argv[2];
+        std::string modeArg = argv[3];
+
+        ExportMode mode = ExportMode::Model;
+        if (modeArg == "-texture")
+        {
+            mode = ExportMode::Texture;
+        }
+        else if (modeArg != "-model")
+        {
+            PrintUsage();
+            ShutdownGDIPlus();
+            return 1;
+        }
+
         if (!fs::exists(searchDir))
         {
+            std::cout << "Error: Folder " << searchDir << " does not exist.\n";
+            ShutdownGDIPlus();
             return 1;
         }
 
@@ -509,17 +573,26 @@ int main(int argc, char* argv[])
         {
             if (entry.path().extension() == ".glb")
             {
-                ProcessFile(entry.path());
+                ProcessFile(entry.path(), mode);
             }
+        }
+    }
+    else if (arg1 == "-model" || arg1 == "-texture")
+    {
+        ExportMode mode = (arg1 == "-texture") ? ExportMode::Texture : ExportMode::Model;
+        fs::path p = argv[2];
+        if (fs::exists(p) && p.extension() == ".glb")
+        {
+            ProcessFile(p, mode);
+        }
+        else
+        {
+            std::cout << "Error: File " << p << " does not exist or is not a .glb file.\n";
         }
     }
     else
     {
-        fs::path p = arg1;
-        if (fs::exists(p) && p.extension() == ".glb")
-        {
-            ProcessFile(p);
-        }
+        PrintUsage();
     }
 
     ShutdownGDIPlus();
