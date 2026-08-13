@@ -14,7 +14,6 @@ All Rights Reserved.
 #include "textures_shared.h"
 #include "texturemanager.h"
 #include "r_main.h"
-#include "r_glextf.h"
 #include "r_tracers.h"
 #include "console.h"
 #include "cl_main.h"

@@ -11,9 +11,6 @@ All Rights Reserved.
 #ifndef R_VBO_H
 #define R_VBO_H
 
-// External functions class
-class CGLExtF;
-
 // For setting the offset in the datatype
 #define OFFSET(type, variable) ((const void*)&(((type*)nullptr)->variable))
 // For calls to glDrawElements
@@ -50,8 +47,8 @@ public:
 	friend class CGLSLShader;
 
 public:
-	CVBO( const CGLExtF& glExtF, const void *pvbodata, Uint32 ivbodatasize, const void *pibodata, Uint32 iibodatasize, bool keepcache = false, bool usevao = true );
-	CVBO ( const CGLExtF& glExtF, bool bvbo, bool bibo, bool usevao = true );
+	CVBO( const void *pvbodata, Uint32 ivbodatasize, const void *pibodata, Uint32 iibodatasize, bool keepcache = false, bool usevao = true );
+	CVBO ( bool bvbo, bool bibo, bool usevao = true );
 	~CVBO( void );
 	void Clear( void );
 
@@ -117,8 +114,5 @@ private:
 	Uint32 m_iIBOSize;
 
 	attrib_t m_pAttribPointers[MAX_ATTRIBS];
-
-	// External functions class
-	const CGLExtF& m_glExtF;
 };
 #endif // R_VBO_H

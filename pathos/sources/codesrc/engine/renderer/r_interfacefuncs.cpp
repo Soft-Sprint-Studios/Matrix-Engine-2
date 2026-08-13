@@ -12,7 +12,6 @@ All Rights Reserved.
 #include "r_vbo.h"
 #include "r_glsl.h"
 #include "r_basicdraw.h"
-#include "r_glextf.h"
 #include "r_main.h"
 #include "r_interface.h"
 #include "r_text.h"
@@ -48,7 +47,6 @@ static r_interface_t CLDLL_RENDERFUNCS_INTERFACE =
 	R_BasicDrawTexCoord2fv,			//pfnBasicDrawTexCoord2fv
 	R_BasicDrawVertex3f,			//pfnBasicDrawVertex3f
 	R_BasicDrawVertex3fv,			//pfnBasicDrawVertex3fv
-	R_GetExportFunctionsClass,		//pfnGetExportFunctionsClass
 	R_GetProjectionMatrix,			//pfnGetProjectionMatrix
 	R_GetModelViewMatrix,			//pfnGetModelViewMatrix
 	R_GetViewParams,				//pfnGetViewParams
@@ -238,14 +236,6 @@ void R_BasicDrawVertex3f( Float x, Float y, Float z )
 void R_BasicDrawVertex3fv( const Float* pfv )
 {
 	CBasicDraw::GetInstance()->Vertex3fv(pfv);
-}
-
-//====================================
-//
-//====================================
-const CGLExtF& R_GetExportFunctionsClass( void )
-{
-	return gGLExtF;
 }
 
 //====================================

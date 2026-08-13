@@ -895,7 +895,6 @@ bool CSoundEngine::DrawNormal( void )
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH_TEST);
 
-	glEnable(GL_POINT_SMOOTH);
 	glPointSize(15);
 
 	CBasicDraw* pDraw = CBasicDraw::GetInstance();
@@ -936,7 +935,6 @@ bool CSoundEngine::DrawNormal( void )
 	}
 
 	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_POINT_SMOOTH);
 
 	pDraw->Disable();
 	return true;

@@ -131,11 +131,9 @@ bool CWaterShader::InitGL( void )
 	// Set up shader
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "water.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "water.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Failed to compile shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -269,14 +267,14 @@ void CWaterShader::ClearGL( void )
 		{
 			if(m_waterEntitiesArray[i]->preflectfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &m_waterEntitiesArray[i]->preflectfbo->fboid);
+				glDeleteFramebuffers(1, &m_waterEntitiesArray[i]->preflectfbo->fboid);
 				delete m_waterEntitiesArray[i]->preflectfbo;
 				m_waterEntitiesArray[i]->preflectfbo = nullptr;
 			}
 		
 			if(m_waterEntitiesArray[i]->prefractfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &m_waterEntitiesArray[i]->prefractfbo->fboid);
+				glDeleteFramebuffers(1, &m_waterEntitiesArray[i]->prefractfbo->fboid);
 				delete m_waterEntitiesArray[i]->prefractfbo;
 				m_waterEntitiesArray[i]->prefractfbo = nullptr;
 			}
@@ -342,14 +340,14 @@ void CWaterShader::ClearGame( void )
 		{
 			if(m_waterEntitiesArray[i]->preflectfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &m_waterEntitiesArray[i]->preflectfbo->fboid);
+				glDeleteFramebuffers(1, &m_waterEntitiesArray[i]->preflectfbo->fboid);
 				delete m_waterEntitiesArray[i]->preflectfbo;
 				m_waterEntitiesArray[i]->preflectfbo = nullptr;
 			}
 		
 			if(m_waterEntitiesArray[i]->prefractfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &m_waterEntitiesArray[i]->prefractfbo->fboid);
+				glDeleteFramebuffers(1, &m_waterEntitiesArray[i]->prefractfbo->fboid);
 				delete m_waterEntitiesArray[i]->prefractfbo;
 				m_waterEntitiesArray[i]->prefractfbo = nullptr;
 			}
@@ -917,7 +915,7 @@ void CWaterShader::AddEntity( cl_entity_t *pentity )
 
 	if(!m_pVBO)
 	{
-		m_pVBO = new CVBO(gGLExtF, true, true);
+		m_pVBO = new CVBO(true, true);
 		m_pShader->SetVBO(m_pVBO);
 	}
 
@@ -1263,12 +1261,12 @@ bool CWaterShader::CreateRenderToTexture( cl_water_t* pwater )
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
 
-			gGLExtF.glGenFramebuffers(1, &pwater->prefractfbo->fboid);
-			gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pwater->prefractfbo->fboid);
-			gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pwater->prefractfbo->ptexture1->gl_index, 0);
-			gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+			glGenFramebuffers(1, &pwater->prefractfbo->fboid);
+			glBindFramebuffer(GL_FRAMEBUFFER, pwater->prefractfbo->fboid);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pwater->prefractfbo->ptexture1->gl_index, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
 
-			GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 			{
 				Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
@@ -1291,12 +1289,12 @@ bool CWaterShader::CreateRenderToTexture( cl_water_t* pwater )
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
 
-			gGLExtF.glGenFramebuffers(1, &pwater->preflectfbo->fboid);
-			gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pwater->preflectfbo->fboid);
-			gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pwater->preflectfbo->ptexture1->gl_index, 0);
-			gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+			glGenFramebuffers(1, &pwater->preflectfbo->fboid);
+			glBindFramebuffer(GL_FRAMEBUFFER, pwater->preflectfbo->fboid);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pwater->preflectfbo->ptexture1->gl_index, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
 
-			GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 			{
 				Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
@@ -1308,7 +1306,7 @@ bool CWaterShader::CreateRenderToTexture( cl_water_t* pwater )
 			}
 		}
 
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	else
@@ -1698,7 +1696,7 @@ void CWaterShader::FinishRefract( void )
 
 	if(!rns.fboused || !m_pCurrentWater->prefractfbo)
 	{
-		R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentWater->prefract_texture->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0, m_pCurrentWater->prefract_texture->gl_index);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, WATER_RTT_SIZE, WATER_RTT_SIZE, 0);
 	}
 }
@@ -1771,7 +1769,7 @@ void CWaterShader::FinishReflect( void )
 
 	if(!rns.fboused || !m_pCurrentWater->preflectfbo)
 	{
-		R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentWater->preflect_texture->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0, m_pCurrentWater->preflect_texture->gl_index);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, WATER_RTT_SIZE, WATER_RTT_SIZE, 0);
 	}
 

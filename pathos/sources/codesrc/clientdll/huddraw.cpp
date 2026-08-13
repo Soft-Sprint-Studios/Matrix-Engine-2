@@ -79,7 +79,7 @@ bool CHUDDraw::InitGL( void )
 	cl_renderfuncs.pfnGetScreenSize(m_screenWidth, m_screenHeight);
 
 	// Compile our shader
-	m_pShader = new CGLSLShader(cl_filefuncs, cl_renderfuncs.pfnGetExportFunctionsClass(), "hud.bss");
+	m_pShader = new CGLSLShader(cl_filefuncs, "hud.bss");
 	if(m_pShader->HasError())
 	{
 		cl_engfuncs.pfnErrorPopup("%s - Failed to compile shader: %s", __FUNCTION__, m_pShader->GetError());
@@ -133,7 +133,7 @@ bool CHUDDraw::InitGL( void )
 	// Construct quad
 	ConstructQuad(pverts+NUM_BODY_VERTEXES);
 
-	m_pVBO = new CVBO(cl_renderfuncs.pfnGetExportFunctionsClass(), pverts, sizeof(hud_vertex_t)*NUM_TOTAL_VERTEXES, 0, false);
+	m_pVBO = new CVBO(pverts, sizeof(hud_vertex_t)*NUM_TOTAL_VERTEXES, 0, false);
 	m_pShader->SetVBO(m_pVBO);
 
 	delete[] pverts;
@@ -483,7 +483,7 @@ bool CHUDDraw::DrawQuad( en_texture_t *ptexture )
 		if(!m_pShader->SetDeterminator(m_attribs.d_solid, false))
 			return false;
 
-		cl_renderfuncs.pfnBind2DTexture(GL_TEXTURE0_ARB, ptexture->palloc->gl_index, false);
+		cl_renderfuncs.pfnBind2DTexture(GL_TEXTURE0, ptexture->palloc->gl_index, false);
 	}
 	else
 	{

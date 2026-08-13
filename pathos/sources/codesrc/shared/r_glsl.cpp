@@ -12,7 +12,6 @@ All Rights Reserved.
 #include "includes.h"
 #include "r_vbo.h"
 #include "r_glsl.h"
-#include "r_glextf.h"
 #include "md5.h"
 #include "cbuffer.h"
 #include "constants.h"
@@ -41,9 +40,8 @@ Uint32 CGLSLShader::g_numShaderProgramsLinked = 0;
 // @param szfile File path string
 // @param flags Shader compile flags
 //=============================================
-CGLSLShader::CGLSLShader ( const file_interface_t& fileFuncs, const CGLExtF& glExtF, const Char *szfile, Int32 flags, pfnProgressUpdateFunction_t pfnCallback ):
+CGLSLShader::CGLSLShader ( const file_interface_t& fileFuncs, const Char *szfile, Int32 flags, pfnProgressUpdateFunction_t pfnCallback ):
 	m_fileInterface(fileFuncs),
-	m_glExtF( glExtF ),
 	m_shaderIndex( 0 ),
 	m_lastIndex( NO_POSITION ),
 	m_vboAttribsChangedBits( 0 ),
@@ -87,9 +85,8 @@ CGLSLShader::CGLSLShader ( const file_interface_t& fileFuncs, const CGLExtF& glE
 //
 // @param flags Shader compile flags
 //=============================================
-CGLSLShader::CGLSLShader ( const file_interface_t& fileFuncs, const CGLExtF& glExtF, Int32 flags, pfnProgressUpdateFunction_t pfnCallback ):
+CGLSLShader::CGLSLShader ( const file_interface_t& fileFuncs, Int32 flags, pfnProgressUpdateFunction_t pfnCallback ):
 	m_fileInterface(fileFuncs),
-	m_glExtF( glExtF ),
 	m_shaderIndex( 0 ),
 	m_lastIndex( NO_POSITION ),
 	m_vboAttribsChangedBits( 0 ),
@@ -211,7 +208,7 @@ void CGLSLShader::FreeShaderData ( void )
 		for(Uint32 i = 0; i < m_shadersArray.size(); i++)
 		{
 			if(m_shadersArray[i].program_id)
-				m_glExtF.glDeleteProgram(m_shadersArray[i].program_id);
+				glDeleteProgram(m_shadersArray[i].program_id);
 		}
 
 		m_shadersArray.clear();
@@ -237,7 +234,7 @@ void CGLSLShader::FreeData ( void )
 			glsl_ubo_t& ubo = m_uniformBufferObjectsArray[i];
 			
 			if(ubo.buffer_id)
-				m_glExtF.glDeleteBuffers(1, &ubo.buffer_id);
+				glDeleteBuffers(1, &ubo.buffer_id);
 		}
 
 		m_uniformBufferObjectsArray.clear();
@@ -286,9 +283,9 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 
 	// Try to compile the vertex shader
 	const Char *vp = reinterpret_cast<Char*>(reinterpret_cast<byte*>(m_pCSDHeader) + pshaderdata->vertexdataoffs);
-	GLuint vertex_id = m_glExtF.glCreateShader(GL_VERTEX_SHADER);
-	m_glExtF.glShaderSource(vertex_id, 1, &vp, &pshaderdata->vertexdatasize);
-	m_glExtF.glCompileShader(vertex_id);
+	GLuint vertex_id = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertex_id, 1, &vp, &pshaderdata->vertexdatasize);
+	glCompileShader(vertex_id);
 
 	// Now get elapsed time
 	g_vertexShaderCompileTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
@@ -303,7 +300,7 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 	beginTime = clock();
 
 	Int32 iStatus = FALSE;
-	m_glExtF.glGetShaderiv(vertex_id, GL_COMPILE_STATUS, &iStatus);
+	glGetShaderiv(vertex_id, GL_COMPILE_STATUS, &iStatus);
 	g_vertexShaderGetStatusCallTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
 	if(!Shader_PrintLog(vertex_id, vp, pshaderdata->vertexdatasize, vsOut.c_str(), (iStatus != TRUE) ? true : false))
 		return false;
@@ -319,9 +316,9 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 
 	// Compile the fragment shader now
 	const Char *fp = reinterpret_cast<Char*>(reinterpret_cast<byte*>(m_pCSDHeader) + pshaderdata->fragmentdataoffs);
-	GLuint fragment_id = m_glExtF.glCreateShader(GL_FRAGMENT_SHADER);
-	m_glExtF.glShaderSource(fragment_id, 1, &fp, &pshaderdata->fragmentdatasize);
-	m_glExtF.glCompileShader(fragment_id);
+	GLuint fragment_id = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragment_id, 1, &fp, &pshaderdata->fragmentdatasize);
+	glCompileShader(fragment_id);
 		
 	// Now get elapsed time
 	g_fragmentShaderCompileTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
@@ -332,7 +329,7 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 	// Get start clock
 	beginTime = clock();
 
-	m_glExtF.glGetShaderiv(fragment_id, GL_COMPILE_STATUS, &iStatus);
+	glGetShaderiv(fragment_id, GL_COMPILE_STATUS, &iStatus);
 	g_fragmentShaderGetStatusCallTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
 	if(!Shader_PrintLog(fragment_id, fp, pshaderdata->fragmentdatasize, fsOut.c_str(), (iStatus != TRUE) ? true : false))
 		return false;
@@ -347,10 +344,10 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 	beginTime = clock();
 
 	// Link the two into one program
-	pshader->program_id = m_glExtF.glCreateProgram();
-	m_glExtF.glAttachShader(pshader->program_id, vertex_id);
-	m_glExtF.glAttachShader(pshader->program_id, fragment_id);
-	m_glExtF.glLinkProgram(pshader->program_id);
+	pshader->program_id = glCreateProgram();
+	glAttachShader(pshader->program_id, vertex_id);
+	glAttachShader(pshader->program_id, fragment_id);
+	glLinkProgram(pshader->program_id);
 
 	// Now get elapsed time
 	g_shaderLinkTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
@@ -361,7 +358,7 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 	// Get start clock
 	beginTime = clock();
 
-	m_glExtF.glGetProgramiv(pshader->program_id, GL_LINK_STATUS, &iStatus);
+	glGetProgramiv(pshader->program_id, GL_LINK_STATUS, &iStatus);
 	g_shaderLinkGetStatusCallDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
 	if(!Program_PrintLog(pshader->program_id, progOut.c_str()))
 		return false;
@@ -377,11 +374,11 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 		m_errorString = "Program " + m_shaderFile + " failed to compile. Log file was written.";
 	}
 
-	m_glExtF.glDetachShader(pshader->program_id, vertex_id);
-	m_glExtF.glDeleteShader(vertex_id);
+	glDetachShader(pshader->program_id, vertex_id);
+	glDeleteShader(vertex_id);
 
-	m_glExtF.glDetachShader(pshader->program_id, fragment_id);
-	m_glExtF.glDeleteShader(fragment_id);
+	glDetachShader(pshader->program_id, fragment_id);
+	glDeleteShader(fragment_id);
 
 	if(!result)
 		return false;
@@ -408,20 +405,20 @@ bool CGLSLShader::ValidateProgram( void (*pfnConPrintfFnPtr)( const Char *fmt, .
 		return true;
 
 	GLint status;
-	m_glExtF.glValidateProgram(m_shadersArray[m_shaderIndex].program_id);
-	m_glExtF.glGetProgramiv(m_shadersArray[m_shaderIndex].program_id, GL_VALIDATE_STATUS, &status);
+	glValidateProgram(m_shadersArray[m_shaderIndex].program_id);
+	glGetProgramiv(m_shadersArray[m_shaderIndex].program_id, GL_VALIDATE_STATUS, &status);
 
 	if(status == GL_TRUE)
 		return true;
 
 	GLint logSize1;
-	m_glExtF.glGetProgramiv(m_shadersArray[m_shaderIndex].program_id, GL_INFO_LOG_LENGTH, &logSize1);
+	glGetProgramiv(m_shadersArray[m_shaderIndex].program_id, GL_INFO_LOG_LENGTH, &logSize1);
 	if(!logSize1)
 		return true;
 
 	GLsizei logSize2;
 	Char* pstrTmp = new Char[logSize1+1];
-	m_glExtF.glGetProgramInfoLog(m_shadersArray[m_shaderIndex].program_id, logSize1+1, &logSize2, pstrTmp);
+	glGetProgramInfoLog(m_shadersArray[m_shaderIndex].program_id, logSize1+1, &logSize2, pstrTmp);
 
 	(*pfnConPrintfFnPtr)("%s - Validation error: %s\n", m_shaderFile.c_str(), pstrTmp);
 	delete[] pstrTmp;
@@ -754,15 +751,15 @@ bool CGLSLShader::LoadFromBSD( void )
 		const shader_binary_t* pshaderinfo = &pbinaryshaders[i];
 		const byte* pshaderdata = reinterpret_cast<const byte*>(pBSDHeader) + pshaderinfo->dataoffset;
 
-		m_shadersArray[i].program_id = m_glExtF.glCreateProgram();
-		m_glExtF.glProgramBinary(m_shadersArray[i].program_id, pshaderinfo->binaryformat, pshaderdata, pshaderinfo->datasize);
-		m_glExtF.glGetProgramiv(m_shadersArray[i].program_id, GL_LINK_STATUS, &iStatus);
+		m_shadersArray[i].program_id = glCreateProgram();
+		glProgramBinary(m_shadersArray[i].program_id, pshaderinfo->binaryformat, pshaderdata, pshaderinfo->datasize);
+		glGetProgramiv(m_shadersArray[i].program_id, GL_LINK_STATUS, &iStatus);
 
 		if(iStatus != GL_TRUE)
 		{
 			for(Uint32 j = 0; j <= i; j++)
 			{
-				m_glExtF.glDeleteProgram(m_shadersArray[j].program_id);
+				glDeleteProgram(m_shadersArray[j].program_id);
 				m_shadersArray[j].compiled = false;
 			}
 
@@ -863,14 +860,14 @@ bool CGLSLShader::CompileCSDShaderData( void )
 
 			// Get binary data size
 			GLint programSize = 0;
-			m_glExtF.glGetProgramiv(m_shadersArray[i].program_id, GL_PROGRAM_BINARY_LENGTH, &programSize);
+			glGetProgramiv(m_shadersArray[i].program_id, GL_PROGRAM_BINARY_LENGTH, &programSize);
 
 			pbinaryshader->dataoffset = pbuffer->getdatasize();
 			pbinaryshader->datasize = programSize;
 
 			pbuffer->append(nullptr, pbinaryshader->datasize);
 			void *pbinarydest = reinterpret_cast<byte*>(pbsdheader) + pbinaryshader->dataoffset;
-			m_glExtF.glGetProgramBinary(m_shadersArray[i].program_id, programSize, nullptr, &pbinaryshader->binaryformat, pbinarydest);
+			glGetProgramBinary(m_shadersArray[i].program_id, programSize, nullptr, &pbinaryshader->binaryformat, pbinarydest);
 
 			pbuffer->removepointer((const void**)&pbinaryshader);
 		}
@@ -1713,7 +1710,7 @@ bool CGLSLShader::CompileShaderVariation( Uint32 index )
 	// Find uniforms in this shader
 	for(Uint32 i = 0; i < m_uniformsArray.size(); i++)
 	{
-		m_uniformsArray[i].indexes[index] = m_glExtF.glGetUniformLocation(m_shadersArray[index].program_id, m_uniformsArray[i].name.c_str());
+		m_uniformsArray[i].indexes[index] = glGetUniformLocation(m_shadersArray[index].program_id, m_uniformsArray[i].name.c_str());
 		if(m_uniformsArray[i].indexes[index] == NO_POSITION)
 			m_uniformsArray[i].indexes[index] = PROPERTY_UNAVAILABLE;
 		else
@@ -1723,7 +1720,7 @@ bool CGLSLShader::CompileShaderVariation( Uint32 index )
 	// Find uniform blocks in this shader
 	for(Uint32 i = 0; i < m_uniformBufferObjectsArray.size(); i++)
 	{
-		m_uniformBufferObjectsArray[i].blockindexes[index] = m_glExtF.glGetUniformBlockIndex(m_shadersArray[index].program_id, m_uniformBufferObjectsArray[i].name.c_str());
+		m_uniformBufferObjectsArray[i].blockindexes[index] = glGetUniformBlockIndex(m_shadersArray[index].program_id, m_uniformBufferObjectsArray[i].name.c_str());
 		if(m_uniformBufferObjectsArray[i].blockindexes[index] == NO_POSITION)
 			m_uniformBufferObjectsArray[i].blockindexes[index] = PROPERTY_UNAVAILABLE;
 		else
@@ -1733,7 +1730,7 @@ bool CGLSLShader::CompileShaderVariation( Uint32 index )
 	// Find attributes in the shader
 	for(Uint32 i = 0; i < m_vertexAttribsArray.size(); i++)
 	{
-		m_vertexAttribsArray[i].indexes[index] = m_glExtF.glGetAttribLocation(m_shadersArray[index].program_id, m_vertexAttribsArray[i].name.c_str());
+		m_vertexAttribsArray[i].indexes[index] = glGetAttribLocation(m_shadersArray[index].program_id, m_vertexAttribsArray[i].name.c_str());
 		if(m_vertexAttribsArray[i].indexes[index] == NO_POSITION)
 			m_vertexAttribsArray[i].indexes[index] = PROPERTY_UNAVAILABLE;
 		else
@@ -1910,7 +1907,7 @@ bool CGLSLShader::ConstructBranches ( const Char* pSrc, Uint32 fileSize )
 bool CGLSLShader::Shader_PrintLog ( GLuint shader_id, const Char *script, Uint32 length, const Char *szoutpath, bool dumpShaderCode )
 {
 	Int32 iLogSize = 0;
-	m_glExtF.glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &iLogSize);
+	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &iLogSize);
 
 	if(iLogSize > 1)
 	{
@@ -1922,7 +1919,7 @@ bool CGLSLShader::Shader_PrintLog ( GLuint shader_id, const Char *script, Uint32
 
 		Int32 iNumWritten;
 		Char *pLog = new Char[iLogSize];
-		m_glExtF.glGetShaderInfoLog(shader_id, iLogSize, &iNumWritten, pLog);
+		glGetShaderInfoLog(shader_id, iLogSize, &iNumWritten, pLog);
 
 		Char *pScan = pLog;
 		while(*pScan)
@@ -1976,7 +1973,7 @@ bool CGLSLShader::Shader_PrintLog ( GLuint shader_id, const Char *script, Uint32
 bool CGLSLShader :: Program_PrintLog ( GLuint program_id, const Char *szoutpath )
 {
 	Int32 iLogSize = 0;
-	m_glExtF.glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, &iLogSize);
+	glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, &iLogSize);
 	if(iLogSize <= 1)
 		return true;
 
@@ -1988,7 +1985,7 @@ bool CGLSLShader :: Program_PrintLog ( GLuint program_id, const Char *szoutpath 
 
 	Int32 iNumWritten;
 	Char *pLog = new Char[iLogSize];
-	m_glExtF.glGetProgramInfoLog(program_id, iLogSize, &iNumWritten, pLog);
+	glGetProgramInfoLog(program_id, iLogSize, &iNumWritten, pLog);
 
 	Char *pScan = pLog;
 	while(*pScan)
@@ -2066,7 +2063,7 @@ bool CGLSLShader::EnableShader ( void )
 			return false;
 	}
 
-	m_glExtF.glUseProgram(m_shadersArray[m_shaderIndex].program_id);
+	glUseProgram(m_shadersArray[m_shaderIndex].program_id);
 	m_isActive = true;
 
 	// Bind UBOs if any
@@ -2075,7 +2072,7 @@ bool CGLSLShader::EnableShader ( void )
 		for(Uint32 i = 0; i < m_uniformBufferObjectsArray.size(); i++)
 		{
 			glsl_ubo_t& ubo = m_uniformBufferObjectsArray[i];
-			m_glExtF.glBindBufferBase(GL_UNIFORM_BUFFER, i+1, ubo.buffer_id);
+			glBindBufferBase(GL_UNIFORM_BUFFER, i+1, ubo.buffer_id);
 		}
 
 		m_areUBOsBound = true;
@@ -2160,7 +2157,7 @@ void CGLSLShader::SyncUniform( glsl_uniform_t& uniform )
 		{
 			if (memcmp(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount) != 0)
 			{
-				m_glExtF.glUniform1i(uniform.indexes[m_shaderIndex], (*pcurrentvalue));
+				glUniform1i(uniform.indexes[m_shaderIndex], (*pcurrentvalue));
 				memcpy(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount);
 			}
 		}
@@ -2169,7 +2166,7 @@ void CGLSLShader::SyncUniform( glsl_uniform_t& uniform )
 		{
 			if (memcmp(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount) != 0)
 			{
-				m_glExtF.glUniform1fv(uniform.indexes[m_shaderIndex], uniform.elementcount, pcurrentvalue);
+				glUniform1fv(uniform.indexes[m_shaderIndex], uniform.elementcount, pcurrentvalue);
 				memcpy(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount);
 			}
 		}
@@ -2178,7 +2175,7 @@ void CGLSLShader::SyncUniform( glsl_uniform_t& uniform )
 		{
 			if (memcmp(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount) != 0)
 			{
-				m_glExtF.glUniform2fv(uniform.indexes[m_shaderIndex], uniform.elementcount, pcurrentvalue);
+				glUniform2fv(uniform.indexes[m_shaderIndex], uniform.elementcount, pcurrentvalue);
 				memcpy(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount);
 			}
 		}
@@ -2187,7 +2184,7 @@ void CGLSLShader::SyncUniform( glsl_uniform_t& uniform )
 		{
 			if (memcmp(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount) != 0)
 			{
-				m_glExtF.glUniform3fv(uniform.indexes[m_shaderIndex], uniform.elementcount, pcurrentvalue);
+				glUniform3fv(uniform.indexes[m_shaderIndex], uniform.elementcount, pcurrentvalue);
 				memcpy(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount);
 			}
 		}
@@ -2196,7 +2193,7 @@ void CGLSLShader::SyncUniform( glsl_uniform_t& uniform )
 		{
 			if (memcmp(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount) != 0)
 			{
-				m_glExtF.glUniform4fv(uniform.indexes[m_shaderIndex], uniform.elementcount, pcurrentvalue);
+				glUniform4fv(uniform.indexes[m_shaderIndex], uniform.elementcount, pcurrentvalue);
 				memcpy(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount);
 			}
 		}
@@ -2205,7 +2202,7 @@ void CGLSLShader::SyncUniform( glsl_uniform_t& uniform )
 		{
 			if (memcmp(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount) != 0)
 			{
-				m_glExtF.glUniformMatrix4fv(uniform.indexes[m_shaderIndex], uniform.elementcount, GL_FALSE, pcurrentvalue);
+				glUniformMatrix4fv(uniform.indexes[m_shaderIndex], uniform.elementcount, GL_FALSE, pcurrentvalue);
 				memcpy(pshadervalue, pcurrentvalue, sizeof(Float) * uniform.stride * uniform.elementcount);
 			}
 		}
@@ -2223,7 +2220,7 @@ void CGLSLShader::DisableShader ( void )
 	if(m_areUBOsBound)
 	{
 		for(Uint32 i = 0; i < m_uniformBufferObjectsArray.size(); i++)
-			m_glExtF.glBindBufferBase(GL_UNIFORM_BUFFER, 1+i, 0);
+			glBindBufferBase(GL_UNIFORM_BUFFER, 1+i, 0);
 
 		m_areUBOsBound = false;
 	}
@@ -2246,7 +2243,7 @@ void CGLSLShader::DisableShader ( void )
 	}
 
 	// Disable shader too
-	m_glExtF.glUseProgram(0);
+	glUseProgram(0);
 	m_isActive = false;
 }
 
@@ -2300,7 +2297,7 @@ Int32 CGLSLShader::InitAttribute( const Char *szname, Uint32 size, Int32 type, U
 			if (!m_shadersArray[i].program_id)
 				continue;
 
-			newAttrib.indexes[i] = m_glExtF.glGetAttribLocation(m_shadersArray[i].program_id, szname);
+			newAttrib.indexes[i] = glGetAttribLocation(m_shadersArray[i].program_id, szname);
 			if(newAttrib.indexes[i] == NO_POSITION)
 				newAttrib.indexes[i] = PROPERTY_UNAVAILABLE;
 			else
@@ -2553,7 +2550,7 @@ Int32 CGLSLShader::InitUniform( const Char *szname, uniform_e type, Uint32 eleme
 			if (!m_shadersArray[i].program_id)
 				continue;
 
-			newUniform.indexes[i] = m_glExtF.glGetUniformLocation(m_shadersArray[i].program_id, szname);
+			newUniform.indexes[i] = glGetUniformLocation(m_shadersArray[i].program_id, szname);
 			if(newUniform.indexes[i] == NO_POSITION)
 				newUniform.indexes[i] = PROPERTY_UNAVAILABLE;
 		}
@@ -2607,7 +2604,7 @@ Int32 CGLSLShader :: InitUniformBufferObject( const Char* pstrName, Uint32 buffe
 	{
 		for(Uint32 i = 0; i < m_shadersArray.size(); i++)
 		{
-			newUBO.blockindexes[i] = m_glExtF.glGetUniformBlockIndex(m_shadersArray[i].program_id, newUBO.name.c_str());
+			newUBO.blockindexes[i] = glGetUniformBlockIndex(m_shadersArray[i].program_id, newUBO.name.c_str());
 			if(newUBO.blockindexes[i] == NO_POSITION)
 				newUBO.blockindexes[i] = PROPERTY_UNAVAILABLE;
 		}
@@ -2635,24 +2632,24 @@ Int32 CGLSLShader :: InitUniformBufferObject( const Char* pstrName, Uint32 buffe
 	}
 
 	// Create the object
-	m_glExtF.glGenBuffers(1, &newUBO.buffer_id);
-	m_glExtF.glBindBuffer(GL_UNIFORM_BUFFER, newUBO.buffer_id);
-	m_glExtF.glBufferData(GL_UNIFORM_BUFFER, bufferSize, NULL, GL_STREAM_DRAW);
-	m_glExtF.glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	glGenBuffers(1, &newUBO.buffer_id);
+	glBindBuffer(GL_UNIFORM_BUFFER, newUBO.buffer_id);
+	glBufferData(GL_UNIFORM_BUFFER, bufferSize, NULL, GL_STREAM_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	// Bind these now when we are creating the UBO
 	Uint32 uboIndex = m_uniformBufferObjectsArray.size();
-	m_glExtF.glBindBufferBase(GL_UNIFORM_BUFFER, uboIndex+1, newUBO.buffer_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, uboIndex+1, newUBO.buffer_id);
 
 	for(Uint32 j = 0; j < m_shadersArray.size(); j++)
 	{
 		if(newUBO.blockindexes[j] == NO_POSITION)
 			continue;
 
-		m_glExtF.glUniformBlockBinding(m_shadersArray[j].program_id, newUBO.blockindexes[j], uboIndex+1);
+		glUniformBlockBinding(m_shadersArray[j].program_id, newUBO.blockindexes[j], uboIndex+1);
 	}
 
-	m_glExtF.glBindBufferBase(GL_UNIFORM_BUFFER, uboIndex+1, 0);
+	glBindBufferBase(GL_UNIFORM_BUFFER, uboIndex+1, 0);
 
 	m_uniformBufferObjectsArray.push_back(newUBO);
 	return uboIndex;

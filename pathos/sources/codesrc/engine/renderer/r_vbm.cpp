@@ -102,7 +102,6 @@ CVBMRenderer gVBMRenderer;
 CVBMRenderer::CVBMRenderer( void ):
 	m_pCvarDrawModels(nullptr),
 	m_pCvarDrawModelDecals(nullptr),
-	m_pCvarVertexTextures(nullptr),
 	m_pCvarDecalCacheSize(nullptr),
 	m_pCvarSkyLighting(nullptr),
 	m_pCvarSampleOffset(nullptr),
@@ -131,7 +130,6 @@ CVBMRenderer::CVBMRenderer( void ):
 	m_pVBMHeader(nullptr),
 	m_pExtraInfo(nullptr),
 	m_renderAlpha(0),
-	m_isVertexFetchSupported(false),
 	m_useFlexes(false),
 	m_useBlending(false),
 	m_pLightingInfo(nullptr),
@@ -200,7 +198,6 @@ bool CVBMRenderer::Init( void )
 {
 	m_pCvarDrawModels = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_drawmodels", "1", "Controls the rendering of models.");
 	m_pCvarDrawModelDecals = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_drawmodeldecals", "1", "Controls the rendering of model decals.");
-	m_pCvarVertexTextures = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_vertex_textures", "1", "Controls the use of vertex textures for facial expressions.");
 	m_pCvarSkyLighting = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_model_skylight", "1", "Controls whether models take sky lighting.");
 	m_pCvarUseBumpData = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_model_bumpdata", "0", "Controls whether models should use BSP bump data for lighting.");
 	m_pCvarLightRatio = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_model_light_ratio", "0.5", "Controls division ratio between ambient and direct lighting for non-bump mapped lighting fetches.");
@@ -252,38 +249,14 @@ bool CVBMRenderer::InitGL( void )
 	if(!m_pShader)
 	{
 		Int32 shaderFlags = CGLSLShader::FL_GLSL_CHECK_SAMPLER_OVERLAP;
+		shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-#ifndef _DEBUG
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
-		else if(g_pCvarGLSLOnDemand->GetValue() > 0)
-			shaderFlags |= CGLSLShader::FL_GLSL_ONDEMAND_LOAD;
-#endif
+		m_pShader = new CGLSLShader(FL_GetInterface(), shaderFlags, VID_ShaderCompileCallback);
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, shaderFlags, VID_ShaderCompileCallback);
-
-		// Check if we want vertex textures
-		if(m_pCvarVertexTextures->GetValue() <= 0 || !R_IsExtensionSupported("GL_ARB_texture_float"))
-		{
-			m_pShader->DisableDeterminatorState("flex", TRUE);
-			m_isVertexFetchSupported = false;
-		}
-		else
-			m_isVertexFetchSupported = true;
-
-		// Try and compile it
 		if(!m_pShader->Compile("vbmrenderer.bss"))
 		{
-			// Try disabling the vertex textures
-			m_pShader->DisableDeterminatorState("flex", TRUE);
-
-			m_isVertexFetchSupported = false;
-
-			if(!m_pShader->Compile("vbmrenderer.bss"))
-			{
-				Sys_ErrorPopup("%s - Could not compile shader: %s", __FUNCTION__, m_pShader->GetError());
-				return false;
-			}
+			Sys_ErrorPopup("%s - Could not compile shader: %s", __FUNCTION__, m_pShader->GetError());
+			return false;
 		}
 
 		// If active load is set, keep loading shaders during game runtime
@@ -297,9 +270,7 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.a_texcoord2 = m_pShader->InitAttribute("in_texcoord2", 2, GL_FLOAT, sizeof(vbm_glvertex_t), OFFSET(vbm_glvertex_t, texcoord2));
 		m_attribs.a_boneindexes = m_pShader->InitAttribute("in_boneindexes", MAX_VBM_BONEWEIGHTS, GL_FLOAT, sizeof(vbm_glvertex_t), OFFSET(vbm_glvertex_t, boneindexes));
 		m_attribs.a_boneweights = m_pShader->InitAttribute("in_boneweights", MAX_VBM_BONEWEIGHTS, GL_FLOAT, sizeof(vbm_glvertex_t), OFFSET(vbm_glvertex_t, boneweights));
-
-		if(m_isVertexFetchSupported)
-			m_attribs.a_flexcoord = m_pShader->InitAttribute("in_flexcoord", 2, GL_FLOAT, sizeof(vbm_glvertex_t), OFFSET(vbm_glvertex_t, flexcoord));
+		m_attribs.a_flexcoord = m_pShader->InitAttribute("in_flexcoord", 2, GL_FLOAT, sizeof(vbm_glvertex_t), OFFSET(vbm_glvertex_t, flexcoord));
 
 		if(!R_CheckShaderVertexAttribute(m_attribs.a_origin, "in_position", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_tangent, "in_tangent", m_pShader, Sys_ErrorPopup)
@@ -307,10 +278,8 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_texcoord1, "in_texcoord1", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_texcoord2, "in_texcoord2", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_boneindexes, "in_boneindexes", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderVertexAttribute(m_attribs.a_boneweights, "in_boneweights", m_pShader, Sys_ErrorPopup))
-			return false;
-
-		if(m_isVertexFetchSupported && !R_CheckShaderVertexAttribute(m_attribs.a_flexcoord, "in_flexcoord", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderVertexAttribute(m_attribs.a_boneweights, "in_boneweights", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderVertexAttribute(m_attribs.a_flexcoord, "in_flexcoord", m_pShader, Sys_ErrorPopup))
 			return false;
 
 		m_attribs.a_vertexlight_vectors = m_pShader->InitAttribute("in_vlight_vectors", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_vector));
@@ -524,11 +493,6 @@ bool CVBMRenderer::InitGL( void )
 				return false;
 		}
 	}
-
-	if(m_isVertexFetchSupported)
-		Con_Printf("Vertex textures are enabled.\n");
-	else
-		Con_Printf("Vertex textures are disabled.\n");
 	
 	if(CL_IsGameActive())
 	{
@@ -685,9 +649,6 @@ void CVBMRenderer::ClearGame( void )
 void CVBMRenderer::CreateVertexTexture( void )
 {
 	// Create the vertex texture
-	if(!m_isVertexFetchSupported)
-		return;
-
 	m_pFlexTexture = CTextureManager::GetInstance()->GenTextureIndex(RS_GAME_LEVEL);
 
 	glBindTexture(GL_TEXTURE_2D, m_pFlexTexture->gl_index);
@@ -695,7 +656,7 @@ void CVBMRenderer::CreateVertexTexture( void )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, VBM_FLEXTEXTURE_SIZE, VBM_FLEXTEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, VBM_FLEXTEXTURE_SIZE, VBM_FLEXTEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, nullptr);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -1562,7 +1523,7 @@ bool CVBMRenderer::DrawModel( Int32 flags, cl_entity_t* pentity )
 		{
 			m_pScreenTexture = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true);
 			R_GrabScreenToTexture(m_pScreenTexture->palloc, rns.screenwidth, rns.screenheight, true);
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, 0);
+			R_BindRectangleTexture(GL_TEXTURE0, 0);
 		}
 	}
 
@@ -1712,7 +1673,7 @@ void CVBMRenderer::BuildVBMVBO( vbmcache_t* pvbmcache )
 	pvbmcache->vertexhash = vertexHash.HexDigest();
 
 	// Set VBO
-	CVBO* pVBO = new CVBO(gGLExtF, pvboverts, pvbm->numverts*sizeof(vbm_glvertex_t), pvbm->getIndexes(), pvbm->numindexes*sizeof(Uint32));
+	CVBO* pVBO = new CVBO(pvboverts, pvbm->numverts*sizeof(vbm_glvertex_t), pvbm->getIndexes(), pvbm->numindexes*sizeof(Uint32));
 	pvbmcache->vboindex = m_pVBMVBOArray.size();
 	m_pVBMVBOArray.push_back(pVBO);
 
@@ -1858,7 +1819,7 @@ void CVBMRenderer::BuildVBOs( void )
 	Uint32* pindexbuffer = new Uint32[m_decalIndexCacheSize];
 	memset(pindexbuffer, 0, sizeof(Uint32)*m_decalIndexCacheSize);
 
-	m_pDecalVBO = new CVBO(gGLExtF, pvertexbuffer, sizeof(vbm_glvertex_t)*m_decalVertexCacheSize, pindexbuffer, sizeof(Uint32)*m_decalIndexCacheSize);
+	m_pDecalVBO = new CVBO(pvertexbuffer, sizeof(vbm_glvertex_t)*m_decalVertexCacheSize, pindexbuffer, sizeof(Uint32)*m_decalIndexCacheSize);
 
 	delete[] pvertexbuffer;
 	delete[] pindexbuffer;
@@ -1867,7 +1828,7 @@ void CVBMRenderer::BuildVBOs( void )
 	pvertexbuffer = new vbm_glvertex_t[MAX_TEMP_VBM_VERTEXES];
 	memset(pvertexbuffer, 0, sizeof(vbm_glvertex_t)*MAX_TEMP_VBM_VERTEXES);
 
-	m_pTempDrawVBO = new CVBO(gGLExtF, pvertexbuffer, sizeof(vbm_glvertex_t)*MAX_TEMP_VBM_VERTEXES, nullptr, 0);
+	m_pTempDrawVBO = new CVBO(pvertexbuffer, sizeof(vbm_glvertex_t)*MAX_TEMP_VBM_VERTEXES, nullptr, 0);
 	delete[] pvertexbuffer;
 }
 
@@ -3463,72 +3424,8 @@ void CVBMRenderer::CalculateFlexesHW( const vbmsubmodel_t* psubmodel )
 	}
 
 	// Now upload the texture
-	R_Bind2DTexture(GL_TEXTURE1_ARB, m_pFlexTexture->gl_index, true);
+	R_Bind2DTexture(GL_TEXTURE1, m_pFlexTexture->gl_index, true);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, VBM_FLEXTEXTURE_SIZE, height + 1, GL_RGBA, GL_FLOAT, m_flexTexels);
-}
-
-//=============================================
-//
-//
-//=============================================
-void CVBMRenderer::CalculateFlexesSW( const vbmsubmodel_t* psubmodel )
-{
-	const vbmflexinfo_t* pflexinfo = m_pVBMHeader->getFlexInfo(psubmodel->flexinfoindex);
-	const vbmflexvertex_t* pflexverts = pflexinfo->getFlexVertexes(m_pVBMHeader);
-	const vbmflexvertinfo_t* pflexvertinfos = pflexinfo->getFlexVertexInfos(m_pVBMHeader);
-	
-	const vbmflexcontroller_t* pflexcontrollers = m_pVBMHeader->getFlexControllers();
-	const byte* pflexcontrollerindexes = pflexinfo->getFlexControllerIndexes(m_pVBMHeader);
-
-	const vbmvertex_t* pvbmverts = m_pVBMHeader->getVertexes() + pflexinfo->first_vertex;
-
-	for(Int32 i = 0; i < pflexinfo->num_vertexes; i++)
-	{
-		Math::VectorCopy(pvbmverts[i].origin, m_tempVertexes[i].origin);
-		Math::VectorCopy(pvbmverts[i].normal, m_tempVertexes[i].normal);
-		Math::VectorCopy(pvbmverts[i].tangent, m_tempVertexes[i].tangent);
-
-		if(pvbmverts[i].flexvertindex != -1)
-		{
-			for(Int32 j = 1; j < pflexinfo->numflexes; j++)
-			{
-				if(pflexvertinfos[pvbmverts[i].flexvertindex].vertinfoindexes[j] == -1)
-					continue;
-
-				Int32 controller_idx = pflexcontrollerindexes[j];
-				Int32 script_idx = m_pExtraInfo->pflexstate->indexmap[controller_idx];
-				if(script_idx == -1)
-					continue;
-
-				Float value = m_pExtraInfo->pflexstate->values[script_idx];
-				value *= (pflexcontrollers[controller_idx].maxvalue - pflexcontrollers[controller_idx].minvalue);
-				value += pflexcontrollers[controller_idx].minvalue;
-
-				const vbmflexvertex_t* pflexvert = &pflexverts[pflexvertinfos[pvbmverts[i].flexvertindex].vertinfoindexes[j]];
-				Math::VectorMA(m_tempVertexes[i].origin, value, pflexvert->originoffset, m_tempVertexes[i].origin);
-				Math::VectorMA(m_tempVertexes[i].normal, value, pflexvert->normaloffset, m_tempVertexes[i].normal);
-			}
-
-			Math::VectorNormalize(m_tempVertexes[i].normal);
-		}
-
-		m_tempVertexes[i].flexcoord[0] = 0;
-		m_tempVertexes[i].flexcoord[1] = 0;
-
-		m_tempVertexes[i].texcoord1[0] = pvbmverts[i].texcoord[0];
-		m_tempVertexes[i].texcoord1[1] = pvbmverts[i].texcoord[1];
-
-		for(Uint32 j = 0; j < MAX_VBM_BONEWEIGHTS; j++)
-		{
-			m_tempVertexes[i].boneindexes[j] = pvbmverts[i].boneindexes[j];
-			m_tempVertexes[i].boneweights[j] = (static_cast<Float>(pvbmverts[i].boneweights[j])/255.0f);
-		}
-
-		VBM_NormalizeWeights(m_tempVertexes[i].boneweights, MAX_VBM_BONEWEIGHTS);
-	}
- 
-	// Update the VBO
-	m_pCurrentVBO->VBOSubBufferData((m_pVBMHeader->vbooffset+pflexinfo->first_vertex)*sizeof(vbm_glvertex_t), m_tempVertexes, pflexinfo->num_vertexes*sizeof(vbm_glvertex_t));
 }
 
 //=============================================
@@ -3650,7 +3547,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		if(alphatestMode == ALPHATEST_COVERAGE)
 		{
 			glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-			gGLExtF.glSampleCoverage(0.5, GL_FALSE);
+			glSampleCoverage(0.5, GL_FALSE);
 		}
 	}
 
@@ -3697,7 +3594,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 		m_pShader->SetUniform2f(m_attribs.u_scope_scrsize, rns.screenwidth, rns.screenheight);
 
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_rectangle);
-		R_BindRectangleTexture(GL_TEXTURE0_ARB + textureIndex, m_pScreenTexture->palloc->gl_index);
+		R_BindRectangleTexture(GL_TEXTURE0 + textureIndex, m_pScreenTexture->palloc->gl_index);
 	}
 
 	if (pmaterial->ptextures[MT_TX_MRAO])
@@ -3718,7 +3615,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 	if (pcubemapinfo)
 	{
 		Int32 cubemapUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
-		R_BindCubemapTexture(GL_TEXTURE0_ARB + cubemapUnit, pcubemapinfo->palloc->gl_index);
+		R_BindCubemapTexture(GL_TEXTURE0 + cubemapUnit, pcubemapinfo->palloc->gl_index);
 
 		if (pprevcubemapinfo)
 		{
@@ -3726,7 +3623,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_INTERP);
 
 			Int32 prevUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap_prev);
-			R_BindCubemapTexture(GL_TEXTURE0_ARB + prevUnit, pprevcubemapinfo->palloc->gl_index);
+			R_BindCubemapTexture(GL_TEXTURE0 + prevUnit, pprevcubemapinfo->palloc->gl_index);
 		}
 		else
 		{
@@ -3912,7 +3809,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 				R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
 			}
 
-			R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, 0);
+			R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, 0);
 
 			CMatrix matrix;
 			matrix.LoadIdentity();
@@ -3938,7 +3835,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 			if (DL_CanShadow(pdlight))
 			{
 				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, TRUE);
-				R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
+				R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
 				glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 				CMatrix matrix;
@@ -3951,7 +3848,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 			else
 			{
 				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, FALSE);
-				R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, 0);
+				R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, 0);
 			}
 		}
 	}
@@ -3980,7 +3877,7 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 	if(alphatestMode == ALPHATEST_COVERAGE)
 	{
 		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-		gGLExtF.glSampleCoverage(1.0, GL_FALSE);
+		glSampleCoverage(1.0, GL_FALSE);
 	}
 
 	return true;
@@ -4029,7 +3926,7 @@ bool CVBMRenderer::DrawWireframe( void )
 	// Reset any samplers altogether
 	m_pShader->ResetSamplerIndex();
 
-	if(m_pVBMHeader->flags & VBM_HAS_FLEXES && m_isVertexFetchSupported)
+	if(m_pVBMHeader->flags & VBM_HAS_FLEXES)
 	{
 		m_pShader->EnableAttribute(m_attribs.a_flexcoord);
 
@@ -4038,7 +3935,7 @@ bool CVBMRenderer::DrawWireframe( void )
 
 		// Use AutoSetSamplerUniform always, even if we only use one unit
 		Int32 textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_flextexture);
-		R_Bind2DTexture(GL_TEXTURE0_ARB + textureIndex, m_pFlexTexture->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_pFlexTexture->gl_index);
 	}
 	else
 	{
@@ -4089,7 +3986,7 @@ bool CVBMRenderer::DrawWireframe( void )
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	if(m_pVBMHeader->flags & VBM_HAS_FLEXES && m_isVertexFetchSupported)
+	if(m_pVBMHeader->flags & VBM_HAS_FLEXES)
 		m_pShader->DisableAttribute(m_attribs.a_flexcoord);
 
 	if(g_pCvarWireFrame->GetValue() >= 2)
@@ -4338,9 +4235,6 @@ void CVBMRenderer::CreateDecal( const Vector& position, const Vector& normal, de
 				continue;
 
 			if(!pboneids)
-				continue;
-
-			if(psubmodel->flexinfoindex != -1 && !m_isVertexFetchSupported)
 				continue;
 
 			const vbmvertex_t *triverts[3] = { nullptr };
@@ -4861,14 +4755,14 @@ bool CVBMRenderer::DrawModelDecals( void )
 	if(alphatestMode == ALPHATEST_COVERAGE)
 	{
 		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-		gGLExtF.glSampleCoverage(0.5, GL_FALSE);
+		glSampleCoverage(0.5, GL_FALSE);
 	}
 
 	// Reset all units used
 	m_pShader->ResetSamplerIndex();
 
 	Int32 textureIndex = 0;
-	if((m_pVBMHeader->flags & VBM_HAS_FLEXES) && m_isVertexFetchSupported)
+	if(m_pVBMHeader->flags & VBM_HAS_FLEXES)
 	{
 		m_pShader->EnableAttribute(m_attribs.a_flexcoord);
 
@@ -4876,7 +4770,7 @@ bool CVBMRenderer::DrawModelDecals( void )
 			return false;
 
 		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_flextexture);
-		R_Bind2DTexture(GL_TEXTURE0_ARB + textureIndex, m_pFlexTexture->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_pFlexTexture->gl_index);
 	}
 	else
 	{
@@ -4998,7 +4892,7 @@ bool CVBMRenderer::DrawModelDecals( void )
 		|| !m_pShader->SetDeterminator(m_attribs.d_alphatest, ALPHATEST_DISABLED, false))
 		return false;
 
-	if(m_pVBMHeader->flags & VBM_HAS_FLEXES && m_isVertexFetchSupported)
+	if(m_pVBMHeader->flags & VBM_HAS_FLEXES)
 		m_pShader->DisableAttribute(m_attribs.a_flexcoord);
 
 	m_pShader->SetUniform3f(m_attribs.u_fogcolor, rns.fog.settings.color[0], rns.fog.settings.color[1], rns.fog.settings.color[2]);
@@ -5013,7 +4907,7 @@ bool CVBMRenderer::DrawModelDecals( void )
 	if(alphatestMode == ALPHATEST_COVERAGE)
 	{
 		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-		gGLExtF.glSampleCoverage(1.0, GL_FALSE);
+		glSampleCoverage(1.0, GL_FALSE);
 	}
 
 	return true;
@@ -5139,30 +5033,22 @@ bool CVBMRenderer::DrawFlexedSubmodels( void )
 	if(!(m_pVBMHeader->flags & VBM_HAS_FLEXES))
 		return true;
 
-	if(m_isVertexFetchSupported)
-	{
-		m_pShader->EnableSync(m_attribs.u_flextexture);
-		m_pShader->EnableSync(m_attribs.u_flextexturesize);
+	m_pShader->EnableSync(m_attribs.u_flextexture);
+	m_pShader->EnableSync(m_attribs.u_flextexturesize);
 
-		m_pShader->EnableAttribute(m_attribs.a_flexcoord);
+	m_pShader->EnableAttribute(m_attribs.a_flexcoord);
 
-		// Always use AutoSetSamplerUniform if overlap checks are present
-		m_pShader->ResetSamplerIndex();
-		Int32 textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_flextexture);
-		R_Bind2DTexture(GL_TEXTURE0_ARB + textureIndex, m_pFlexTexture->gl_index);
+	m_pShader->ResetSamplerIndex();
+	Int32 textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_flextexture);
+	R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_pFlexTexture->gl_index);
 
-		m_pShader->SetUniform1f(m_attribs.u_flextexturesize, VBM_FLEXTEXTURE_SIZE);
-		m_firstTextureUnit = textureIndex + 1;
+	m_pShader->SetUniform1f(m_attribs.u_flextexturesize, VBM_FLEXTEXTURE_SIZE);
+	m_firstTextureUnit = textureIndex + 1;
 
-		if(!m_pShader->SetDeterminator(m_attribs.d_flexes, TRUE, false))
-			return false;
+	if(!m_pShader->SetDeterminator(m_attribs.d_flexes, TRUE, false))
+		return false;
 
-		m_useFlexes = true;
-	}
-	else
-	{
-		m_firstTextureUnit = 0;
-	}
+	m_useFlexes = true;
 
 	for (Int32 i = 0; i < m_pVBMHeader->numbodyparts; i++)
 	{
@@ -5174,10 +5060,7 @@ bool CVBMRenderer::DrawFlexedSubmodels( void )
 		// Calculate flexes if we have any
 		if( m_pExtraInfo )
 		{
-			if( m_isVertexFetchSupported )
-				CalculateFlexesHW(m_pVBMSubModel);
-			else
-				CalculateFlexesSW(m_pVBMSubModel);
+			CalculateFlexesHW(m_pVBMSubModel);
 		}
 
 		// Draw submodel by submodel if using flexes
@@ -5195,13 +5078,10 @@ bool CVBMRenderer::DrawFlexedSubmodels( void )
 			return false;
 	}
 
-	if(m_isVertexFetchSupported)
-	{
-		if(!m_pShader->SetDeterminator(m_attribs.d_flexes, FALSE, false))
-			return false;
+	if(!m_pShader->SetDeterminator(m_attribs.d_flexes, FALSE, false))
+		return false;
 
-		m_pShader->DisableAttribute(m_attribs.a_flexcoord);
-	}
+	m_pShader->DisableAttribute(m_attribs.a_flexcoord);
 
 	m_useFlexes = false;
 	return true;
@@ -7362,9 +7242,7 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 					scale = 1.0;
 			}
 			else
-			{
 				scale = 1.0;
-			}
 
 			for(Uint32 k = 0; k < 3; k++)
 				raw.ambient[i][k] = static_cast<byte>(clamp(raw.ambient[i][k] * scale, 0.0f, 255.0f));
@@ -7384,7 +7262,7 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 		}
 	}
 
-	CVBO* pVBO = new CVBO(gGLExtF, pinitial, pvbmheader->numverts * sizeof(vbm_vlight_glvertex_t), nullptr, 0, true, false);
+	CVBO* pVBO = new CVBO(pinitial, pvbmheader->numverts * sizeof(vbm_vlight_glvertex_t), nullptr, 0, true, false);
 	delete[] pinitial;
 
 	pvlightvbo->pvbo = pVBO;

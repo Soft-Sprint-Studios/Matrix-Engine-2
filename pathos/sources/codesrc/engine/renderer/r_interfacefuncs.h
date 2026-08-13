@@ -24,7 +24,6 @@ All Rights Reserved.
 #include "r_vbo.h"
 #include "r_glsl.h"
 #include "r_basicdraw.h"
-#include "r_glextf.h"
 #include "r_main.h"
 #include "r_interface.h"
 #include "r_text.h"
@@ -52,7 +51,6 @@ extern void R_BasicDrawTexCoord2f( Float u, Float v );
 extern void R_BasicDrawTexCoord2fv( const Float* ptc );
 extern void R_BasicDrawVertex3f( Float x, Float y, Float z );
 extern void R_BasicDrawVertex3fv( const Float* pfv );
-extern const CGLExtF& R_GetExportFunctionsClass( void );
 extern CMatrix& R_GetProjectionMatrix( void );
 extern CMatrix& R_GetModelViewMatrix( void );
 extern const ref_params_t&	R_GetViewParams( void );

@@ -14,7 +14,6 @@ All Rights Reserved.
 #include "textures_shared.h"
 #include "texturemanager.h"
 #include "r_main.h"
-#include "r_glextf.h"
 #include "r_fbo.h"
 
 CFBOCache gFBOCache;
@@ -89,7 +88,7 @@ void CFBOCache::ClearGL(void)
 	while (!m_cacheList.end())
 	{
 		cache_fbo_t* pfree = m_cacheList.get();
-		gGLExtF.glDeleteFramebuffers(1, &pfree->fbo.fboid);
+		glDeleteFramebuffers(1, &pfree->fbo.fboid);
 		delete pfree;
 
 		m_cacheList.next();
@@ -119,7 +118,7 @@ void CFBOCache::Think(void)
 			m_cacheList.remove(m_cacheList.get_link());
 			m_cacheList.next();
 
-			gGLExtF.glDeleteFramebuffers(1, &pfree->fbo.fboid);
+			glDeleteFramebuffers(1, &pfree->fbo.fboid);
 
 			delete pfree;
 			continue;
@@ -184,16 +183,16 @@ CFBOCache::cache_fbo_t* CFBOCache::Alloc(Uint32 width, Uint32 height, bool depth
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
-	gGLExtF.glGenFramebuffers(1, &pnew->fbo.fboid);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pnew->fbo.fboid);
-	gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pnew->fbo.ptexture1->gl_index, 0);
+	glGenFramebuffers(1, &pnew->fbo.fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, pnew->fbo.fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pnew->fbo.ptexture1->gl_index, 0);
 
 	if (depthbuffer)
-		gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pnew->fbo.pdepth->gl_index, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pnew->fbo.pdepth->gl_index, 0);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
 		Con_Printf("%s - FBO creation failed. Code returned: %d.\n", __FUNCTION__, glGetError());
@@ -203,16 +202,16 @@ CFBOCache::cache_fbo_t* CFBOCache::Alloc(Uint32 width, Uint32 height, bool depth
 		if (pnew->fbo.pdepth)
 			pTextureManager->DeleteAllocation(pnew->fbo.pdepth);
 
-		gGLExtF.glDeleteFramebuffers(1, &pnew->fbo.fboid);
+		glDeleteFramebuffers(1, &pnew->fbo.fboid);
 
 		delete pnew;
 		return nullptr;
 	}
 
 	if (rns.pboundfbo)
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, rns.pboundfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, rns.pboundfbo->fboid);
 	else
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glBindTexture(GL_TEXTURE_2D, textureBound);
 

@@ -15,7 +15,6 @@ All Rights Reserved.
 #include "vid.h"
 #include "enginestate.h"
 #include "texturemanager.h"
-#include "r_glextf.h"
 #include "r_vbo.h"
 #include "r_glsl.h"
 #include "r_main.h"
@@ -132,9 +131,6 @@ static constexpr Uint32 PAUSED_TEXT_BASE_WIDTH = 512;
 // Reference width for the logo text
 static constexpr Uint32 PAUSED_TEXT_BASE_HEIGHT = 128;
 
-// Max extensions per line
-static constexpr Uint32 MAX_EXTENSIONS_PER_LINE = 6;
-
 // Max active-load shaders per frame
 static constexpr Uint32 MAX_ACTIVELOAD_SHADERS = 4;
 
@@ -143,9 +139,6 @@ static constexpr Uint32 MAX_TIMINGS = 400;
 
 // Holds rendering related information
 renderer_state_t rns;
-
-// External function loading class
-CGLExtF gGLExtF;
 
 // Rotating light sprite model
 static cache_model_t* g_pRotLightSprite = nullptr;
@@ -336,9 +329,7 @@ bool R_Init( void )
 
 	if (rns.usehdr)
 	{
-		gGLExtF.glClampColor(GL_CLAMP_VERTEX_COLOR_ARB, GL_FALSE);
-		gGLExtF.glClampColor(GL_CLAMP_FRAGMENT_COLOR_ARB, GL_FALSE);
-		gGLExtF.glClampColor(GL_CLAMP_READ_COLOR_ARB, GL_FALSE);
+		glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
 	}
 
 	return true;
@@ -507,13 +498,9 @@ void R_LoadTextures( void )
 //====================================
 bool R_InitGL( void )
 {
-	// Populate extensions list
-	R_PopulateExtensionsArray();
-
 	// Set constants for renderer
 	rns.screenwidth = gWindow.GetWidth();
 	rns.screenheight = gWindow.GetHeight();
-	rns.fboblitsupported = R_IsExtensionSupported("GL_EXT_framebuffer_blit");
 	rns.fboused = gWindow.AreFBOsEnabled();
 	rns.usehdr = gWindow.IsHDREnabled();
 
@@ -588,7 +575,7 @@ bool R_InitGL( void )
 		return false;
 
 	// Init render classes
-	if(!pDraw->InitGL(gGLExtF, FL_GetInterface(), Sys_ErrorPopup))
+	if(!pDraw->InitGL(FL_GetInterface(), Sys_ErrorPopup))
 		return false;
 
 	if(!gText.InitGL())
@@ -954,108 +941,6 @@ void R_ResetGame( void )
 	pTextureManager->DeleteMaterials(RS_GAME_LEVEL);
 }
 
-//=============================================
-// @brief
-//
-//=============================================
-void R_PopulateExtensionsArray( void )
-{
-	if(!rns.glextensions.empty())
-		return;
-
-	// Keep a max of 6 extensions per line
-	CString line;
-	Uint32 numonline = 0;
-
-	if(ens.pgllogfile)
-		ens.pgllogfile->Printf("OpenGL Extensions:\n");
-
-	if(gGLExtF.glGetStringi)
-	{
-		GLint numExtensions;
-		glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
-
-		// Fill extensions array
-		rns.glextensions.reserve(numExtensions);
-		for(Int32 i = 0; i < numExtensions; i++)
-		{
-			const Char* pstrExtension = reinterpret_cast<const Char*>(gGLExtF.glGetStringi(GL_EXTENSIONS, i));
-			rns.glextensions.push_back(pstrExtension);
-
-			// If we have a gl log file, print all extensions
-			if(ens.pgllogfile)
-			{
-				line << pstrExtension;
-				numonline++;
-
-				if(i < (numExtensions-1))
-					line << ", ";
-
-				// Print the line if we are over the limit
-				if(numonline >= MAX_EXTENSIONS_PER_LINE)
-				{
-					ens.pgllogfile->Printf("%s%s", line.c_str(), NEWLINE);
-					numonline = 0;
-					line.clear();
-				}
-			}
-		}
-	}
-	else
-	{
-		const Char* pstrExtensions = reinterpret_cast<const Char*>(glGetString(GL_EXTENSIONS));
-		const Char* pstr = pstrExtensions;
-
-		// Reserve enough so we don't waste time resizing each time
-		rns.glextensions.reserve(8192);
-
-		char szToken[64];
-		while(pstr)
-		{
-			pstr = Common::Parse(pstr, szToken);
-			rns.glextensions.push_back(szToken);
-
-			// If we have a gl log file, print all extensions
-			if(ens.pgllogfile)
-			{
-				line << szToken;
-				numonline++;
-
-				line << ", ";
-
-				// Print the line if we are over the limit
-				if(numonline >= MAX_EXTENSIONS_PER_LINE)
-				{
-					ens.pgllogfile->Printf("%s%s", line.c_str(), NEWLINE);
-					numonline = 0;
-					line.clear();
-				}
-			}
-		}
-
-		rns.glextensions.resize(rns.glextensions.size());
-	}
-
-	// Make sure last ones are printed too
-	if(ens.pgllogfile && !line.empty())
-		ens.pgllogfile->Printf("%s%s", line.c_str(), NEWLINE);
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-bool R_IsExtensionSupported( const Char *pstrextension )
-{
-	for(Uint32 i = 0; i < rns.glextensions.size(); i++)
-	{
-		if(!qstrcmp(rns.glextensions[i], pstrextension))
-			return true;
-	}
-
-	return false;
-}
-
 //====================================
 //
 //====================================
@@ -1066,7 +951,7 @@ void R_Bind2DTexture( Int32 texture, Uint32 id, bool force )
 
 	if (rns.textures.texturebinds_2d[idx] != id || force)
 	{
-		gGLExtF.glActiveTexture( texture );
+		glActiveTexture( texture );
 		glBindTexture( GL_TEXTURE_2D, id );
 
 		rns.textures.texturebinds_2d[idx] = id;
@@ -1083,7 +968,7 @@ void R_BindCubemapTexture( Int32 texture, Uint32 id, bool force )
 
 	if (rns.textures.texturebinds_cube[idx] != id || force)
 	{
-		gGLExtF.glActiveTexture( texture );
+		glActiveTexture( texture );
 		glBindTexture( GL_TEXTURE_CUBE_MAP, id );
 
 		rns.textures.texturebinds_cube[idx] = id;
@@ -1100,7 +985,7 @@ void R_BindRectangleTexture( Int32 texture, Uint32 id, bool force )
 
 	if (rns.textures.texturebinds_rect[idx] != id || force)
 	{
-		gGLExtF.glActiveTexture( texture );
+		glActiveTexture( texture );
 		glBindTexture( GL_TEXTURE_RECTANGLE, id );
 
 		rns.textures.texturebinds_rect[idx] = id;
@@ -1118,7 +1003,7 @@ void R_ClearBinds( Uint32 firstUnit )
 	{
 		if(rns.textures.texturebinds_2d[i] != 0)
 		{
-			gGLExtF.glActiveTexture( GL_TEXTURE0 + i );
+			glActiveTexture( GL_TEXTURE0 + i );
 			glBindTexture( GL_TEXTURE_2D, 0 );
 		}
 
@@ -1129,7 +1014,7 @@ void R_ClearBinds( Uint32 firstUnit )
 	{
 		if(rns.textures.texturebinds_cube[i] != 0)
 		{
-			gGLExtF.glActiveTexture( GL_TEXTURE0 + i );
+			glActiveTexture( GL_TEXTURE0 + i );
 			glBindTexture( GL_TEXTURE_CUBE_MAP, 0 );
 		}
 
@@ -1140,7 +1025,7 @@ void R_ClearBinds( Uint32 firstUnit )
 	{
 		if(rns.textures.texturebinds_rect[i] != 0)
 		{
-			gGLExtF.glActiveTexture( GL_TEXTURE0 + i );
+			glActiveTexture( GL_TEXTURE0 + i );
 			glBindTexture( GL_TEXTURE_RECTANGLE, 0 );
 		}
 
@@ -1979,7 +1864,7 @@ bool R_DrawLogo( en_texture_t* ptexture, Int32 basewidth, Int32 baseheight )
 	pDraw->Color4f(GL_ONE, GL_ONE, GL_ONE, GL_ONE);
 	
 	// Draw the background
-	R_Bind2DTexture(GL_TEXTURE0_ARB, ptexture->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE0, ptexture->palloc->gl_index);
 
 	pDraw->Begin(CBasicDraw::DRAW_TRIANGLES);
 	pDraw->TexCoord2f(0.0, 0.0);
@@ -2048,7 +1933,7 @@ bool R_DrawLoadingBackground( void )
 		tcscaley = 1.0;
 
 		// Just draw through regular rendering
-		R_Bind2DTexture(GL_TEXTURE0_ARB, rns.ploadbackground->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0, rns.ploadbackground->gl_index);
 	}
 	else
 	{
@@ -2063,7 +1948,7 @@ bool R_DrawLoadingBackground( void )
 			return false;
 		}
 
-		R_BindRectangleTexture(GL_TEXTURE0_ARB, rns.ploadbackground->gl_index);
+		R_BindRectangleTexture(GL_TEXTURE0, rns.ploadbackground->gl_index);
 	}
 
 	pDraw->Begin(CBasicDraw::DRAW_TRIANGLES);
@@ -3063,9 +2948,9 @@ void R_SetFrustum( CFrustum& frustum, const Vector& origin, const Vector& angles
 void R_BindFBO( fbobind_t *pfbo )
 {
 	if(pfbo)
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, pfbo->fboid);
 	else
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
+		glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
 
 	rns.pboundfbo = pfbo;
 }
@@ -3917,7 +3802,7 @@ void R_SetLightmapTexture( Uint32 glindex, Uint32 width, Uint32 height, bool isv
 			glBindTexture(GL_TEXTURE_2D, glindex);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			gGLExtF.glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, width, height, 0, dxtdatasize, pdxtdata);
+			glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, width, height, 0, dxtdatasize, pdxtdata);
 			delete[] pdxtdata;
 
 			resultsize = dxtdatasize;
@@ -3956,51 +3841,51 @@ bool R_InitMainScreenFBO(void)
 	//
 	// Main renderbuffer
 	//
-	gGLExtF.glGenRenderbuffers(1, &rns.mainfbo.rboid1);
-	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid1);
+	glGenRenderbuffers(1, &rns.mainfbo.rboid1);
+	glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid1);
 	if (nbSamples > 0)
-		gGLExtF.glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_RGBA16F, rns.screenwidth, rns.screenheight);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_RGBA16F, rns.screenwidth, rns.screenheight);
 	else
-		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16F, rns.screenwidth, rns.screenheight);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16F, rns.screenwidth, rns.screenheight);
 
 	//
 	// Depth buffer
 	//
-	gGLExtF.glGenRenderbuffers(1, &rns.mainfbo.rboid2);
-	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid2);
+	glGenRenderbuffers(1, &rns.mainfbo.rboid2);
+	glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid2);
 	if (nbSamples > 0)
-		gGLExtF.glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_DEPTH_COMPONENT24, rns.screenwidth, rns.screenheight);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_DEPTH_COMPONENT24, rns.screenwidth, rns.screenheight);
 	else
-		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rns.screenwidth, rns.screenheight);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rns.screenwidth, rns.screenheight);
 
-	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 	//
 	// Third renderbuffer used by glow aura
 	//
-	gGLExtF.glGenRenderbuffers(1, &rns.mainfbo.rboid3);
-	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid3);
+	glGenRenderbuffers(1, &rns.mainfbo.rboid3);
+	glBindRenderbuffer(GL_RENDERBUFFER, rns.mainfbo.rboid3);
 	if (nbSamples > 0)
-		gGLExtF.glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_RGBA16F, rns.screenwidth, rns.screenheight);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, nbSamples, GL_RGBA16F, rns.screenwidth, rns.screenheight);
 	else
-		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16F, rns.screenwidth, rns.screenheight);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16F, rns.screenwidth, rns.screenheight);
 
-	gGLExtF.glGenFramebuffers(1, &rns.mainfbo.fboid);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, rns.mainfbo.fboid);
-	gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rns.mainfbo.rboid1);
-	gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, rns.mainfbo.rboid3);
-	gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rns.mainfbo.rboid2);
+	glGenFramebuffers(1, &rns.mainfbo.fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, rns.mainfbo.fboid);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rns.mainfbo.rboid1);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, rns.mainfbo.rboid3);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rns.mainfbo.rboid2);
 
-	GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
-		gGLExtF.glDeleteFramebuffers(1, &rns.mainfbo.fboid);
+		glDeleteFramebuffers(1, &rns.mainfbo.fboid);
 
 		Sys_ErrorPopup("%s - Main screen FBO creation failed. Code returned: %d.\n", __FUNCTION__, glGetError());
 		return false;
 	}
 
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	return true;
 }
@@ -4013,16 +3898,16 @@ void R_DeleteMainScreenFBO(void)
 	assert(rns.fboused && rns.usehdr);
 
 	if (rns.mainfbo.fboid)
-		gGLExtF.glDeleteFramebuffers(1, &rns.mainfbo.fboid);
+		glDeleteFramebuffers(1, &rns.mainfbo.fboid);
 
 	if (rns.mainfbo.rboid1)
-		gGLExtF.glDeleteRenderbuffers(1, &rns.mainfbo.rboid1);
+		glDeleteRenderbuffers(1, &rns.mainfbo.rboid1);
 
 	if (rns.mainfbo.rboid2)
-		gGLExtF.glDeleteRenderbuffers(1, &rns.mainfbo.rboid2);
+		glDeleteRenderbuffers(1, &rns.mainfbo.rboid2);
 
 	if (rns.mainfbo.rboid3)
-		gGLExtF.glDeleteRenderbuffers(1, &rns.mainfbo.rboid3);
+		glDeleteRenderbuffers(1, &rns.mainfbo.rboid3);
 
 	rns.mainfbo = fbobind_t();
 }
@@ -4056,14 +3941,14 @@ void R_PerformMainScreenBlit(void)
 	assert(rns.pboundfbo == &rns.mainfbo);
 
 	// Blit from main FBO to main renderbuffer or intermediate
-	gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, rns.mainfbo.fboid);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, rns.mainfbo.fboid);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-	gGLExtF.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	gGLExtF.glBlitFramebuffer(0, 0, rns.screenwidth, rns.screenheight, 0, 0, rns.screenwidth, rns.screenheight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBlitFramebuffer(0, 0, rns.screenwidth, rns.screenheight, 0, 0, rns.screenwidth, rns.screenheight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	if (rns.msaa)
 		glDisable(GL_MULTISAMPLE);
@@ -4080,27 +3965,27 @@ void R_GrabScreenToTexture(en_texalloc_t* palloc, Uint32 width, Uint32 height, b
 	if (rns.msaa && rns.pboundfbo && rns.pboundfbo->rboid1)
 	{
 		CFBOCache::cache_fbo_t* pTempFBO = gFBOCache.Alloc(width, height, false);
-		gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, rns.pboundfbo->fboid);
-		gGLExtF.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pTempFBO->fbo.fboid);
-		gGLExtF.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, pTempFBO->fbo.fboid);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, rns.pboundfbo->fboid);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pTempFBO->fbo.fboid);
+		glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, pTempFBO->fbo.fboid);
 
 		if (isRectangle) 
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+			R_BindRectangleTexture(GL_TEXTURE0, palloc->gl_index, true);
 		else 
-			R_Bind2DTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+			R_Bind2DTexture(GL_TEXTURE0, palloc->gl_index, true);
 
 		glCopyTexImage2D(target, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, width, height, 0);
 
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, rns.pboundfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, rns.pboundfbo->fboid);
 		gFBOCache.Free(pTempFBO);
 	}
 	else
 	{
 		if (isRectangle) 
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+			R_BindRectangleTexture(GL_TEXTURE0, palloc->gl_index, true);
 		else
-			R_Bind2DTexture(GL_TEXTURE0_ARB, palloc->gl_index, true);
+			R_Bind2DTexture(GL_TEXTURE0, palloc->gl_index, true);
 
 		glCopyTexImage2D(target, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, width, height, 0);
 	}

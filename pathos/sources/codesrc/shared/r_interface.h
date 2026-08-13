@@ -10,7 +10,6 @@ All Rights Reserved.
 #ifndef R_INTERFACE_H
 #define R_INTERFACE_H
 
-class CGLExtF;
 class CMatrix;
 
 struct ref_params_t;
@@ -74,9 +73,6 @@ struct r_interface_t
 	// Sets a vertex's origin
 	void				(*pfnBasicDrawVertex3f)( Float x, Float y, Float z );
 	void				(*pfnBasicDrawVertex3fv)( const Float* pfv );
-
-	// Retreives the class holding the export functions
-	const CGLExtF&		(*pfnGetExportFunctionsClass)( void );
 
 	// Retreives the current projection matrix
 	CMatrix&			(*pfnGetProjectionMatrix)( void );

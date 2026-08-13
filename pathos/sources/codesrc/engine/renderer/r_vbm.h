@@ -621,8 +621,6 @@ private:
 
 	// Sets up flexes for flex texture
 	void CalculateFlexesHW( const vbmsubmodel_t* psubmodel );
-	// Sets up flexes for VBO upload
-	void CalculateFlexesSW( const vbmsubmodel_t* psubmodel );
 
 	// Draws collected submodels
 	bool DrawNormalSubmodels( void );
@@ -669,8 +667,6 @@ private:
 	CCVar* m_pCvarDrawModels;
 	// Toggles rendering of model decals
 	CCVar* m_pCvarDrawModelDecals;
-	// Toggles use of vertex textures
-	CCVar* m_pCvarVertexTextures;
 	// Controls the size of the vbm decal vertex cache
 	CCVar* m_pCvarDecalCacheSize;
 	// Controls whether we use skylight
@@ -773,8 +769,6 @@ private:
 	// Bounding box corners
 	Vector m_bboxCorners[8];
 
-	// Tells if vertex texture fetch is supported
-	bool m_isVertexFetchSupported;
 	// Tells if flexes are used
 	bool m_useFlexes;
 

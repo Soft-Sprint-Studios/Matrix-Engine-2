@@ -119,11 +119,9 @@ bool CParticleEngine::InitGL( void )
 {
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "particles.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "particles.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Failed to compile shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -3519,7 +3517,7 @@ bool CParticleEngine::DrawParticles( prt_render_pass_e pass )
 			if(alphatestMode == ALPHATEST_COVERAGE)
 			{
 				glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-				gGLExtF.glSampleCoverage(0.5, GL_FALSE);
+				glSampleCoverage(0.5, GL_FALSE);
 			}
 		}
 		else
@@ -3640,10 +3638,10 @@ bool CParticleEngine::DrawParticles( prt_render_pass_e pass )
 
 			m_pShader->SetUniform2f(m_attribs.u_scrsize, rns.screenwidth, rns.screenheight);
 
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, prttdistorttexture->palloc->gl_index);
+			R_BindRectangleTexture(GL_TEXTURE0, prttdistorttexture->palloc->gl_index);
 			m_pShader->SetUniform1i(m_attribs.u_rtexture0, 0);
 
-			R_BindRectangleTexture(GL_TEXTURE1_ARB, prttscreentexture->palloc->gl_index);
+			R_BindRectangleTexture(GL_TEXTURE1, prttscreentexture->palloc->gl_index);
 			m_pShader->SetUniform1i(m_attribs.u_rtexture1, 1);
 
 			R_ValidateShader(m_pShader);
@@ -3673,7 +3671,7 @@ bool CParticleEngine::DrawParticles( prt_render_pass_e pass )
 				if(alphatestMode == ALPHATEST_COVERAGE)
 				{
 					glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-					gGLExtF.glSampleCoverage(1.0, GL_FALSE);
+					glSampleCoverage(1.0, GL_FALSE);
 				}
 			}
 		}
@@ -4019,7 +4017,7 @@ void CParticleEngine::CreateVBO( void )
 	m_pVertexes[base].origin[2] = -1; m_pVertexes[base].origin[3] = 1;
 	m_pVertexes[base].texcoord[0] = 1.0f; m_pVertexes[base].texcoord[1] = 0;
 
-	m_pVBO = new CVBO(gGLExtF, m_pVertexes, sizeof(particle_vertex_t)*vertexArraySize, indexes, sizeof(Uint32)*m_particleAllocCount*6);
+	m_pVBO = new CVBO(m_pVertexes, sizeof(particle_vertex_t)*vertexArraySize, indexes, sizeof(Uint32)*m_particleAllocCount*6);
 
 	for(Uint32 i = 0; i < m_particleAllocCount*4; i++)
 		m_pVertexes[i].origin[3] = 1.0;

@@ -208,7 +208,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>.\;..\libs\sdl2.0\include\;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\sentry\include;..\libs\bullet\include;..\libs\pl_mpeg\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\libs\glad\include;.\;..\libs\sdl2.0\include\;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\sentry\include;..\libs\bullet\include;..\libs\pl_mpeg\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996;4305;4244;4127;4100;4481;4512;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -249,6 +249,7 @@
     <ClCompile Include="..\common\ogg_common.cpp" />
     <ClCompile Include="..\common\r_common.cpp" />
     <ClCompile Include="..\common\tga.cpp" />
+    <ClCompile Include="..\libs\glad\src\glad.c" />
     <ClCompile Include="..\shared\collision_shared.cpp" />
     <ClCompile Include="..\shared\r_basicdraw.cpp" />
     <ClCompile Include="..\shared\sentencesfile.cpp" />
@@ -350,7 +351,6 @@
     <ClCompile Include="..\shared\decallist.cpp" />
     <ClCompile Include="..\shared\flexmanager.cpp" />
     <ClCompile Include="..\shared\frustum.cpp" />
-    <ClCompile Include="..\shared\r_glextf.cpp" />
     <ClCompile Include="..\shared\r_glsl.cpp" />
     <ClCompile Include="..\shared\r_vbo.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MaxSpeed</Optimization>
@@ -530,7 +530,6 @@
     <ClInclude Include="..\shared\r_interface.h" />
     <ClInclude Include="..\shared\r_basic_vertex.h" />
     <ClInclude Include="..\shared\r_fbo.h" />
-    <ClInclude Include="..\shared\r_glextf.h" />
     <ClInclude Include="..\shared\r_glsl.h" />
     <ClInclude Include="..\shared\r_glsl_inline.hpp" />
     <ClInclude Include="..\shared\r_vbo.h" />

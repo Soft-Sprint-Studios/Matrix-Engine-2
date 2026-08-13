@@ -86,11 +86,9 @@ bool CGlowAura::InitGL( void )
 
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "glowaura.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "glowaura.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Failed to load shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -162,7 +160,7 @@ bool CGlowAura::InitGL( void )
 		pverts[numverts].texcoord[0] = 1; pverts[numverts].texcoord[1] = 0;
 		numverts++;
 
-		m_pVBO = new CVBO(gGLExtF, pverts, sizeof(aura_vertex_t)*numverts, nullptr, 0);
+		m_pVBO = new CVBO(pverts, sizeof(aura_vertex_t)*numverts, nullptr, 0);
 		m_pShader->SetVBO(m_pVBO);
 		delete[] pverts;
 	}
@@ -317,7 +315,7 @@ bool CGlowAura::BlurTexture( void )
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, glowaura_texture))
 		return false;
 
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pColorsRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pColorsRTT->palloc->gl_index);
 	m_pShader->SetUniform1i(m_attribs.u_scrntexturerect, 0);
 
 	R_ValidateShader(m_pShader);
@@ -381,7 +379,7 @@ bool CGlowAura::DrawFinal( void )
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, glowaura_texture))
 		return false;
 
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 	m_pShader->SetUniform1i(m_attribs.u_scrntexturerect, 0);
 
 	R_ValidateShader(m_pShader);
@@ -397,10 +395,10 @@ bool CGlowAura::DrawFinal( void )
 	if(!m_pShader->SetDeterminator(m_attribs.d_type, glowaura_combine))
 		return false;
 
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pWhiteRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pWhiteRTT->palloc->gl_index);
 	m_pShader->SetUniform1i(m_attribs.u_scrntexturerect, 0);
 
-	R_Bind2DTexture(GL_TEXTURE1_ARB, m_pBlurRTT->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE1, m_pBlurRTT->palloc->gl_index);
 	m_pShader->SetUniform1i(m_attribs.u_texture0, 1);
 
 	R_ValidateShader(m_pShader);

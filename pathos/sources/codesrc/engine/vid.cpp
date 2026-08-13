@@ -15,7 +15,6 @@ All Rights Reserved.
 #include "vid.h"
 #include "enginestate.h"
 #include "texturemanager.h"
-#include "r_glextf.h"
 #include "r_main.h"
 
 #include "r_vbo.h"
@@ -326,21 +325,19 @@ bool VID_Init( void )
 	}
 
 	// Load OpenGL functions
-	if(!gGLExtF.GetFunctions())
+	if(!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
 	{
-		CString str;
-		str << "Failed to load necessary OpenGL functions: " << gGLExtF.GetError();
-		Sys_ErrorPopup(str.c_str());
+		Sys_ErrorPopup("Failed to initialize GLAD.");
 		return false;
 	}
 
 	// During init, enable debug output
 	if(ens.pgllogfile)
 	{
-		if(gGLExtF.glDebugMessageCallback)
+		if(glDebugMessageCallback)
 		{
 			glEnable(GL_DEBUG_OUTPUT);
-			gGLExtF.glDebugMessageCallback( VID_GLMessageCallback, 0 );
+			glDebugMessageCallback( VID_GLMessageCallback, 0 );
 		}
 		else
 		{
@@ -353,7 +350,7 @@ bool VID_Init( void )
 	gInput.ResetMouse();
 
 	// Perform GL resource initialization here
-	CTextureManager* pTextureManager = CTextureManager::CreateInstance(FL_GetInterface(), Con_Printf, Con_EPrintf, gGLExtF, false);
+	CTextureManager* pTextureManager = CTextureManager::CreateInstance(FL_GetInterface(), Con_Printf, Con_EPrintf, false);
 	if(!pTextureManager)
 	{
 		R_Shutdown();

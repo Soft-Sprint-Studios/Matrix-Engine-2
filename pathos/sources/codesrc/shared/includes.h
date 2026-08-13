@@ -10,11 +10,10 @@ All Rights Reserved.
 #ifndef INCLUDES_H
 #define INCLUDES_H
 
-#ifndef NO_SDL
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <glad/glad.h>
 #include <SDL.h>
-#include <SDL_opengl.h>
-#include <SDL_opengl_glext.h>
-#endif
 
 #include <stdlib.h>
 #include <cassert>

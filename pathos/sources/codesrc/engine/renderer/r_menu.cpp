@@ -441,7 +441,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 			tc1scalex = m_pBlendFromTexture->width;
 			tc1scaley = m_pBlendFromTexture->height;
 
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pBlendFromTexture->palloc->gl_index);
+			R_BindRectangleTexture(GL_TEXTURE0, m_pBlendFromTexture->palloc->gl_index);
 			if(!pDraw->EnableRectangleTexture())
 				return false;
 		}
@@ -451,7 +451,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 			tc1scalex = 1.0;
 			tc1scaley = 1.0;
 
-			R_Bind2DTexture(GL_TEXTURE0_ARB, m_pBlendFromTexture->palloc->gl_index);
+			R_Bind2DTexture(GL_TEXTURE0, m_pBlendFromTexture->palloc->gl_index);
 		}
 
 		glEnable(GL_BLEND);
@@ -499,7 +499,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 			tc2scalex = m_pBlendToTexture->width;
 			tc2scaley = m_pBlendToTexture->height;
 
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pBlendToTexture->palloc->gl_index);
+			R_BindRectangleTexture(GL_TEXTURE0, m_pBlendToTexture->palloc->gl_index);
 			if(!pDraw->EnableRectangleTexture())
 				return false;
 		}
@@ -509,7 +509,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 			tc2scalex = 1.0;
 			tc2scaley = 1.0;
 			
-			R_Bind2DTexture(GL_TEXTURE0_ARB, m_pBlendToTexture->palloc->gl_index);
+			R_Bind2DTexture(GL_TEXTURE0, m_pBlendToTexture->palloc->gl_index);
 		}
 
 		// Do not recalculate this, insteadj ust use 1.0 - alpha
@@ -541,7 +541,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 
 		if(m_pBlendToTexture->flags & TX_FL_RECTANGLE)
 		{
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, 0);
+			R_BindRectangleTexture(GL_TEXTURE0, 0);
 			if(!pDraw->DisableRectangleTexture())
 				return false;
 		}
@@ -556,7 +556,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 			tcscalex = m_pCurrentBackgroundTexture->width;
 			tcscaley = m_pCurrentBackgroundTexture->height;
 
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pCurrentBackgroundTexture->palloc->gl_index);
+			R_BindRectangleTexture(GL_TEXTURE0, m_pCurrentBackgroundTexture->palloc->gl_index);
 			if(!pDraw->EnableRectangleTexture())
 				return false;
 		}
@@ -567,7 +567,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 			tcscaley = 1.0;
 
 			// Just bind the current texture
-			R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentBackgroundTexture->palloc->gl_index);
+			R_Bind2DTexture(GL_TEXTURE0, m_pCurrentBackgroundTexture->palloc->gl_index);
 		}
 
 		pDraw->Color4f(GL_ONE, GL_ONE, GL_ONE, GL_ONE);
@@ -596,7 +596,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 
 		if(m_pCurrentBackgroundTexture->flags & TX_FL_RECTANGLE)
 		{
-			R_BindRectangleTexture(GL_TEXTURE0_ARB, 0);
+			R_BindRectangleTexture(GL_TEXTURE0, 0);
 			if(!pDraw->DisableRectangleTexture())
 				return false;
 		}
@@ -638,7 +638,7 @@ CMenu::rendercode_t CMenu::DrawMenuElements( CBasicDraw* pDraw )
 	pDraw->Color4f(GL_ONE, GL_ONE, GL_ONE, GL_ONE);
 
 	// Draw the title logo
-	R_Bind2DTexture(GL_TEXTURE0_ARB, m_pTitleLogoTexture->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE0, m_pTitleLogoTexture->palloc->gl_index);
 
 	// Determine origin
 	Float titleX = R_GetRelativeX(MENU_TITLE_XPOS, MENU_BASE_WIDTH, gWindow.GetWidth());
@@ -751,7 +751,7 @@ bool CMenu::DrawMenuFade( void )
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	R_Bind2DTexture(GL_TEXTURE0_ARB, m_pBgBlurredTexture->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE0, m_pBgBlurredTexture->palloc->gl_index);
 
 	Float alpha = (ens.time - m_postInitBlendBeginTime)/MENU_POST_INIT_BLEND_TIME;
 	alpha = 1.0 - alpha;

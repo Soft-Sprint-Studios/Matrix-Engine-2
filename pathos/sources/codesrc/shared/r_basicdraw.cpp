@@ -16,7 +16,6 @@ All Rights Reserved.
 #include "r_vbo.h"
 #include "r_glsl.h"
 #include "r_basicdraw.h"
-#include "r_glextf.h"
 #include "r_common.h"
 
 // Increment by 4096 vertexes
@@ -55,7 +54,7 @@ CBasicDraw::~CBasicDraw( void )
 //
 // @return Success status
 //=============================================
-bool CBasicDraw::InitGL( const CGLExtF& gGlExtF, const file_interface_t& fileFuncs, pfnErrorPopup_t pfnErrorPopup )
+bool CBasicDraw::InitGL( const file_interface_t& fileFuncs, pfnErrorPopup_t pfnErrorPopup )
 {
 	// Allocate vertex array
 	if(m_vertexesArray.empty())
@@ -76,12 +75,12 @@ bool CBasicDraw::InitGL( const CGLExtF& gGlExtF, const file_interface_t& fileFun
 
 	// Allocate VBO if needed
 	if(!m_pVBO)
-		m_pVBO = new CVBO(gGlExtF, &m_vertexesArray[0], sizeof(basic_vertex_t)*m_vertexesArray.size(), &m_quadIndexesArray[0], sizeof(Uint32)*m_quadIndexesArray.size(), true);
+		m_pVBO = new CVBO(&m_vertexesArray[0], sizeof(basic_vertex_t)*m_vertexesArray.size(), &m_quadIndexesArray[0], sizeof(Uint32)*m_quadIndexesArray.size(), true);
 
 	// Load shader in if needed
 	if(!m_pShader)
 	{
-		m_pShader = new CGLSLShader(fileFuncs, gGlExtF, "basicdraw.bss");
+		m_pShader = new CGLSLShader(fileFuncs, "basicdraw.bss");
 		if(m_pShader->HasError())
 		{
 			pfnErrorPopup("%s - Could not compile shader: %s.", __FUNCTION__, m_pShader->GetError());

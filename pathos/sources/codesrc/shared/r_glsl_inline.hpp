@@ -10,7 +10,6 @@ All Rights Reserved.
 #ifndef R_GLSL_INLINE_H
 #define R_GLSL_INLINE_H
 
-#include "r_glextf.h"
 #include "r_common.h"
 #include "constants.h"
 
@@ -52,14 +51,14 @@ inline void CGLSLShader :: SetUniformMatrix4fv( Int32 index, const Float *matrix
 
 			if(memcmp(ptargetvalues, pvalues, sizeof(Float)*puniform->stride) != 0)
 			{
-				m_glExtF.glUniformMatrix4fv(puniform->indexes[m_shaderIndex], 1, GL_FALSE, pvalues); 	
+				glUniformMatrix4fv(puniform->indexes[m_shaderIndex], 1, GL_FALSE, pvalues); 	
 				memcpy(ptargetvalues, pvalues, sizeof(Float)*puniform->stride);
 			}
 		}
 	}
 	else if(m_isActive)
 	{
-		m_glExtF.glUniformMatrix4fv(puniform->indexes[m_shaderIndex], 1, GL_FALSE, &m_uniformMatrix[0][0]);
+		glUniformMatrix4fv(puniform->indexes[m_shaderIndex], 1, GL_FALSE, &m_uniformMatrix[0][0]);
 	}
 };
 
@@ -103,13 +102,13 @@ inline void CGLSLShader :: SetUniform1i ( Int32 index, Int32 x )
 			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * m_shaderIndex;
 			if(memcmp(ptargetvalues, pvalues, sizeof(Float)*puniform->stride) != 0)
 			{
-				m_glExtF.glUniform1i(puniform->indexes[m_shaderIndex], x);
+				glUniform1i(puniform->indexes[m_shaderIndex], x);
 				memcpy(ptargetvalues, pvalues, sizeof(Float)*puniform->stride);
 			}
 		}
 		else
 		{
-			m_glExtF.glUniform1i(puniform->indexes[m_shaderIndex], x);
+			glUniform1i(puniform->indexes[m_shaderIndex], x);
 		}
 	}
 };
@@ -154,13 +153,13 @@ inline void CGLSLShader :: SetUniform1f ( Int32 index, Float x )
 			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * m_shaderIndex;
 			if(memcmp(ptargetvalues, pvalues, sizeof(Float)*puniform->stride) != 0)
 			{
-				m_glExtF.glUniform1f(puniform->indexes[m_shaderIndex], x);
+				glUniform1f(puniform->indexes[m_shaderIndex], x);
 				memcpy(ptargetvalues, pvalues, sizeof(Float)*puniform->stride);
 			}
 		}
 		else
 		{
-			m_glExtF.glUniform1f(puniform->indexes[m_shaderIndex], x);
+			glUniform1f(puniform->indexes[m_shaderIndex], x);
 		}
 	}
 };
@@ -226,13 +225,13 @@ inline void CGLSLShader::SetUniform1fv( Int32 index, const Float* v, Uint32 num 
 			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * puniform->elementcount * m_shaderIndex;
 			if (memcmp(ptargetvalues, pvalues, sizeof(Float) * num) != 0)
 			{
-				m_glExtF.glUniform1fv(puniform->indexes[m_shaderIndex], num, v);
+				glUniform1fv(puniform->indexes[m_shaderIndex], num, v);
 				memcpy(ptargetvalues, pvalues, sizeof(Float) * num);
 			}
 		}
 		else
 		{
-			m_glExtF.glUniform1fv(puniform->indexes[m_shaderIndex], num, v);
+			glUniform1fv(puniform->indexes[m_shaderIndex], num, v);
 		}
 	}
 }
@@ -280,13 +279,13 @@ inline void CGLSLShader :: SetUniform2f ( Int32 index, Float x, Float y )
 			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * m_shaderIndex;
 			if(memcmp(ptargetvalues, pvalues, sizeof(Float)*puniform->stride) != 0)
 			{
-				m_glExtF.glUniform2f(puniform->indexes[m_shaderIndex], x, y);
+				glUniform2f(puniform->indexes[m_shaderIndex], x, y);
 				memcpy(ptargetvalues, pvalues, sizeof(Float)*puniform->stride);
 			}
 		}
 		else
 		{
-			m_glExtF.glUniform2f(puniform->indexes[m_shaderIndex], x, y);
+			glUniform2f(puniform->indexes[m_shaderIndex], x, y);
 		}
 	}
 };
@@ -336,13 +335,13 @@ inline void CGLSLShader :: SetUniform3f ( Int32 index, Float x, Float y, Float z
 			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * m_shaderIndex;
 			if(memcmp(ptargetvalues, pvalues, sizeof(Float)*puniform->stride) != 0)
 			{
-				m_glExtF.glUniform3f(puniform->indexes[m_shaderIndex], x, y, z);
+				glUniform3f(puniform->indexes[m_shaderIndex], x, y, z);
 				memcpy(ptargetvalues, pvalues, sizeof(Float)*puniform->stride);
 			}
 		}
 		else
 		{
-			m_glExtF.glUniform3f(puniform->indexes[m_shaderIndex], x, y, z);
+			glUniform3f(puniform->indexes[m_shaderIndex], x, y, z);
 		}
 	}
 };
@@ -395,13 +394,13 @@ inline void CGLSLShader :: SetUniform4f ( Int32 index, Float x, Float y, Float z
 			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * m_shaderIndex;
 			if(memcmp(ptargetvalues, pvalues, sizeof(Float)*puniform->stride) != 0)
 			{
-				m_glExtF.glUniform4f(puniform->indexes[m_shaderIndex], x, y, z, w);
+				glUniform4f(puniform->indexes[m_shaderIndex], x, y, z, w);
 				memcpy(ptargetvalues, pvalues, sizeof(Float)*puniform->stride);
 			}
 		}
 		else
 		{
-			m_glExtF.glUniform4f(puniform->indexes[m_shaderIndex], x, y, z, w);
+			glUniform4f(puniform->indexes[m_shaderIndex], x, y, z, w);
 		}
 	}
 };
@@ -461,13 +460,13 @@ inline void CGLSLShader::SetUniform4fv(Int32 index, const Float* v, Uint32 num)
 			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * puniform->elementcount * m_shaderIndex;
 			if (memcmp(ptargetvalues, pvalues, sizeof(Float) * puniform->stride * puniform->elementcount) != 0)
 			{
-				m_glExtF.glUniform4fv(puniform->indexes[m_shaderIndex], num, v);
+				glUniform4fv(puniform->indexes[m_shaderIndex], num, v);
 				memcpy(ptargetvalues, pvalues, sizeof(Float) * puniform->stride * puniform->elementcount);
 			}
 		}
 		else
 		{
-			m_glExtF.glUniform4fv(puniform->indexes[m_shaderIndex], num, v);
+			glUniform4fv(puniform->indexes[m_shaderIndex], num, v);
 		}
 	}
 }
@@ -526,13 +525,13 @@ inline void CGLSLShader::SetUniform3fv(Int32 index, const Float* v, Uint32 num)
 			Float* ptargetvalues = &puniform->shadervalues[0] + puniform->stride * puniform->elementcount * m_shaderIndex;
 			if (memcmp(ptargetvalues, pvalues, sizeof(Float) * puniform->stride * puniform->elementcount) != 0)
 			{
-				m_glExtF.glUniform3fv(puniform->indexes[m_shaderIndex], num, v);
+				glUniform3fv(puniform->indexes[m_shaderIndex], num, v);
 				memcpy(ptargetvalues, pvalues, sizeof(Float) * puniform->stride * puniform->elementcount);
 			}
 		}
 		else
 		{
-			m_glExtF.glUniform3fv(puniform->indexes[m_shaderIndex], num, v);
+			glUniform3fv(puniform->indexes[m_shaderIndex], num, v);
 		}
 	}
 }
@@ -580,9 +579,9 @@ inline void CGLSLShader :: SetUniformBufferObjectData( Int32 index, void* pBuffe
 	assert(index >= 0 && index < m_uniformBufferObjectsArray.size());
 	const glsl_ubo_t& ubo = m_uniformBufferObjectsArray[index];
 
-	m_glExtF.glBindBuffer(GL_UNIFORM_BUFFER, ubo.buffer_id);
-	m_glExtF.glBufferSubData(GL_UNIFORM_BUFFER, 0, dataSize, pBufferData);
-	m_glExtF.glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	glBindBuffer(GL_UNIFORM_BUFFER, ubo.buffer_id);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, dataSize, pBufferData);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 //=============================================

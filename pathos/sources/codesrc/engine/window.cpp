@@ -39,7 +39,6 @@ CWindow::CWindow( void ):
 	m_bFullScreen(false),
 	m_bVerticalSync(false),
 	m_bIsMSAAEnabled(false),
-	m_areFBOsSupported(false),
 	m_areFBOsEnabled(false),
 	m_isHDREnabled(false),
 	m_bWindowActive(false),
@@ -76,7 +75,7 @@ CWindow::~CWindow( void )
 // Class: CWindow
 // Function: Init
 //=============================================
-bool CWindow::GetOpenGLInfo(Int32& maxMSAA, bool& fboSupported, bool& hdrSupported)
+bool CWindow::GetOpenGLInfo(Int32& maxMSAA)
 {
 	// Create the temporary window
 	SDL_Window* pTempWindow = SDL_CreateWindow(ens.gametitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
@@ -93,89 +92,19 @@ bool CWindow::GetOpenGLInfo(Int32& maxMSAA, bool& fboSupported, bool& hdrSupport
 		return false;
 	}
 
-	// Now check the extensions
-	PFNGLGETSTRINGIPROC glGetStringi = reinterpret_cast<PFNGLGETSTRINGIPROC>(wglGetProcAddress("glGetStringi"));
-	if (!glGetStringi)
+	if(!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
 	{
 		SDL_DestroyWindow(pTempWindow);
 		return false;
 	}
 
-	bool checkHDRExtensions = false;
-	PFNGLCLAMPCOLORPROC glClampColor = reinterpret_cast<PFNGLCLAMPCOLORPROC>(wglGetProcAddress("glClampColor"));
-	if (glClampColor)
-		checkHDRExtensions = true;
+	glGetIntegerv(GL_MAX_SAMPLES, &maxMSAA);
 
-	GLint numExtensions;
-	glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
-
-	// reset to default
-	fboSupported = false;
-	hdrSupported = false;
-
-	bool msaaSupported = false;
-	bool fboMSAASupported = false;
-	bool fboBlitSupported = false;
-	bool halfFloatPixelSupported = false;
-
-	Int32 i = 0;
-	for (; i < numExtensions; i++)
-	{
-		const Char* pstrExtension = reinterpret_cast<const Char*>(glGetStringi(GL_EXTENSIONS, i));
-		
-		if (!msaaSupported && !qstrcicmp(pstrExtension, "GL_ARB_multisample"))
-		{
-			msaaSupported = true;
-			continue;
-		}
-		
-		if (!fboSupported && (!qstrcicmp(pstrExtension, "GL_EXT_framebuffer_object")
-			|| !qstrcicmp(pstrExtension, "GL_ARB_framebuffer_object")))
-		{
-			fboSupported = true;
-			continue;
-		}
-
-		if (checkHDRExtensions)
-		{
-			if (!fboMSAASupported && !qstrcicmp(pstrExtension, "GL_EXT_framebuffer_multisample"))
-			{
-				fboMSAASupported = true;
-				continue;
-			}
-
-			if (!fboBlitSupported && !qstrcicmp(pstrExtension, "GL_EXT_framebuffer_blit"))
-			{
-				fboBlitSupported = true;
-				continue;
-			}
-
-			if (!halfFloatPixelSupported && !qstrcicmp(pstrExtension, "GL_ARB_half_float_pixel"))
-			{
-				halfFloatPixelSupported = true;
-				continue;
-			}
-		}
-	}
-
-	if (msaaSupported)
-	{
-		glGetIntegerv(GL_MAX_SAMPLES, &maxMSAA);
-
-		// Seems GL doesn't tolerate more
-		// than 12x, and above 8x menu items
-		// look artifacted
-		if (maxMSAA > MAX_MSAA_VALUE)
-			maxMSAA = MAX_MSAA_VALUE;
-	}
-	else
-	{
-		// No MSAA
-		maxMSAA = 0;
-	}
-
-	if (fboMSAASupported && fboBlitSupported && halfFloatPixelSupported)
-		hdrSupported = true;
+	// Seems GL doesn't tolerate more
+	// than 12x, and above 8x menu items
+	// look artifacted
+	if (maxMSAA > MAX_MSAA_VALUE)
+		maxMSAA = MAX_MSAA_VALUE;
 
 	SDL_GL_DeleteContext(tempContext);
 	SDL_DestroyWindow(pTempWindow);
@@ -287,8 +216,7 @@ bool CWindow::Init( void )
 
 	// Set up multisampling
 	Int32 maxMultiSample = 0;
-	bool isHDRSupported = false;
-	if (!GetOpenGLInfo(maxMultiSample, m_areFBOsSupported, isHDRSupported))
+	if (!GetOpenGLInfo(maxMultiSample))
 	{
 		Sys_ErrorPopup("Failed to fetch required OpenGL parameters at startup.");
 		return false;
@@ -298,19 +226,7 @@ bool CWindow::Init( void )
 		m_multiSampleSettingsArray.push_back(i);
 
 	// get FBO enabled state
-	if (!m_areFBOsSupported)
-	{
-		// Make sure to reset this
-		ens.requestedFBOSetting = -1;
-
-		m_areFBOsEnabled = gConfig.GetInt(GetConfigGroup(), "FramebufferObjects");
-		if (m_areFBOsEnabled)
-		{
-			gConfig.SetValue(GetConfigGroup(), "FramebufferObjects", FALSE, true);
-			m_areFBOsEnabled = false;
-		}
-	}
-	else if (ens.requestedFBOSetting != -1)
+	if (ens.requestedFBOSetting != -1)
 	{
 		bool requestEnable = ens.requestedFBOSetting == 0 ? false : true;
 		if (requestEnable != m_areFBOsEnabled)

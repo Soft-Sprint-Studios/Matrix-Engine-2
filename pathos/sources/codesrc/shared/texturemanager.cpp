@@ -11,7 +11,6 @@ All Rights Reserved.
 #include "includes.h"
 #include "common.h"
 #include "texturemanager.h"
-#include "r_glextf.h"
 #include "crc32.h"
 
 #include "tga.h"
@@ -46,7 +45,7 @@ const Char* CTextureManager::TEXTURE_FORMAT_EXTENSIONS[] =
 // @brief Constructor
 //
 //=============================================
-CTextureManager::CTextureManager( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, const CGLExtF& glExtF, bool onlyMaterials ):
+CTextureManager::CTextureManager( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, bool onlyMaterials ):
 	m_pDummyTexture(nullptr),
 	m_pDefaultNormalTexture(nullptr),
 	m_pDefaultMRAOTexture(nullptr),
@@ -55,8 +54,7 @@ CTextureManager::CTextureManager( const file_interface_t& fileFuncs, pfnPrintf_t
 	m_currentAnisotropyValue(ANISOTROPY_OFF_VALUE),
 	m_fileFuncs(fileFuncs),
 	m_printFunction(printFunction),
-	m_printErrorFunction(printErrorFunction),
-	m_glExtF(glExtF)
+	m_printErrorFunction(printErrorFunction)
 {
 }
 
@@ -1260,7 +1258,7 @@ en_texture_t* CTextureManager::LoadTexture( const Char* pstrFilename, rs_level_t
 	glBindTexture(GL_TEXTURE_2D, ptexture->palloc->gl_index);
 
 	if(format == TX_FORMAT_DDS)
-		m_glExtF.glCompressedTexImage2D(GL_TEXTURE_2D, 0, 
+		glCompressedTexImage2D(GL_TEXTURE_2D, 0, 
 		(compression == TX_COMPRESSION_DXT1) ? GL_COMPRESSED_RGBA_S3TC_DXT1_EXT : GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 
 		ptexture->width, ptexture->height, 0, datasize, pdata);
 	else
@@ -1282,7 +1280,7 @@ en_texture_t* CTextureManager::LoadTexture( const Char* pstrFilename, rs_level_t
 
 	if(!(ptexture->flags & TX_FL_NOMIPMAPS))
 	{
-		m_glExtF.glGenerateMipmap(GL_TEXTURE_2D);
+		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1374,7 +1372,7 @@ en_texture_t* CTextureManager::LoadFromMemory( const Char* pstrTextureName, rs_l
 	// Bind it in OpenGL
 	glBindTexture(target, ptexture->palloc->gl_index);
 	if(flags & (TX_FL_DXT1|TX_FL_DXT5))
-		m_glExtF.glCompressedTexImage2D(GL_TEXTURE_2D, 0, 
+		glCompressedTexImage2D(GL_TEXTURE_2D, 0, 
 		(ptexture->compression == TX_COMPRESSION_DXT1) ? GL_COMPRESSED_RGBA_S3TC_DXT1_EXT : GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 
 		ptexture->width, ptexture->height, 0, datasize, pdata);
 	else
@@ -1397,7 +1395,7 @@ en_texture_t* CTextureManager::LoadFromMemory( const Char* pstrTextureName, rs_l
 	
 		if(!(ptexture->flags & TX_FL_NOMIPMAPS))
 		{
-			m_glExtF.glGenerateMipmap(GL_TEXTURE_2D);
+			glGenerateMipmap(GL_TEXTURE_2D);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1578,7 +1576,7 @@ en_texture_t* CTextureManager::LoadPallettedTexture( const Char* pstrFilename, r
 
 	if(!(flags & TX_FL_NOMIPMAPS))
 	{
-		m_glExtF.glGenerateMipmap(GL_TEXTURE_2D);
+		glGenerateMipmap(GL_TEXTURE_2D);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -1808,10 +1806,10 @@ void CTextureManager::WritePMFFile( en_material_t* pmaterial )
 // @brief Creates an instance of the texture manager
 //
 //=============================================
-CTextureManager* CTextureManager::CreateInstance( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, const CGLExtF& glExtF, bool onlyMaterials )
+CTextureManager* CTextureManager::CreateInstance( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, bool onlyMaterials )
 {
 	if(!g_pInstance)
-		g_pInstance = new CTextureManager(fileFuncs, printFunction, printErrorFunction, glExtF, onlyMaterials);
+		g_pInstance = new CTextureManager(fileFuncs, printFunction, printErrorFunction, onlyMaterials);
 
 	return g_pInstance;
 }

@@ -17,7 +17,6 @@ All Rights Reserved.
 #include "r_vbo.h"
 #include "r_glsl.h"
 #include "r_text.h"
-#include "r_glextf.h"
 #include "texturemanager.h"
 #include "r_main.h"
 #include "system.h"
@@ -108,11 +107,9 @@ bool CText::InitGL ( void )
 	// Initialize shader
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "fonts.bss", shaderFlags);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "fonts.bss", shaderFlags);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Could not compile shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -285,7 +282,7 @@ const font_set_t *CText::LoadFont ( const Char *pstrFilename, Int32 fontsize, bo
 	fontsetglinfo_t* pglinfo = new fontsetglinfo_t;
 
 	// Create VBO
-	pglinfo->pvbo = new CVBO(gGLExtF, true, false);
+	pglinfo->pvbo = new CVBO(true, false);
 
 	// Create texture buffer
 	Uint32 imagedatasize = sizex*sizey*4;

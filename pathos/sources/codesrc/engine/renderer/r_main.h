@@ -22,7 +22,6 @@ All Rights Reserved.
 class Vector;
 class CFrustum;
 class CCVar;
-class CGLExtF;
 class CBasicDraw;
 class CGLSLShader;
 
@@ -47,8 +46,6 @@ static constexpr Uint32 MAINFRAME_RENDERPASS_ID = 0;
 static constexpr Uint32 MAX_DLIGHTS = 4;
 // Max active-load shaders per frame
 static constexpr Uint32 MAX_LIGHTMAP_PADDING = 8;
-
-extern CGLExtF gGLExtF;
 
 enum alphatest_mode_t
 {
@@ -280,7 +277,6 @@ struct renderer_state_t
 		validateshaders(false),
 		msaa(false),
 		usehdr(false),
-		fboblitsupported(false),
 		hasdaystagedata(false),
 		pvisbuffer(nullptr),
 		psecondaryvisbuffer(nullptr),
@@ -331,9 +327,6 @@ struct renderer_state_t
 	// screen height
 	Uint32 screenheight;
 
-	// Array of GL extensions
-	CArray<CString> glextensions;
-
 	// true if fbos are supported
 	bool fboused;
 	// true if we're underrendering water areas
@@ -372,8 +365,6 @@ struct renderer_state_t
 	bool msaa;
 	// true if HDR is enabled
 	bool usehdr;
-	// true if fbo blit is supported
-	bool fboblitsupported;
 	// true if we have relevant daystage data
 	bool hasdaystagedata;
 
@@ -545,9 +536,6 @@ extern bool R_DrawFPSGraph( void );
 extern bool R_BeginTextRendering( const font_set_t* pfontset );
 extern void R_FinishTextRendering( void );
 extern bool R_DrawCharacter( Int32 x, Int32 y, Char character, Uint32 r, Uint32 g, Uint32 b, Uint32 a );
-
-extern void R_PopulateExtensionsArray( void );
-extern bool R_IsExtensionSupported( const Char *pstrextension );
 
 extern bool R_DrawOrigins( void );
 extern bool R_DrawViewModelParticles( void );

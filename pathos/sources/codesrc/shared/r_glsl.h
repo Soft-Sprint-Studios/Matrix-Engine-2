@@ -17,8 +17,6 @@ All Rights Reserved.
 
 #include "file_interface.h"
 
-class CGLExtF;
-
 #define MAX_DETERMINATORS		16
 
 #define SHADER_VERTEX			0
@@ -419,8 +417,8 @@ public:
 	};
 
 public:
-	CGLSLShader( const file_interface_t& fileFuncs, const CGLExtF& glExtF, const Char *szfile, Int32 flags = FL_GLSL_SHADER_NONE, pfnProgressUpdateFunction_t pfnCallback = nullptr );
-	CGLSLShader( const file_interface_t& fileFuncs, const CGLExtF& glExtF, Int32 flags = FL_GLSL_SHADER_NONE, pfnProgressUpdateFunction_t pfnCallback = nullptr );
+	CGLSLShader( const file_interface_t& fileFuncs, const Char *szfile, Int32 flags = FL_GLSL_SHADER_NONE, pfnProgressUpdateFunction_t pfnCallback = nullptr );
+	CGLSLShader( const file_interface_t& fileFuncs, Int32 flags = FL_GLSL_SHADER_NONE, pfnProgressUpdateFunction_t pfnCallback = nullptr );
 	~CGLSLShader( void );
 
 	// Clears all data for the class
@@ -663,9 +661,6 @@ private:
 	CString m_errorString;
 	// Root directory
 	CString m_rootDirectory;
-
-	// External functions class
-	const CGLExtF& m_glExtF;
 
 	// External file load interface funcs
 	file_interface_t m_fileInterface;

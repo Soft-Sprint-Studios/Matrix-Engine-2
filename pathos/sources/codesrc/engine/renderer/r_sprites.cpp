@@ -103,11 +103,9 @@ bool CSpriteRenderer::InitGL( void )
 {
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "sprites.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "sprites.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Failed to compile shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -1012,7 +1010,7 @@ void CSpriteRenderer::CreateVBO( void )
 	}
 
 	Uint32 vertexBufferSize = m_drawBufferAllocSize + GLOW_NUM_TRACES;
-	m_pVBO = new CVBO(gGLExtF, m_pVertexes, sizeof(sprite_vertex_t)*vertexBufferSize, pindexes, sizeof(Uint32)*m_drawBufferAllocSize*6);
+	m_pVBO = new CVBO(m_pVertexes, sizeof(sprite_vertex_t)*vertexBufferSize, pindexes, sizeof(Uint32)*m_drawBufferAllocSize*6);
 
 	m_pShader->SetVBO(m_pVBO);
 

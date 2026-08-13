@@ -20,8 +20,6 @@ All Rights Reserved.
 #include "file_interface.h"
 #include "constants.h"
 
-class CGLExtF;
-
 //====================
 // CTextureManager
 // 
@@ -65,7 +63,7 @@ private:
 	typedef std::map<HashResourceTypeKey_t, alias_mapping_t> AliasMap_t;
 
 private:
-	CTextureManager( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, const CGLExtF& glExtF, bool onlyMaterials );
+	CTextureManager( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, bool onlyMaterials );
 	~CTextureManager( void );
 
 public:
@@ -128,7 +126,7 @@ public:
 
 public:
 	// Creates an instance of the texture manager
-	static CTextureManager* CreateInstance( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, const CGLExtF& glExtF, bool onlyMaterials );
+	static CTextureManager* CreateInstance( const file_interface_t& fileFuncs, pfnPrintf_t printFunction, pfnPrintf_t printErrorFunction, bool onlyMaterials );
 	// Returns the current instance of the texture manager
 	static CTextureManager* GetInstance( void );
 	// Deletes the current instance
@@ -189,8 +187,6 @@ private:
 	pfnPrintf_t m_printFunction;
 	// Console print function
 	pfnPrintf_t m_printErrorFunction;
-	// GL ext functions class
-	const CGLExtF& m_glExtF;
 
 private:
 	// Texture manager instance

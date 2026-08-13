@@ -160,12 +160,10 @@ bool CPostProcess :: InitGL( void )
 {
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
 		// Compile our shader
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "postprocess.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "postprocess.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Could not compile shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -265,7 +263,7 @@ bool CPostProcess :: InitGL( void )
 		pverts[5].origin[2] = -1; pverts[5].origin[3] = 1;
 		pverts[5].texcoords[0] = 1; pverts[5].texcoords[1] = 0;
 
-		m_pVBO = new CVBO(gGLExtF, pverts, sizeof(basic_vertex_t)*6, nullptr, 0);
+		m_pVBO = new CVBO(pverts, sizeof(basic_vertex_t)*6, nullptr, 0);
 		m_pShader->SetVBO(m_pVBO);
 		delete[] pverts;
 	}
@@ -353,7 +351,7 @@ void CPostProcess :: FetchScreen( rtt_texture_t** ptarget )
 bool CPostProcess :: DrawGamma( void )
 {
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	m_pShader->SetUniform1f(m_attribs.u_gamma, m_pCvarGamma->GetValue()/1.8);
 
@@ -376,7 +374,7 @@ bool CPostProcess :: DrawGamma( void )
 bool CPostProcess :: DrawDistortion( void )
 {
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	Float flOffset = rns.time*8;
 	m_pShader->SetUniform1f(m_attribs.u_offset, flOffset);
@@ -403,7 +401,7 @@ bool CPostProcess :: DrawBlur( void )
 
 	// blur horizontally
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	if(!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_BLUR_H))
 	{
@@ -417,7 +415,7 @@ bool CPostProcess :: DrawBlur( void )
 
 	// blur vertically
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	if(!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_BLUR_V))
 		return false;
@@ -435,8 +433,8 @@ bool CPostProcess :: DrawBlur( void )
 bool CPostProcess :: DrawMotionBlur( void )
 {
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
-	R_BindRectangleTexture(GL_TEXTURE1_ARB, m_pBlurScreenTexture->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE1, m_pBlurScreenTexture->gl_index);
 
 	if(!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_MBLUR))
 	{
@@ -512,7 +510,7 @@ bool CPostProcess :: DrawFade( screenfade_t& fade )
 bool CPostProcess :: DrawFilmGrain( void )
 {
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	// If set from an entity, film grain strength is overridden by that
 	Float filmGrainStrength = m_filmGrainActive ? m_filmGrainStrength : m_pCvarFilmGrain->GetValue();
@@ -538,7 +536,7 @@ bool CPostProcess :: DrawFilmGrain( void )
 bool CPostProcess::DrawChromatic( void )
 {
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	m_pShader->SetUniform1f(m_attribs.u_chromatic_strength, m_chromaticStrength);
 
@@ -556,7 +554,7 @@ bool CPostProcess::DrawChromatic( void )
 bool CPostProcess::DrawBlackAndWhite( void )
 {
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	m_pShader->SetUniform1f(m_attribs.u_bw_strength, m_blackAndWhiteStrength);
 
@@ -574,7 +572,7 @@ bool CPostProcess::DrawBlackAndWhite( void )
 bool CPostProcess::DrawVignette( void )
 {
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	m_pShader->SetUniform1f(m_attribs.u_vignette_strength, m_vignetteStrength);
 	m_pShader->SetUniform1f(m_attribs.u_vignette_radius, m_vignetteRadius);
@@ -601,7 +599,7 @@ void CPostProcess::CalculateAutoExposure(void)
 	R_BindFBO(&pLumFBO->fbo);
 	glViewport(0, 0, 256, 256);
 
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_LOG_LUMINANCE))
 	{
@@ -622,7 +620,7 @@ void CPostProcess::CalculateAutoExposure(void)
 	glViewport(0, 0, rns.screenwidth, rns.screenheight);
 
 	R_Bind2DTexture(GL_TEXTURE0, pLumFBO->fbo.ptexture1->gl_index);
-	gGLExtF.glGenerateMipmap(GL_TEXTURE_2D);
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	Float rawNorm = 0.0f;
 	glGetTexImage(GL_TEXTURE_2D, 8, GL_RED, GL_FLOAT, &rawNorm);
@@ -652,7 +650,7 @@ void CPostProcess::CalculateAutoExposure(void)
 bool CPostProcess::DrawTonemap(void)
 {
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_TONEMAP))
 	{
@@ -807,7 +805,7 @@ bool CPostProcess :: DrawBloom( void )
 
 	// Step 1: Overdarken the screen contents
 	FetchScreen(&m_pScreenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_BLOOM_DARKEN))
 	{
@@ -846,7 +844,7 @@ bool CPostProcess :: DrawBloom( void )
 
 	// Blur horizontally
 	FetchScreen(&pDarkenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, pDarkenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, pDarkenRTT->palloc->gl_index);
 
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_BLOOM_BLUR_H))
 	{
@@ -858,7 +856,7 @@ bool CPostProcess :: DrawBloom( void )
 	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
 
 	FetchScreen(&pDarkenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, pDarkenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, pDarkenRTT->palloc->gl_index);
 
 	// Now blur vertically
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_BLOOM_BLUR_V))
@@ -872,7 +870,7 @@ bool CPostProcess :: DrawBloom( void )
 
 	// Now draw the blurred bloom texture
 	FetchScreen(&pDarkenRTT);
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pScreenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, m_pScreenRTT->palloc->gl_index);
 
 	// Restore screen contents
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_NORMAL))
@@ -884,7 +882,7 @@ bool CPostProcess :: DrawBloom( void )
 	R_ValidateShader(m_pShader);
 	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
 
-	R_BindRectangleTexture(GL_TEXTURE0_ARB, pDarkenRTT->palloc->gl_index);
+	R_BindRectangleTexture(GL_TEXTURE0, pDarkenRTT->palloc->gl_index);
 
 	// Now draw the final blurred image
 	if (!m_pShader->SetDeterminator(m_attribs.d_type, SHADER_BLOOM_APPLY))

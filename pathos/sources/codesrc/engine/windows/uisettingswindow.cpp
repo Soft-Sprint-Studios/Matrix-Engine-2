@@ -1384,20 +1384,13 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	}
 
 	// Populate the FBO list
-	if (gWindow.AreFBOsSupported())
-	{
-		pFramebufferObjectsDropList->addChoice("Disabled");
-		pFramebufferObjectsDropList->addChoice("Enabled");
+	pFramebufferObjectsDropList->addChoice("Disabled");
+	pFramebufferObjectsDropList->addChoice("Enabled");
 
-		if (gWindow.AreFBOsEnabled())
-			pFramebufferObjectsDropList->setSelection(1);
-		else
-			pFramebufferObjectsDropList->setSelection(0);
-	}
+	if (gWindow.AreFBOsEnabled())
+		pFramebufferObjectsDropList->setSelection(1);
 	else
-	{
-		pFramebufferObjectsDropList->addChoice("N/A");
-	}
+		pFramebufferObjectsDropList->setSelection(0);
 
 	// Create the label
 	const ui_objectinfo_t* pHighDynamicRangeLabelObjectInfo = pWinDesc->getObject(UI_OBJECT_TEXT, VIDEOTAB_HIGH_DYNAMIC_RANGE_LABEL_OBJ_NAME);
@@ -1442,20 +1435,13 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	}
 
 	// Populate the HDR list
-	if (gWindow.AreFBOsSupported())
-	{
-		pHighDynamicRangeDropList->addChoice("Disabled");
-		pHighDynamicRangeDropList->addChoice("Enabled");
+	pHighDynamicRangeDropList->addChoice("Disabled");
+	pHighDynamicRangeDropList->addChoice("Enabled");
 
-		if (gWindow.IsHDREnabled())
-			pHighDynamicRangeDropList->setSelection(1);
-		else
-			pHighDynamicRangeDropList->setSelection(0);
-	}
+	if (gWindow.IsHDREnabled())
+		pHighDynamicRangeDropList->setSelection(1);
 	else
-	{
-		pHighDynamicRangeDropList->addChoice("N/A");
-	}
+		pHighDynamicRangeDropList->setSelection(0);
 
 	return pVideoTab;
 }

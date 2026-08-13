@@ -324,9 +324,6 @@
     <ClCompile Include="sv_move.cpp">
       <Filter>Source Files\server</Filter>
     </ClCompile>
-    <ClCompile Include="..\shared\r_glextf.cpp">
-      <Filter>Source Files\shared</Filter>
-    </ClCompile>
     <ClCompile Include="..\shared\r_glsl.cpp">
       <Filter>Source Files\shared</Filter>
     </ClCompile>
@@ -446,6 +443,9 @@
     </ClCompile>
     <ClCompile Include="server\sv_bulletphysics.cpp">
       <Filter>Source Files\server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\glad\src\glad.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -843,9 +843,6 @@
       <Filter>Header Files\shared</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\r_fbo.h">
-      <Filter>Header Files\shared</Filter>
-    </ClInclude>
-    <ClInclude Include="..\shared\r_glextf.h">
       <Filter>Header Files\shared</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\r_glsl.h">

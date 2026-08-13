@@ -111,8 +111,8 @@ void CMonitorManager::ClearGame( void )
 		{
 			if(m_monitorsArray[i]->pfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &m_monitorsArray[i]->pfbo->fboid);
-				gGLExtF.glDeleteRenderbuffers(1, &m_monitorsArray[i]->pfbo->rboid1);
+				glDeleteFramebuffers(1, &m_monitorsArray[i]->pfbo->fboid);
+				glDeleteRenderbuffers(1, &m_monitorsArray[i]->pfbo->rboid1);
 
 				delete m_monitorsArray[i]->pfbo;
 				m_monitorsArray[i]->pfbo = nullptr;
@@ -147,11 +147,9 @@ bool CMonitorManager::InitGL( void )
 {
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "monitors.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "monitors.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Error compiling shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -211,8 +209,8 @@ void CMonitorManager::ClearGL( void )
 		{
 			if(m_monitorsArray[i]->pfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &m_monitorsArray[i]->pfbo->fboid);
-				gGLExtF.glDeleteRenderbuffers(1, &m_monitorsArray[i]->pfbo->rboid1);
+				glDeleteFramebuffers(1, &m_monitorsArray[i]->pfbo->fboid);
+				glDeleteRenderbuffers(1, &m_monitorsArray[i]->pfbo->rboid1);
 
 				delete m_monitorsArray[i]->pfbo;
 				m_monitorsArray[i]->pfbo = nullptr;
@@ -263,7 +261,7 @@ void CMonitorManager::CreateScanlineTexture( void )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	gGLExtF.glGenerateMipmap(GL_TEXTURE_2D);
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -291,17 +289,17 @@ bool CMonitorManager::CreateMonitorTextures( cl_monitor_t* pmonitor )
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, pmonitor->xresolution, pmonitor->yresolution, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
 
-		gGLExtF.glGenRenderbuffers(1, &pmonitor->pfbo->rboid1);
-		gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
-		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, pmonitor->xresolution, pmonitor->yresolution);
-		gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		glGenRenderbuffers(1, &pmonitor->pfbo->rboid1);
+		glBindRenderbuffer(GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, pmonitor->xresolution, pmonitor->yresolution);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-		gGLExtF.glGenFramebuffers(1, &pmonitor->pfbo->fboid);
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pmonitor->pfbo->fboid);
-		gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pmonitor->pfbo->ptexture1->gl_index, 0);
-		gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
+		glGenFramebuffers(1, &pmonitor->pfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, pmonitor->pfbo->fboid);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pmonitor->pfbo->ptexture1->gl_index, 0);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
 
-		GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 		{
 			Con_Printf("Framebuffer Object creation failed.\n");
@@ -309,7 +307,7 @@ bool CMonitorManager::CreateMonitorTextures( cl_monitor_t* pmonitor )
 			return false;
 		}
 
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	else
@@ -342,7 +340,7 @@ void CMonitorManager::AllocNewMonitor( cl_entity_t* pentity )
 {
 	if(!m_pVBO)
 	{
-		m_pVBO = new CVBO(gGLExtF, true, false);
+		m_pVBO = new CVBO(true, false);
 		m_pShader->SetVBO(m_pVBO);
 	}
 
@@ -698,7 +696,7 @@ void CMonitorManager::FinishMonitorPass( void )
 {
 	if(!rns.fboused || !m_pCurrentMonitor->pfbo)
 	{
-		R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentMonitor->ptexture->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0, m_pCurrentMonitor->ptexture->gl_index);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, m_pCurrentMonitor->xresolution, m_pCurrentMonitor->yresolution, 0);
 	}
 

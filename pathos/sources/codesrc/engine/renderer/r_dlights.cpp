@@ -20,7 +20,6 @@ All Rights Reserved.
 #include "bspv30.h"
 #include "console.h"
 #include "r_basic_vertex.h"
-#include "r_glextf.h"
 #include "system.h"
 #include "texturemanager.h"
 #include "cl_utils.h"
@@ -97,11 +96,9 @@ bool CDynamicLightManager::InitGL( void )
 	// load shader
 	if(!m_pVSMShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pVSMShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "vsm_blur.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pVSMShader = new CGLSLShader(FL_GetInterface(), "vsm_blur.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pVSMShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Failed to compile shader: %s.", __FUNCTION__, m_pVSMShader->GetError());
@@ -163,7 +160,7 @@ bool CDynamicLightManager::InitGL( void )
 		pverts[5].origin[2] = -1; pverts[5].origin[3] = 1;
 		pverts[5].texcoords[0] = rns.screenwidth; pverts[5].texcoords[1] = 0;
 
-		m_pVSMVBO = new CVBO(gGLExtF, pverts, sizeof(basic_vertex_t)*6, nullptr, 0);
+		m_pVSMVBO = new CVBO(pverts, sizeof(basic_vertex_t)*6, nullptr, 0);
 		m_pVSMShader->SetVBO(m_pVSMVBO);
 		delete[] pverts;
 	}
@@ -250,7 +247,7 @@ bool CDynamicLightManager::CheckFBOs( void )
 				m_cubemapPoolList.remove(m_cubemapPoolList.get_link());
 				if(psm->pfbo)
 				{
-					gGLExtF.glDeleteFramebuffers(1, &psm->pfbo->fboid);
+					glDeleteFramebuffers(1, &psm->pfbo->fboid);
 					ReleaseShadowmapBlitFBOs((*psm));
 					delete psm->pfbo;
 				}
@@ -275,7 +272,7 @@ bool CDynamicLightManager::CheckFBOs( void )
 				m_projectivePoolList.remove(m_projectivePoolList.get_link());
 				if(psm->pfbo)
 				{
-					gGLExtF.glDeleteFramebuffers(1, &psm->pfbo->fboid);
+					glDeleteFramebuffers(1, &psm->pfbo->fboid);
 					ReleaseShadowmapBlitFBOs((*psm));
 					delete psm->pfbo;
 				}
@@ -350,18 +347,18 @@ bool CDynamicLightManager::InitFBOs( void )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gGLExtF.glGenFramebuffers(1, &m_blurFBO.fboid);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO.fboid);
-	gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_blurFBO.ptexture1->gl_index, 0);
+	glGenFramebuffers(1, &m_blurFBO.fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_blurFBO.fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_blurFBO.ptexture1->gl_index, 0);
 
-	GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
 		Con_Printf("%s - FBO creation failed. Code returned: %d.\n", __FUNCTION__, static_cast<Int32>(glGetError()));
 		return false;
 	}
 
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	// Set up main rendering target
@@ -373,24 +370,24 @@ bool CDynamicLightManager::InitFBOs( void )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gGLExtF.glGenRenderbuffers(1, &m_renderFBO.rboid1);
-	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, m_renderFBO.rboid1);
-	gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, GetShadowmapSize(), GetShadowmapSize());
-	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glGenRenderbuffers(1, &m_renderFBO.rboid1);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_renderFBO.rboid1);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, GetShadowmapSize(), GetShadowmapSize());
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-	gGLExtF.glGenFramebuffers(1, &m_renderFBO.fboid);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, m_renderFBO.fboid);
-	gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_renderFBO.ptexture1->gl_index, 0);
-	gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_renderFBO.rboid1);
+	glGenFramebuffers(1, &m_renderFBO.fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_renderFBO.fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_renderFBO.ptexture1->gl_index, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_renderFBO.rboid1);
 
-	eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
 		Con_Printf("%s - FBO creation failed. Code returned: %d.\n", __FUNCTION__, static_cast<Int32>(glGetError()));
 		return false;
 	}
 
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	//
@@ -406,18 +403,18 @@ bool CDynamicLightManager::InitFBOs( void )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gGLExtF.glGenFramebuffers(1, &m_cubeBlurFBO.fboid);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, m_cubeBlurFBO.fboid);
-	gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cubeBlurFBO.ptexture1->gl_index, 0);
+	glGenFramebuffers(1, &m_cubeBlurFBO.fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_cubeBlurFBO.fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cubeBlurFBO.ptexture1->gl_index, 0);
 
-	eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
 		Con_Printf("%s - FBO creation failed. Code returned: %d.\n", __FUNCTION__, static_cast<Int32>(glGetError()));
 		return false;
 	}
 
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// Set up main rendering target
 	m_cubeRenderFBO.ptexture1 = pTextureManager->GenTextureIndex(RS_WINDOW_LEVEL);
@@ -428,24 +425,24 @@ bool CDynamicLightManager::InitFBOs( void )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gGLExtF.glGenRenderbuffers(1, &m_cubeRenderFBO.rboid1);
-	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, m_cubeRenderFBO.rboid1);
-	gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, GetCubeShadowmapSize(), GetCubeShadowmapSize());
-	gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glGenRenderbuffers(1, &m_cubeRenderFBO.rboid1);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_cubeRenderFBO.rboid1);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, GetCubeShadowmapSize(), GetCubeShadowmapSize());
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-	gGLExtF.glGenFramebuffers(1, &m_cubeRenderFBO.fboid);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, m_cubeRenderFBO.fboid);
-	gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cubeRenderFBO.ptexture1->gl_index, 0);
-	gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_cubeRenderFBO.rboid1);
+	glGenFramebuffers(1, &m_cubeRenderFBO.fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_cubeRenderFBO.fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cubeRenderFBO.ptexture1->gl_index, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_cubeRenderFBO.rboid1);
 
-	eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
 		Con_Printf("%s - FBO creation failed. Code returned: %d.\n", __FUNCTION__, static_cast<Int32>(glGetError()));
 		return false;
 	}
 
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return true;
@@ -484,7 +481,7 @@ shadowmap_t *CDynamicLightManager::AllocProjectiveShadowMap( bool allocblitmap )
 	if(!CreateProjectiveFBO(*pshadowmap))
 		return nullptr;
 
-	if(allocblitmap && rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1)
+	if(allocblitmap && m_pCvarShadowmapBlit->GetValue() >= 1)
 	{
 		if(!CreateShadowmapBlitFBOs((*pshadowmap), GetShadowmapSize(), 1))
 			return false;
@@ -527,7 +524,7 @@ shadowmap_t *CDynamicLightManager::AllocCubemapShadowMap( bool allocblitmap )
 	if(!CreateCubemapFBO(*pshadowmap))
 		return nullptr;
 
-	if(allocblitmap && rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1)
+	if(allocblitmap && m_pCvarShadowmapBlit->GetValue() >= 1)
 	{
 		if(!CreateShadowmapBlitFBOs((*pshadowmap), GetCubeShadowmapSize(), 6))
 			return false;
@@ -555,18 +552,18 @@ bool CDynamicLightManager::CreateProjectiveFBO( shadowmap_t& shadowmap )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	gGLExtF.glGenFramebuffers(1, &shadowmap.pfbo->fboid);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, shadowmap.pfbo->fboid);
-	gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, shadowmap.pfbo->ptexture1->gl_index, 0);
+	glGenFramebuffers(1, &shadowmap.pfbo->fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowmap.pfbo->fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, shadowmap.pfbo->ptexture1->gl_index, 0);
 		
-	GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
 		Con_Printf("%s - FBO creation failed. Code returned: %d.\n", __FUNCTION__, static_cast<Int32>(glGetError()));
 		return false;
 	}
 
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return true;
@@ -594,18 +591,18 @@ bool CDynamicLightManager::CreateCubemapFBO( shadowmap_t& shadowmap )
 	for (Int32 j = 0; j < 6; j++)
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_RGBA16, GetCubeShadowmapSize(), GetCubeShadowmapSize(), 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-	gGLExtF.glGenFramebuffers(1, &shadowmap.pfbo->fboid);
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, shadowmap.pfbo->fboid);
-	gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X, shadowmap.pfbo->ptexture1->gl_index, 0);
+	glGenFramebuffers(1, &shadowmap.pfbo->fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowmap.pfbo->fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X, shadowmap.pfbo->ptexture1->gl_index, 0);
 
-	GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
 		Con_Printf("%s - FBO creation failed. Code returned: %d.\n", __FUNCTION__, static_cast<Int32>(glGetError()));
 		return false;
 	}
 
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
 	return true;
@@ -642,22 +639,22 @@ bool CDynamicLightManager::CreateShadowmapBlitFBOs( shadowmap_t& shadowmap, Uint
 		fbobind_t* pfbo = new fbobind_t();
 		shadowmap.pblitfboarray.push_back(pfbo);
 
-		gGLExtF.glGenRenderbuffers(1, &pfbo->rboid1);
-		gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, pfbo->rboid1);
-		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16, shadowmapSize, shadowmapSize);
-		gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		glGenRenderbuffers(1, &pfbo->rboid1);
+		glBindRenderbuffer(GL_RENDERBUFFER, pfbo->rboid1);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA16, shadowmapSize, shadowmapSize);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-		gGLExtF.glGenRenderbuffers(1, &pfbo->rboid2);
-		gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, pfbo->rboid2);
-		gGLExtF.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, shadowmapSize, shadowmapSize);
-		gGLExtF.glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		glGenRenderbuffers(1, &pfbo->rboid2);
+		glBindRenderbuffer(GL_RENDERBUFFER, pfbo->rboid2);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, shadowmapSize, shadowmapSize);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-		gGLExtF.glGenFramebuffers(1, &pfbo->fboid);
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pfbo->fboid);
-		gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, pfbo->rboid1);
-		gGLExtF.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pfbo->rboid2);
+		glGenFramebuffers(1, &pfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, pfbo->fboid);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, pfbo->rboid1);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pfbo->rboid2);
 
-		GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 		{
 			Con_Printf("%s - FBO creation failed. Code returned: %d.\n", __FUNCTION__, static_cast<Int32>(glGetError()));
@@ -665,7 +662,7 @@ bool CDynamicLightManager::CreateShadowmapBlitFBOs( shadowmap_t& shadowmap, Uint
 		}
 	}
 
-	gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
 	return true;
@@ -683,9 +680,9 @@ void CDynamicLightManager::ReleaseShadowmapBlitFBOs( shadowmap_t& shadowmap )
 	{
 		fbobind_t* pfbobind = shadowmap.pblitfboarray[i];
 
-		gGLExtF.glDeleteFramebuffers(1, &pfbobind->fboid);
-		gGLExtF.glDeleteRenderbuffers(1, &pfbobind->rboid1);
-		gGLExtF.glDeleteRenderbuffers(1, &pfbobind->rboid2);
+		glDeleteFramebuffers(1, &pfbobind->fboid);
+		glDeleteRenderbuffers(1, &pfbobind->rboid1);
+		glDeleteRenderbuffers(1, &pfbobind->rboid2);
 
 		delete pfbobind;
 	}
@@ -699,21 +696,21 @@ void CDynamicLightManager::ReleaseShadowmapBlitFBOs( shadowmap_t& shadowmap )
 void CDynamicLightManager::DeleteFBOs( void )
 {
 	if(m_blurFBO.fboid)
-		gGLExtF.glDeleteFramebuffers(1, &m_blurFBO.fboid);
+		glDeleteFramebuffers(1, &m_blurFBO.fboid);
 
 	if(m_renderFBO.fboid)
 	{
-		gGLExtF.glDeleteFramebuffers(1, &m_renderFBO.fboid);
-		gGLExtF.glDeleteRenderbuffers(1, &m_renderFBO.rboid1);
+		glDeleteFramebuffers(1, &m_renderFBO.fboid);
+		glDeleteRenderbuffers(1, &m_renderFBO.rboid1);
 	}
 
 	if(m_cubeBlurFBO.fboid)
-		gGLExtF.glDeleteFramebuffers(1, &m_cubeBlurFBO.fboid);
+		glDeleteFramebuffers(1, &m_cubeBlurFBO.fboid);
 
 	if(m_cubeRenderFBO.fboid)
 	{
-		gGLExtF.glDeleteFramebuffers(1, &m_cubeRenderFBO.fboid);
-		gGLExtF.glDeleteRenderbuffers(1, &m_cubeRenderFBO.rboid1);
+		glDeleteFramebuffers(1, &m_cubeRenderFBO.fboid);
+		glDeleteRenderbuffers(1, &m_cubeRenderFBO.rboid1);
 	}
 
 	ClearShadowMaps();
@@ -733,7 +730,7 @@ void CDynamicLightManager::ClearShadowMaps( void )
 			m_cubemapPoolList.remove(m_cubemapPoolList.get_link());
 			if(psm->pfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &psm->pfbo->fboid);
+				glDeleteFramebuffers(1, &psm->pfbo->fboid);
 				delete psm->pfbo;
 			}
 
@@ -755,7 +752,7 @@ void CDynamicLightManager::ClearShadowMaps( void )
 			m_projectivePoolList.remove(m_projectivePoolList.get_link());
 			if(psm->pfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &psm->pfbo->fboid);
+				glDeleteFramebuffers(1, &psm->pfbo->fboid);
 				delete psm->pfbo;
 			}
 
@@ -788,7 +785,7 @@ void CDynamicLightManager::UpdateShadowingLights( void )
 		}
 
 		// Manage hot swapping of blitting
-		if(rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1 && rns.fboused)
+		if(m_pCvarShadowmapBlit->GetValue() >= 1 && rns.fboused)
 		{
 			if(!dl->psceneinfo)
 			{
@@ -859,7 +856,7 @@ void CDynamicLightManager::UpdateShadowingLights( void )
 			dl->psceneinfo->drawframe = rns.framecount_main;
 		}
 
-		if(!dl->isStatic() && rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1)
+		if(!dl->isStatic() && m_pCvarShadowmapBlit->GetValue() >= 1)
 		{
 			if(ShouldRedrawShadowMap(dl, dl->psceneinfo_nonstatic, false)
 				|| dl->psceneinfo_nonstatic->drawframe == rns.framecount_main)
@@ -931,7 +928,7 @@ bool CDynamicLightManager::DrawPasses( void )
 			}
 		}
 
-		if(rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1 && !dl->isStatic())
+		if(m_pCvarShadowmapBlit->GetValue() >= 1 && !dl->isStatic())
 		{
 			// Draw static part if needed
 			if(dl->psceneinfo->drawframe == rns.framecount_main)
@@ -1037,20 +1034,20 @@ bool CDynamicLightManager::DrawProjectivePass( cl_dlight_t *dl, cl_entity_t** pv
 
 	// If not static, blitting is enabled, and is the final, then blit from
 	// the cached shadowmap and render the dynamic elements
-	if(!dl->isStatic() && rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1 && isfinal)
+	if(!dl->isStatic() && m_pCvarShadowmapBlit->GetValue() >= 1 && isfinal)
 	{
-		gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, dl->pshadowmap->pblitfboarray[0]->fboid);
-		gGLExtF.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_renderFBO.fboid);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, dl->pshadowmap->pblitfboarray[0]->fboid);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_renderFBO.fboid);
 
 		Uint32 shadowmapSize = GetShadowmapSize();
 
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-		gGLExtF.glBlitFramebuffer(0, 0, shadowmapSize, shadowmapSize, 0, 0, shadowmapSize, shadowmapSize, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		glBlitFramebuffer(0, 0, shadowmapSize, shadowmapSize, 0, 0, shadowmapSize, shadowmapSize, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
-		gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0),
-		gGLExtF.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0),
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 		R_BindFBO(&m_renderFBO);
 	}
@@ -1059,7 +1056,7 @@ bool CDynamicLightManager::DrawProjectivePass( cl_dlight_t *dl, cl_entity_t** pv
 		// Otherwise if blit is enabled and it's not the final render,
 		// render into the blit map, otherwise render to the default
 		// FBO target
-		if(rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1 && !isfinal)
+		if(m_pCvarShadowmapBlit->GetValue() >= 1 && !isfinal)
 			R_BindFBO(dl->pshadowmap->pblitfboarray[0]);
 		else
 			R_BindFBO(&m_renderFBO);
@@ -1093,7 +1090,7 @@ bool CDynamicLightManager::DrawProjectivePass( cl_dlight_t *dl, cl_entity_t** pv
 
 	// Do not draw world if we're blitting, and it's the final call
 	bool drawstatics;
-	if(!dl->isStatic() && rns.fboblitsupported 
+	if(!dl->isStatic()
 		&& m_pCvarShadowmapBlit->GetValue() >= 1 && isfinal)
 		drawstatics = false;
 	else
@@ -1184,7 +1181,7 @@ bool CDynamicLightManager::DrawProjectivePass( cl_dlight_t *dl, cl_entity_t** pv
 		else
 		{
 			// just copy
-			gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, dl->pshadowmap->pfbo->fboid);
+			glBindFramebuffer(GL_FRAMEBUFFER, dl->pshadowmap->pfbo->fboid);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			if (!m_pVSMShader->SetDeterminator(m_vsmAttribs.d_type, VSM_SHADER_COPY))
@@ -1225,20 +1222,20 @@ bool CDynamicLightManager::DrawCubemapPass( cl_dlight_t *dl, Vector vangles, Int
 	
 	// If not static, blitting is enabled, and is the final, then blit from
 	// the cached shadowmap and render the dynamic elements
-	if(!dl->isStatic() && rns.fboblitsupported 
+	if(!dl->isStatic()
 		&& m_pCvarShadowmapBlit->GetValue() >= 1 && isfinal)
 	{
-		gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, dl->psmcubemap->pblitfboarray[index]->fboid);
-		gGLExtF.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_cubeRenderFBO.fboid);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, dl->psmcubemap->pblitfboarray[index]->fboid);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_cubeRenderFBO.fboid);
 
 		Uint32 shadowmapSize = GetCubeShadowmapSize();
 
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-		gGLExtF.glBlitFramebuffer(0, 0, shadowmapSize, shadowmapSize, 0, 0, shadowmapSize, shadowmapSize, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-		gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0),
-		gGLExtF.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(0, 0, shadowmapSize, shadowmapSize, 0, 0, shadowmapSize, shadowmapSize, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0),
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 		R_BindFBO(&m_cubeRenderFBO);
 	}
@@ -1247,7 +1244,7 @@ bool CDynamicLightManager::DrawCubemapPass( cl_dlight_t *dl, Vector vangles, Int
 		// Otherwise if blit is enabled and it's not the final render,
 		// render into the blit map, otherwise render to the default
 		// FBO target
-		if(rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1 && !isfinal)
+		if(m_pCvarShadowmapBlit->GetValue() >= 1 && !isfinal)
 			R_BindFBO(dl->psmcubemap->pblitfboarray[index]);
 		else
 			R_BindFBO(&m_cubeRenderFBO);
@@ -1281,7 +1278,7 @@ bool CDynamicLightManager::DrawCubemapPass( cl_dlight_t *dl, Vector vangles, Int
 
 	// Do not draw world if we're blitting, and it's the final call
 	bool drawstatics;
-	if(!dl->isStatic() && rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() >= 1 && isfinal)
+	if(!dl->isStatic() && m_pCvarShadowmapBlit->GetValue() >= 1 && isfinal)
 		drawstatics = false;
 	else
 		drawstatics = true;
@@ -1349,7 +1346,7 @@ bool CDynamicLightManager::DrawCubemapPass( cl_dlight_t *dl, Vector vangles, Int
 
 			// blur horizontally
 			R_BindFBO(dl->psmcubemap->pfbo);
-			gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
 				GL_TEXTURE_CUBE_MAP_POSITIVE_X + index, dl->psmcubemap->pfbo->ptexture1->gl_index, 0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1366,8 +1363,8 @@ bool CDynamicLightManager::DrawCubemapPass( cl_dlight_t *dl, Vector vangles, Int
 		}
 		else
 		{
-			gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, dl->psmcubemap->pfbo->fboid);
-			gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + index, dl->psmcubemap->pfbo->ptexture1->gl_index, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, dl->psmcubemap->pfbo->fboid);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + index, dl->psmcubemap->pfbo->ptexture1->gl_index, 0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			if (!m_pVSMShader->SetDeterminator(m_vsmAttribs.d_type, VSM_SHADER_COPY))
@@ -1620,7 +1617,7 @@ cl_dlight_t* CDynamicLightManager::AllocDynamicSpotlight( Int32 key, Int32 subke
 			pdlight->nomaincull = false;
 			pdlight->decay_delay = 0;
 
-			if(rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
+			if(m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
 			{
 				if(!pdlight->isstatic && pdlight->psceneinfo)
 				{
@@ -1684,7 +1681,7 @@ cl_dlight_t* CDynamicLightManager::AllocDynamicSpotlight( Int32 key, Int32 subke
 	}
 
 	// Allocate static dlight info if needed
-	if(rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
+	if(m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
 	{
 		if(pdlight->isstatic && !pdlight->psceneinfo)
 		{
@@ -1731,7 +1728,7 @@ cl_dlight_t* CDynamicLightManager::AllocDynamicPointLight( Int32 key, Int32 subk
 			pdlight->nomaincull = false;
 			pdlight->decay_delay = 0;
 
-			if(rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
+			if(m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
 			{
 				if(!pdlight->isstatic && pdlight->psceneinfo)
 				{
@@ -1796,7 +1793,7 @@ cl_dlight_t* CDynamicLightManager::AllocDynamicPointLight( Int32 key, Int32 subk
 	}
 
 	// Allocate static dlight info if needed
-	if(rns.fboblitsupported && m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
+	if(m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
 	{
 		if(pdlight->isstatic && !pdlight->psceneinfo)
 		{

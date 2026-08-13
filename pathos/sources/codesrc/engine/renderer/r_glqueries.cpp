@@ -49,7 +49,7 @@ void R_ClearQueryObjects( void )
 		glowquery_t* pQuery = &rns.objects.glowqueryarray[i];
 		if(!pQuery->queries.empty())
 		{
-			gGLExtF.glDeleteQueriesARB(pQuery->queries.size(), &pQuery->queries[0]);
+			glDeleteQueries(pQuery->queries.size(), &pQuery->queries[0]);
 
 			for(Uint32 j = 0; j < pQuery->queries.size(); j++)
 				pQuery->queries[j] = 0;
@@ -108,10 +108,10 @@ glowquery_t* R_AllocQueryObject( Int32 key, Uint32 numqueries, Uint32 renderpass
 	if(pQuery->queries.size() != numqueries)
 	{
 		if(!pQuery->queries.empty())
-			gGLExtF.glDeleteQueriesARB(pQuery->queries.size(), &pQuery->queries[0]);
+			glDeleteQueries(pQuery->queries.size(), &pQuery->queries[0]);
 
 		pQuery->queries.resize(numqueries);
-		gGLExtF.glGenQueriesARB(numqueries, &pQuery->queries[0]);
+		glGenQueries(numqueries, &pQuery->queries[0]);
 	}
 
 	return pQuery;
@@ -185,12 +185,12 @@ Float R_CalcOcclusionFactor( const Vector& origin,
 				Vector start;
 				Math::VectorMA(aleft, j+1, step, start);
 
-				gGLExtF.glBeginQueryARB(GL_ANY_SAMPLES_PASSED, pObject->queries[j]);
+				glBeginQuery(GL_ANY_SAMPLES_PASSED, pObject->queries[j]);
 
 				// Draw the object using the function
 				(*pfnDrawFnPtr)(pContext, start);
 
-				gGLExtF.glEndQueryARB(GL_ANY_SAMPLES_PASSED);
+				glEndQuery(GL_ANY_SAMPLES_PASSED);
 			}
 
 			if(g_pCvarOcclusionQueries->GetValue() <= 1)
@@ -203,7 +203,7 @@ Float R_CalcOcclusionFactor( const Vector& origin,
 		for (; j < numGlowTraces; j++)
 		{
 			GLint queryResult = 0;
-			gGLExtF.glGetQueryObjectivARB(pObject->queries[j], GL_QUERY_RESULT_AVAILABLE, &queryResult);
+			glGetQueryObjectiv(pObject->queries[j], GL_QUERY_RESULT_AVAILABLE, &queryResult);
 			if(queryResult != GL_TRUE)
 				break;
 		}
@@ -216,7 +216,7 @@ Float R_CalcOcclusionFactor( const Vector& origin,
 			for (j = 0; j < numGlowTraces; j++)
 			{
 				GLint queryResult = 0;
-				gGLExtF.glGetQueryObjectivARB(pObject->queries[j], GL_QUERY_RESULT, &queryResult);
+				glGetQueryObjectiv(pObject->queries[j], GL_QUERY_RESULT, &queryResult);
 				if(queryResult == GL_TRUE)
 					totalfrac += frac;
 			}
@@ -351,7 +351,7 @@ void R_ReleaseRenderPassQueryObjects( Uint32 renderpassidx, querytype_t type )
 				for (; j < query.queries.size(); j++)
 				{
 					GLint queryResult = 0;
-					gGLExtF.glGetQueryObjectivARB(query.queries[j], GL_QUERY_RESULT_AVAILABLE, &queryResult);
+					glGetQueryObjectiv(query.queries[j], GL_QUERY_RESULT_AVAILABLE, &queryResult);
 					if(queryResult != GL_TRUE)
 						break;
 				}

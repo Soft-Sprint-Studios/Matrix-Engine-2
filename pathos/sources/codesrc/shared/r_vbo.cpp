@@ -11,7 +11,6 @@ All Rights Reserved.
 #include "includes.h"
 #include "r_vbo.h"
 #include "common.h"
-#include "r_glextf.h"
 
 //=============================================
 // @brief Constructor
@@ -22,7 +21,7 @@ All Rights Reserved.
 // @param iibodatasize Size of the IBO data in bytes
 // @param keepcache Determines whether data is freed after binding
 //=============================================
-CVBO::CVBO ( const CGLExtF& glExtF, const void *pvbodata, Uint32 ivbodatasize, const void *pibodata, Uint32 iibodatasize, bool keepcache, bool usevao ) :
+CVBO::CVBO ( const void *pvbodata, Uint32 ivbodatasize, const void *pibodata, Uint32 iibodatasize, bool keepcache, bool usevao ) :
 	m_uiVBOIndex(0),
 	m_uiIBOIndex(0),
 	m_uiVAOIndex(0),
@@ -35,8 +34,7 @@ CVBO::CVBO ( const CGLExtF& glExtF, const void *pvbodata, Uint32 ivbodatasize, c
 	m_pVBOData(nullptr),
 	m_iVBOSize(0),
 	m_pIBOData(nullptr),
-	m_iIBOSize(0),
-	m_glExtF(glExtF)
+	m_iIBOSize(0)
 {
 	Clear();
 
@@ -49,15 +47,15 @@ CVBO::CVBO ( const CGLExtF& glExtF, const void *pvbodata, Uint32 ivbodatasize, c
 	if(m_useVAO)
 	{
 		// Allocate the VAO
-		m_glExtF.glGenVertexArrays(1, &m_uiVAOIndex);
-		m_glExtF.glBindVertexArray(m_uiVAOIndex);
+		glGenVertexArrays(1, &m_uiVAOIndex);
+		glBindVertexArray(m_uiVAOIndex);
 	}
 
 	if(pvbodata && ivbodatasize)
 	{
-		m_glExtF.glGenBuffers(1, &m_uiVBOIndex);
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
-		m_glExtF.glBufferData(GL_ARRAY_BUFFER, ivbodatasize, pvbodata, GL_DYNAMIC_DRAW);
+		glGenBuffers(1, &m_uiVBOIndex);
+		glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
+		glBufferData(GL_ARRAY_BUFFER, ivbodatasize, pvbodata, GL_DYNAMIC_DRAW);
 
 		if(keepcache)
 		{
@@ -66,14 +64,14 @@ CVBO::CVBO ( const CGLExtF& glExtF, const void *pvbodata, Uint32 ivbodatasize, c
 			m_iVBOSize = ivbodatasize;
 		}
 
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 	if(pibodata && iibodatasize)
 	{
-		m_glExtF.glGenBuffers(1, &m_uiIBOIndex);
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
-		m_glExtF.glBufferData(GL_ELEMENT_ARRAY_BUFFER, iibodatasize, pibodata, GL_DYNAMIC_DRAW);
+		glGenBuffers(1, &m_uiIBOIndex);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, iibodatasize, pibodata, GL_DYNAMIC_DRAW);
 
 		if(keepcache)
 		{
@@ -82,13 +80,13 @@ CVBO::CVBO ( const CGLExtF& glExtF, const void *pvbodata, Uint32 ivbodatasize, c
 			m_iIBOSize = iibodatasize;
 		}
 
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
 	if(m_useVAO)
 	{
 		// Unbind the VAO
-		m_glExtF.glBindVertexArray(0);
+		glBindVertexArray(0);
 	}
 }
 
@@ -98,7 +96,7 @@ CVBO::CVBO ( const CGLExtF& glExtF, const void *pvbodata, Uint32 ivbodatasize, c
 // @param bvbo Determines if we expect VBO data
 // @param bibo Determines if we expect IBO data
 //=============================================
-CVBO::CVBO ( const CGLExtF& glExtF, bool bvbo, bool bibo, bool usevao ) :
+CVBO::CVBO ( bool bvbo, bool bibo, bool usevao ) :
 	m_uiVBOIndex(0),
 	m_uiIBOIndex(0),
 	m_uiVAOIndex(0),
@@ -111,34 +109,33 @@ CVBO::CVBO ( const CGLExtF& glExtF, bool bvbo, bool bibo, bool usevao ) :
 	m_pVBOData(nullptr),
 	m_iVBOSize(0),
 	m_pIBOData(nullptr),
-	m_iIBOSize(0),
-	m_glExtF(glExtF)
+	m_iIBOSize(0)
 {
 	Clear();
 
 	if(m_useVAO)
 	{
 		// Allocate the VAO
-		m_glExtF.glGenVertexArrays(1, &m_uiVAOIndex);
-		m_glExtF.glBindVertexArray(m_uiVAOIndex);
+		glGenVertexArrays(1, &m_uiVAOIndex);
+		glBindVertexArray(m_uiVAOIndex);
 	}
 
 	if(bvbo)
 	{
 		// just generate an empty buffer
-		m_glExtF.glGenBuffers(1, &m_uiVBOIndex);
+		glGenBuffers(1, &m_uiVBOIndex);
 	}
 
 	if(bibo)
 	{
 		// just generate an empty buffer
-		m_glExtF.glGenBuffers(1, &m_uiIBOIndex);
+		glGenBuffers(1, &m_uiIBOIndex);
 	}
 
 	if(m_useVAO)
 	{
 		// Unbind the VAO
-		m_glExtF.glBindVertexArray(0);
+		glBindVertexArray(0);
 	}
 
 	m_bCache = true;
@@ -166,29 +163,29 @@ CVBO::~CVBO ( void )
 void CVBO::ClearGL( void )
 {
 	if(m_uiVBOIndex && m_isVBOBound)
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	if(m_uiIBOIndex && m_isIBOBound)
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	if(m_useVAO && m_uiVAOIndex && m_isVAOBound)
-		m_glExtF.glBindVertexArray(0);
+		glBindVertexArray(0);
 
 	if(m_uiVBOIndex)
 	{
-		m_glExtF.glDeleteBuffers(1, &m_uiVBOIndex);
+		glDeleteBuffers(1, &m_uiVBOIndex);
 		m_uiVBOIndex = 0;
 	}
 
 	if(m_uiIBOIndex)
 	{
-		m_glExtF.glDeleteBuffers(1, &m_uiIBOIndex);
+		glDeleteBuffers(1, &m_uiIBOIndex);
 		m_uiIBOIndex = 0;
 	}
 
 	if(m_useVAO && m_uiVAOIndex)
 	{
-		m_glExtF.glDeleteVertexArrays(1, &m_uiVAOIndex);
+		glDeleteVertexArrays(1, &m_uiVAOIndex);
 		m_uiVAOIndex = 0;
 	}
 
@@ -206,30 +203,30 @@ void CVBO::RebindGL( void )
 	if(m_useVAO)
 	{
 		// Allocate the VAO
-		m_glExtF.glGenVertexArrays(1, &m_uiVAOIndex);
-		m_glExtF.glBindVertexArray(m_uiVAOIndex);
+		glGenVertexArrays(1, &m_uiVAOIndex);
+		glBindVertexArray(m_uiVAOIndex);
 	}
 
 	if(m_pVBOData && m_iVBOSize)
 	{
-		m_glExtF.glGenBuffers(1, &m_uiVBOIndex);
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
-		m_glExtF.glBufferData(GL_ARRAY_BUFFER, m_iVBOSize, m_pVBOData, GL_DYNAMIC_DRAW);
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glGenBuffers(1, &m_uiVBOIndex);
+		glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
+		glBufferData(GL_ARRAY_BUFFER, m_iVBOSize, m_pVBOData, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 	if(m_pIBOData && m_iIBOSize)
 	{
-		m_glExtF.glGenBuffers(1, &m_uiIBOIndex);
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
-		m_glExtF.glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iIBOSize, m_pIBOData, GL_DYNAMIC_DRAW);
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glGenBuffers(1, &m_uiIBOIndex);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iIBOSize, m_pIBOData, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
 	if(m_useVAO)
 	{
 		// Unbind the VAO
-		m_glExtF.glBindVertexArray(0);
+		glBindVertexArray(0);
 	}
 }
 
@@ -257,7 +254,7 @@ bool CVBO::Append ( const void *pvbodata, Uint32 ivbodatasize, const void *pibod
 		return false;
 
 	if(m_useVAO && !m_isVAOBound)
-		m_glExtF.glBindVertexArray(m_uiVAOIndex);
+		glBindVertexArray(m_uiVAOIndex);
 
 	if(pvbodata && ivbodatasize)
 	{
@@ -279,12 +276,12 @@ bool CVBO::Append ( const void *pvbodata, Uint32 ivbodatasize, const void *pibod
 		}
 
 		if(!m_isVBOBound)
-			m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
+			glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
 
-		m_glExtF.glBufferData(GL_ARRAY_BUFFER, m_iVBOSize, m_pVBOData, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_iVBOSize, m_pVBOData, GL_DYNAMIC_DRAW);
 
 		if(!m_isVBOBound)
-			m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}	
 
 	if(pibodata && iibodatasize)
@@ -308,22 +305,22 @@ bool CVBO::Append ( const void *pvbodata, Uint32 ivbodatasize, const void *pibod
 
 		if(!m_uiIBOIndex)
 		{
-			m_glExtF.glGenBuffers(1, &m_uiIBOIndex);
+			glGenBuffers(1, &m_uiIBOIndex);
 			if(m_isIBOBound)
-				m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
 		}
 
 		if(!m_isIBOBound)
-			m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
 
-		m_glExtF.glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iIBOSize, m_pIBOData, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iIBOSize, m_pIBOData, GL_DYNAMIC_DRAW);
 
 		if(!m_isIBOBound)
-			m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
 	if(m_useVAO && !m_isVAOBound)
-		m_glExtF.glBindVertexArray(0);
+		glBindVertexArray(0);
 
 	return true;
 }
@@ -367,8 +364,8 @@ void CVBO::SetAttribPointer ( Int32 index, Uint32 size, Uint32 type, Uint32 stri
 	if(pattrib->ptr == pointer && pattrib->size == size && pattrib->stride == stride && pattrib->active)
 		return;
 
-	m_glExtF.glEnableVertexAttribArray(index); 
-	m_glExtF.glVertexAttribPointer(index, size, type, GL_FALSE, stride, pointer);
+	glEnableVertexAttribArray(index); 
+	glVertexAttribPointer(index, size, type, GL_FALSE, stride, pointer);
 
 	// Set our tracker
 	pattrib->size = size;
@@ -393,7 +390,7 @@ void CVBO::DisableAttribPointer ( Int32 index )
 	if(!pattrib->ptr && !pattrib->size && !pattrib->active)
 		return;
 
-	m_glExtF.glDisableVertexAttribArray(index);
+	glDisableVertexAttribArray(index);
 
 	pattrib->size = pattrib->stride = 0;
 	pattrib->ptr = nullptr;
@@ -412,12 +409,12 @@ void CVBO :: VBOSubBufferData ( Uint32 offset, const void *pdata, Uint32 size )
 	if(!m_isVBOBound)
 	{
 		if(m_useVAO && !m_isVAOBound)
-			m_glExtF.glBindVertexArray(m_uiVAOIndex);
+			glBindVertexArray(m_uiVAOIndex);
 
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
+		glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
 	}
 
-	m_glExtF.glBufferSubData(GL_ARRAY_BUFFER, offset, size, pdata);
+	glBufferSubData(GL_ARRAY_BUFFER, offset, size, pdata);
 
 	if(m_pVBOData)
 	{
@@ -427,10 +424,10 @@ void CVBO :: VBOSubBufferData ( Uint32 offset, const void *pdata, Uint32 size )
 
 	if(!m_isVBOBound)
 	{
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		if(m_useVAO && !m_isVAOBound)
-			m_glExtF.glBindVertexArray(0);
+			glBindVertexArray(0);
 	}
 }
 
@@ -446,12 +443,12 @@ void CVBO::IBOSubBufferData ( Uint32 offset, const void *pdata, Uint32 size )
 	if(!m_isIBOBound)
 	{
 		if(m_useVAO && !m_isVAOBound)
-			m_glExtF.glBindVertexArray(m_uiVAOIndex);
+			glBindVertexArray(m_uiVAOIndex);
 
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
 	}
 
-	m_glExtF.glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, size, pdata);
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, size, pdata);
 
 	if(m_pVBOData)
 	{
@@ -461,10 +458,10 @@ void CVBO::IBOSubBufferData ( Uint32 offset, const void *pdata, Uint32 size )
 
 	if(!m_isIBOBound)
 	{
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 		if(m_useVAO && !m_isVAOBound)
-			m_glExtF.glBindVertexArray(0);
+			glBindVertexArray(0);
 	}
 }
 
@@ -480,7 +477,7 @@ void CVBO::BindVAO( void )
 	if(m_isVAOBound)
 		return;
 
-	m_glExtF.glBindVertexArray(m_uiVAOIndex);
+	glBindVertexArray(m_uiVAOIndex);
 	m_isVAOBound = true;
 }
 
@@ -496,7 +493,7 @@ void CVBO::UnbindVAO( void )
 	if(m_isVAOBound)
 		return;
 
-	m_glExtF.glBindVertexArray(0);
+	glBindVertexArray(0);
 	m_isVAOBound = false;
 }
 
@@ -510,7 +507,7 @@ void CVBO::BindVBO ( void )
 		return;
 
 	if(m_uiVBOIndex)
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
+		glBindBuffer(GL_ARRAY_BUFFER, m_uiVBOIndex);
 
 	m_isVBOBound = true;
 }
@@ -525,7 +522,7 @@ void CVBO::UnBindVBO ( void )
 		return;
 
 	if(m_uiVBOIndex)
-		m_glExtF.glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	m_isVBOBound = false;
 }
@@ -540,7 +537,7 @@ void CVBO::BindIBO ( void )
 		return;
 
 	if(m_uiIBOIndex)
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBOIndex);
 
 	m_isIBOBound = true;
 }
@@ -555,7 +552,7 @@ void CVBO::UnBindIBO ( void )
 		return;
 
 	if(m_uiIBOIndex)
-		m_glExtF.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	m_isIBOBound = false;
 }

@@ -20,12 +20,10 @@ All Rights Reserved.
 #include "system.h"
 #include "cl_utils.h"
 #include "file.h"
-#include "r_glextf.h"
 #include "tga.h"
 #include "enginestate.h"
 #include "enginefuncs.h"
 #include "r_fbocache.h"
-#include "r_glextf.h"
 #include "stb_dxt.h"
 
 // Console commands
@@ -221,9 +219,9 @@ bool CCubemapManager::InitGame( void )
 
 		pnewcubemap->palloc = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, pnewcubemap->palloc->gl_index);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -233,8 +231,8 @@ bool CCubemapManager::InitGame( void )
 			const ecdcubemapface_t* pface = reinterpret_cast<const ecdcubemapface_t*>(reinterpret_cast<const byte*>(pheader) + psinglecubemap->facesoffset)+j;
 			const byte* pdxtdata = reinterpret_cast<const byte*>(pheader) + pface->dataoffset;
 
-			R_BindCubemapTexture(GL_TEXTURE0_ARB, pnewcubemap->palloc->gl_index);
-			gGLExtF.glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, glCompression, pcubemap->width, pcubemap->height, 0, pface->datasize, pdxtdata);
+			R_BindCubemapTexture(GL_TEXTURE0, pnewcubemap->palloc->gl_index);
+			glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, glCompression, pcubemap->width, pcubemap->height, 0, pface->datasize, pdxtdata);
 		}
 	}
 
@@ -891,9 +889,9 @@ bool CCubemapManager::RenderCubemaps( cl_entity_t* pRenderEntities, Uint32 numRe
 		// Allocate the GL texture
 		m_cubemapsArray[i].palloc = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_cubemapsArray[i].palloc->gl_index);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -968,7 +966,7 @@ bool CCubemapManager::RenderCubemaps( cl_entity_t* pRenderEntities, Uint32 numRe
 			if (rns.fboused && rns.usehdr)
 			{
 				assert(pCubemapFBO != nullptr);
-				gGLExtF.glBindFramebuffer(GL_READ_FRAMEBUFFER, pCubemapFBO->fbo.fboid);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, pCubemapFBO->fbo.fboid);
 				glReadBuffer(GL_COLOR_ATTACHMENT0);
 			}
 
@@ -1000,8 +998,8 @@ bool CCubemapManager::RenderCubemaps( cl_entity_t* pRenderEntities, Uint32 numRe
 			}
 
 			// Save it to the OGL texture too
-			R_BindCubemapTexture(GL_TEXTURE0_ARB, m_cubemapsArray[i].palloc->gl_index);
-			gGLExtF.glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, m_cubemapsArray[i].width, m_cubemapsArray[i].height, 0, dxtdatasize, pdest);
+			R_BindCubemapTexture(GL_TEXTURE0, m_cubemapsArray[i].palloc->gl_index);
+			glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, m_cubemapsArray[i].width, m_cubemapsArray[i].height, 0, dxtdatasize, pdest);
 
 			if (rns.fboused && rns.usehdr)
 			{

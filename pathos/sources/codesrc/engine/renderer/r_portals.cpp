@@ -91,7 +91,7 @@ void CPortalManager::ClearGame( void )
 				m_portalsArray[i]->surfaces.clear();
 
 			if(m_portalsArray[i]->pfbo->fboid)
-				gGLExtF.glDeleteFramebuffers(1, &m_portalsArray[i]->pfbo->fboid);
+				glDeleteFramebuffers(1, &m_portalsArray[i]->pfbo->fboid);
 
 			delete m_portalsArray[i]->pfbo;
 			m_portalsArray[i]->pfbo = nullptr;
@@ -125,11 +125,9 @@ bool CPortalManager::InitGL( void )
 {
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "portals.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "portals.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Error compiling shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -202,7 +200,7 @@ void CPortalManager::ClearGL( void )
 			if (pportal->pfbo)
 			{
 				if(pportal->pfbo->fboid)
-					gGLExtF.glDeleteFramebuffers(1, &pportal->pfbo->fboid);
+					glDeleteFramebuffers(1, &pportal->pfbo->fboid);
 
 				delete pportal->pfbo;
 				pportal->pfbo = nullptr;
@@ -262,12 +260,12 @@ bool CPortalManager::CreatePortalTexture( cl_portal_t* pportal )
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rns.screenwidth, rns.screenheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-		gGLExtF.glGenFramebuffers(1, &pportal->pfbo->fboid);
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pportal->pfbo->fboid);
-		gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pportal->pfbo->ptexture1->gl_index, 0);
-		gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+		glGenFramebuffers(1, &pportal->pfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, pportal->pfbo->fboid);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pportal->pfbo->ptexture1->gl_index, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
 
-		GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if (eStatus != GL_FRAMEBUFFER_COMPLETE)
 		{
 			Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
@@ -306,7 +304,7 @@ void CPortalManager::AllocNewPortal( cl_entity_t* pentity )
 {
 	if(!m_pVBO)
 	{
-		m_pVBO = new CVBO(gGLExtF, true, false);
+		m_pVBO = new CVBO(true, false);
 		m_pShader->SetVBO(m_pVBO);
 	}
 
@@ -650,7 +648,7 @@ void CPortalManager::FinishPortalPass( void )
 	}
 	else
 	{
-		R_BindRectangleTexture(GL_TEXTURE0_ARB, m_pCurrentPortal->ptexture->gl_index, true);
+		R_BindRectangleTexture(GL_TEXTURE0, m_pCurrentPortal->ptexture->gl_index, true);
 		glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, rns.view.params.screenwidth, rns.view.params.screenheight, 0);
 	}
 

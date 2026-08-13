@@ -13,7 +13,6 @@ All Rights Reserved.
 #include "r_basic_vertex.h"
 #include "constants.h"
 #include "file_interface.h"
-#include "r_glextf.h"
 
 /*
 =================================
@@ -79,7 +78,7 @@ private:
 
 public:
 	// Sets up OpenGL objects
-	bool InitGL( const CGLExtF& gGlExtF, const file_interface_t& fileFuncs, pfnErrorPopup_t pfnErrorPopup );
+	bool InitGL( const file_interface_t& fileFuncs, pfnErrorPopup_t pfnErrorPopup );
 	// Clears OpenGL objects
 	void ClearGL( void );
 

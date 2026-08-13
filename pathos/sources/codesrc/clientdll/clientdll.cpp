@@ -413,6 +413,9 @@ void ClientGameReset( void )
 //=============================================
 bool ClientGLInit( void )
 {
+	if(!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
+		return false;
+
 	if(!gScreenText.InitGL())
 		return false;
 

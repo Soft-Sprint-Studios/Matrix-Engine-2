@@ -63,11 +63,9 @@ bool CMirrorManager::InitGL( void )
 {
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "mirrors.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "mirrors.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Failed to compile shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -137,7 +135,7 @@ void CMirrorManager::ClearGL( void )
 		{
 			if(m_mirrorsArray[i]->pfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &m_mirrorsArray[i]->pfbo->fboid);
+				glDeleteFramebuffers(1, &m_mirrorsArray[i]->pfbo->fboid);
 				delete m_mirrorsArray[i]->pfbo;
 			}
 		}
@@ -176,7 +174,7 @@ void CMirrorManager::ClearGame( void )
 		{
 			if(m_mirrorsArray[i]->pfbo)
 			{
-				gGLExtF.glDeleteFramebuffers(1, &m_mirrorsArray[i]->pfbo->fboid);
+				glDeleteFramebuffers(1, &m_mirrorsArray[i]->pfbo->fboid);
 				delete m_mirrorsArray[i]->pfbo;
 			}
 
@@ -242,12 +240,12 @@ bool CMirrorManager::AllocTextures( cl_mirror_t *pmirror )
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, MIRROR_FBO_SIZE, MIRROR_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
 
-		gGLExtF.glGenFramebuffers(1, &pmirror->pfbo->fboid);
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, pmirror->pfbo->fboid);
-		gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pmirror->pfbo->ptexture1->gl_index, 0);
-		gGLExtF.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+		glGenFramebuffers(1, &pmirror->pfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, pmirror->pfbo->fboid);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pmirror->pfbo->ptexture1->gl_index, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
 
-		GLenum eStatus = gGLExtF.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 		{
 			Con_Printf("Framebuffer Object creation failed.\n");
@@ -255,7 +253,7 @@ bool CMirrorManager::AllocTextures( cl_mirror_t *pmirror )
 			return false;
 		}
 
-		gGLExtF.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	else
@@ -289,7 +287,7 @@ void CMirrorManager::AllocNewMirror( cl_entity_t* pentity )
 
 	if(!m_pVBO)
 	{
-		m_pVBO = new CVBO(gGLExtF, true, false);
+		m_pVBO = new CVBO(true, false);
 		m_pShader->SetVBO(m_pVBO);
 	}
 
@@ -582,7 +580,7 @@ void CMirrorManager::FinishMirrorPass( void )
 
 	if(!rns.fboused || !m_pCurrentMirror->pfbo)
 	{
-		R_Bind2DTexture(GL_TEXTURE0_ARB, m_pCurrentMirror->ptexture->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0, m_pCurrentMirror->ptexture->gl_index);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, MIRROR_RTT_SIZE, MIRROR_RTT_SIZE, 0);
 	}
 

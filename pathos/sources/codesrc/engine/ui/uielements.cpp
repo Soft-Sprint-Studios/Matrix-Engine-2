@@ -698,7 +698,7 @@ bool CUITexturedObject::draw( void )
 		if(!ptexture)
 			ptexture = m_pDefaultTexture;
 
-		g_engineFuncs.pfnBind2DTexture(GL_TEXTURE0_ARB, ptexture->palloc->gl_index, false);
+		g_engineFuncs.pfnBind2DTexture(GL_TEXTURE0, ptexture->palloc->gl_index, false);
 
 		g_engineFuncs.pfnBasicDrawColor4f(static_cast<Float>(m_color.r)/255.0f,
 			static_cast<Float>(m_color.g)/255.0f, 

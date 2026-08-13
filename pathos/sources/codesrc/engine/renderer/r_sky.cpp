@@ -97,11 +97,9 @@ bool CSkyRenderer::InitGL( void )
 {
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "sky.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "sky.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Failed to compile shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -185,7 +183,7 @@ bool CSkyRenderer::InitGame( void )
 
 	if(!m_pVBO)
 	{
-		m_pVBO = new CVBO(gGLExtF, true, true);
+		m_pVBO = new CVBO(true, true);
 		m_pShader->SetVBO(m_pVBO);
 	}
 

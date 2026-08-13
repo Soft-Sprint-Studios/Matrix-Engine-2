@@ -144,14 +144,9 @@ bool CBSPRenderer::InitGL( void )
 	if(!m_pShader)
 	{
 		Int32 shaderFlags = CGLSLShader::FL_GLSL_CHECK_SAMPLER_OVERLAP;
+		shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
-		else if(g_pCvarGLSLOnDemand->GetValue() > 0)
-			shaderFlags |= CGLSLShader::FL_GLSL_ONDEMAND_LOAD;
-
-
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), shaderFlags, VID_ShaderCompileCallback);
 		if(!m_pShader->Compile("bsprenderer.bss"))
 		{
 			Sys_ErrorPopup("%s - Could not compile shader: %s", __FUNCTION__, m_pShader->GetError());
@@ -1319,7 +1314,7 @@ void CBSPRenderer::InitVBO( void )
 	}
 
 	// Set the VBO
-	m_pVBO = new CVBO(gGLExtF, pvertexes, sizeof(bsp_vertex_t)*numVertexes, pindexes, sizeof(Uint32)*numIndexes);
+	m_pVBO = new CVBO(pvertexes, sizeof(bsp_vertex_t)*numVertexes, pindexes, sizeof(Uint32)*numIndexes);
 
 	delete[] pvertexes;
 	delete[] pindexes;
@@ -1343,7 +1338,7 @@ void CBSPRenderer::InitDecalVBO( void )
 
 	// Set the VBO
 	bsp_vertex_t* pvertexes = new bsp_vertex_t[m_vertexCacheSize];
-	m_pDecalVBO = new CVBO(gGLExtF, pvertexes, sizeof(bsp_vertex_t)*m_vertexCacheSize, nullptr, 0, true);
+	m_pDecalVBO = new CVBO(pvertexes, sizeof(bsp_vertex_t)*m_vertexCacheSize, nullptr, 0, true);
 	delete[] pvertexes;
 }
 
@@ -2253,7 +2248,7 @@ bool CBSPRenderer::Draw( void )
 						return false;
 
 					glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-					gGLExtF.glSampleCoverage(0.5, GL_FALSE);
+					glSampleCoverage(0.5, GL_FALSE);
 				}
 
 				alphaToCoverageEnabled = true;
@@ -2337,7 +2332,7 @@ bool CBSPRenderer::Draw( void )
 							R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
 						}
 
-						R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, 0);
+						R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, 0);
 
 						CMatrix matrix;
 						matrix.LoadIdentity();
@@ -2363,7 +2358,7 @@ bool CBSPRenderer::Draw( void )
 						if (DL_CanShadow(pdlight))
 						{
 							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, TRUE);
-							R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
+							R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
 							glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 							CMatrix matrix;
@@ -2376,7 +2371,7 @@ bool CBSPRenderer::Draw( void )
 						else
 						{
 							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
-							R_BindCubemapTexture(GL_TEXTURE0_ARB + cubeUnit, 0);
+							R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, 0);
 						}
 					}
 				}
@@ -2467,16 +2462,16 @@ bool CBSPRenderer::Draw( void )
 		if(alphaToCoverageEnabled)
 		{
 			glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-			gGLExtF.glSampleCoverage(1.0, GL_FALSE);
+			glSampleCoverage(1.0, GL_FALSE);
 		}
 
 		// Reset cubemap bind
 		if(pcubemapinfo && g_pCvarCubemaps->GetValue() > 0)
 		{
-			R_BindCubemapTexture(GL_TEXTURE0_ARB + cubemapUnit, 0);
+			R_BindCubemapTexture(GL_TEXTURE0 + cubemapUnit, 0);
 
 			if(pprevcubemapinfo)
-				R_BindCubemapTexture(GL_TEXTURE0_ARB + cubemapUnit + 1, 0);
+				R_BindCubemapTexture(GL_TEXTURE0 + cubemapUnit + 1, 0);
 
 			glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		}
@@ -2732,7 +2727,7 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 					return false;
 
 				glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-				gGLExtF.glSampleCoverage(0.5, GL_FALSE);
+				glSampleCoverage(0.5, GL_FALSE);
 				alphaToCoverageEnabled = true;
 			}
 		}
@@ -2795,7 +2790,7 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 
 		// Remember the texture unit
 		cubemapUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
-		R_BindCubemapTexture(GL_TEXTURE0_ARB + cubemapUnit, pcubemapinfo->palloc->gl_index);
+		R_BindCubemapTexture(GL_TEXTURE0 + cubemapUnit, pcubemapinfo->palloc->gl_index);
 		enableNormal = true;
 
 		if(pprevcubemap)
@@ -2804,7 +2799,7 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_INTERP);
 
 			Uint32 prevUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap_prev);
-			R_BindCubemapTexture(GL_TEXTURE0_ARB + prevUnit, pprevcubemap->palloc->gl_index);
+			R_BindCubemapTexture(GL_TEXTURE0 + prevUnit, pprevcubemap->palloc->gl_index);
 		}
 		else
 		{
@@ -4223,7 +4218,7 @@ bool CBSPRenderer::DrawDecals( bool transparents )
 	if(alphatestMode == ALPHATEST_COVERAGE)
 	{
 		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-		gGLExtF.glSampleCoverage(0.5, GL_FALSE);
+		glSampleCoverage(0.5, GL_FALSE);
 	}
 
 	m_pShader->EnableAttribute(m_attribs.a_texcoord);
@@ -4282,7 +4277,7 @@ bool CBSPRenderer::DrawDecals( bool transparents )
 	if(alphatestMode == ALPHATEST_COVERAGE)
 	{
 		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-		gGLExtF.glSampleCoverage(1.0, GL_FALSE);
+		glSampleCoverage(1.0, GL_FALSE);
 	}
 
 	m_pShader->DisableAttribute(m_attribs.a_texcoord);

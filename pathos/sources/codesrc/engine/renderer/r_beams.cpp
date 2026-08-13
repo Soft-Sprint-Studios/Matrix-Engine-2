@@ -1272,7 +1272,7 @@ void CBeamRenderer::BindSprite( cache_model_t* pmodel, beam_t* pbeam )
 	const mspriteframe_t* pframe = Sprite_GetFrame(pspritemodel, pbeam->frame, rns.time);
 
 	// Bind to GL
-	R_Bind2DTexture(GL_TEXTURE0_ARB, pframe->ptexture->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE0, pframe->ptexture->palloc->gl_index);
 }
 
 //====================================

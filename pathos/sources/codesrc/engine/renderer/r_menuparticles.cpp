@@ -100,11 +100,9 @@ bool CMenuParticles::InitGL( void )
 {
 	if(!m_pShader)
 	{
-		Int32 shaderFlags = CGLSLShader::FL_GLSL_SHADER_NONE;
-		if(R_IsExtensionSupported("GL_ARB_get_program_binary"))
-			shaderFlags |= CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
+		Int32 shaderFlags = CGLSLShader::FL_GLSL_BINARY_SHADER_OPS;
 
-		m_pShader = new CGLSLShader(FL_GetInterface(), gGLExtF, "menuparticles.bss", shaderFlags, VID_ShaderCompileCallback);
+		m_pShader = new CGLSLShader(FL_GetInterface(), "menuparticles.bss", shaderFlags, VID_ShaderCompileCallback);
 		if(m_pShader->HasError())
 		{
 			Sys_ErrorPopup("%s - Failed to compile shader: %s.", __FUNCTION__, m_pShader->GetError());
@@ -134,7 +132,7 @@ bool CMenuParticles::InitGL( void )
 
 	if(!m_pVBO)
 	{
-		m_pVBO = new CVBO(gGLExtF, m_vertexesArray, sizeof(m_vertexesArray), nullptr, 0, false);
+		m_pVBO = new CVBO(m_vertexesArray, sizeof(m_vertexesArray), nullptr, 0, false);
 		m_pShader->SetVBO(m_pVBO);
 	}
 
@@ -189,8 +187,8 @@ bool CMenuParticles::Draw( void )
 	m_pShader->SetUniform1i(m_attribs.u_texture1, 0);
 	m_pShader->SetUniform1i(m_attribs.u_texture2, 1);
 
-	R_Bind2DTexture(GL_TEXTURE0_ARB, m_pParticleTexture->palloc->gl_index);
-	R_Bind2DTexture(GL_TEXTURE1_ARB, m_pBgAlphaTexture->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE0, m_pParticleTexture->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE1, m_pBgAlphaTexture->palloc->gl_index);
 
 	// Set matrices
 	rns.view.modelview.LoadIdentity();

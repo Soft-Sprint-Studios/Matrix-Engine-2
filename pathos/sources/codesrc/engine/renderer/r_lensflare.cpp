@@ -392,7 +392,7 @@ void CLensFlareRenderer::DrawQuad( const Vector& position, const Vector& color, 
 	Float right = width * 0.5;
 	Float left = -right;
 
-	R_Bind2DTexture(GL_TEXTURE0_ARB, ptexture->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE0, ptexture->palloc->gl_index);
 	R_ValidateShader(m_pBasicDraw);
 
 	m_pBasicDraw->Begin(CBasicDraw::DRAW_TRIANGLES);
