@@ -39,6 +39,7 @@ public:
 public:
 	virtual bool Spawn( void ) override;
 	virtual bool CanEntityBeParent( void ) const override { return true; }
+	virtual bool IsFuncPushableEntity( void ) const override { return true; }
 
 public:
 	virtual void SetSpawnProperties( void ) override;

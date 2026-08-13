@@ -39,5 +39,6 @@ public:
 	virtual bool Spawn( void ) override;
 	virtual void SetSpawnProperties( void ) override;
 	virtual bool KeyValue( const keyvalue_t& kv ) override;
+	virtual bool IsFuncPushableEntity( void ) const override { return true; }
 };
 #endif //ENVMODELPHYSICS_H

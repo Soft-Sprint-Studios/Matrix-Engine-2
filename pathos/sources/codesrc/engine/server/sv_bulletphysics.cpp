@@ -365,6 +365,8 @@ void CBulletPhysics::Frame( double frametime )
 			SyncPhysicsToEntity(pedict, i);
 		}
 	}
+
+	ProcessContactTouches();
 }
 
 //=============================================
@@ -589,6 +591,51 @@ btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLoca
 	}
 
 	return nullptr;
+}
+
+//=============================================
+//
+//=============================================
+void CBulletPhysics::ProcessContactTouches( void )
+{
+	if (!m_pDispatcher)
+		return;
+
+	Int32 numManifolds = m_pDispatcher->getNumManifolds();
+	for (Int32 i = 0; i < numManifolds; i++)
+	{
+		btPersistentManifold* contactManifold = m_pDispatcher->getManifoldByIndexInternal(i);
+		Int32 numContacts = contactManifold->getNumContacts();
+		if (numContacts <= 0)
+			continue;
+
+		const btCollisionObject* obA = contactManifold->getBody0();
+		const btCollisionObject* obB = contactManifold->getBody1();
+
+		edict_t* edictA = static_cast<edict_t*>(obA->getUserPointer());
+		edict_t* edictB = static_cast<edict_t*>(obB->getUserPointer());
+
+		if (!edictA || !edictB || edictA->free || edictB->free)
+			continue;
+
+		if (edictA->state.movetype != MOVETYPE_PHYSICS && edictB->state.movetype != MOVETYPE_PHYSICS)
+			continue;
+
+		btManifoldPoint& pt = contactManifold->getContactPoint(0);
+		if (pt.getDistance() > 0.1f)
+			continue;
+
+		trace_t tr;
+		tr.hitentity = edictB->entindex;
+		tr.fraction = 0.0f;
+		tr.endpos = edictA->state.origin;
+
+		btVector3 norm = pt.m_normalWorldOnB;
+		tr.plane.normal = Vector(norm.x(), norm.y(), norm.z());
+		tr.plane.dist = Math::DotProduct(tr.plane.normal, tr.endpos);
+
+		SV_Impact(edictA, edictB, tr);
+	}
 }
 
 //=============================================
