@@ -63,6 +63,7 @@ public:
 private:
 	void ApplyBuoyancy( edict_t* pedict, btRigidBody* body );
 	void SyncEntityToPhysics( edict_t* pedict, Uint32 entindex );
+	void SyncEntityToKinematic( edict_t* pedict, Uint32 entindex );
 	void SyncPhysicsToEntity( edict_t* pedict, Uint32 entindex );
 	void RemoveBody( Uint32 entindex );
 

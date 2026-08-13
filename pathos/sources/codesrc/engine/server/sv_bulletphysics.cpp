@@ -326,7 +326,7 @@ void CBulletPhysics::Frame( double frametime )
 	{
 		edict_t* pedict = gEdicts.GetEdict(i);
 
-		if (pedict->free)
+		if (pedict->free || pedict->state.solid == SOLID_NOT)
 		{
 			RemoveBody(i);
 			continue;
@@ -339,6 +339,14 @@ void CBulletPhysics::Frame( double frametime )
 
 			if (m_bodyIds[i])
 				ApplyBuoyancy(pedict, m_bodyIds[i]);
+		}
+		else if (pedict->state.movetype == MOVETYPE_PUSH)
+		{
+			if (!m_bodyIds[i])
+				SyncEntityToPhysics(pedict, i);
+
+			if (m_bodyIds[i])
+				SyncEntityToKinematic(pedict, i);
 		}
 		else if (m_bodyIds[i])
 		{
@@ -635,30 +643,74 @@ void CBulletPhysics::SyncEntityToPhysics(edict_t* pedict, Uint32 entindex)
 
 	startTransform.setOrigin(worldCenter);
 
-	btScalar mass = (pedict->state.fuser1 > 0) ? pedict->state.fuser1 : 100.f;
+	btScalar mass = 0.0f;
 	btVector3 localInertia(0, 0, 0);
-	shape->calculateLocalInertia(mass, localInertia);
+
+	bool isKinematic = (pedict->state.movetype == MOVETYPE_PUSH);
+	if (!isKinematic)
+	{
+		mass = (pedict->state.fuser1 > 0) ? pedict->state.fuser1 : 100.f;
+		shape->calculateLocalInertia(mass, localInertia);
+	}
 
 	btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
 	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, shape, localInertia);
 
-	rbInfo.m_friction = 0.5f;
+	rbInfo.m_friction = 0.8f;
 	rbInfo.m_restitution = 0.2f;
 
 	btRigidBody* body = new btRigidBody(rbInfo);
 	body->setUserPointer(pedict);
-	body->setActivationState(DISABLE_DEACTIVATION);
 
-	float hx = (pedict->state.maxs.x - pedict->state.mins.x) * 0.5f;
-	float hy = (pedict->state.maxs.y - pedict->state.mins.y) * 0.5f;
-	float hz = (pedict->state.maxs.z - pedict->state.mins.z) * 0.5f;
-	float minExtent = hx < hy ? (hx < hz ? hx : hz) : (hy < hz ? hy : hz);
+	if (isKinematic)
+	{
+		body->setCollisionFlags(body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+		body->setActivationState(DISABLE_DEACTIVATION);
+	}
+	else
+	{
+		body->setActivationState(DISABLE_DEACTIVATION);
 
-	body->setCcdMotionThreshold(minExtent * 0.5f);
-	body->setCcdSweptSphereRadius(minExtent * 0.2f);
+		float hx = (pedict->state.maxs.x - pedict->state.mins.x) * 0.5f;
+		float hy = (pedict->state.maxs.y - pedict->state.mins.y) * 0.5f;
+		float hz = (pedict->state.maxs.z - pedict->state.mins.z) * 0.5f;
+		float minExtent = hx < hy ? (hx < hz ? hx : hz) : (hy < hz ? hy : hz);
+
+		body->setCcdMotionThreshold(minExtent * 0.5f);
+		body->setCcdSweptSphereRadius(minExtent * 0.2f);
+	}
 
 	m_pDynamicsWorld->addRigidBody(body);
 	m_bodyIds[entindex] = body;
+}
+
+//=============================================
+//
+//=============================================
+void CBulletPhysics::SyncEntityToKinematic( edict_t* pedict, Uint32 entindex )
+{
+	btRigidBody* body = m_bodyIds[entindex];
+	if (!body)
+		return;
+
+	btTransform trans;
+	trans.setIdentity();
+
+	vec4_t vq;
+	Math::AngleQuaternion(pedict->state.angles, vq);
+	btQuaternion rot((Float)vq[0], (Float)vq[1], (Float)vq[2], (Float)vq[3]);
+	trans.setRotation(rot);
+
+	btVector3 localCenter((pedict->state.mins.x + pedict->state.maxs.x) * 0.5f, (pedict->state.mins.y + pedict->state.maxs.y) * 0.5f, (pedict->state.mins.z + pedict->state.maxs.z) * 0.5f);
+	btVector3 worldOrigin(pedict->state.origin.x, pedict->state.origin.y, pedict->state.origin.z);
+	btVector3 worldCenter = worldOrigin + quatRotate(rot, localCenter);
+
+	trans.setOrigin(worldCenter);
+
+	if (body->getMotionState())
+		body->getMotionState()->setWorldTransform(trans);
+
+	body->setWorldTransform(trans);
 }
 
 //=============================================
