@@ -1192,6 +1192,7 @@
   model(studio) : "Model"
   body(Integer) : "Body" : 0
   skin(Integer) : "Skin" : 0
+  mass(string) : "Mass" : "100"
 ]
 
 @PointClass base(Targetname, Global, Angles, RenderFields) size(-16 -16 -16, 16 16 16) color(0 128 255) studio() = env_modeltrain : "Model Train"
@@ -1910,7 +1911,10 @@
   ]
   _minlight(integer) : "_minlight"
 ]
-@SolidClass base(Breakable, RenderFields, Targetname, Angles, ZHLT) = func_physbox : "Physics Box"[]
+@SolidClass base(Breakable, RenderFields, Targetname, Angles, ZHLT) = func_physics : "Physics Brush"
+[
+  mass(string) : "Mass" : "100"
+]
 
 @SolidClass base(Targetname, ParentedEnt, Global, RenderFields, Angles, ZHLT) = func_rotating : "Rotating Object"
 [

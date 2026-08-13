@@ -38,5 +38,6 @@ public:
 public:
 	virtual bool Spawn( void ) override;
 	virtual void SetSpawnProperties( void ) override;
+	virtual bool KeyValue( const keyvalue_t& kv ) override;
 };
 #endif //ENVMODELPHYSICS_H

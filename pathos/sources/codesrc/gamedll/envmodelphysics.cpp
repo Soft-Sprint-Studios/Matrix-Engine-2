@@ -59,6 +59,21 @@ void CEnvModelPhysics::SetSpawnProperties( void )
 // @brief
 //
 //=============================================
+bool CEnvModelPhysics::KeyValue( const keyvalue_t& kv )
+{
+	if(!qstrcmp(kv.keyname, "mass"))
+	{
+		m_pState->fuser1 = SDL_atof(kv.value);
+		return true;
+	}
+	else
+		return CEnvModelBreakable::KeyValue(kv);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
 bool CEnvModelPhysics::Spawn( void )
 {
 	if(!CEnvModelBreakable::Spawn())

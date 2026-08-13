@@ -21,27 +21,64 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef FUNCPHYSBOX_H
-#define FUNCPHYSBOX_H
+#include "includes.h"
+#include "gd_includes.h"
+#include "funcphysics.h"
 
-#include "funcbreakable.h"
+ // Link the entity to it's class
+LINK_ENTITY_TO_CLASS(func_physics, CFuncPhysics);
 
 //=============================================
 // @brief
 //
 //=============================================
-class CFuncPhysbox : public CFuncBreakable
+CFuncPhysics::CFuncPhysics( edict_t* pedict ) : CFuncBreakable(pedict)
 {
-public:
-	explicit CFuncPhysbox( edict_t* pedict );
-	virtual ~CFuncPhysbox( void );
+}
 
-public:
-	virtual bool Spawn( void ) override;
-	virtual bool CanEntityBeParent( void ) const override { return true; }
+//=============================================
+// @brief
+//
+//=============================================
+CFuncPhysics::~CFuncPhysics( void )
+{
+}
 
-public:
-	virtual void SetSpawnProperties( void ) override;
-};
+//=============================================
+// @brief
+//
+//=============================================
+void CFuncPhysics::SetSpawnProperties( void )
+{
+	m_pState->movetype = MOVETYPE_PHYSICS;
+	m_pState->solid = SOLID_BBOX;
+}
 
-#endif //FUNCPHYSBOX_H
+//=============================================
+// @brief
+//
+//=============================================
+bool CFuncPhysics::KeyValue( const keyvalue_t& kv )
+{
+	if(!qstrcmp(kv.keyname, "mass"))
+	{
+		m_pState->fuser1 = SDL_atof(kv.value);
+		return true;
+	}
+	else
+		return CFuncBreakable::KeyValue(kv);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+bool CFuncPhysics::Spawn(void)
+{
+	if (!CFuncBreakable::Spawn())
+		return false;
+
+	SetOrigin(m_pState->origin);
+
+	return true;
+}

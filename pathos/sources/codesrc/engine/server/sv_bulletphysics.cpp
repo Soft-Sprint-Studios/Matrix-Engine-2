@@ -635,7 +635,7 @@ void CBulletPhysics::SyncEntityToPhysics(edict_t* pedict, Uint32 entindex)
 
 	startTransform.setOrigin(worldCenter);
 
-	btScalar mass(100.f);
+	btScalar mass = (pedict->state.fuser1 > 0) ? pedict->state.fuser1 : 100.f;
 	btVector3 localInertia(0, 0, 0);
 	shape->calculateLocalInertia(mass, localInertia);
 

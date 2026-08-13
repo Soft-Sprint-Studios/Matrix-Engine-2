@@ -21,49 +21,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "includes.h"
-#include "gd_includes.h"
-#include "funcphysbox.h"
+#ifndef FUNCPHYSICS_H
+#define FUNCPHYSICS_H
 
- // Link the entity to it's class
-LINK_ENTITY_TO_CLASS(func_physbox, CFuncPhysbox);
+#include "funcbreakable.h"
 
 //=============================================
 // @brief
 //
 //=============================================
-CFuncPhysbox::CFuncPhysbox( edict_t* pedict ) : CFuncBreakable(pedict)
+class CFuncPhysics : public CFuncBreakable
 {
-}
+public:
+	explicit CFuncPhysics( edict_t* pedict );
+	virtual ~CFuncPhysics( void );
 
-//=============================================
-// @brief
-//
-//=============================================
-CFuncPhysbox::~CFuncPhysbox( void )
-{
-}
+public:
+	virtual bool Spawn( void ) override;
+	virtual bool CanEntityBeParent( void ) const override { return true; }
 
-//=============================================
-// @brief
-//
-//=============================================
-void CFuncPhysbox::SetSpawnProperties( void )
-{
-	m_pState->movetype = MOVETYPE_PHYSICS;
-	m_pState->solid = SOLID_BBOX;
-}
+public:
+	virtual void SetSpawnProperties( void ) override;
+	virtual bool KeyValue( const keyvalue_t& kv ) override;
+};
 
-//=============================================
-// @brief
-//
-//=============================================
-bool CFuncPhysbox::Spawn(void)
-{
-	if (!CFuncBreakable::Spawn())
-		return false;
-
-	SetOrigin(m_pState->origin);
-
-	return true;
-}
+#endif //FUNCPHYSICS_H

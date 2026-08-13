@@ -960,7 +960,7 @@
     <ClCompile Include="funcvideo.cpp">
       <Filter>Source Files\entities\func</Filter>
     </ClCompile>
-    <ClCompile Include="funcphysbox.cpp">
+    <ClCompile Include="funcphysics.cpp">
       <Filter>Source Files\entities\func</Filter>
     </ClCompile>
     <ClCompile Include="envmodelphysics.cpp">
@@ -1814,7 +1814,7 @@
     <ClInclude Include="funcvideo.h">
       <Filter>Header Files\entities\func</Filter>
     </ClInclude>
-    <ClInclude Include="funcphysbox.h">
+    <ClInclude Include="funcphysics.h">
       <Filter>Header Files\entities\func</Filter>
     </ClInclude>
     <ClInclude Include="envmodelphysics.h">
