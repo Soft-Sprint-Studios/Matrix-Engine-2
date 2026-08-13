@@ -336,6 +336,9 @@ void CBulletPhysics::Frame( double frametime )
 		{
 			if (!m_bodyIds[i])
 				SyncEntityToPhysics(pedict, i);
+
+			if (m_bodyIds[i])
+				ApplyBuoyancy(pedict, m_bodyIds[i]);
 		}
 		else if (m_bodyIds[i])
 		{
@@ -578,6 +581,35 @@ btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLoca
 	}
 
 	return nullptr;
+}
+
+//=============================================
+//
+//=============================================
+void CBulletPhysics::ApplyBuoyancy( edict_t* pedict, btRigidBody* body )
+{
+	SV_CheckWater(pedict);
+	if (pedict->state.waterlevel <= WATERLEVEL_NONE)
+	{
+		body->setDamping(0.0f, 0.0f);
+		return;
+	}
+
+	Float totalHeight = pedict->state.maxs.z - pedict->state.mins.z;
+	Float submergedHeight = SV_Submerged(pedict);
+	Float submergedRatio = (totalHeight > 0) ? clamp(submergedHeight / totalHeight, 0.0f, 1.0f) : 1.0f;
+
+	if (submergedRatio <= 0)
+		return;
+
+	Float mass = 1.0f / body->getInvMass();
+	Float gravity = g_psv_gravity->GetValue();
+	Float buoyancyFactor = (pedict->state.skin > 0) ? (pedict->state.skin * 0.1f) : 1.2f;
+
+	btVector3 buoyantForce(0, 0, mass * gravity * submergedRatio * buoyancyFactor);
+	body->applyCentralForce(buoyantForce);
+
+	body->setDamping(0.7f * submergedRatio, 0.7f * submergedRatio);
 }
 
 //=============================================

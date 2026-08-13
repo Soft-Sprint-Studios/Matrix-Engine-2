@@ -61,6 +61,7 @@ public:
 	void ApplyImpulse( Uint32 entindex, const Vector& impulse, const Vector& relPos = Vector(0, 0, 0) );
 
 private:
+	void ApplyBuoyancy( edict_t* pedict, btRigidBody* body );
 	void SyncEntityToPhysics( edict_t* pedict, Uint32 entindex );
 	void SyncPhysicsToEntity( edict_t* pedict, Uint32 entindex );
 	void RemoveBody( Uint32 entindex );

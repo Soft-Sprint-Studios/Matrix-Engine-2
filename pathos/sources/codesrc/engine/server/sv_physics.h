@@ -147,4 +147,6 @@ extern void SV_Physics_Init( void );
 extern void SV_Physics( void );
 extern void SV_Impact( edict_t* pentity1, edict_t* pentity2, const trace_t& trace );
 extern bool SV_CheckBottom( edict_t* pedict );
+extern bool SV_CheckWater( edict_t* pedict );
+extern Float SV_Submerged( edict_t* pedict );
 #endif //SV_PHYSICS_H
