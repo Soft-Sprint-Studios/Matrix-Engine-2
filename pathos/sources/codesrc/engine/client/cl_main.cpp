@@ -190,7 +190,7 @@ bool CL_Init( void )
 	}
 
 	// Init the gamedll interface
-	pfnClientDLLInit_t pfnCLDLLInit = static_cast<pfnClientDLLInit_t>(SDL_LoadFunction(cls.pdllhandle, "ClientDLL_Init"));
+	pfnClientDLLInit_t pfnCLDLLInit = reinterpret_cast<pfnClientDLLInit_t>(SDL_LoadFunction(reinterpret_cast<SDL_SharedObject*>(cls.pdllhandle), "ClientDLL_Init"));
 	if(!pfnCLDLLInit)
 	{
 		Sys_ErrorPopup("Failed to hook 'ClientDLL_Init' in client dll.\n");
@@ -295,7 +295,7 @@ void CL_Shutdown( void )
 	// Unload the game dll
 	if(cls.pdllhandle != nullptr)
 	{
-		SDL_UnloadObject(cls.pdllhandle);
+		SDL_UnloadObject(reinterpret_cast<SDL_SharedObject*>(cls.pdllhandle));
 		cls.pdllhandle = nullptr;
 	}
 }

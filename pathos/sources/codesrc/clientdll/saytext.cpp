@@ -290,14 +290,14 @@ void CSayText::KeyEvent( Int32 button, Int16 mod, bool keyDown )
 		return;
 
 	// Get SDL Keycode
-	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button);
+	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button, SDL_KMOD_NONE, false);
 	
 	// See if it's a valid text input character
-	if(sdlKeycode >= SDLK_SPACE && sdlKeycode <= SDLK_z)
+	if(sdlKeycode >= SDLK_SPACE && sdlKeycode <= SDLK_Z)
 	{
 		// Shift if needed
 		Char inputChar = (Char)sdlKeycode;
-		if(mod & KMOD_SHIFT)
+		if(mod & SDL_KMOD_SHIFT)
 			inputChar = Common::GetShiftedChar(inputChar);
 
 		m_sayText.Append(inputChar);

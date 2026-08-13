@@ -2057,7 +2057,7 @@ void SV_RegisterClientUserMessage( void )
 	usermsgfuncname << "MsgFunc_" << pstrMsgName;
 
 	// Load function pointer
-	pfnSVUserMsg_t pFunction = static_cast<pfnSVUserMsg_t>(SDL_LoadFunction(svs.pdllhandle, usermsgfuncname.c_str()));
+	pfnSVUserMsg_t pFunction = reinterpret_cast<pfnSVUserMsg_t>(SDL_LoadFunction(reinterpret_cast<SDL_SharedObject*>(svs.pdllhandle), usermsgfuncname.c_str()));
 	if(!pFunction)
 	{
 		// Add the entry anyway, but warn the client

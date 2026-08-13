@@ -13,7 +13,7 @@ All Rights Reserved.
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <glad/glad.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include <stdlib.h>
 #include <cassert>

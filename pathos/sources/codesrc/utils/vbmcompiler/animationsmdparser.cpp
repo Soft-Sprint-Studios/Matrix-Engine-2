@@ -6,7 +6,7 @@ Copyright 2016
 All Rights Reserved.
 ===============================================
 */
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #ifdef WIN32
 #include <Windows.h>
 #endif

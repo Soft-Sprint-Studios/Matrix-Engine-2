@@ -7,7 +7,7 @@ All Rights Reserved.
 ===============================================
 */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "includes.h"
 #include "window.h"
@@ -78,8 +78,7 @@ CWindow::~CWindow( void )
 bool CWindow::GetOpenGLInfo(Int32& maxMSAA)
 {
 	// Create the temporary window
-	SDL_Window* pTempWindow = SDL_CreateWindow(ens.gametitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
-		4, 4, (SDL_WINDOW_OPENGL|SDL_WINDOW_HIDDEN));
+	SDL_Window* pTempWindow = SDL_CreateWindow(ens.gametitle.c_str(), 4, 4, (SDL_WINDOW_OPENGL|SDL_WINDOW_HIDDEN));
 
 	if(!pTempWindow)
 		return false;
@@ -106,7 +105,7 @@ bool CWindow::GetOpenGLInfo(Int32& maxMSAA)
 	if (maxMSAA > MAX_MSAA_VALUE)
 		maxMSAA = MAX_MSAA_VALUE;
 
-	SDL_GL_DeleteContext(tempContext);
+	SDL_GL_DestroyContext(tempContext);
 	SDL_DestroyWindow(pTempWindow);
 
 	return true;
@@ -142,14 +141,14 @@ bool CWindow::PreInit( void )
 bool CWindow::Init( void )
 {
 	// Get active devices
-	if(SDL_VideoInit(nullptr))
+	if(!SDL_InitSubSystem(SDL_INIT_VIDEO))
 	{
 		Con_EPrintf("%s failed: %s\n", __FUNCTION__, SDL_GetError());
 		return false;
 	}
 
 	// Set the OpenGL version
-	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, SDL_TRUE);
+	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, true);
 
 #ifdef _DEBUG
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
@@ -158,7 +157,7 @@ bool CWindow::Init( void )
 #else
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_RELEASE_BEHAVIOR, SDL_GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_FALSE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, false);
 #endif
 
 	// Get depth buffer bit count
@@ -188,7 +187,7 @@ bool CWindow::Init( void )
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	}
 
-	Int32 windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+	Int32 windowFlags = SDL_WINDOW_OPENGL;
 	if(m_bFullScreen)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 
@@ -312,7 +311,7 @@ bool CWindow::Init( void )
 	}
 
 	// Create the window
-	m_pSDLWindow = SDL_CreateWindow(ens.gametitle.c_str(), xPos, yPos, 
+	m_pSDLWindow = SDL_CreateWindow(ens.gametitle.c_str(), 
 		m_pCurrentRes->width, m_pCurrentRes->height, windowFlags);
 
 	if(!m_pSDLWindow)
@@ -350,7 +349,7 @@ bool CWindow::Init( void )
 //=============================================
 void CWindow::DestroyWindow( void )
 {
-	SDL_GL_DeleteContext(m_sdlContext);
+	SDL_GL_DestroyContext(m_sdlContext);
 
 	if(m_pSDLWindow)
 	{
@@ -358,7 +357,7 @@ void CWindow::DestroyWindow( void )
 		m_pSDLWindow = nullptr;
 	}
 
-	SDL_VideoQuit();
+	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 
 	m_bWindowActive = false;
 	m_bWindowInitialized = false;
@@ -384,18 +383,28 @@ bool CWindow::BuildDeviceList( void )
 		m_devicesArray.clear();
 	}
 
-	Int32 numDisplays = SDL_GetNumVideoDisplays();
-	for( Uint32 i = 0; i < static_cast<Uint32>(numDisplays); i++ ) 
+	int numDisplays = 0;
+	SDL_DisplayID *displays = SDL_GetDisplays(&numDisplays);
+	if (!displays || numDisplays <= 0)
+	{
+		Con_EPrintf("No valid display devices found.\n");
+		if (displays)
+			SDL_free(displays);
+		return false;
+	}
+
+	for( int i = 0; i < numDisplays; i++ ) 
 	{
 		ddevice_t *newDevice = new ddevice_t;
 		CString deviceName;
-		deviceName << static_cast<Int32>(i+1) << " - " << SDL_GetDisplayName(i);
+		deviceName << (i+1) << " - " << SDL_GetDisplayName(displays[i]);
 
 		newDevice->name = deviceName;
+		newDevice->displayID = displays[i];
 		newDevice->index = i;
 
 		SDL_Rect monRect;
-		SDL_GetDisplayBounds(i, &monRect);
+		SDL_GetDisplayBounds(displays[i], &monRect);
 		newDevice->xOffset = monRect.x;
 		newDevice->yOffset = monRect.y;
 
@@ -408,7 +417,9 @@ bool CWindow::BuildDeviceList( void )
 		m_devicesArray.push_back(newDevice);
 	}
 
-	if(!numDisplays)
+	SDL_free(displays);
+
+	if(m_devicesArray.empty())
 	{
 		Con_EPrintf("No valid display devices found.\n");
 		return false;
@@ -423,35 +434,33 @@ bool CWindow::BuildDeviceList( void )
 //=============================================
 bool CWindow::FetchResolutions( ddevice_t* pdevice )
 {
-	Int32 nbResolutions = SDL_GetNumDisplayModes(pdevice->index);
-	if(!nbResolutions)
+	int nbResolutions = 0;
+	SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(pdevice->displayID, &nbResolutions);
+	if(!modes || nbResolutions <= 0)
 	{
-		Con_EPrintf("Couldn't get display mode number for device %s.\n", pdevice->name.c_str());
+		Con_EPrintf("Couldn't get display modes for device %s.\n", pdevice->name.c_str());
+		if(modes)
+			SDL_free(modes);
 		return false;
 	}
 
 	pdevice->resolutions.reserve(nbResolutions);
 
 	Uint32 resindex = 0;
-	for(Uint32 i = 0; i < static_cast<Uint32>(nbResolutions); i++)
+	for(int i = 0; i < nbResolutions; i++)
 	{
-		SDL_DisplayMode dMode;
-		dMode.driverdata = nullptr;
+		const SDL_DisplayMode* dMode = modes[i];
+		if(!dMode)
+			continue;
 
-		if(SDL_GetDisplayMode(pdevice->index, i, &dMode))
-		{
-			Con_EPrintf("Couldn't get display information: %s.\n", SDL_GetError());
-			return false;
-		}
-
-		if(dMode.w < MIN_SCREEN_WIDTH || dMode.h < MIN_SCREEN_HEIGHT)
+		if(dMode->w < MIN_SCREEN_WIDTH || dMode->h < MIN_SCREEN_HEIGHT)
 			continue;
 
 		Uint32 j = 0;
 		for(; j < pdevice->resolutions.size(); j++)
 		{
-			if(pdevice->resolutions[j].width == static_cast<Uint32>(dMode.w)
-				&& pdevice->resolutions[j].height == static_cast<Uint32>(dMode.h))
+			if(pdevice->resolutions[j].width == static_cast<Uint32>(dMode->w)
+				&& pdevice->resolutions[j].height == static_cast<Uint32>(dMode->h))
 				break;
 		}
 
@@ -460,13 +469,15 @@ bool CWindow::FetchResolutions( ddevice_t* pdevice )
 
 		resolution_t newRes;
 		newRes.index = resindex;
-		newRes.width = dMode.w;
-		newRes.height = dMode.h;
-		newRes.rate = dMode.refresh_rate;
+		newRes.width = dMode->w;
+		newRes.height = dMode->h;
+		newRes.rate = static_cast<Uint32>(dMode->refresh_rate);
 
 		pdevice->resolutions.push_back(newRes);
 		resindex++;
 	}
+
+	SDL_free(modes);
 
 	pdevice->resolutions.resize(pdevice->resolutions.size());
 
@@ -592,15 +603,15 @@ bool CWindow::SetDisplayProperties( void )
 	if(!m_pCurrentRes)
 	{
 		// No config set, use native resolution
-		SDL_DisplayMode dMode;
-		if(SDL_GetCurrentDisplayMode(m_pActiveDevice->index, &dMode))
+		const SDL_DisplayMode* dMode = SDL_GetCurrentDisplayMode(m_pActiveDevice->displayID);
+		if(!dMode)
 		{
 			Con_EPrintf("Failed to get desktop size.\n");
 			return false;
 		}
 
 		// Find it in the config list
-		m_pCurrentRes = FindResolution(m_pActiveDevice, dMode.w, dMode.h);
+		m_pCurrentRes = FindResolution(m_pActiveDevice, dMode->w, dMode->h);
 
 		// Shouldn't happen
 		if(!m_pCurrentRes)

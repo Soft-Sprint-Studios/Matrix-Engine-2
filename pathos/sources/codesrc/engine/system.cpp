@@ -104,8 +104,8 @@ bool Sys_Init( CArray<CString>* argsArray )
 		GetLastError();
 
 	// Start SDL
-	if(SDL_Init( SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS |
-       SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_SENSOR | SDL_INIT_VIDEO))
+	if(!SDL_Init( SDL_INIT_AUDIO | SDL_INIT_EVENTS |
+       SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMEPAD | SDL_INIT_SENSOR | SDL_INIT_VIDEO))
 	{
 		Sys_ErrorPopup("SDL_Init returned an error: %s", SDL_GetError());
 		return false;
@@ -515,14 +515,14 @@ bool Sys_CheckGameDir( const CArray<CString>* argsArray )
 	CString filepath;
 	filepath << ens.gamedir << PATH_SLASH_CHAR << GAMEINFO_FILENAME;
 
-	SDL_RWops* pf = SDL_RWFromFile(filepath.c_str(), "rb");
+	SDL_IOStream* pf = SDL_IOFromFile(filepath.c_str(), "rb");
 	if(!pf)
 	{
 		Sys_ErrorPopup("Could not locate game config file '%s'.\n", filepath.c_str());
 		return false;
 	}
 
-	SDL_RWclose(pf);
+	SDL_CloseIO(pf);
 	return true;
 }
 
@@ -955,7 +955,7 @@ bool Sys_GetDLLExports( const Char* pstrDLLName, void* pDLLHandle, CArray<dll_ex
 	// Set the function pointers
 	for(Uint32 i = 0; i < destArray.size(); i++)
 	{
-		destArray[i].functionptr = SDL_LoadFunction(pDLLHandle, destArray[i].functionname.c_str());
+		destArray[i].functionptr = reinterpret_cast<void*>(SDL_LoadFunction(reinterpret_cast<SDL_SharedObject*>(pDLLHandle), destArray[i].functionname.c_str()));
 		if(destArray[i].functionptr == nullptr)
 		{
 			Con_EPrintf("Failed to find function '%s' in '%s'.\n", destArray[i].functionname.c_str(), pstrDLLName);
@@ -1073,31 +1073,31 @@ void Sys_PollEvents( void )
 	SDL_Event mainEvent;
 	while(SDL_PollEvent(&mainEvent) != 0)
 	{
-		if(mainEvent.type == SDL_WINDOWEVENT)
+		switch(mainEvent.type)
 		{
-			switch(mainEvent.window.event)
+		case SDL_EVENT_WINDOW_MINIMIZED:
+		case SDL_EVENT_WINDOW_HIDDEN:
+		case SDL_EVENT_WINDOW_FOCUS_LOST:
+			Sys_WindowFocusLost();
+			break;
+
+		case SDL_EVENT_WINDOW_SHOWN:
+		case SDL_EVENT_WINDOW_RESTORED:
+		case SDL_EVENT_WINDOW_FOCUS_GAINED:
+			Sys_WindowFocusRegained();
+			break;
+
+		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+			ens.exit = true;
+			break;
+
+		default:
+			if(gWindow.IsActive())
 			{
-			case SDL_WINDOWEVENT_MINIMIZED:
-			case SDL_WINDOWEVENT_HIDDEN:
-			case SDL_WINDOWEVENT_FOCUS_LOST:
-				Sys_WindowFocusLost();
-				break;
-
-			case SDL_WINDOWEVENT_SHOWN:
-			case SDL_WINDOWEVENT_RESTORED:
-			case SDL_WINDOWEVENT_FOCUS_GAINED:
-				Sys_WindowFocusRegained();
-				break;
-
-			case SDL_WINDOWEVENT_CLOSE:
-				ens.exit = true;
-				break;
+				// Handle any other events with the input class
+				gInput.HandleSDLEvent(mainEvent);
 			}
-		}
-		else if(gWindow.IsActive())
-		{
-			// Handle any other events with the input class
-			gInput.HandleSDLEvent(mainEvent);
+			break;
 		}
 	}
 }

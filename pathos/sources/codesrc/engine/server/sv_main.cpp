@@ -253,7 +253,7 @@ bool SV_Init( void )
 	}
 
 	// Init the gamedll interface
-	pfnGameDLLInit_t pfnGDLLInit = static_cast<pfnGameDLLInit_t>(SDL_LoadFunction(svs.pdllhandle, "GameDLL_Init"));
+	pfnGameDLLInit_t pfnGDLLInit = reinterpret_cast<pfnGameDLLInit_t>(SDL_LoadFunction(reinterpret_cast<SDL_SharedObject*>(svs.pdllhandle), "GameDLL_Init"));
 	if(!pfnGDLLInit)
 	{
 		Sys_ErrorPopup("Failed to hook 'GameDLL_Init' in game dll.\n");
@@ -347,7 +347,7 @@ void SV_Shutdown( void )
 	// Unload the game dll
 	if(svs.pdllhandle != nullptr)
 	{
-		SDL_UnloadObject(svs.pdllhandle);
+		SDL_UnloadObject(reinterpret_cast<SDL_SharedObject*>(svs.pdllhandle));
 		svs.pdllhandle = nullptr;
 	}
 }

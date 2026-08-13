@@ -10,7 +10,7 @@ All Rights Reserved.
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <SDL_video.h>
+#include <SDL3/SDL_video.h>
 
 /*
 =================================
@@ -48,12 +48,14 @@ public:
 	struct ddevice_t
 	{
 		ddevice_t():
+			displayID(0),
 			index(0),
 			xOffset(0),
 			yOffset(0)
 		{}
 
 		CString name;
+		SDL_DisplayID displayID;
 		Int32 index;
 
 		Int32 xOffset;

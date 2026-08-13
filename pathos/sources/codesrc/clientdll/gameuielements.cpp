@@ -836,7 +836,7 @@ bool CGameUIButton::keyEvent( Int32 button, Int16 mod, bool keyDown )
 		if(m_isDisabled)
 			return false;
 
-		SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button);
+		SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button, SDL_KMOD_NONE, false);
 		if(buttonKey == sdlKeycode && keyDown)
 		{
 			m_isClickedOn = true;
@@ -1226,7 +1226,7 @@ bool CGameUITextTab::keyEvent( Int32 button, Int16 mod, bool keyDown )
 		return false;
 
 	// Get SDL Keycode
-	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button);
+	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button, SDL_KMOD_NONE, false);
 
 	switch(sdlKeycode)
 	{
@@ -2040,7 +2040,7 @@ bool CGameUITextInputTab::keyEvent( Int32 button, Int16 mod, bool keyDown )
 		return true;
 
 	// Get SDL Keycode
-	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button);
+	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button, SDL_KMOD_NONE, false);
 	
 	switch(sdlKeycode)
 	{
@@ -2092,7 +2092,7 @@ bool CGameUITextInputTab::keyEvent( Int32 button, Int16 mod, bool keyDown )
 		return false;
 
 	// See if it's a valid text input character
-	if(sdlKeycode >= SDLK_SPACE && sdlKeycode <= SDLK_z)
+	if(sdlKeycode >= SDLK_SPACE && sdlKeycode <= SDLK_Z)
 	{
 		// Avoid buffer over-indexing
 		if(m_inputPosition == GAMEUI_MAX_INPUT_LENGTH)
@@ -2100,7 +2100,7 @@ bool CGameUITextInputTab::keyEvent( Int32 button, Int16 mod, bool keyDown )
 
 		// Shift if needed
 		Char inputChar = (Char)sdlKeycode;
-		if(mod & (KMOD_SHIFT|KMOD_CAPS))
+		if(mod & (SDL_KMOD_SHIFT|SDL_KMOD_CAPS))
 			inputChar = Common::GetShiftedChar(inputChar);
 
 		// Shift elements if needed

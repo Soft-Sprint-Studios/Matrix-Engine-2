@@ -1131,7 +1131,7 @@ void CL_RegisterUserMessage( void )
 	usermsgfuncname << "MsgFunc_" << pstrMsgName;
 
 	// Load function pointer
-	pfnCLUserMsg_t pFunction = static_cast<pfnCLUserMsg_t>(SDL_LoadFunction(cls.pdllhandle, usermsgfuncname.c_str()));
+	pfnCLUserMsg_t pFunction = reinterpret_cast<pfnCLUserMsg_t>(SDL_LoadFunction(reinterpret_cast<SDL_SharedObject*>(cls.pdllhandle), usermsgfuncname.c_str()));
 	if(!pFunction)
 	{
 		// Add the entry anyway, but warn the client

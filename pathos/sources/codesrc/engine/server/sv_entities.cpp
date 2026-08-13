@@ -380,7 +380,7 @@ edict_t* SV_GetEdictByIndex( entindex_t entindex )
 bool SV_InitPrivateData( edict_t* pedict, const Char* pstrClassname )
 {
 	// Init the gamedll interface
-	pfnPrivateData_t pfn = static_cast<pfnPrivateData_t>(SDL_LoadFunction(svs.pdllhandle, pstrClassname));
+	pfnPrivateData_t pfn = reinterpret_cast<pfnPrivateData_t>(SDL_LoadFunction(reinterpret_cast<SDL_SharedObject*>(svs.pdllhandle), pstrClassname));
 	if(!pfn)
 		return false;
 

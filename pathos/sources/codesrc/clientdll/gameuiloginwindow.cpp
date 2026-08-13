@@ -490,7 +490,7 @@ void CGameUILoginWindow::onRemove( void )
 bool CGameUILoginWindow::keyEvent( Int32 button, Int16 mod, bool keyDown )
 {
 	// Get SDL Keycode
-	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button);
+	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button, SDL_KMOD_NONE, false);
 
 	if(keyDown && sdlKeycode == SDLK_TAB)
 	{

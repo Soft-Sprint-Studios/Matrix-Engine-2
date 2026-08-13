@@ -7,7 +7,7 @@ All Rights Reserved.
 ===============================================
 */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "includes.h"
 #include "common.h"

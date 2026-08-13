@@ -12,7 +12,7 @@ All Rights Reserved.
 #endif
 
 #include <time.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "includes.h"
 #include "logfile.h"

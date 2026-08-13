@@ -7,7 +7,7 @@ All Rights Reserved.
 ===============================================
 */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #ifdef WIN32
 #include <Windows.h>
 #endif
@@ -60,20 +60,20 @@ const byte* CFileCache::LoadFile( const Char* pstrpath, Uint32* psize )
 	}
 	else
 	{
-		SDL_RWops* pf = SDL_RWFromFile(pstrpath, "rb");
+		SDL_IOStream* pf = SDL_IOFromFile(pstrpath, "rb");
 		if(!pf)
 		{
 			SDL_ClearError();
 			return nullptr;
 		}
 
-		SDL_RWseek(pf, 0, RW_SEEK_END);
-		Int32 size = static_cast<Int32>(SDL_RWtell(pf));
-		SDL_RWseek(pf, 0, RW_SEEK_SET);
+		SDL_SeekIO(pf, 0, SDL_IO_SEEK_END);
+		Int32 size = static_cast<Int32>(SDL_TellIO(pf));
+		SDL_SeekIO(pf, 0, SDL_IO_SEEK_SET);
 
 		byte* pbuffer = new byte[size+1];
-		size_t numbytes = SDL_RWread(pf, pbuffer, 1, size);
-		SDL_RWclose(pf);
+		size_t numbytes = SDL_ReadIO(pf, pbuffer, size);
+		SDL_CloseIO(pf);
 
 		if(numbytes != size)
 		{
@@ -213,7 +213,7 @@ bool FL_WriteFile( const byte* pdata, Uint32 size, const Char* pstrpath, bool ap
 		ens.pfileiologfile->Write(str.c_str());
 	}
 
-	SDL_RWops* pf = SDL_RWFromFile(filepath.c_str(), append ? "ab" : "wb");
+	SDL_IOStream* pf = SDL_IOFromFile(filepath.c_str(), append ? "ab" : "wb");
 	if(!pf)
 	{
 		Con_EPrintf("Failed to open %s for writing: %s.\n", filepath.c_str(), SDL_GetError());
@@ -221,8 +221,8 @@ bool FL_WriteFile( const byte* pdata, Uint32 size, const Char* pstrpath, bool ap
 		return false;
 	}
 
-	size_t numbytes = SDL_RWwrite(pf, pdata, 1, size);
-	SDL_RWclose(pf);
+	size_t numbytes = SDL_WriteIO(pf, pdata, size);
+	SDL_CloseIO(pf);
 
 	if(!append)
 		Con_DPrintf("Wrote %d bytes for %s.\n", numbytes, pstrpath);
@@ -244,15 +244,15 @@ bool FL_WriteLogFile( const byte* pdata, Uint32 size, const Char* pstrpath, bool
 	CString filepath;
 	filepath << ens.gamedir << PATH_SLASH_CHAR << pstrpath;
 
-	SDL_RWops* pf = SDL_RWFromFile(filepath.c_str(), append ? "ab" : "wb");
+	SDL_IOStream* pf = SDL_IOFromFile(filepath.c_str(), append ? "ab" : "wb");
 	if(!pf)
 	{
 		SDL_ClearError();
 		return false;
 	}
 
-	size_t numbytes = SDL_RWwrite(pf, pdata, 1, size);
-	SDL_RWclose(pf);
+	size_t numbytes = SDL_WriteIO(pf, pdata, size);
+	SDL_CloseIO(pf);
 
 	return (numbytes == size) ? true : false;
 }
@@ -287,7 +287,7 @@ bool FL_WriteFileRoot( const byte* pdata, Uint32 size, const Char* pstrpath, boo
 		ens.pfileiologfile->Write(str.c_str());
 	}
 
-	SDL_RWops* pf = SDL_RWFromFile(pstrpath, append ? "ab" : "wb");
+	SDL_IOStream* pf = SDL_IOFromFile(pstrpath, append ? "ab" : "wb");
 	if(!pf)
 	{
 		Con_EPrintf("Failed to open %s for writing: %s.\n", pstrpath, SDL_GetError());
@@ -295,8 +295,8 @@ bool FL_WriteFileRoot( const byte* pdata, Uint32 size, const Char* pstrpath, boo
 		return false;
 	}
 
-	size_t numbytes = SDL_RWwrite(pf, pdata, 1, size);
-	SDL_RWclose(pf);
+	size_t numbytes = SDL_WriteIO(pf, pdata, size);
+	SDL_CloseIO(pf);
 
 	if(!append)
 		Con_DPrintf("Wrote %d bytes for %s.\n", numbytes, pstrpath);
@@ -459,20 +459,20 @@ bool FL_FileExists( const Char* pstrpath )
 	CString filepath;
 	filepath << ens.gamedir << PATH_SLASH_CHAR << pstrpath;
 
-	SDL_RWops* pf = SDL_RWFromFile(filepath.c_str(), "rb");
+	SDL_IOStream* pf = SDL_IOFromFile(filepath.c_str(), "rb");
 	if(!pf && qstrcmp(ens.gamedir, COMMON_GAMEDIR))
 	{
 		// Try loading from the base dir if it's a mod
 		filepath.clear();
 		filepath << COMMON_GAMEDIR << PATH_SLASH_CHAR << pstrpath;
 
-		pf = SDL_RWFromFile(filepath.c_str(), "rb");
+		pf = SDL_IOFromFile(filepath.c_str(), "rb");
 	}
 
 	if(!pf)
 		return false;
 
-	SDL_RWclose(pf);
+	SDL_CloseIO(pf);
 	return true;
 }
 

@@ -100,9 +100,9 @@ bool CInput::Init( void )
 	m_pCvarRawMouseInput = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), MOUSE_RAWINPUT_CVAR_NAME, "0", "Toggle raw mouse input.", IN_RawMouseCvarCallback);
 
 	// Allocate keyinfos
-	m_keyInfoArray.resize(SDL_NUM_SCANCODES+NUM_EXTRA_KEYS);
+	m_keyInfoArray.resize(SDL_SCANCODE_COUNT+NUM_EXTRA_KEYS);
 	// Allocate key buffer
-	m_keyInputBuffer.resize(SDL_NUM_SCANCODES+NUM_EXTRA_KEYS);
+	m_keyInputBuffer.resize(SDL_SCANCODE_COUNT+NUM_EXTRA_KEYS);
 
 	// Load key names
 	if(!LoadKeyNames())
@@ -263,7 +263,7 @@ bool CInput::LoadKeyNames( void )
 
 		if(keyInfo.name.empty())
 		{
-			SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(i));
+			SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(i), SDL_KMOD_NONE, false);
 			keyInfo.name = SDL_GetKeyName(sdlKeycode);
 			keyInfo.color = color32_t(255, 255, 255, 255);
 		}
@@ -272,7 +272,7 @@ bool CInput::LoadKeyNames( void )
 	// For mouse too
 	for(Uint32 i = 0; i < NB_MOUSE_BTN; i++)
 	{
-		Uint32 idx = SDL_NUM_SCANCODES + (i + 1);
+		Uint32 idx = SDL_SCANCODE_COUNT + (i + 1);
 		keyinfo_t& keyInfo = m_keyInfoArray[idx];
 
 		if(keyInfo.name.empty())
@@ -288,7 +288,7 @@ bool CInput::LoadKeyNames( void )
 	// For mouse wheel events too
 	for(Uint32 i = 0; i < NUM_WHEEL_KEYS; i++)
 	{
-		Uint32 idx = SDL_NUM_SCANCODES + NB_MOUSE_BTN + (i + 1);
+		Uint32 idx = SDL_SCANCODE_COUNT + NB_MOUSE_BTN + (i + 1);
 		keyinfo_t& keyInfo = m_keyInfoArray[idx];
 
 		if(keyInfo.name.empty())
@@ -314,7 +314,7 @@ void CInput::ShowMouse( void )
 		return;
 
 	// Show the cursor
-	SDL_ShowCursor(SDL_ENABLE);
+	SDL_ShowCursor();
 	m_isCursorVisible = true;
 
 	// Manage raw input mode
@@ -323,12 +323,12 @@ void CInput::ShowMouse( void )
 		// Ensure proper toggling of relative mode
 		if(m_relativeMouseModeSet)
 		{
-			SDL_SetRelativeMouseMode(SDL_FALSE);
+			SDL_SetWindowRelativeMouseMode(gWindow.GetWindow(), false);
 			m_relativeMouseModeSet = false;
 		}
 
 		// Cancel out any movement of the mouse
-		Int32 dummyX, dummyY;
+		float dummyX, dummyY;
 		SDL_GetRelativeMouseState(&dummyX, &dummyY);
 
 		// Reset mouse to screen center
@@ -346,7 +346,7 @@ void CInput::HideMouse( void )
 		return;
 
 	// Hide the cursor
-	SDL_ShowCursor(SDL_DISABLE);
+	SDL_HideCursor();
 	m_isCursorVisible = false;
 
 	// Manage raw input
@@ -355,12 +355,12 @@ void CInput::HideMouse( void )
 		// Enable relative mode
 		if(!m_relativeMouseModeSet)
 		{
-			SDL_SetRelativeMouseMode(SDL_TRUE);
+			SDL_SetWindowRelativeMouseMode(gWindow.GetWindow(), true);
 			m_relativeMouseModeSet = true;
 		}
 
 		// Cancel out any mouse movement
-		Int32 dummyX, dummyY;
+		float dummyX, dummyY;
 		SDL_GetRelativeMouseState(&dummyX, &dummyY);
 	}
 }
@@ -380,7 +380,7 @@ void CInput::OnSetRawMouse( bool isEnabled )
 		{
 			if(!m_relativeMouseModeSet)
 			{
-				SDL_SetRelativeMouseMode(SDL_TRUE);
+				SDL_SetWindowRelativeMouseMode(gWindow.GetWindow(), true);
 				m_relativeMouseModeSet = true;
 			}
 		}
@@ -390,7 +390,7 @@ void CInput::OnSetRawMouse( bool isEnabled )
 		{
 			if(m_relativeMouseModeSet)
 			{
-				SDL_SetRelativeMouseMode(SDL_FALSE);
+				SDL_SetWindowRelativeMouseMode(gWindow.GetWindow(), false);
 				m_relativeMouseModeSet = false;
 			}
 		}
@@ -406,8 +406,8 @@ void CInput::HandleSDLEvent( const SDL_Event& sdlEvent )
 {
 	switch(sdlEvent.type)
 	{
-	case SDL_KEYDOWN:
-	case SDL_KEYUP:
+	case SDL_EVENT_KEY_DOWN:
+	case SDL_EVENT_KEY_UP:
 		{
 			if(m_numKeyInputs == m_keyInputBuffer.size())
 				return;
@@ -416,14 +416,14 @@ void CInput::HandleSDLEvent( const SDL_Event& sdlEvent )
 			keyevent_t& keyEvent = m_keyInputBuffer[m_numKeyInputs];
 			m_numKeyInputs++;
 
-			keyEvent.mod = sdlEvent.key.keysym.mod;
-			keyEvent.button = sdlEvent.key.keysym.scancode;
-			keyEvent.isDown = (sdlEvent.type == SDL_KEYDOWN) ? true : false;
+			keyEvent.mod = sdlEvent.key.mod;
+			keyEvent.button = sdlEvent.key.scancode;
+			keyEvent.isDown = (sdlEvent.type == SDL_EVENT_KEY_DOWN) ? true : false;
 			keyEvent.type = EVENT_KEYBOARD_KEY;
 		}
 		break;
-	case SDL_MOUSEBUTTONDOWN:
-	case SDL_MOUSEBUTTONUP:
+	case SDL_EVENT_MOUSE_BUTTON_DOWN:
+	case SDL_EVENT_MOUSE_BUTTON_UP:
 		{
 			if(m_numKeyInputs == m_keyInputBuffer.size())
 				return;
@@ -431,14 +431,14 @@ void CInput::HandleSDLEvent( const SDL_Event& sdlEvent )
 			// Add a key event
 			keyevent_t& keyEvent = m_keyInputBuffer[m_numKeyInputs];
 			m_numKeyInputs++;
-			
-			keyEvent.mod = KMOD_NONE;
+
+			keyEvent.mod = SDL_KMOD_NONE;
 			keyEvent.button = sdlEvent.button.button;
-			keyEvent.isDown = (sdlEvent.type == SDL_MOUSEBUTTONDOWN) ? true : false;
+			keyEvent.isDown = (sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_DOWN) ? true : false;
 			keyEvent.type = EVENT_MOUSE_BUTTON;
 		}
 		break;
-	case SDL_MOUSEWHEEL:
+	case SDL_EVENT_MOUSE_WHEEL:
 		{
 			if(m_numKeyInputs == m_keyInputBuffer.size())
 				return;
@@ -447,7 +447,7 @@ void CInput::HandleSDLEvent( const SDL_Event& sdlEvent )
 			keyevent_t& keyEvent = m_keyInputBuffer[m_numKeyInputs];
 			m_numKeyInputs++;
 
-			keyEvent.mod = KMOD_NONE;
+			keyEvent.mod = SDL_KMOD_NONE;
 			keyEvent.type = EVENT_MOUSE_WHEEL;
 
 			if(sdlEvent.wheel.x != 0)
@@ -470,7 +470,7 @@ void CInput::HandleSDLEvent( const SDL_Event& sdlEvent )
 			}
 		}
 		break;
-	case SDL_MOUSEMOTION:
+	case SDL_EVENT_MOUSE_MOTION:
 		{
 		}
 		break;
@@ -581,7 +581,7 @@ void CInput::KeyEvent( Int32 button, Int16 mod, bool keyDown )
 		return;
 
 	// Get SDL Keycode
-	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(button));
+	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(button), SDL_KMOD_NONE, false);
 
 	// Reset this
 	if(keyDown)
@@ -655,7 +655,7 @@ void CInput::MouseButtonEvent( Int32 button, bool keyDown )
 		return;
 	}
 
-	Int32 keyinfoIdx = SDL_NUM_SCANCODES+button;
+	Int32 keyinfoIdx = SDL_SCANCODE_COUNT+button;
 	keyinfo_t& keyInfo = m_keyInfoArray[keyinfoIdx];
 
 	// Set the key down state
@@ -731,7 +731,7 @@ void CInput::MouseWheelEvent( Int32 button, bool keyDown, Int32 scroll )
 		return;
 	}
 
-	Int32 keyinfoIdx = SDL_NUM_SCANCODES+NB_MOUSE_BTN+(button+1);
+	Int32 keyinfoIdx = SDL_SCANCODE_COUNT+NB_MOUSE_BTN+(button+1);
 	keyinfo_t& keyInfo = m_keyInfoArray[keyinfoIdx];
 
 	// Set the key down state
@@ -855,7 +855,8 @@ void CInput::GetMouseDelta( Int32 &deltaX, Int32 &deltaY )
 		}
 		else
 		{
-			SDL_GetRelativeMouseState(&deltaX, &deltaY);
+			Float dummyX, dummyY;
+			SDL_GetRelativeMouseState(&dummyX, &dummyY);
 		}
 	}
 
@@ -933,7 +934,10 @@ void CInput::UpdateMousePositions( bool clearReset )
 		}
 		else
 		{
-			SDL_GetRelativeMouseState(&deltaX, &deltaY);
+			Float fdeltaX = 0, fdeltaY = 0;
+			SDL_GetRelativeMouseState(&fdeltaX, &fdeltaY);
+			deltaX = static_cast<Int32>(fdeltaX);
+			deltaY = static_cast<Int32>(fdeltaY);
 		}
 	}
 
@@ -983,7 +987,7 @@ void CInput::ResetMouse( void )
 
 	if(m_pCvarRawMouseInput->GetValue() >= 1)
 	{
-		Int32 dummyX, dummyY;
+		Float dummyX, dummyY;
 		SDL_GetRelativeMouseState(&dummyX, &dummyY);
 	}
 }
@@ -994,7 +998,10 @@ void CInput::ResetMouse( void )
 //=============================================
 void CInput::GetMousePosition( Int32& x, Int32& y )
 {
-	SDL_GetMouseState(&x, &y);
+	Float fx = 0, fy = 0;
+	SDL_GetMouseState(&fx, &fy);
+	x = static_cast<Int32>(fx);
+	y = static_cast<Int32>(fy);
 }
 
 //=============================================
@@ -1033,7 +1040,7 @@ const Char* CInput::GetKeynameForScancode( Int32 scancodeIdx )
 const Char* CInput::GetMouseButtonName( Int32 button )
 {
 	assert(button < NB_MOUSE_BTN);
-	Uint32 scancodeIdx = SDL_NUM_SCANCODES + button;
+	Uint32 scancodeIdx = SDL_SCANCODE_COUNT + button;
 	return m_keyInfoArray[scancodeIdx].name.c_str();
 }
 
@@ -1044,7 +1051,7 @@ const Char* CInput::GetMouseButtonName( Int32 button )
 const Char* CInput::GetMouseWheelEventName( Int32 button )
 {
 	assert(button < NUM_WHEEL_KEYS);
-	Uint32 scancodeIdx = SDL_NUM_SCANCODES + NB_MOUSE_BTN + 1 + button;
+	Uint32 scancodeIdx = SDL_SCANCODE_COUNT + NB_MOUSE_BTN + 1 + button;
 	return m_keyInfoArray[scancodeIdx].name.c_str();
 }
 

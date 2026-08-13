@@ -430,8 +430,8 @@ bool CUIConsoleKeyEventCallback::KeyEvent( Int32 button, Int16 mod, bool keyDown
 		return true;
 
 	// Get SDL Keycode
-	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(button));
-	if(sdlKeycode >= SDLK_SPACE && sdlKeycode <= SDLK_z || button == SDL_SCANCODE_BACKSPACE)
+	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(button), SDL_KMOD_NONE, false);
+	if(sdlKeycode >= SDLK_SPACE && sdlKeycode <= SDLK_Z || button == SDL_SCANCODE_BACKSPACE)
 	{
 		m_pWindow->ResetTabFilter();
 		return true;

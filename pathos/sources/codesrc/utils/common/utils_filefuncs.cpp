@@ -6,7 +6,7 @@ Copyright 2016
 All Rights Reserved.
 ===============================================
 */
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #ifdef WIN32
 #include <Windows.h>
 #endif
@@ -37,20 +37,20 @@ file_interface_t g_fileInterface =
 //=============================================
 const byte* FL_LoadFile( const Char* pstrpath, Uint32* psize )
 {
-	SDL_RWops* pf = SDL_RWFromFile(pstrpath, "rb");
+	SDL_IOStream* pf = SDL_IOFromFile(pstrpath, "rb");
 	if(!pf)
 	{
 		SDL_ClearError();
 		return nullptr;
 	}
 
-	SDL_RWseek(pf, 0, RW_SEEK_END);
-	Int32 size = (Int32)SDL_RWtell(pf);
-	SDL_RWseek(pf, 0, RW_SEEK_SET);
+	SDL_SeekIO(pf, 0, SDL_IO_SEEK_END);
+	Int32 size = (Int32)SDL_TellIO(pf);
+	SDL_SeekIO(pf, 0, SDL_IO_SEEK_SET);
 
 	byte* pbuffer = new byte[size+1];
-	size_t numbytes = SDL_RWread(pf, pbuffer, 1, size);
-	SDL_RWclose(pf);
+	size_t numbytes = SDL_ReadIO(pf, pbuffer, size);
+	SDL_CloseIO(pf);
 
 	if(numbytes != size)
 	{
@@ -89,15 +89,15 @@ void FL_FreeFile( const void* pfile )
 //=============================================
 bool FL_WriteFile( const byte* pdata, Uint32 size, const Char* pstrpath, bool append )
 {
-	SDL_RWops* pf = SDL_RWFromFile(pstrpath, append ? "ab" : "wb");
+	SDL_IOStream* pf = SDL_IOFromFile(pstrpath, append ? "ab" : "wb");
 	if(!pf)
 	{
 		SDL_ClearError();
 		return false;
 	}
 
-	size_t numbytes = SDL_RWwrite(pf, pdata, 1, size);
-	SDL_RWclose(pf);
+	size_t numbytes = SDL_WriteIO(pf, pdata, size);
+	SDL_CloseIO(pf);
 
 	return (numbytes == size) ? true : false;
 }
@@ -113,15 +113,15 @@ bool FL_WriteFile( const byte* pdata, Uint32 size, const Char* pstrpath, bool ap
 //=============================================
 bool FL_WriteLogFile( const byte* pdata, Uint32 size, const Char* pstrpath, bool append )
 {
-	SDL_RWops* pf = SDL_RWFromFile(pstrpath, append ? "ab" : "wb");
+	SDL_IOStream* pf = SDL_IOFromFile(pstrpath, append ? "ab" : "wb");
 	if(!pf)
 	{
 		SDL_ClearError();
 		return false;
 	}
 
-	size_t numbytes = SDL_RWwrite(pf, pdata, 1, size);
-	SDL_RWclose(pf);
+	size_t numbytes = SDL_WriteIO(pf, pdata, size);
+	SDL_CloseIO(pf);
 
 	return (numbytes == size) ? true : false;
 }
@@ -249,10 +249,10 @@ bool FL_DeleteFile( const Char* pstrpath )
 //=============================================
 bool FL_FileExists( const Char* pstrpath )
 {
-	SDL_RWops* pf = SDL_RWFromFile(pstrpath, "rb");
+	SDL_IOStream* pf = SDL_IOFromFile(pstrpath, "rb");
 	if(!pf)
 		return false;
 
-	SDL_RWclose(pf);
+	SDL_CloseIO(pf);
 	return true;
 }

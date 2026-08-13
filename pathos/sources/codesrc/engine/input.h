@@ -56,7 +56,7 @@ private:
 		keyevent_t():
 			type(EVENT_UNDEFINED),
 			button(0),
-			mod(KMOD_NONE),
+			mod(SDL_KMOD_NONE),
 			isDown(false),
 			scroll(0)
 		{}

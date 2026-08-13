@@ -1941,7 +1941,7 @@ bool CUITextInputTab::keyEvent( Int32 button, Int16 mod, bool keyDown )
 		return true;
 
 	// Get SDL Keycode
-	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(button));
+	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(button), SDL_KMOD_NONE, false);
 	
 	switch(sdlKeycode)
 	{
@@ -1990,7 +1990,7 @@ bool CUITextInputTab::keyEvent( Int32 button, Int16 mod, bool keyDown )
 	}
 
 	// See if it's a valid text input character
-	if(sdlKeycode >= SDLK_SPACE && sdlKeycode <= SDLK_z)
+	if(sdlKeycode >= SDLK_SPACE && sdlKeycode <= SDLK_Z)
 	{
 		// Avoid buffer over-indexing
 		if(m_inputPosition == MAX_INPUT_LENGTH)
@@ -1998,7 +1998,7 @@ bool CUITextInputTab::keyEvent( Int32 button, Int16 mod, bool keyDown )
 
 		// Shift if needed
 		Char inputChar = static_cast<Char>(sdlKeycode);
-		if(mod & (KMOD_SHIFT|KMOD_CAPS))
+		if(mod & (SDL_KMOD_SHIFT|SDL_KMOD_CAPS))
 			inputChar = Common::GetShiftedChar(inputChar);
 
 		// Shift elements if needed

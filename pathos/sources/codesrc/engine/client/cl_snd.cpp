@@ -434,7 +434,7 @@ void CSoundEngine::Shutdown( void )
 
 	if(m_hOpenALDLL)
 	{
-		SDL_UnloadObject(m_hOpenALDLL);
+		SDL_UnloadObject(reinterpret_cast<SDL_SharedObject*>(m_hOpenALDLL));
 		m_hOpenALDLL = nullptr;
 	}
 

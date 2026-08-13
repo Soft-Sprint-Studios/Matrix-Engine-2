@@ -15,7 +15,7 @@ All Rights Reserved.
 #pragma warning( disable : 4237 )
 #pragma warning( disable : 4305 )
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #ifdef WIN32
 #include <Windows.h>
 #endif

@@ -145,9 +145,9 @@ void CL_KeyDown( kbutton_t& btn )
 	if(i == MAX_INPUT_KEYS)
 	{
 		const Char* pstrBind = cl_engfuncs.pfnCmd_Argv(0);
-		Char c1 = (Char)SDL_GetKeyFromScancode((SDL_Scancode)btn.buttons[0]);
-		Char c2 = (Char)SDL_GetKeyFromScancode((SDL_Scancode)btn.buttons[1]);
-		Char c3 = (Char)SDL_GetKeyFromScancode((SDL_Scancode)keyCode);
+		Char c1 = (Char)SDL_GetKeyFromScancode((SDL_Scancode)btn.buttons[0], SDL_KMOD_NONE, false);
+		Char c2 = (Char)SDL_GetKeyFromScancode((SDL_Scancode)btn.buttons[1], SDL_KMOD_NONE, false);
+		Char c3 = (Char)SDL_GetKeyFromScancode((SDL_Scancode)keyCode, SDL_KMOD_NONE, false);
 
 		cl_engfuncs.pfnCon_DPrintf("Three keys pressed simultaneously for bind '%s': '%c', '%c', '%c'.\n", pstrBind, c1, c2, c3);
 	}

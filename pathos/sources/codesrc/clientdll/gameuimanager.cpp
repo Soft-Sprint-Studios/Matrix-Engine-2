@@ -564,7 +564,7 @@ bool CGameUIManager::KeyEvent( Int32 button, Int16 mod, bool keyDown )
 		return false;
 
 	// Escape key *always* terminates the current window
-	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button);
+	SDL_Keycode sdlKeycode = SDL_GetKeyFromScancode((SDL_Scancode)button, SDL_KMOD_NONE, false);
 	if(sdlKeycode == SDLK_ESCAPE)
 	{
 		DestroyActiveWindow();
