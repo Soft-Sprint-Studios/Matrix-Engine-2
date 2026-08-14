@@ -91,8 +91,10 @@ bool CWindow::GetOpenGLInfo(Int32& maxMSAA)
 		return false;
 	}
 
+	// Load OpenGL functions
 	if(!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
 	{
+		Sys_ErrorPopup("Failed to initialize GLAD.");
 		SDL_DestroyWindow(pTempWindow);
 		return false;
 	}
