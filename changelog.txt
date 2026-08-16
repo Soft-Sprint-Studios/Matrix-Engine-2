@@ -988,3 +988,22 @@ Merge PR # 55:
  - Improve func_door and func_door_rotating code by getting rid of fixed-size arrays and make use of parenting.
  - Fix bug with func_train going to wrong path_corner after being re-triggered to continue moving.
  - Modify trigger_move to detach any parented target entities after moving them.
+ 
+2026 August 16th:
+ - Add Quake 2-style brush based collision support to replace clipnodes.
+ - Recompile all levels with brush based collisions added.
+ - Modify VBM renderer shaders to add separate light calculations for each lightstyle.
+ - Add END and HOME button support to text input tabs.
+ - Fix decal rendering on view models.
+ - Consolidate traceline code into a single function in trace_shared.cpp.
+ - Add support for storing multiple contents types in traceline results.
+ - Fix crash occurring on some maps due to a surface having a null light offset.
+ - Fix bug in CGLSLShader not detecting unused shader uniforms properly.
+ - Fix crash when creating VBM decals caused the decal to delete itself.
+ - Fix issue with transparent model parts not being lit properly in multipass mode.
+ - Fix bug with water not disabling blending after rendering additional lightmaps.
+ - Add code to remove entities and particles that fall outside the world(needs a proper fix like in Source).
+ - Fix NPC nudging code not checking far up enough to nudge NPCs out of solids.
+ - Fix parenting not properly setting positions on toggle entities when tying them to parent entities.
+ - Fix for parented entities not being kept as engine-side entities instead of client-only ones.
+ - Add code to manage zhlt_noclip setting for brush based collisions.

@@ -317,7 +317,7 @@ void Mod_FindTouchedLeafs( const brushmodel_t* pworld, CArray<Uint32>& leafnumsa
 	}
 
 	plane_t* pplane = pnode->pplane;
-	Int32 sides = BoxOnPlaneSide(mins, maxs, pplane);
+	Int32 sides = Math::BoxOnPlaneSide(mins, maxs, pplane);
 
 	// Recurse down the sides
 	if(sides & 1)
@@ -380,7 +380,6 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 		dt = dt / psurf->base_samplesize;
 
 		color24_t* plightmap = psurf->psamples[SURF_LIGHTMAP_DEFAULT];
-
 		if (!plightmap)
 			continue;
 
@@ -803,7 +802,8 @@ bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector&
 	}
 
 	// Collect strongest lights to use
-	for(Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+	Uint32 i = 0;
+	for(; i < MAX_SURFACE_STYLES; i++)
 	{
 		Int32 bestindex = NO_POSITION;
 		if(i == 0)
@@ -827,30 +827,30 @@ bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector&
 			}
 		}
 
-		if(bestindex != NO_POSITION)
+		if(bestindex == NO_POSITION)
+			break;
+
+		maxlights[bestindex] = 0;
+
+		if(poutstyles)
+			poutstyles[i] = bestindex;
+
+		if(poutambientcolors)
+			Math::VectorScale(amblights[bestindex], 1.0 / s, poutambientcolors[i]);
+
+		if(poutdiffusecolors)
+			Math::VectorScale(difflights[bestindex], 1.0 / s, poutdiffusecolors[i]);
+
+		if(poutlightdirs)
 		{
-			maxlights[bestindex] = 0;
-
-			if(poutstyles)
-				poutstyles[i] = bestindex;
-
-			if(poutambientcolors)
-				Math::VectorScale(amblights[bestindex], 1.0 / s, poutambientcolors[i]);
-
-			if(poutdiffusecolors)
-				Math::VectorScale(difflights[bestindex], 1.0 / s, poutdiffusecolors[i]);
-
-			if(poutlightdirs)
-			{
-				Math::VectorScale(lightvecs[bestindex], -1, poutlightdirs[i]);
-				poutlightdirs[i].Normalize();
-			}
-		}
-		else
-		{
-			poutstyles[i] = NULL_LIGHTSTYLE_INDEX;
+			Math::VectorScale(lightvecs[bestindex], -1, poutlightdirs[i]);
+			poutlightdirs[i].Normalize();
 		}
 	}
+
+	// Reset all other layers to null
+	for(; i < MAX_SURFACE_STYLES; i++)
+		poutstyles[i] = NULL_LIGHTSTYLE_INDEX;
 
 	return true;
 }

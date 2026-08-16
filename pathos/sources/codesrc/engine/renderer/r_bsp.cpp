@@ -590,6 +590,9 @@ void CBSPRenderer::SetLightmapCoords( void )
 			if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 				continue;
 
+			if(psurface->lightoffset == -1)
+				continue;
+
 			// Determine sizes
 			Uint32 xsize = (psurface->extents[0] / psurface->lightmapdivider) + 1;
 			Uint32 ysize = (psurface->extents[1] / psurface->lightmapdivider) + 1;
@@ -654,6 +657,9 @@ void CBSPRenderer::InitLightmaps( void )
 
 			bsp_surface_t* pbspsurface = &m_surfacesArray[j];
 		
+			if(psurface->lightoffset == -1)
+				continue;
+
 			// Skip empty styles
 			if(i > BASE_LIGHTMAP_INDEX && psurface->styles[i] == NULL_LIGHTSTYLE_INDEX)
 				continue;

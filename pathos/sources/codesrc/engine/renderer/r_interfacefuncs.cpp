@@ -67,6 +67,9 @@ static r_interface_t CLDLL_RENDERFUNCS_INTERFACE =
 	R_VBMPrepareDraw,				//pfnVBMPrepareDraw
 	R_VBMEndDraw,					//pfnVBMEndDraw
 	R_DrawVBMModel,					//pfnDrawVBMModel
+	R_VBMDecalPrepareDraw,			//pfnVBMDecalPrepareDraw
+	R_VBMDecalEndDraw,				//pfnVBMDecalEndDraw
+	R_DrawVBMModelDecals,			//pfnDrawVBMModelDecals
 	R_VBMPrepareVSMDraw,			//pfnVBMPrepareVSMDraw
 	R_VBMEndVSMDraw,				//pfnVBMEndVSMDraw
 	R_DrawVBMModelVSM,				//pfnDrawVBMModelVSM
@@ -359,6 +362,30 @@ void R_VBMEndDraw( void )
 bool R_DrawVBMModel( cl_entity_t* pentity, Int32 renderflags )
 {
 	return gVBMRenderer.DrawModel(renderflags, pentity);
+}
+
+//====================================
+//
+//====================================
+bool R_VBMDecalPrepareDraw( void )
+{
+	return gVBMRenderer.PrepareDecalPass();
+}
+
+//====================================
+//
+//====================================
+void R_VBMDecalEndDraw( void )
+{
+	gVBMRenderer.FinishDecalPass();
+}
+
+//====================================
+//
+//====================================
+bool R_DrawVBMModelDecals( cl_entity_t* pentity )
+{
+	return gVBMRenderer.DrawEntityDecals(pentity);
 }
 
 //====================================

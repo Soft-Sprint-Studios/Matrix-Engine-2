@@ -1805,6 +1805,13 @@ void SV_Physics_Toss( edict_t* pedict )
 	SV_FlyMove(pedict, svs.frametime, 1.1f);
 	SV_CheckVelocity(pedict);
 
+	// Free object if it fell outside the world
+	if(!Math::PointInMinsMaxs(pedict->state.origin, ens.pworld->mins, ens.pworld->maxs))
+	{
+		pedict->state.flags |= FL_KILLME;
+		return;
+	}
+
 	Math::VectorSubtract(pedict->state.velocity, pedict->state.basevelocity, pedict->state.velocity);
 	SV_CheckVelocity(pedict);
 
@@ -1870,6 +1877,13 @@ void SV_Physics_Bounce( edict_t* pedict )
 	trace_t trace;
 	SV_PushEntity(pedict, move, trace);
 	SV_CheckVelocity(pedict);
+
+	// Free object if it fell outside the world
+	if(!Math::PointInMinsMaxs(pedict->state.origin, ens.pworld->mins, ens.pworld->maxs))
+	{
+		pedict->state.flags |= FL_KILLME;
+		return;
+	}
 
 	// If we started in a solid object, it means we're stuck
 	if(trace.flags & FL_TR_ALLSOLID)

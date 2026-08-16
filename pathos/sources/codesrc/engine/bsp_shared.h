@@ -23,4 +23,5 @@ extern void BSP_ReleaseLightmapData( brushmodel_t& model );
 extern void BSP_ReserveWaterLighting( void );
 extern void BSP_Model_ReserveWaterLighting( brushmodel_t& model, color24_t* psrclightdataptrs[] );
 extern void BSP_SetLightGridSampleData( brushmodel_t& model, byte* psrclightdataptrs[] );
+extern void BSP_SetBrushType( brushmodel_t& model, mbrush_t* pbrush, Uint32 index );
 #endif

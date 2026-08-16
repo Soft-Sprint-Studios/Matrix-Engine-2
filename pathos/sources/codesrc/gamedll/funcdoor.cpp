@@ -156,6 +156,12 @@ bool CFuncDoor::KeyValue( const keyvalue_t& kv )
 		m_unlockedSoundFile = gd_engfuncs.pfnAllocString(kv.value);
 		return true;
 	}
+	else if(!qstrcmp(kv.keyname, "zhlt_noclip"))
+	{
+		if(SDL_atoi(kv.value) == 1)
+			m_pState->flags |= FL_POINTHULL_ONLY;
+		return true;
+	}
 	else
 		return CToggleEntity::KeyValue(kv);
 }
@@ -210,8 +216,6 @@ bool CFuncDoor::Spawn( void )
 	if(m_pState->speed <= 0)
 		m_pState->speed = DEFAULT_SPEED;
 
-	SetMovementVectors();
-
 	// Set toggle state
 	m_toggleState = TSTATE_AT_BOTTOM;
 	m_isBlocked = false;
@@ -226,8 +230,7 @@ bool CFuncDoor::Spawn( void )
 
 	// Check for slave doors to be initialized on
 	// non-zero origin door entities
-	if(m_pFields->targetname != NO_STRING_VALUE)
-		m_pState->flags |= FL_INITIALIZE;
+	m_pState->flags |= FL_INITIALIZE;
 
 	return true;
 }
@@ -280,14 +283,41 @@ void CFuncDoor::SetSpawnProperties( void )
 //=============================================
 void CFuncDoor::InitEntity( void )
 {
+	// Always set this
+	SetMovementVectors();
+
 	const Char* pstrClassName = gd_engfuncs.pfnGetString(m_pFields->classname);
 	const Char* pstrTargetName = gd_engfuncs.pfnGetString(m_pFields->targetname);
-	if(!pstrTargetName || !qstrlen(pstrTargetName))
-		return;
-
-	// Find slave doors with same position and name if set to touch opens
-	if(HasSpawnFlag(FL_TOUCH_OPENS) && !m_pState->origin.IsZero())
+	if(pstrTargetName && qstrlen(pstrTargetName) > 0)
 	{
+		// Find slave doors with same position and name if set to touch opens
+		if(HasSpawnFlag(FL_TOUCH_OPENS) && !m_pState->origin.IsZero())
+		{
+			edict_t* pedict = nullptr;
+			while(true)
+			{
+				pedict = Util::FindEntityByTargetName(pedict, pstrTargetName);
+				if(!pedict)
+					break;
+
+				if(Util::IsNullEntity(pedict) || pedict == m_pEdict)
+					continue;
+
+				CBaseEntity* pOther = CBaseEntity::GetClass(pedict);
+				if(!pOther)
+					continue;
+
+				// Check for exact classname
+				if(qstrcmp(pstrClassName, pOther->GetClassName()))
+					continue;
+
+				// Set this as the parent door
+				if(pOther->IsFuncDoorEntity() && Math::VectorCompare(pOther->GetOrigin(), m_pState->origin))
+					pOther->SetParentDoor(this);
+			}
+		}
+
+		// Find related doors that might not share the same origin
 		edict_t* pedict = nullptr;
 		while(true)
 		{
@@ -299,44 +329,20 @@ void CFuncDoor::InitEntity( void )
 				continue;
 
 			CBaseEntity* pOther = CBaseEntity::GetClass(pedict);
-			if(!pOther)
+			if(!pOther || !pOther->IsFuncDoorEntity())
 				continue;
 
 			// Check for exact classname
 			if(qstrcmp(pstrClassName, pOther->GetClassName()))
 				continue;
 
-			// Set this as the parent door
-			if(pOther->IsFuncDoorEntity() && Math::VectorCompare(pOther->GetOrigin(), m_pState->origin))
-				pOther->SetParentDoor(this);
+			// Ensure this isnt' a child of us
+			if(pOther->GetParent() == this)
+				continue;
+
+			// Add as related door
+			m_relatedDoorsArray.push_back(pOther);
 		}
-	}
-
-	// Find related doors that might not share the same origin
-	edict_t* pedict = nullptr;
-	while(true)
-	{
-		pedict = Util::FindEntityByTargetName(pedict, pstrTargetName);
-		if(!pedict)
-			break;
-
-		if(Util::IsNullEntity(pedict) || pedict == m_pEdict)
-			continue;
-
-		CBaseEntity* pOther = CBaseEntity::GetClass(pedict);
-		if(!pOther || !pOther->IsFuncDoorEntity())
-			continue;
-
-		// Check for exact classname
-		if(qstrcmp(pstrClassName, pOther->GetClassName()))
-			continue;
-
-		// Ensure this isnt' a child of us
-		if(pOther->GetParent() == this)
-			continue;
-
-		// Add as related door
-		m_relatedDoorsArray.push_back(pOther);
 	}
 }
 

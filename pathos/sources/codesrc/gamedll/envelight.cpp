@@ -39,7 +39,9 @@ bool CEnvELight::Spawn( void )
 {
 	// If it has no targetname, then it'll be managed
 	// by the clientside entity manager
-	if(m_pFields->targetname == NO_STRING_VALUE)
+	if(m_pFields->targetname == NO_STRING_VALUE 
+		&& m_pFields->parent == NO_STRING_VALUE 
+		&& m_pState->parent == NO_ENTITY_INDEX)
 	{
 		Util::RemoveEntity(this);
 		return true;
@@ -52,7 +54,7 @@ bool CEnvELight::Spawn( void )
 	if(!SetModel(NULL_SPRITE_FILENAME, false))
 		return false;
 
-	if(HasSpawnFlag(FL_START_ON))
+	if(m_pFields->targetname == NO_STRING_VALUE || HasSpawnFlag(FL_START_ON))
 		m_pState->effects &= ~EF_NODRAW;
 	else
 		m_pState->effects |= EF_NODRAW;

@@ -153,6 +153,8 @@ bool CFuncTrain::TrainSetModel( void )
 //=============================================
 void CFuncTrain::InitEntity( void )
 {
+	CPlatTrainEntity::InitEntity();
+
 	edict_t* pedict = nullptr;
 	while(true)
 	{

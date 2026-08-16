@@ -51,6 +51,7 @@ extern areanode_t* SV_CreateAreaNode( Int32 depth, const Vector& mins, const Vec
 
 extern Int32 SV_PointContents( const Vector& position, Int32* truecontents = nullptr, bool particleBlockers = false );
 extern Int32 SV_TruePointContents( const Vector& position );
+extern Int32 SV_HullPointContents( entindex_t entindex, hull_types_t hulltype, const Vector& position );
 
 extern edict_t* SV_TestEntityPosition( edict_t* pentity, hull_types_t hulltype );
 extern Int32 SV_TestPlayerPosition( hull_types_t hulltype, Int32 flags, const Vector& position );
@@ -61,7 +62,6 @@ extern void SV_InitBoxHull( void );
 
 extern const hull_t* SV_HullForBSP( const edict_t* pentity, const Vector& mins, const Vector& maxs, Vector* poffset, hull_types_t hulltype = HULL_AUTO );
 extern const hull_t* SV_HullForBSP( Int32 entity, hull_types_t hulltype, Vector* poffset );
-extern const hull_t* SV_HullForEntity( const edict_t* pentity, const Vector& mins, const Vector& maxs, Vector* poffset, hull_types_t hulltype = HULL_AUTO );
 extern void SV_SingleClipMoveToEntity( edict_t* pentity, const Vector& start, const Vector& mins, const Vector& maxs, const Vector& end, trace_t& trace, Int32 flags, hull_types_t hulltype = HULL_AUTO );
 
 extern Float SV_TraceModel( Int32 entindex, const Vector& start, const Vector& end, hull_types_t hulltype, Int32 flags, trace_t& trace );

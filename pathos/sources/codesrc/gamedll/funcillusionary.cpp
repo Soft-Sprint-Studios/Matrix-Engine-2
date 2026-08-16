@@ -42,6 +42,7 @@ bool CFuncIllusionary::Spawn( void )
 	
 	m_pState->movetype = MOVETYPE_NONE;
 	m_pState->solid = SOLID_NOT;
+	m_pState->flags |= FL_POINTHULL_ONLY;
 
 	if(m_pFields->targetname == NO_STRING_VALUE)
 		m_pState->effects |= EF_STATICENTITY;

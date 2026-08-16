@@ -21,6 +21,7 @@ enum vbm_renderflags_t
 	VBM_ANIMEVENTS	= (1<<1), // Trigger animevents
 	VBM_SETUPBONES	= (1<<2), // Only set up bones
 	VBM_DEBUG_ONLY	= (1<<3), // Draw debug only
+	VBM_NO_DECALS	= (1<<4), // Do not draw decals
 };
 
 struct studiohdr_t;

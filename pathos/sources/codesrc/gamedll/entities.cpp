@@ -2514,14 +2514,14 @@ void InitializeEntities( void )
 	// on game initialization
 	g_bInInitializeEntities = true;
 
+	// Initialize parented entities
+	InitEntityParenting();
+
 	// Initialize all other entities first
 	RunEntityInitFunctions(false);
 
 	// Initialize trigger_autos after all other entities
 	RunEntityInitFunctions(true);
-
-	// Initialize parented entities
-	InitEntityParenting();
 
 	// Reset this
 	g_bInInitializeEntities = false;

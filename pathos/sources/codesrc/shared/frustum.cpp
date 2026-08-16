@@ -43,10 +43,10 @@ void CFrustum::SetFrustum( const Vector& angles, const Vector& origin, Float fov
 	Math::AngleVectors(angles, &forward, &right, &up);
 
 	// Set up plane normals;
-	RotatePointAroundVector(up, forward, -(90 - (fov * 0.5)), m_frustumPlanes[0].normal);
-	RotatePointAroundVector(up, forward, 90 - (fov * 0.5), m_frustumPlanes[1].normal);
-	RotatePointAroundVector(right, forward, 90 - (fov * 0.5), m_frustumPlanes[2].normal);
-	RotatePointAroundVector(right, forward, -(90 - (fov * 0.5)), m_frustumPlanes[3].normal);
+	Math::RotatePointAroundVector(up, forward, -(90 - (fov * 0.5)), m_frustumPlanes[0].normal);
+	Math::RotatePointAroundVector(up, forward, 90 - (fov * 0.5), m_frustumPlanes[1].normal);
+	Math::RotatePointAroundVector(right, forward, 90 - (fov * 0.5), m_frustumPlanes[2].normal);
+	Math::RotatePointAroundVector(right, forward, -(90 - (fov * 0.5)), m_frustumPlanes[3].normal);
 
 	// Set other params
 	for(Uint32 i = 0; i < NUM_FRUSTUM_PLANES; i++)
@@ -86,10 +86,10 @@ void CFrustum::SetFrustum( const Vector& angles, const Vector& origin, Float fov
 	Math::AngleVectors(angles, &forward, &right, &up);
 
 	// Set up plane normals;
-	RotatePointAroundVector(up, forward, -(90 - (fovx * 0.5)), m_frustumPlanes[0].normal);
-	RotatePointAroundVector(up, forward, 90 - (fovx * 0.5), m_frustumPlanes[1].normal);
-	RotatePointAroundVector(right, forward, 90 - (fovy * 0.5), m_frustumPlanes[2].normal);
-	RotatePointAroundVector(right, forward, -(90 - (fovy * 0.5)), m_frustumPlanes[3].normal);
+	Math::RotatePointAroundVector(up, forward, -(90 - (fovx * 0.5)), m_frustumPlanes[0].normal);
+	Math::RotatePointAroundVector(up, forward, 90 - (fovx * 0.5), m_frustumPlanes[1].normal);
+	Math::RotatePointAroundVector(right, forward, 90 - (fovy * 0.5), m_frustumPlanes[2].normal);
+	Math::RotatePointAroundVector(right, forward, -(90 - (fovy * 0.5)), m_frustumPlanes[3].normal);
 
 	// Set other params
 	for(Uint32 i = 0; i < NUM_FRUSTUM_PLANES; i++)
@@ -139,7 +139,7 @@ bool CFrustum::CullBBox( const Vector& mins, const Vector& maxs ) const
 
 	for(Uint32 i = 0; i < NUM_FRUSTUM_PLANES; i++)
 	{
-		if(BoxOnPlaneSide(mins, maxs, &m_frustumPlanes[i]) == 2)
+		if(Math::BoxOnPlaneSide(mins, maxs, &m_frustumPlanes[i]) == 2)
 			return true;
 	}
 

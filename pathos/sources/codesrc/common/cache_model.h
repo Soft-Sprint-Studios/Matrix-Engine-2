@@ -25,8 +25,9 @@ enum cmodel_type_t
 
 enum cmodel_cacheflags_t
 {
-	CACHE_FL_NONE		= 0,
-	CACHE_FL_HAS_MCD	= (1<<0)
+	CACHE_FL_NONE					= 0,
+	CACHE_FL_HAS_MCD				= (1<<0),
+	CACHE_FL_HAS_BRUSH_COLLISIONS	= (1<<1)
 };
 
 // Model cache structure

@@ -1157,6 +1157,8 @@ void CWaterShader::AddEntity( cl_entity_t *pentity )
 				break;
 
 			Int32 styleindex = psurf->styles[j];
+			if(styleindex == 0)
+				continue;
 
 			cl_water_style_batches_t* pstylebatch = nullptr;
 			for(Uint32 k = 0; k < pwater->stylebatches.size(); k++)
@@ -2133,6 +2135,8 @@ bool CWaterShader::DrawWater( bool skybox )
 					}
 				}
 			}
+
+			glDisable(GL_BLEND);
 
 			if(rns.fog.settings.active)
 				m_pShader->SetUniform3f(m_attribs.u_fogcolor, rns.fog.settings.color[0], rns.fog.settings.color[1], rns.fog.settings.color[2]);

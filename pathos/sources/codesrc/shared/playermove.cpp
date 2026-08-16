@@ -987,11 +987,8 @@ const entity_state_t* CPlayerMovement::GetLadder( void )
 		if(pentity->skin == CONTENTS_LADDER)
 		{
 			Vector offset, test;
-			const hull_t* phull = m_traceInterface.pfnHullForBSP(pentity->entindex, m_hullIndex, &offset);
-			Int32 firstclipnode = phull->firstclipnode;
-
 			Math::VectorSubtract( m_pPlayerState->origin, offset, test );
-			if(m_traceInterface.pfnHullPointContents(phull, firstclipnode, test) == CONTENTS_EMPTY)
+			if(m_traceInterface.pfnHullPointContents(pentity->entindex, m_hullIndex, test) == CONTENTS_EMPTY)
 				continue;
 
 			return pentity;

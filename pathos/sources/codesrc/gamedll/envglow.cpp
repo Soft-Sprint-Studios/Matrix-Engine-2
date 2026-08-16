@@ -49,7 +49,9 @@ bool CEnvGlow::Spawn( void )
 {
 	// Remove immediately if it has no targetname
 	// Means it's completely static
-	if(m_pFields->targetname == NO_STRING_VALUE)
+	if(m_pFields->targetname == NO_STRING_VALUE
+		&& m_pFields->parent == NO_STRING_VALUE
+		&& m_pState->parent == NO_ENTITY_INDEX)
 	{
 		Util::RemoveEntity(this);
 		return true;

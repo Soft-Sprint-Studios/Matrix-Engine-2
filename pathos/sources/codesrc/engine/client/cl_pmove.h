@@ -19,6 +19,7 @@ extern Int32 CL_TestPlayerPosition( hull_types_t hulltype, Int32 flags, const cl
 extern Int32 CL_PointContents( const Vector& position, Int32* truecontents, bool particleBlockers = false );
 extern Int32 CL_PointContents( cl_entity_t* pentity, const Vector& position );
 extern Int32 CL_TruePointContents( const Vector& position );
+extern Int32 CL_HullPointContents( entindex_t entindex, hull_types_t hulltype, const Vector& position );
 extern void CL_PlayerTrace( const Vector& start, const Vector& end, Int32 traceflags, hull_types_t hulltype, Int32 ignore_ent, trace_t& trace );
 extern void CL_TraceLine( const Vector& start, const Vector& end, Int32 traceflags, hull_types_t hulltype, Int32 ignore_ent, trace_t& trace );
 extern const hull_t* CL_HullForBSP( Int32 entity, hull_types_t hulltype, Vector* poffset );

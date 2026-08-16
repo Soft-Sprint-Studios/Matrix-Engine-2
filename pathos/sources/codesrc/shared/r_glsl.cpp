@@ -2298,7 +2298,10 @@ Int32 CGLSLShader::InitAttribute( const Char *szname, Uint32 size, Int32 type, U
 		for(Uint32 i = 0; i < m_shadersArray.size(); i++)
 		{
 			if (!m_shadersArray[i].program_id)
+			{
+				newAttrib.indexes[i] = PROPERTY_UNAVAILABLE;
 				continue;
+			}
 
 			newAttrib.indexes[i] = m_glExtF.glGetAttribLocation(m_shadersArray[i].program_id, szname);
 			if(newAttrib.indexes[i] == NO_POSITION)
@@ -2551,7 +2554,10 @@ Int32 CGLSLShader::InitUniform( const Char *szname, uniform_e type, Uint32 eleme
 		for(Uint32 i = 0; i < m_shadersArray.size(); i++)
 		{
 			if (!m_shadersArray[i].program_id)
+			{
+				newUniform.indexes[i] = PROPERTY_UNAVAILABLE;
 				continue;
+			}
 
 			newUniform.indexes[i] = m_glExtF.glGetUniformLocation(m_shadersArray[i].program_id, szname);
 			if(newUniform.indexes[i] == NO_POSITION)

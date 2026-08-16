@@ -289,6 +289,19 @@ struct vbm_dlight_attribs_t
 	Int32 u_d_light_shadowmap;
 };
 
+struct vbm_style_attribs_t
+{
+	vbm_style_attribs_t():
+		u_style_ambient(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_style_diffuse(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_style_dir(CGLSLShader::PROPERTY_UNAVAILABLE)
+	{}
+
+	Int32 u_style_ambient;
+	Int32 u_style_diffuse;
+	Int32 u_style_dir;
+};
+
 struct vbm_attribs
 {
 	vbm_attribs():
@@ -326,6 +339,7 @@ struct vbm_attribs
 		u_sky_ambient(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_sky_diffuse(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_sky_dir(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_numstyles(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_light_radius(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogcolor(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogparams(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -334,7 +348,6 @@ struct vbm_attribs
 		u_scope_scrsize(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_phong_exponent(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_specularfactor(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_vlight_stylestrength(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_shadertype(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_use_ubo(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -346,10 +359,7 @@ struct vbm_attribs
 		u_d_luminance(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numdlights(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_vlight_style1(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_vlight_style2(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_vlight_style3(CGLSLShader::PROPERTY_UNAVAILABLE)
+		u_d_blendmultipass(CGLSLShader::PROPERTY_UNAVAILABLE)
 		{
 			for(Uint32 i = 0; i < MAX_SHADER_BONES; i++)
 				boneindexes[i] = 0;
@@ -403,6 +413,9 @@ struct vbm_attribs
 	Int32 u_sky_diffuse;
 	Int32 u_sky_dir;
 
+	Int32 u_numstyles;
+	vbm_style_attribs_t styles[MAX_SURFACE_STYLES-1];
+
 	Int32 u_light_radius;
 
 	Int32 u_fogcolor;
@@ -415,7 +428,6 @@ struct vbm_attribs
 
 	Int32 u_phong_exponent;
 	Int32 u_specularfactor;
-	Int32 u_vlight_stylestrength;
 
 	attrib_light lights[MAX_ENT_MLIGHTS];
 
@@ -432,9 +444,6 @@ struct vbm_attribs
 	Int32 u_d_bumpmapping;
 	Int32 u_d_numdlights;
 	Int32 u_d_blendmultipass;
-	Int32 u_d_vlight_style1;
-	Int32 u_d_vlight_style2;
-	Int32 u_d_vlight_style3;
 
 	vbm_dlight_attribs_t dlights[MAX_BATCH_LIGHTS];
 };
@@ -526,8 +535,13 @@ public:
 	bool DrawTransparent( void );
 	// Draws skybox objects
 	bool DrawSky( void );
+
+	// Prepare decal drawing pass
+	bool PrepareDecalPass( void );
 	// Draws decals
 	bool DrawDecals( bool transparentPass );
+	// Finish decal drawing pass
+	void FinishDecalPass( void );
 
 	// Draws VSM objects
 	bool DrawVSM( struct cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 numentities );
@@ -592,7 +606,7 @@ private:
 	// Sets up model lighting
 	void SetupLighting( Int32 flags );
 	// Compare light values with light info
-	bool CompareLightValues( const Vector* pambientlightvalues, const Vector* pdiffuselightvalues, const Vector& lightdir, const byte* plightstyles );
+	bool CompareLightValues( const Vector* pambientlightvalues, const Vector* pdiffuselightvalues, const Vector* plightdirs, const byte* plightstyles );
 
 	// Gets model lights
 	void GetModelLights( void );
@@ -676,6 +690,8 @@ private:
 
 	// Set bone UBO contents
 	void SetShaderBoneTransform( BoneTransformArray_t* pbonetransform, const byte* pboneindexes, Uint32 numbones );
+	// Set light values
+	void SetShaderLightValues( void );
 
 private:
 	// Allocates a decal slot
@@ -689,7 +705,7 @@ private:
 	// Deletes a decal
 	void DeleteDecal( vbmdecal_t *pdecal );
 	// Retreives the offset for the decal mesh
-	void GetDecalOffsets( Uint32 numverts, Uint32 numindexes, Uint32& vertexoffset, Uint32& indexoffset );
+	void GetDecalOffsets( vbmdecal_t* pcurrentdecal, Uint32 numverts, Uint32 numindexes, Uint32& vertexoffset, Uint32& indexoffset );
 	// Clears a single decal
 	void ClearDecal( vbmdecal_t* pdecal );
 
@@ -799,6 +815,13 @@ private:
 	Vector m_renderAmbientColor;
 	// Global diffuse color used for rendering
 	Vector m_renderDiffuseColor;
+
+	// Lightstyle vectors used for rendering
+	Vector m_styleLightVectors[MAX_SURFACE_STYLES-1];
+	// Lightstyle ambient colors used for rendering
+	Vector m_styleAmbientColors[MAX_SURFACE_STYLES-1];
+	// Lightstyle diffuse colors used for rendering
+	Vector m_styleDiffuseColors[MAX_SURFACE_STYLES-1];
 
 private:
 	// Entity absolute mins

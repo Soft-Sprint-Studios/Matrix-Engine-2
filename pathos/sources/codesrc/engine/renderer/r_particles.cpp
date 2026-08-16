@@ -466,9 +466,9 @@ particle_system_t *CParticleEngine::CreateSystem( const Char *szPath, const Vect
 	{
 		// Playerplane needs to find sky brush above
 		trace_t tr;
-		CL_PlayerTrace(origin, origin + Vector(0, 0, 8496), (FL_TRACE_WORLD_ONLY|FL_TRACE_PARTICLE_BLOCKERS), HULL_POINT, NO_ENTITY_INDEX, tr);
+		CL_PlayerTrace(origin, origin + Vector(0, 0, 8496), (FL_TRACE_WORLD_ONLY|FL_TRACE_PARTICLE_BLOCKERS|FL_TRACE_SKYBRUSHES), HULL_POINT, NO_ENTITY_INDEX, tr);
 
-		if( tr.fraction == 1.0 || PointContentsParticle(tr.endpos) != CONTENTS_SKY )
+		if(!tr.hasContents(CONTENTS_SKY))
 		{
 			m_particleSystemsList.remove(psystem);
 			return nullptr;
@@ -1404,7 +1404,6 @@ void CParticleEngine::EnvironmentCreateFirst( particle_system_t *psystem )
 //====================================
 cl_particle_t *CParticleEngine::CreateParticle( particle_system_t *psystem, Float *pflorigin, Float *pflnormal ) 
 {
-	static trace_t tr;
 	Vector vbaseorigin, realorigin;
 	Vector vforward, vright, vup;
 
@@ -1441,7 +1440,7 @@ cl_particle_t *CParticleEngine::CreateParticle( particle_system_t *psystem, Floa
 			for(Uint32 i = 0; i < 2; i++)
 				skytestposition[i] = pplayer->curstate.origin[i]+offset[i];
 
-			skytestposition[2] = psystem->skyheight+16;
+			skytestposition[2] = ens.pworld->maxs.z + 8;
 
 			// Turn it into a parabole, where at max distance we spawn at
 			// the height of the player's origin(aka center)
@@ -1453,8 +1452,9 @@ cl_particle_t *CParticleEngine::CreateParticle( particle_system_t *psystem, Floa
 			Vector parabolicposition = pplayer->curstate.origin + offset;
 
 			// Check if we impact a sky brush or not. If not, don't spawn particle
-			CL_PlayerTrace(parabolicposition, skytestposition, (FL_TRACE_WORLD_ONLY|FL_TRACE_PARTICLE_BLOCKERS), HULL_POINT, NO_ENTITY_INDEX, tr);
-			if(tr.fraction != 1.0 && PointContentsParticle(tr.endpos) != CONTENTS_SKY)
+			trace_t tr;
+			CL_PlayerTrace(parabolicposition, skytestposition, (FL_TRACE_WORLD_ONLY|FL_TRACE_PARTICLE_BLOCKERS|FL_TRACE_SKYBRUSHES), HULL_POINT, NO_ENTITY_INDEX, tr);
+			if(tr.noHit() || !tr.hasContents(CONTENTS_SKY))
 				return nullptr;
 
 			// Set final origin
@@ -2243,7 +2243,7 @@ __forceinline Int32 CParticleEngine::CheckWater( const Vector& origin )
 //====================================
 Int32 CParticleEngine::PointContentsParticle( const Vector& position )
 {
-	Int32 contents = TR_HullPointContents(&ens.pworld->hulls[0], 0, position);	
+	Int32 contents = CL_HullPointContents(WORLDSPAWN_ENTITY_INDEX, HULL_POINT, position);	
 	if(contents != CONTENTS_EMPTY)
 		return contents;
 
@@ -2289,8 +2289,7 @@ Int32 CParticleEngine::PointContentsParticle( const Vector& position )
 		if(!pentity->curstate.angles.IsZero())
 			Math::RotateToEntitySpace(pentity->curstate.angles, lposition);
 
-		const brushmodel_t* pbrushmodel = pmodel->getBrushmodel();
-		contents = TR_HullPointContents(&pbrushmodel->hulls[0], pbrushmodel->hulls[0].firstclipnode, lposition);
+		contents = CL_HullPointContents(pentity->entindex, HULL_POINT, lposition);
 		if(contents != CONTENTS_EMPTY)
 		{
 			if(pentity->curstate.solid == SOLID_NOT && pentity->curstate.skin <= CONTENTS_WATER && pentity->curstate.skin >= CONTENTS_LAVA)
@@ -2340,7 +2339,7 @@ bool CParticleEngine::CheckCollision( Vector& vecOrigin, Vector& vecVelocity, pa
 	else
 	{
 		// Just do a normal traceline
-		Int32 traceFlags = FL_TRACE_PARTICLE_BLOCKERS;
+		Int32 traceFlags = (FL_TRACE_PARTICLE_BLOCKERS|FL_TRACE_SKYBRUSHES);
 		traceFlags |= (pdefinition->collision_flags & COLLISION_FL_BMODELS) ? FL_TRACE_NORMAL : FL_TRACE_WORLD_ONLY;
 		CL_PlayerTrace(vecOrigin, testPosition, traceFlags, HULL_POINT, NO_ENTITY_INDEX, tr);
 	}
@@ -2357,7 +2356,7 @@ bool CParticleEngine::CheckCollision( Vector& vecOrigin, Vector& vecVelocity, pa
 
 	if(pdefinition->collision == collide_stuck)
 	{
-		if(PointContentsParticle(tr.endpos) == CONTENTS_SKY)
+		if(tr.hasContents(CONTENTS_SKY))
 			return false;
 
 		if(pparticle->life == -1 && pdefinition->stuckdie)
@@ -2421,7 +2420,7 @@ bool CParticleEngine::CheckCollision( Vector& vecOrigin, Vector& vecVelocity, pa
 						CreateParticle(psystem->watersystem, tr.endpos, tr.plane.normal);
 				}
 
-				if(PointContentsParticle(tr.endpos) != CONTENTS_SKY && !pdefinition->create.empty() && psystem->createsystem != nullptr)
+				if(!tr.hasContents(CONTENTS_SKY) && !pdefinition->create.empty() && psystem->createsystem != nullptr)
 				{
 					for(Uint32 i = 0; i < psystem->createsystem->pdefinition->startparticles; i++)
 						CreateParticle(psystem->createsystem, tr.endpos, tr.plane.normal);
@@ -2436,7 +2435,7 @@ bool CParticleEngine::CheckCollision( Vector& vecOrigin, Vector& vecVelocity, pa
 					CreateParticle(psystem->watersystem, tr.endpos, tr.plane.normal);
 			}
 
-			if(PointContentsParticle(tr.endpos) != CONTENTS_SKY && !pdefinition->create.empty() && psystem->createsystem != nullptr)
+			if(!tr.hasContents(CONTENTS_SKY) && !pdefinition->create.empty() && psystem->createsystem != nullptr)
 			{
 				for(Uint32 i = 0; i < psystem->createsystem->pdefinition->startparticles; i++)
 					CreateParticle(psystem->createsystem, tr.endpos, tr.plane.normal);
@@ -2629,6 +2628,10 @@ bool CParticleEngine::UpdateParticle( cl_particle_t *pparticle )
 	// Add in the final velocity
 	//
 	Math::VectorMA(vbaseorigin, rns.frametime, vvelocity, vbaseorigin);
+
+	// Make sure particle can't leave world
+	if(!Math::PointInMinsMaxs(vbaseorigin, ens.pworld->mins, ens.pworld->maxs))
+		return false;
 
 	//
 	// Subtract back if necessary

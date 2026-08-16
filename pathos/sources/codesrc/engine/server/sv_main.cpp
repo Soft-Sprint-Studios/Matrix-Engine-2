@@ -212,15 +212,15 @@ static gdll_engfuncs_t GAMEDLL_ENGINE_FUNCTIONS =
 //
 trace_interface_t GAMEDLL_TRACE_FUNCTIONS =
 {
-	SV_TestPlayerPosition,		//pfnTestPlayerPosition
-	SV_PointContents,			//pfnPointContents
-	SV_TruePointContents,		//pfnTruePointContents
-	TR_HullPointContents,		//pfnHullPointContents
-	SV_PlayerTrace,				//pfnPlayerTrace
-	SV_TraceLine,				//pfnTraceLine
-	SV_HullForBSP,				//pfnHullForBSP
-	SV_TraceModel,				//pfnTraceModel
-	SV_TraceTexture,			//pfnTraceTexture
+	SV_TestPlayerPosition,			//pfnTestPlayerPosition
+	SV_PointContents,				//pfnPointContents
+	SV_TruePointContents,			//pfnTruePointContents
+	SV_HullPointContents,			//pfnHullPointContents
+	SV_PlayerTrace,					//pfnPlayerTrace
+	SV_TraceLine,					//pfnTraceLine
+	SV_HullForBSP,					//pfnHullForBSP
+	SV_TraceModel,					//pfnTraceModel
+	SV_TraceTexture,				//pfnTraceTexture
 };
 
 //=============================================

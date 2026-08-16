@@ -487,7 +487,7 @@ void TR_VBMHullCheck( const CArray<vbmhitboxhull_t>* phulls, const Vector& start
 		const hull_t* phull = &hbhull.hull;
 
 		// Perform trace
-		TR_RecursiveHullCheck(phull, phull->firstclipnode, 0.0f, 1.0f, start, end, hbtr);
+		TR_RecursiveHullCheck_ClipNode(phull, phull->firstclipnode, 0.0f, 1.0f, start, end, hbtr);
 
 		// Assign as best trace if it's closer, or starts in a solid
 		if(i == 0 || tr.flags & (FL_TR_ALLSOLID|FL_TR_STARTSOLID) || hbtr.fraction < tr.fraction)

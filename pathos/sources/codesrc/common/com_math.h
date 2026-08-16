@@ -11,6 +11,8 @@ All Rights Reserved.
 #define COM_MATH_H
 
 #include <math.h>
+#include "plane.h"
+
 namespace Math
 {
 	extern inline bool VectorCompare( const Vector& v1, const Vector& v2 );
@@ -62,6 +64,8 @@ namespace Math
 	extern inline Float FindMinValueOf3( Float v1, Float v2, Float v3 );
 	extern inline Float FindMaxValueOf3( Float v1, Float v2, Float v3 );
 	extern inline void FindMinMaxValuesOf3( Float v1, Float v2, Float v3, Float& min, Float& max );
+	extern inline Uint32 BoxOnPlaneSide( const Vector& mins, const Vector& maxs, const plane_t* pplane );
+	extern inline void RotatePointAroundVector( const Vector& dir, const Vector& point, Float deg, Vector& dest );
 };
 #include "com_math_inline.hpp"
 #endif //Common::MATH_H

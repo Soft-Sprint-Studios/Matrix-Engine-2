@@ -261,6 +261,15 @@ bool CViewModel::Draw ( void )
 
 	cl_renderfuncs.pfnVBMEndDraw();
 
+	if(result)
+	{
+		result = cl_renderfuncs.pfnVBMDecalPrepareDraw();
+		if(result)
+			result = cl_renderfuncs.pfnDrawVBMModelDecals(&m_viewModelEntity);
+
+		cl_renderfuncs.pfnVBMDecalEndDraw();
+	}
+
 	// Only draw if rendering went fine
 	if(result)
 	{

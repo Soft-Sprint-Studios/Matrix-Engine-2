@@ -75,6 +75,11 @@ enum pbspv2_lumps_t
 	// This lump is available if header->flags has PBSPV2_FL_HAS_LIGHTGRID_DATA set
 	PBSPV2_LUMP_LIGHTGRID_DATA,
 
+	// This lump is available if header->flags has PBSPV2_FL_HAS_BRUSH_COLLISION_DATA set
+    PBSPV2_LUMP_BRUSHES,
+    PBSPV2_LUMP_BRUSHSIDES,
+    PBSPV2_LUMP_LEAFBRUSHES,
+
 	// MUST BE LAST
 	PBSPV2_NB_LUMPS // Don't actually use this anywhere if possible
 };
@@ -84,10 +89,20 @@ enum pbspv2_lumps_t
 //
 enum pbspv2_flags_t
 {
-	PBSPV2_FL_NONE					= 0,
-	PBSPV2_FL_HAS_SMOOTHING_GROUPS	= (1<<0),
-	PBSPV2_FL_HAS_VERTEX_LIGHTING	= (1<<1),
-	PBSPV2_FL_HAS_LIGHTGRID_DATA	= (1<<2)
+	PBSPV2_FL_NONE						= 0,
+	PBSPV2_FL_HAS_SMOOTHING_GROUPS		= (1<<0),
+	PBSPV2_FL_HAS_VERTEX_LIGHTING		= (1<<1),
+	PBSPV2_FL_HAS_LIGHTGRID_DATA		= (1<<2),
+	PBSPV2_FL_HAS_BRUSH_COLLISION_DATA	= (1<<3)
+};
+
+//
+// Flags for brush side
+//
+enum pbspv2_brushside_flags_t
+{
+	PBSPV2_BSIDE_FL_PLANEBACK			= (1<<0),
+	PBSPV2_BSIDE_FL_BEVEL				= (1<<1)
 };
 
 //
@@ -254,9 +269,9 @@ struct dpbspv2face_t
 	Int32 lightoffset;
 };
 
-struct dpbspv2leaf_t
+struct dpbspv2leaf_nobrush_t
 {
-	dpbspv2leaf_t():
+	dpbspv2leaf_nobrush_t():
 		contents(0),
 		visoffset(0),
 		firstmarksurface(0),
@@ -279,6 +294,33 @@ struct dpbspv2leaf_t
 	byte ambient_level[PBSPV2_NUM_AMBIENTS];
 };
 
+struct dpbspv2leaf_brush_t
+{
+	dpbspv2leaf_brush_t():
+		contents(0),
+		visoffset(0),
+		firstmarksurface(0),
+		nummarksurfaces(0),
+		firstleafbrush(0),
+		numleafbrushes(0)
+	{
+		memset(mins, 0, sizeof(mins));
+		memset(maxs, 0, sizeof(maxs));
+	}
+
+	Int32 contents;
+	Int32 visoffset;
+
+	Int16 mins[3];
+	Int16 maxs[3];
+
+	Uint32 firstmarksurface;
+	Uint32 nummarksurfaces;
+
+	Uint32 firstleafbrush;
+	Uint32 numleafbrushes;
+};
+
 struct dpbspv2lightingdata_t
 {
 	dpbspv2lightingdata_t():
@@ -296,9 +338,9 @@ struct dpbspv2lightingdata_t
 	Int32 noncompressedsize;
 };
 
-struct dlightgridlumpheader_t
+struct dpbspv2lightgridlumpheader_t
 {
-    dlightgridlumpheader_t():
+    dpbspv2lightgridlumpheader_t():
         rootnodeindex(NO_POSITION),
 		totalsize(0),
         leafsoffset(NO_POSITION),
@@ -361,9 +403,9 @@ struct dlightgridlumpheader_t
     Int32 vectorscompressiontype;
 };
 
-struct dlightgridnode_t
+struct dpbspv2lightgridnode_t
 {
-    dlightgridnode_t()
+    dpbspv2lightgridnode_t()
     {
         for(Uint32 i = 0; i < 3; i++)
 			divisionpoint[i] = 0;
@@ -376,9 +418,9 @@ struct dlightgridnode_t
     Int32 children[8];
 };
 
-struct dlightgridleaf_t
+struct dpbspv2lightgridleaf_t
 {
-    dlightgridleaf_t():
+    dpbspv2lightgridleaf_t():
         firstsample(NO_POSITION),
         numsamples(0)
     {
@@ -396,9 +438,9 @@ struct dlightgridleaf_t
     Int32 numsamples;
 };
 
-struct dlightgridsample_t
+struct dpbspv2lightgridsample_t
 {
-    dlightgridsample_t():
+    dpbspv2lightgridsample_t():
         rawsampleoffset(NO_POSITION)
     {
         memset(styles, 0, sizeof(styles));
@@ -408,4 +450,29 @@ struct dlightgridsample_t
     Int32 rawsampleoffset;
 };
 
+struct dpbspv2brushside_t
+{
+    dpbspv2brushside_t():
+        planenum(0),
+        texinfo(0),
+		flags(0)
+    {}
+
+    Int32 planenum;
+    Int32 texinfo;
+	Int32 flags;
+};
+
+struct dpbspv2brush_t
+{
+    dpbspv2brush_t():
+        firstside(0),
+        numsides(0),
+        contents(0)
+    {}
+
+    Int32 firstside;
+    Int32 numsides;
+    Int32 contents;
+};
 #endif //PBSPV2FILE_H

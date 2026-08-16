@@ -217,6 +217,26 @@ namespace Util
 	//=============================================
 	//
 	//=============================================
+	void TraceLine( const Vector& start, const Vector& end, bool ignorenpcs, bool usehitboxes, bool ignoreglass, bool hitcorpses, bool hitsky, const edict_t* pignoreent, trace_t& tr )
+	{
+		Int32 traceflags = FL_TRACE_NORMAL;
+		if(ignorenpcs)
+			traceflags |= FL_TRACE_NO_NPCS;
+		if(ignoreglass)
+			traceflags |= FL_TRACE_NO_TRANS;
+		if(hitcorpses)
+			traceflags |= FL_TRACE_HIT_CORPSES;
+		if(usehitboxes)
+			traceflags |= FL_TRACE_HITBOXES;
+		if(hitsky)
+			traceflags |= FL_TRACE_SKYBRUSHES;
+
+		gd_tracefuncs.pfnTraceLine(start, end, traceflags, HULL_POINT, pignoreent ? pignoreent->entindex : NO_ENTITY_INDEX, tr);
+	}
+
+	//=============================================
+	//
+	//=============================================
 	void TraceLine( const Vector& start, const Vector& end, bool ignorenpcs, bool usehitboxes, bool ignoreglass, bool hitcorpses, const edict_t* pignoreent, trace_t& tr )
 	{
 		Int32 traceflags = FL_TRACE_NORMAL;
