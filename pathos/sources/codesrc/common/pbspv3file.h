@@ -84,6 +84,9 @@ enum pbspv3_lumps_t
 	PBSPV3_LUMP_VERTEX_LIGHTING_DIFFUSE,
 	PBSPV3_LUMP_VERTEX_LIGHTING_VECTORS,
 	PBSPV3_LUMP_LIGHTGRID_DATA,
+    PBSPV3_LUMP_BRUSHES,
+    PBSPV3_LUMP_BRUSHSIDES,
+    PBSPV3_LUMP_LEAFBRUSHES,
 	PBSPV3_LUMP_DISPLACEMENTS,
 	PBSPV3_LUMP_CHECKSUM,
 
@@ -96,7 +99,16 @@ enum pbspv3_lumps_t
 //
 enum pbspv3_flags_t
 {
-	PBSPV3_FL_NONE					= 0
+	PBSPV3_FL_NONE						= 0
+};
+
+//
+// Flags for brush side
+//
+enum pbspv3_brushside_flags_t
+{
+	PBSPV3_BSIDE_FL_PLANEBACK			= (1<<0),
+	PBSPV3_BSIDE_FL_BEVEL				= (1<<1)
 };
 
 //
@@ -263,9 +275,9 @@ struct dpbspv3face_t
 	Int32 lightoffset;
 };
 
-struct dpbspv3leaf_t
+struct dpbspv3leaf_nobrush_t
 {
-	dpbspv3leaf_t():
+	dpbspv3leaf_nobrush_t():
 		contents(0),
 		visoffset(0),
 		firstmarksurface(0),
@@ -288,6 +300,33 @@ struct dpbspv3leaf_t
 	byte ambient_level[PBSPV3_NUM_AMBIENTS];
 };
 
+struct dpbspv3leaf_brush_t
+{
+	dpbspv3leaf_brush_t():
+		contents(0),
+		visoffset(0),
+		firstmarksurface(0),
+		nummarksurfaces(0),
+		firstleafbrush(0),
+		numleafbrushes(0)
+	{
+		memset(mins, 0, sizeof(mins));
+		memset(maxs, 0, sizeof(maxs));
+	}
+
+	Int32 contents;
+	Int32 visoffset;
+
+	Int32 mins[3];
+	Int32 maxs[3];
+
+	Uint32 firstmarksurface;
+	Uint32 nummarksurfaces;
+
+	Uint32 firstleafbrush;
+	Uint32 numleafbrushes;
+};
+
 struct dpbspv3lightingdata_t
 {
 	dpbspv3lightingdata_t():
@@ -305,9 +344,9 @@ struct dpbspv3lightingdata_t
 	Int32 noncompressedsize;
 };
 
-struct dlightgridlumpv3header_t
+struct dpbspv3lightgridlumpheader_t
 {
-    dlightgridlumpv3header_t():
+    dpbspv3lightgridlumpheader_t():
         rootnodeindex(NO_POSITION),
 		totalsize(0),
         leafsoffset(NO_POSITION),
@@ -370,9 +409,9 @@ struct dlightgridlumpv3header_t
     Int32 vectorscompressiontype;
 };
 
-struct dlightgridv3node_t
+struct dpbspv3lightgridnode_t
 {
-    dlightgridv3node_t()
+    dpbspv3lightgridnode_t()
     {
         for(Uint32 i = 0; i < 3; i++)
 			divisionpoint[i] = 0;
@@ -385,9 +424,9 @@ struct dlightgridv3node_t
     Int32 children[8];
 };
 
-struct dlightgridv3leaf_t
+struct dpbspv3lightgridleaf_t
 {
-    dlightgridv3leaf_t():
+    dpbspv3lightgridleaf_t():
         firstsample(NO_POSITION),
         numsamples(0)
     {
@@ -405,9 +444,9 @@ struct dlightgridv3leaf_t
     Int32 numsamples;
 };
 
-struct dlightgridv3sample_t
+struct dpbspv3lightgridsample_t
 {
-    dlightgridv3sample_t():
+    dpbspv3lightgridsample_t():
         rawsampleoffset(NO_POSITION)
     {
         memset(styles, 0, sizeof(styles));
@@ -415,6 +454,32 @@ struct dlightgridv3sample_t
 
 	byte styles[PBSPV3_MAX_LIGHTMAPS];
     Int32 rawsampleoffset;
+};
+
+struct dpbspv3brushside_t
+{
+    dpbspv3brushside_t():
+        planenum(0),
+        texinfo(0),
+		flags(0)
+    {}
+
+    Int32 planenum;
+    Int32 texinfo;
+	Int32 flags;
+};
+
+struct dpbspv3brush_t
+{
+    dpbspv3brush_t():
+        firstside(0),
+        numsides(0),
+        contents(0)
+    {}
+
+    Int32 firstside;
+    Int32 numsides;
+    Int32 contents;
 };
 
 struct dpbspv3dispheader_t

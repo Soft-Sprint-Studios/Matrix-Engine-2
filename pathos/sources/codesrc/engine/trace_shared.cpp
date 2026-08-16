@@ -464,11 +464,6 @@ hull_types_t TR_GetHullType( const Vector& mins, const Vector& maxs, hull_types_
 //=============================================
 void TR_ClipBoxToBrush( const Vector& p1, const Vector& p2, const Vector& mins, const Vector& maxs, trace_t& tr, const brushmodel_t* pbrushmodel, const mbrush_t* pbrush, Int32 brushtypebits )
 {
-	if (entity.entindex == WORLDSPAWN_ENTITY_INDEX && g_pWorldDisplacementMCD)
-	{
-		TR_TraceDisplacementMCD(start, end, player_mins, player_maxs, outtrace);
-	}
-
 	// Don't bother with empty brushes
 	if(!pbrush->numbrushsides)
 		return;
@@ -1558,6 +1553,11 @@ void TR_PlayerTraceSingleEntity( const entity_state_t& entity, entity_vbmhulldat
 	{
 		Con_EPrintf("%s - Invalid hull type '%d' specified.\n", __FUNCTION__, (int)hulltype);
 		return;
+	}
+
+	if (entity.entindex == WORLDSPAWN_ENTITY_INDEX && g_pWorldDisplacementMCD)
+	{
+		TR_TraceDisplacementMCD(start, end, player_mins, player_maxs, outtrace);
 	}
 
 	TR_TraceAgainstEntity(entity, pmodel, pvbmhulldata, start, end, hulltype, traceflags, player_mins, player_maxs, trace);

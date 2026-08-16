@@ -830,6 +830,9 @@ void CBSPRenderer::InitLightmaps( void )
 					if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 						continue;
 
+					if(psurface->lightoffset == -1)
+						continue;
+
 					// Skip empty styles
 					if(i > BASE_LIGHTMAP_INDEX && psurface->styles[i] == NULL_LIGHTSTYLE_INDEX)
 						continue;

@@ -862,48 +862,42 @@ void main()
 			finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			specularColor.xyz = AddSpecularLight(specularColor.xyz, lightColor.w, skylight_diffuse);
+			specularColor = AddSpecularLight(specularColor, baseSpec);
 			
 			if(numstyles >= 1)
 			{
-				lightColor = AddBaseLight(style1_dir, style1_ambient, style1_diffuse, v_normal, ps_vertexpos, specularFactor, 1.0);
+				vec3 style1Spec;
+				lightColor = AddBaseLight(style1_dir, style1_ambient, style1_diffuse, v_normal, ps_vertexpos, mrao, texture(texture0, ps_texcoord1).rgb, 1.0, style1Spec);
 				
-				$branch shadertype != 15 && shadertype != 19
-				$begin
-					// Add in the diffuse light
-					finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
-				$end
+				// Add in the diffuse light
+				finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
 				
 				// Add to specular
-				specularColor.xyz = AddSpecularLight(specularColor.xyz, lightColor.w, style1_diffuse);
+				specularColor = AddSpecularLight(specularColor, style1Spec);
 			}
 			
 			if(numstyles >= 2)
 			{
-				lightColor = AddBaseLight(style2_dir, style2_ambient, style2_diffuse, v_normal, ps_vertexpos, specularFactor, 1.0);
+				vec3 style2Spec;
+				lightColor = AddBaseLight(style2_dir, style2_ambient, style2_diffuse, v_normal, ps_vertexpos, mrao, texture(texture0, ps_texcoord1).rgb, 1.0, style2Spec);
 				
-				$branch shadertype != 15 && shadertype != 19
-				$begin
-					// Add in the diffuse light
-					finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
-				$end
+				// Add in the diffuse light
+				finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
 				
 				// Add to specular
-				specularColor.xyz = AddSpecularLight(specularColor.xyz, lightColor.w, style2_diffuse);
+				specularColor = AddSpecularLight(specularColor, style2Spec);
 			}
 			
 			if(numstyles >= 3)
 			{
-				lightColor = AddBaseLight(style3_dir, style3_ambient, style3_diffuse, v_normal, ps_vertexpos, specularFactor, 1.0);
+				vec3 style3Spec;
+				lightColor = AddBaseLight(style3_dir, style3_ambient, style3_diffuse, v_normal, ps_vertexpos, mrao, texture(texture0, ps_texcoord1).rgb, 1.0, style3Spec);
 				
-				$branch shadertype != 15 && shadertype != 19
-				$begin
-					// Add in the diffuse light
-					finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
-				$end
+				// Add in the diffuse light
+				finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
 				
 				// Add to specular
-				specularColor.xyz = AddSpecularLight(specularColor.xyz, lightColor.w, style3_diffuse);
+				specularColor = AddSpecularLight(specularColor, style3Spec);
 			}
 		$end
 		$branch vertexlight == 1

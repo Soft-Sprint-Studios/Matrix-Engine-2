@@ -721,7 +721,7 @@ bool CLadder::DrawLadderVSM( cl_entity_t *pLadder, cl_dlight_t *dl )
 	Vector savedOrigin;
 	Math::VectorCopy(pLadder->curstate.origin, savedOrigin);
 
-	if(!cl_renderfuncs.pfnVBMPrepareDraw())
+	if(!cl_renderfuncs.pfnVBMPrepareVSMDraw(dl))
 		return false;
 
 	if(!cl_renderfuncs.pfnDrawVBMModelVSM(pLadder, dl))
@@ -773,7 +773,7 @@ bool CLadder::Draw( void )
 		if(!(pentity->curstate.effects & EF_LADDER))
 			continue;
 
-		if(pentity->pmodel->type != MOD_VBM)
+		if(!pentity->pmodel || pentity->pmodel->type != MOD_VBM)
 			continue;
 
 		if(!DrawLadder(pentity))

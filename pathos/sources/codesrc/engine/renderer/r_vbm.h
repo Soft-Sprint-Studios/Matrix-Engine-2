@@ -307,8 +307,6 @@ struct vbm_attribs
 		u_causticstex1(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_causticstex2(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_causticscolor(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_phong_exponent(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_specularfactor(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_shadertype(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_flexes(CGLSLShader::PROPERTY_UNAVAILABLE),
