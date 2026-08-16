@@ -1007,3 +1007,4 @@ Merge PR # 55:
  - Fix parenting not properly setting positions on toggle entities when tying them to parent entities.
  - Fix for parented entities not being kept as engine-side entities instead of client-only ones.
  - Add code to manage zhlt_noclip setting for brush based collisions.
+ - Apply epsilon fix to alpha tested trace also in hlrad.
