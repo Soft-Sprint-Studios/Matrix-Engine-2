@@ -160,6 +160,12 @@ bool CFuncButton::KeyValue( const keyvalue_t& kv )
 		m_useSoundFile = gd_engfuncs.pfnAllocString(kv.value);
 		return true;
 	}
+	else if(!qstrcmp(kv.keyname, "zhlt_noclip"))
+	{
+		if(SDL_atoi(kv.value) == 1)
+			m_pState->flags |= FL_POINTHULL_ONLY;
+		return true;
+	}
 	else
 		return CToggleEntity::KeyValue(kv);
 }

@@ -56,7 +56,10 @@ bool CEnvSprite::Spawn( void )
 {
 	// Remove immediately if it has no targetname
 	// Means it's completely static
-	if(!HasSpawnFlag(FL_KEEP_SERVER) && m_pFields->targetname == NO_STRING_VALUE)
+	if(!HasSpawnFlag(FL_KEEP_SERVER) 
+		&& m_pFields->targetname == NO_STRING_VALUE
+		&& m_pFields->parent == NO_STRING_VALUE
+		&& m_pState->parent == NO_ENTITY_INDEX)
 	{
 		Util::RemoveEntity(this);
 		return true;

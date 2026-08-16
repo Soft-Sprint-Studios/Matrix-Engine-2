@@ -791,8 +791,6 @@ bool BSPV30_LoadNodes( const byte* pfile, brushmodel_t& model, const dv30lump_t&
 		}
 	}
 
-	// Set linkage info on nodes
-	BSP_SetNodeParent(model.pnodes, nullptr);
 	return true;
 }
 

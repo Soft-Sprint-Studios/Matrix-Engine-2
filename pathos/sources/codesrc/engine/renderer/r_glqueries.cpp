@@ -256,7 +256,7 @@ Float R_CalcOcclusionFactor( const Vector& origin,
 			}
 			else if(!checkPortal)
 			{
-				if(CL_PointContents(tr.endpos, nullptr) == CONTENTS_SKY)
+				if(tr.hasContents(CONTENTS_SKY))
 					totalfrac += frac;
 			}
 			else

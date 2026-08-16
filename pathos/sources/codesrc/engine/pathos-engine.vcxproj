@@ -97,9 +97,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <EmbedManifest>true</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <EmbedManifest>true</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
@@ -232,6 +234,12 @@
       <Message>Copy '$(TargetName)$(TargetExt)' to directory '$(SolutionDir)../../../$(TargetName)$(TargetExt)'</Message>
       <Outputs>pathos_x64.exe</Outputs>
     </CustomBuildStep>
+    <Manifest>
+      <OutputManifestFile>$(IntDir)$(TargetName)$(TargetExt).embed.manifest</OutputManifestFile>
+    </Manifest>
+    <ManifestResourceCompile>
+      <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
+    </ManifestResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\common\bmp.cpp" />

@@ -33,6 +33,7 @@ namespace Util
 	extern void SetAxisDirection( entity_state_t& state, Int32 flags, Int32 flagz, Int32 flagx );
 	extern Float GetAxisValue( Int32 flags, const Vector& angles, Int32 flagz, Int32 flagx );
 	extern Float GetAxisDelta( Int32 flags, const Vector& angle1, const Vector& angle2, Int32 flagz, Int32 flagx );
+	extern void TraceLine( const Vector& start, const Vector& end, bool ignorenpcs, bool usehitboxes, bool ignoreglass, bool hitcorpses, bool hitsky, const edict_t* pignoreent, trace_t& tr );
 	extern void TraceLine( const Vector& start, const Vector& end, bool ignorenpcs, bool usehitboxes, bool ignoreglass, bool hitcorpses, const edict_t* pignoreent, trace_t& tr );
 	extern void TraceLine( const Vector& start, const Vector& end, bool ignorenpcs, bool usehitboxes, bool ignoreglass, const edict_t* pignoreent, trace_t& tr );
 	extern void TraceLine( const Vector& start, const Vector& end, bool ignorenpcs, bool usehitboxes, const edict_t* pignoreent, trace_t& tr );

@@ -236,6 +236,20 @@ uniform vec3 skylight_ambient;
 uniform vec3 skylight_diffuse;
 uniform vec3 skylight_dir;
 
+uniform int numstyles;
+
+uniform vec3 style1_ambient;
+uniform vec3 style1_diffuse;
+uniform vec3 style1_dir;
+
+uniform vec3 style2_ambient;
+uniform vec3 style2_diffuse;
+uniform vec3 style2_dir;
+
+uniform vec3 style3_ambient;
+uniform vec3 style3_diffuse;
+uniform vec3 style3_dir;
+
 uniform float light_radius;
 
 uniform vec3 fogcolor;
@@ -848,7 +862,49 @@ void main()
 			finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
 			
 			// Add to specular
-			specularColor = AddSpecularLight(specularColor, baseSpec);
+			specularColor.xyz = AddSpecularLight(specularColor.xyz, lightColor.w, skylight_diffuse);
+			
+			if(numstyles >= 1)
+			{
+				lightColor = AddBaseLight(style1_dir, style1_ambient, style1_diffuse, v_normal, ps_vertexpos, specularFactor, 1.0);
+				
+				$branch shadertype != 15 && shadertype != 19
+				$begin
+					// Add in the diffuse light
+					finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
+				$end
+				
+				// Add to specular
+				specularColor.xyz = AddSpecularLight(specularColor.xyz, lightColor.w, style1_diffuse);
+			}
+			
+			if(numstyles >= 2)
+			{
+				lightColor = AddBaseLight(style2_dir, style2_ambient, style2_diffuse, v_normal, ps_vertexpos, specularFactor, 1.0);
+				
+				$branch shadertype != 15 && shadertype != 19
+				$begin
+					// Add in the diffuse light
+					finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
+				$end
+				
+				// Add to specular
+				specularColor.xyz = AddSpecularLight(specularColor.xyz, lightColor.w, style2_diffuse);
+			}
+			
+			if(numstyles >= 3)
+			{
+				lightColor = AddBaseLight(style3_dir, style3_ambient, style3_diffuse, v_normal, ps_vertexpos, specularFactor, 1.0);
+				
+				$branch shadertype != 15 && shadertype != 19
+				$begin
+					// Add in the diffuse light
+					finalColor.xyz = AddDiffuseLight(finalColor.xyz, lightColor.xyz);
+				$end
+				
+				// Add to specular
+				specularColor.xyz = AddSpecularLight(specularColor.xyz, lightColor.w, style3_diffuse);
+			}
 		$end
 		$branch vertexlight == 1
 		$begin

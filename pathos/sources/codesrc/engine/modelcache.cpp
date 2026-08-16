@@ -452,6 +452,9 @@ cache_model_t* CModelCache::LoadBSPModel( const Char* pstrFilename, const byte* 
 	if(!pmodel)
 		return nullptr;
 
+	// Set linkage info on nodes
+	BSP_SetNodeParent(pmodel->pnodes, nullptr);
+
 	// Set up everything else
 	BSP_MakeHullZero((*pmodel));
 
@@ -533,6 +536,12 @@ void CModelCache::SetupBSPSubmodels( brushmodel_t& model, const Char* loadName )
 		pnewmodel->nummarksurfaces = model.nummarksurfaces;
 		pnewmodel->pentdata = model.pentdata;
 		pnewmodel->entdatasize = model.entdatasize;
+		pnewmodel->pbrushes = model.pbrushes;
+		pnewmodel->numbrushes = model.numbrushes;
+		pnewmodel->pbrushsides = model.pbrushsides;
+		pnewmodel->numbrushsides = model.numbrushsides;
+		pnewmodel->pleafbrushes = model.pleafbrushes;
+		pnewmodel->numleafbrushes = model.numleafbrushes;
 		pnewmodel->pdispinfo = model.pdispinfo;
 		pnewmodel->numdispinfo = model.numdispinfo;
 		pnewmodel->pdispverts = model.pdispverts;
@@ -559,6 +568,7 @@ void CModelCache::SetupBSPSubmodels( brushmodel_t& model, const Char* loadName )
 			pnewmodel->original_vertexlightcompressionlevel[j] = model.original_vertexlightcompressionlevel[j];
 		}
 
+		pnewmodel->headnodeindex = psubmodel->headnode[0];
 		pnewmodel->hulls[0].firstclipnode = psubmodel->headnode[0];
 		for(Uint32 j = 1; j < MAX_MAP_HULLS; j++)
 		{
@@ -608,6 +618,10 @@ void CModelCache::SetupBSPSubmodels( brushmodel_t& model, const Char* loadName )
 		pnew->maxs = pnewmodel->maxs;
 		pnew->radius = pnewmodel->radius;
 		pnew->isloaded = true;
+
+		// Mark if we have brush collisions
+		if(pnewmodel->numbrushes > 0 && pnewmodel->numbrushsides > 0 && pnewmodel->numleafbrushes > 0)
+			pnew->flags |= CACHE_FL_HAS_BRUSH_COLLISIONS;
 	}
 }
 

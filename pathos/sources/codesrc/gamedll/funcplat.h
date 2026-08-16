@@ -37,6 +37,8 @@ public:
 	virtual bool Spawn( void ) override;
 	virtual void CallBlocked( CBaseEntity* pBlocker ) override;
 	virtual bool CanEntityBeParent( void ) const override { return true; }
+	virtual void InitEntity( void ) override;
+	virtual void DeclareSaveFields( void ) override;
 
 public:
 	bool Setup( void );
@@ -50,5 +52,9 @@ public:
 	virtual void GoDown( void );
 	virtual void HitTop( void );
 	virtual void HitBottom( void );
+
+protected:
+	// TRUE if entity was initialized
+	bool	m_wasInitialized;
 };
 #endif //FUNCPLAT_H

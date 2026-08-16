@@ -57,6 +57,18 @@ enum lightgrid_data_layers_t
 	NB_LIGHTGRID_DATA_LAYERS
 };
 
+// Brush type based on texture
+enum brushtype_t
+{
+	BRUSHTYPE_NORMAL = 0,		// Normal structural brush, use it for bullets/visibility AND collisions
+	BRUSHTYPE_EDITOR_SPECIAL,	// HINT, SKIP, etc. Do not use for anything.
+	BRUSHTYPE_CLIP_BRUSH,		// Clipping hull brush, only use for non-point hull collisions
+	BRUSHTYPE_SKY,				// Sky brush
+
+	// Must be last
+	NB_BRUSH_TYPES
+};
+
 //
 // Light grid flags
 //
@@ -205,6 +217,49 @@ struct mnode_t
 	Uint32 numsurfaces;
 };
 
+
+struct mbrushside_t
+{
+	mbrushside_t():
+		ptexinfo(nullptr),
+		pplane(nullptr),
+		planeback(false),
+		isbevel(false)
+	{}
+
+	// Texinfo of surface
+	mtexinfo_t* ptexinfo;
+	// Plane of surface
+	plane_t* pplane;
+	// TRUE if normal is reversed
+	bool planeback;
+	// TRUE if bevel
+	bool isbevel;
+};
+
+
+struct mbrush_t
+{
+	mbrush_t():
+		contents(CONTENTS_NONE),
+		firstbrushside(0),
+		numbrushsides(0),
+		type(BRUSHTYPE_NORMAL),
+		checkcount(0)
+	{}
+
+	// Contents(ie water, lava, slime, etc)
+	Int32 contents;
+	// First brush into leafbrushes array
+	Uint32 firstbrushside;
+	// Number of sides on brush
+	Uint32 numbrushsides;
+	// Brush type(standard structural, clip brush, editor special texture, etc)
+	brushtype_t type;
+	// Check counter
+	Uint64 checkcount;
+};
+
 struct mleaf_t
 {
 	mleaf_t():
@@ -214,7 +269,9 @@ struct mleaf_t
 		pcompressedvis(nullptr),
 		pcompressedpas(nullptr),
 		pfirstmarksurface(nullptr),
-		nummarksurfaces(0)
+		nummarksurfaces(0),
+		pfirstleafbrush(nullptr),
+		numleafbrushes(0)
 	{
 	}
 
@@ -240,6 +297,11 @@ struct mleaf_t
 	msurface_t** pfirstmarksurface;
 	// Number of marksurfaces
 	Uint32 nummarksurfaces;
+
+	// Leaf brushes pointer
+	mbrush_t** pfirstleafbrush;
+	// Number of leaf brushes
+	Uint32 numleafbrushes;
 };
 
 struct msurface_t
@@ -505,6 +567,7 @@ struct brushmodel_t
 	brushmodel_t():
 		version(0),
 		freedata(false),
+		headnodeindex(0),
 		radius(0),
 		firstmodelsurface(0),
 		nummodelsurfaces(0),
@@ -536,6 +599,12 @@ struct brushmodel_t
 		visdatasize(0),
 		ppasdata(nullptr),
 		pasdatasize(0),
+		pbrushes(nullptr),
+		numbrushes(0),
+		pbrushsides(nullptr),
+		numbrushsides(0),
+		pleafbrushes(nullptr),
+		numleafbrushes(0),
 		plightgrid(nullptr),
 		lightdatasize(0),
 		vertexlightdatasize(0),
@@ -605,6 +674,12 @@ struct brushmodel_t
 				delete[] hulls[0].pclipnodes;
 			if(plightgrid)
 				delete plightgrid;
+			if(pbrushes)
+				delete pbrushes;
+			if(pbrushsides)
+				delete pbrushsides;
+			if(pleafbrushes)
+				delete pleafbrushes;
 			if (pdispinfo)
 				delete[] pdispinfo;
 			if (pdispverts)
@@ -658,6 +733,9 @@ struct brushmodel_t
 	Int32 version;
 	// Tells if we should free our data
 	bool freedata;
+
+	// Head node for draw nodes
+	Int32 headnodeindex;
 
 	// for bounding boxes
 	Vector mins;
@@ -727,6 +805,18 @@ struct brushmodel_t
 	// PAS data
 	byte *ppasdata;
 	Uint32 pasdatasize;
+
+	// Brushes
+	mbrush_t* pbrushes;
+	Uint32 numbrushes;
+
+	// Brush sides
+	mbrushside_t* pbrushsides;
+	Uint32 numbrushsides;
+
+	// Leaf brushes
+	mbrush_t** pleafbrushes;
+	Uint32 numleafbrushes;
 
 	// Light grid data
 	lightgriddata_t* plightgrid;

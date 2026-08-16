@@ -2032,6 +2032,28 @@ bool CUITextInputTab::keyEvent( Int32 button, Int16 mod, bool keyDown )
 
 		m_inputPosition++;
 	}
+	else if(sdlKeycode == SDLK_HOME)
+	{
+		if(m_inputPosition > 0)
+		{
+			// Always draw after input is added
+			m_nextBlinkTime = g_engineFuncs.pfnGetEngineTime() + 0.5;
+			m_drawMarker = true;
+
+			m_inputPosition = 0;
+		}
+	}
+	else if(sdlKeycode == SDLK_END)
+	{
+		Uint32 bufLength = qstrlen(m_szBuffer);
+		if(bufLength > 0)
+		{
+			// Always draw after input is added
+			m_nextBlinkTime = g_engineFuncs.pfnGetEngineTime() + 0.5;
+			m_drawMarker = true;
+			m_inputPosition = bufLength;
+		}
+	}
 	else if(sdlKeycode == SDLK_LEFT)
 	{
 		if(m_inputPosition > 0)

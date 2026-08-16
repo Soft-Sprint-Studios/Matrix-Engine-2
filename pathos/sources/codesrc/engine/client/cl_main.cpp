@@ -162,15 +162,15 @@ static cldll_engfuncs_t CLIENTDLL_ENGINE_FUNCTION_TABLE =
 //
 trace_interface_t CLIENTDLL_TRACE_FUNCTIONS =
 {
-	CL_TestPlayerPosition,		//pfnTestPlayerPosition
-	CL_PointContents,			//pfnPointContents
-	CL_TruePointContents,		//pfnTruePointContents
-	TR_HullPointContents,		//pfnHullPointContents
-	CL_PlayerTrace,				//pfnPlayerTrace
-	CL_TraceLine,				//pfnTraceLine
-	CL_HullForBSP,				//pfnHullForBSP
-	CL_TraceModel,				//pfnTraceModel
-	CL_TraceTexture				//pfnTraceTexture
+	CL_TestPlayerPosition,			//pfnTestPlayerPosition
+	CL_PointContents,				//pfnPointContents
+	CL_TruePointContents,			//pfnTruePointContents
+	CL_HullPointContents,			//pfnHullPointContents
+	CL_PlayerTrace,					//pfnPlayerTrace
+	CL_TraceLine,					//pfnTraceLine
+	CL_HullForBSP,					//pfnHullForBSP
+	CL_TraceModel,					//pfnTraceModel
+	CL_TraceTexture					//pfnTraceTexture
 };
 
 //=============================================
@@ -201,7 +201,7 @@ bool CL_Init( void )
 	trace_interface_t traceFuncs;
 	traceFuncs.pfnTestPlayerPosition = CL_TestPlayerPosition;
 	traceFuncs.pfnHullForBSP = CL_HullForBSP;
-	traceFuncs.pfnHullPointContents = TR_HullPointContents;
+	traceFuncs.pfnHullPointContents = CL_HullPointContents;
 	traceFuncs.pfnPointContents = CL_PointContents;
 	traceFuncs.pfnTraceModel = CL_TraceModel;
 	traceFuncs.pfnPlayerTrace = CL_PlayerTrace;

@@ -29,7 +29,10 @@ extern bool PBSPV2_LoadTexinfo( const byte* pfile, brushmodel_t& model, const dp
 extern bool PBSPV2_LoadFaces( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
 extern bool PBSPV2_LoadMarksurfaces( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
 extern bool PBSPV2_LoadVisibility( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
-extern bool PBSPV2_LoadLeafs( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
+extern bool PBSPV2_LoadBrushData( const byte* pfile, brushmodel_t& model, const dpbspv2header_t* pheader );
+extern bool PBSPV2_LoadLeafs( const byte* pfile, brushmodel_t& model, const dpbspv2header_t* pheader );
+extern bool PBSPV2_LoadLeafs_NoBrushData( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
+extern bool PBSPV2_LoadLeafs_BrushData( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
 extern bool PBSPV2_LoadNodes( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
 extern bool PBSPV2_LoadClipnodes( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
 extern bool PBSPV2_LoadEntities( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
@@ -37,4 +40,7 @@ extern bool PBSPV2_LoadSubmodels( const byte* pfile, brushmodel_t& model, const 
 extern bool PBSPV2_LoadVertexLighting( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump, baked_vertexlight_layers_t layer );
 extern bool PBSPV2_DecompressLightingData( const byte* pfile, const dpbspv2lightingdata_t* plightdata, color24_t*& pdestptr, Uint32& destsize, byte*& poriginaldataptr, Uint32& originalsize, Int32& compression, Int32 compressionlevel );
 extern bool PBSPV2_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
+extern bool PBSPV2_LoadBrushes( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
+extern bool PBSPV2_LoadBrushSides( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
+extern bool PBSPV2_LoadLeafBrushes( const byte* pfile, brushmodel_t& model, const dpbspv2lump_t& lump );
 #endif //PBSPV2_H

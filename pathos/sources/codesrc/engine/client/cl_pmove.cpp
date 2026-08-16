@@ -39,7 +39,18 @@ Int32 CL_TestPlayerPosition( hull_types_t hulltype, Int32 flags, const class Vec
 //=============================================
 Int32 CL_PointContents( const Vector& position, Int32* truecontents, bool particleBlockers )
 {
-	Int32 contents = TR_HullPointContents(&ens.pworld->hulls[0], 0, position);
+	const cache_model_t* pworldcache = Cache_GetModel(WORLD_MODEL_INDEX);
+	if(!pworldcache)
+		return CONTENTS_EMPTY;
+
+	const brushmodel_t* pworldmodel = pworldcache->getBrushmodel();
+
+	Int32 contents;
+	if(pworldcache->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+		contents = TR_PointContents_Brush(pworldmodel, position);
+	else
+		contents = TR_HullPointContents_ClipNode(&pworldmodel->hulls[0], 0, position);
+
 	if(truecontents)
 		*truecontents = contents;
 	
@@ -88,7 +99,11 @@ Int32 CL_PointContents( const Vector& position, Int32* truecontents, bool partic
 			Math::RotateToEntitySpace(pentity->curstate.angles, lposition);
 
 		const brushmodel_t* pbrushmodel = pmodel->getBrushmodel();
-		contents = TR_HullPointContents(&pbrushmodel->hulls[0], pbrushmodel->hulls[0].firstclipnode, lposition);
+		if(pmodel->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+			contents = TR_PointContents_Brush(pbrushmodel, lposition);
+		else
+			contents = TR_HullPointContents_ClipNode(&pbrushmodel->hulls[0], pbrushmodel->hulls[0].firstclipnode, lposition);
+
 		if(contents != CONTENTS_EMPTY)
 		{
 			if(pentity->curstate.solid == SOLID_NOT && pentity->curstate.skin <= CONTENTS_WATER && pentity->curstate.skin >= CONTENTS_LAVA)
@@ -137,7 +152,11 @@ Int32 CL_PointContents( const Vector& position, Int32* truecontents, bool partic
 				Math::RotateToEntitySpace(pentity->curstate.angles, lposition);
 
 			const brushmodel_t* pbrushmodel = pmodel->getBrushmodel();
-			contents = TR_HullPointContents(&pbrushmodel->hulls[0], pbrushmodel->hulls[0].firstclipnode, lposition);
+			if(pmodel->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+				contents = TR_PointContents_Brush(pbrushmodel, lposition);
+			else
+				contents = TR_HullPointContents_ClipNode(&pbrushmodel->hulls[0], pbrushmodel->hulls[0].firstclipnode, lposition);
+
 			if(contents != CONTENTS_EMPTY)
 			{
 				if(pentity->curstate.solid == SOLID_NOT && pentity->curstate.skin <= CONTENTS_WATER && pentity->curstate.skin >= CONTENTS_LAVA)
@@ -173,9 +192,14 @@ Int32 CL_PointContents( cl_entity_t* pentity, const Vector& position )
 		Math::RotateToEntitySpace(pentity->curstate.angles, lposition);
 
 	const brushmodel_t* pbrushmodel = pentity->pmodel->getBrushmodel();
-	const hull_t* phull = &pbrushmodel->hulls[0];
 
-	return TR_HullPointContents(phull, phull->firstclipnode, lposition);
+	Int32 contents;
+	if(pentity->pmodel->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+		contents = TR_PointContents_Brush(pbrushmodel, position);
+	else
+		contents = TR_HullPointContents_ClipNode(&pbrushmodel->hulls[0], pbrushmodel->hulls[0].firstclipnode, position);
+
+	return contents;
 }
 
 //=============================================
@@ -184,6 +208,51 @@ Int32 CL_PointContents( cl_entity_t* pentity, const Vector& position )
 Int32 CL_TruePointContents( const Vector& position )
 {
 	return CL_PointContents(position, nullptr);
+}
+
+//=============================================
+//
+//=============================================
+Int32 CL_HullPointContents( entindex_t entindex, hull_types_t hulltype, const Vector& position )
+{
+	// Default to world entity
+	cl_entity_t* pentity = CL_GetEntityByIndex(entindex);
+	if(!pentity)
+	{
+		Con_EPrintf("%s - Couldn't get edict %d.\n", __FUNCTION__, entindex);
+		return CONTENTS_NONE;
+	}
+
+	const cache_model_t* pcachemodel = pentity->pmodel;
+	if(!pcachemodel || pcachemodel->type != MOD_BRUSH)
+	{
+		Con_EPrintf("%s - Entity %d has no model, or is not a brush model.\n", __FUNCTION__, entindex);
+		return CONTENTS_EMPTY;
+	}
+
+	if(hulltype < HULL_POINT || hulltype >= MAX_MAP_HULLS)
+	{
+		Con_EPrintf("%s - Called with invalid hulltype.\n", __FUNCTION__);
+		return CONTENTS_EMPTY;
+	}
+
+	const brushmodel_t* pbrushmodel = pcachemodel->getBrushmodel();
+	Int32 contents;
+	if(pcachemodel->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+	{
+		Int32 brushtypebits = ((1<<BRUSHTYPE_NORMAL) |(1<<BRUSHTYPE_SKY));
+		if(hulltype != HULL_POINT)
+			brushtypebits |= (1<<BRUSHTYPE_CLIP_BRUSH);
+
+		contents = TR_HullPointContents_Brush(pbrushmodel, position, ZERO_VECTOR, ZERO_VECTOR, brushtypebits);
+	}
+	else
+	{
+		const hull_t* phull = &pbrushmodel->hulls[hulltype];
+		contents = TR_HullPointContents_ClipNode(phull, phull->firstclipnode, position);
+	}
+
+	return contents;
 }
 
 //=============================================
@@ -204,6 +273,7 @@ void CL_PlayerTrace( const Vector& start, const Vector& end, Int32 traceflags, h
 	trace.fraction = 1.0;
 	trace.hitentity = NO_ENTITY_INDEX;
 	trace.endpos = end;
+	trace.numhitcontents = 0;
 
 	// Get localplayer
 	cl_entity_t* pplayer = CL_GetLocalPlayer();
@@ -212,7 +282,7 @@ void CL_PlayerTrace( const Vector& start, const Vector& end, Int32 traceflags, h
 
 	// trace against world first
 	cl_entity_t* pworld = CL_GetEntityByIndex(WORLDSPAWN_ENTITY_INDEX);
-	TR_PlayerTraceSingleEntity(pworld->curstate, nullptr, nullptr, start, end, hulltype, traceflags, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], trace);
+	TR_PlayerTraceSingleEntity(pworld->curstate, nullptr, start, end, hulltype, traceflags, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], trace);
 
 	// Trace against entities if applicable
 	if(!(traceflags & FL_TRACE_WORLD_ONLY))
@@ -300,19 +370,11 @@ void CL_PlayerTrace( const Vector& start, const Vector& end, Int32 traceflags, h
 			if(!TR_TracelineBBoxCheck(pentity->curstate, pentity->pmodel, start, end, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype]))
 				continue;
 
-			// Set VBM data if needed
-			const mcdheader_t* pmcdheader = nullptr;
-			if(pentity->pmodel->cacheflags & CACHE_FL_HAS_MCD)
-			{
-				const vbmcache_t* pvbmcache = pentity->pmodel->getVBMCache();
-				pmcdheader = pvbmcache->pmcdheader;
-			}
-
 			// Update VBM hull data if needed
-			if(pentity->pmodel->type == MOD_VBM && (pentity->pmodel->flags & STUDIO_MF_TRACE_HITBOX || traceflags & FL_TRACE_HITBOXES) && !pmcdheader)
+			if(pentity->pmodel->type == MOD_VBM && (pentity->pmodel->flags & STUDIO_MF_TRACE_HITBOX || traceflags & FL_TRACE_HITBOXES))
 				TR_VBMSetHullInfo(pentity->pvbmhulldata, pentity->pmodel, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], pentity->curstate, cls.cl_time, hulltype);
 
-			TR_PlayerTraceSingleEntity(pentity->curstate, pentity->pvbmhulldata, pmcdheader, start, end, hulltype, traceflags, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], trace);
+			TR_PlayerTraceSingleEntity(pentity->curstate, pentity->pvbmhulldata, start, end, hulltype, traceflags, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], trace);
 		}
 	}
 
@@ -363,7 +425,7 @@ void CL_PlayerTrace( const Vector& start, const Vector& end, Int32 traceflags, h
 			if(Math::CheckMinsMaxs(tracemins, tracemaxs, mins, maxs))
 				continue;
 
-			TR_PlayerTraceSingleEntity(pentity->curstate, pentity->pvbmhulldata, nullptr, start, end, hulltype, traceflags, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], trace);
+			TR_PlayerTraceSingleEntity(pentity->curstate, pentity->pvbmhulldata, start, end, hulltype, traceflags, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], trace);
 		}
 	}
 }
@@ -425,15 +487,7 @@ Float CL_TraceModel( Int32 entity, const Vector& start, const Vector& end, hull_
 	if(!pentity)
 		return 0;
 
-	// Set VBM data if needed
-	const mcdheader_t* pmcdheader = nullptr;
-	if(pentity->pmodel->cacheflags & CACHE_FL_HAS_MCD)
-	{
-		const vbmcache_t* pvbmcache = pentity->pmodel->getVBMCache();
-		pmcdheader = pvbmcache->pmcdheader;
-	}
-
-	TR_PlayerTraceSingleEntity(pentity->curstate, pentity->pvbmhulldata, pmcdheader, start, end, hulltype, flags, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], trace);
+	TR_PlayerTraceSingleEntity(pentity->curstate, pentity->pvbmhulldata, start, end, hulltype, flags, cls.pminfo.player_mins[hulltype], cls.pminfo.player_maxs[hulltype], trace);
 
 	return trace.fraction;
 }

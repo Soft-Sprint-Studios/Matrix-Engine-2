@@ -85,3 +85,19 @@ void CFuncWall::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_
 		break;
 	}
 }
+
+//=============================================
+// @brief
+//
+//=============================================
+bool CFuncWall::KeyValue( const keyvalue_t& kv )
+{
+	if(!qstrcmp(kv.keyname, "zhlt_noclip"))
+	{
+		if(SDL_atoi(kv.value) == 1)
+			m_pState->flags |= FL_POINTHULL_ONLY;
+		return true;
+	}
+	else
+		return CBaseEntity::KeyValue(kv);
+}

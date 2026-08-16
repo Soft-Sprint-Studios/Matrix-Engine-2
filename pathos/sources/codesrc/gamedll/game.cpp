@@ -649,7 +649,7 @@ bool ShootTrace( const Vector& gunPosition, const Vector& endPos, const Vector& 
 	if(pTraceModel)
 		Util::TraceModel(pTraceModel, gunPosition, endPos, true, HULL_POINT, tr);
 	else
-		Util::TraceLine(gunPosition, endPos, false, true, false, true, isRicochetShot ? nullptr : pAttacker->GetEdict(), tr);
+		Util::TraceLine(gunPosition, endPos, false, true, false, true, true, isRicochetShot ? nullptr : pAttacker->GetEdict(), tr);
 		
 	// Don't bother if we hit nothing
 	if(tr.noHit())
@@ -660,7 +660,7 @@ bool ShootTrace( const Vector& gunPosition, const Vector& endPos, const Vector& 
 		pWeapon->OnWeaponShotImpact(gunPosition, tr, (isPenetrationShot || isRicochetShot) ? true : false);
 
 	// Don't bother if we hit the sky
-	if(gd_tracefuncs.pfnPointContents(tr.endpos, nullptr, false) == CONTENTS_SKY)
+	if(tr.hasContents(CONTENTS_SKY))
 		return false;
 
 	// Make sure it's valid
@@ -887,7 +887,15 @@ void FireBullets( Uint32 nbshots,
 		{
 			tracerCount++;
 			if((tracerCount % tracerFrequency) == 0)
-				SpawnTracer(gunTracePosition, tr.endpos, pAttacker, aimForward, aimRight, aimUp, true, mirrorTracer);
+			{
+				Vector tracerEndPos;
+				if(tr.hasContents(CONTENTS_SKY))
+					tracerEndPos = endPos;
+				else
+					tracerEndPos = tr.endpos;
+
+				SpawnTracer(gunTracePosition, tracerEndPos, pAttacker, aimForward, aimRight, aimUp, true, mirrorTracer);
+			}
 		}
 
 		if(shootResult)
@@ -1063,14 +1071,14 @@ void FireBullets( Uint32 nbshots,
 							break;
 
 						Vector startPosition;
-						Vector endPosition = tr.endpos;
+						Vector originalHitPosition = tr.endpos;
 						for (Float ldistance = 4.0f; ldistance <= pPenetrationInfo->penetrationdepth; ldistance += 4.0f)
 						{
-							startPosition = tr.endpos + shootDirection * ldistance;
+							startPosition = originalHitPosition + shootDirection * ldistance;
 							if (pHitEntity->IsBrushModel() || pHitEntity->IsWorldSpawn())
-								Util::TraceLine(startPosition, endPosition, true, true, false, true, pAttacker->GetEdict(), tr);
+								Util::TraceLine(startPosition, originalHitPosition, true, true, false, true, pAttacker->GetEdict(), tr);
 							else
-								Util::TraceLine(startPosition, endPosition, false, true, pAttacker->GetEdict(), tr);
+								Util::TraceLine(startPosition, originalHitPosition, false, true, pAttacker->GetEdict(), tr);
 
 							if (!tr.startSolid() && !tr.allSolid() && !tr.noHit())
 								break;

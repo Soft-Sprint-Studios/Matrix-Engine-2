@@ -67,8 +67,6 @@ private:
 	bool m_useExtraCullBox;
 };
 
-extern inline Uint32 BoxOnPlaneSide( const Vector& mins, const Vector& maxs, const plane_t* pplane );
-extern inline void RotatePointAroundVector( const Vector& dir, const Vector& point, Float deg, Vector& dest );
 extern inline Float GetXFOVFromY( Float fovY, Float ratio );
 
 #include "frustum_inline.hpp"

@@ -53,8 +53,18 @@ bool CFuncPlatRot::Spawn( void )
 	if(!CFuncPlat::Spawn())
 		return false;
 
-	SetupRotation();
+	
 	return true;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CFuncPlatRot::InitEntity( void )
+{
+	CFuncPlat::InitEntity();
+	SetupRotation();
 }
 
 //=============================================

@@ -94,6 +94,8 @@ bool CMCDTrace::TraceLinePoint( const Vector& start, const Vector& end, const mc
 	m_traceResult.fraction = 1.0;
 	m_traceResult.endpos = end;
 	m_traceResult.flags = FL_TR_INOPEN;
+	m_traceResult.numhitcontents = 0;
+
 	m_triangleCount = 0;
 
 	m_hitSkinRef = NO_POSITION;
@@ -189,6 +191,8 @@ bool CMCDTrace::TraceLineAABB( const Vector& start, const Vector& end, const Vec
 	m_traceResult.fraction = 1.0;
 	m_traceResult.endpos = end;
 	m_traceResult.flags = (FL_TR_INOPEN);
+	m_traceResult.numhitcontents = 0;
+
 	m_triangleCount = 0;
 
 	// Clear this as we won't set this here
@@ -416,7 +420,7 @@ bool CMCDTrace::SeparatingAxisAABBTriangleTest( const Vector& position, const Ve
 	plane.signbits = ptriangle->signbits;
 	plane.normal = ptriangle->normal;
 
-	if(BoxOnPlaneSide(mins, maxs, &plane) != 3)
+	if(Math::BoxOnPlaneSide(mins, maxs, &plane) != 3)
 		return false;
 	else
 		return true;

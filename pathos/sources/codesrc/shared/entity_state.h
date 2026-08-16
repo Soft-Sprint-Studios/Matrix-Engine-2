@@ -136,6 +136,7 @@ static constexpr Uint64 FL_NO_HITBOX_TRACE	= (1ULL<<32);
 static constexpr Uint64 FL_PARTICLE_BLOCKER	= (1ULL<<33);
 static constexpr Uint64 FL_NO_JUMPING		= (1ULL<<34);
 static constexpr Uint64 FL_DRAINED_STAMINA	= (1ULL<<35);
+static constexpr Uint64 FL_POINTHULL_ONLY	= (1ULL<<36);
 
 enum entstate_bits_t
 {

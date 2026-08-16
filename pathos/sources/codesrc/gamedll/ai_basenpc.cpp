@@ -2586,7 +2586,7 @@ void CBaseNPC::GroundEntityNudge( bool noExceptions )
 	// Move the NPC up a bit, then drop him
 	Vector preNudgeOrigin = m_pState->origin;
 	Vector nudgeOrigin = preNudgeOrigin;
-	nudgeOrigin.z += 4;
+	nudgeOrigin.z += 16;
 
 	SetOrigin(nudgeOrigin);
 	m_pState->flags &= ~FL_ONGROUND;
@@ -4739,9 +4739,9 @@ bool CBaseNPC::FindCover( const Vector& threatPosition, const Vector& viewOffset
 		Vector skyOffset = m_pState->origin + Vector(0, 0, 4096);
 
 		trace_t tr;
-		Util::TraceLine(m_pState->origin, skyOffset, true, false, m_pEdict, tr);
+		Util::TraceLine(m_pState->origin, skyOffset, true, false, true, false, true, m_pEdict, tr);
 
-		bool isThreatOutdoors = (gd_tracefuncs.pfnPointContents(tr.endpos, nullptr, false) == CONTENTS_SKY) ? true : false;
+		bool isThreatOutdoors = tr.hasContents(CONTENTS_SKY) ? true : false;
 
 		Int32 nodeIndex = NO_POSITION;
 		for(Int32 i = 0; i < gNodeGraph.GetNumNodes(); i++)
@@ -4766,8 +4766,8 @@ bool CBaseNPC::FindCover( const Vector& threatPosition, const Vector& viewOffset
 			}
 
 			skyOffset = pNode->origin + Vector(0, 0, 4096);
-			Util::TraceLine(pNode->origin, skyOffset, true, false, m_pEdict, tr);
-			bool isNodeOutdoors = gd_tracefuncs.pfnPointContents(tr.endpos, nullptr, false) == CONTENTS_SKY ? true : false;
+			Util::TraceLine(pNode->origin, skyOffset, true, false, true, false, true, m_pEdict, tr);
+			bool isNodeOutdoors = tr.hasContents(CONTENTS_SKY) ? true : false;
 			if(isNodeOutdoors && isThreatOutdoors || !isNodeOutdoors && !isThreatOutdoors)
 				continue;
 

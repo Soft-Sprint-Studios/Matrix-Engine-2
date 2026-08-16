@@ -61,6 +61,8 @@ struct entity_lightinfo_t
 	Float target_lightreduction;
 	Double reductiontime;
 
+	// Current lightstyle vectors
+	Vector lightstylevectors[MAX_SURFACE_STYLES-1];
 	// Current lightstyle ambient colors
 	Vector lightstylecolors_ambient[MAX_SURFACE_STYLES-1];
 	// Current lightstyle diffuse colors
@@ -77,6 +79,9 @@ struct entity_lightinfo_t
 	Vector target_lightdir;
 
 	// lerping for lightstyles
+	Vector prev_stylevectors[MAX_SURFACE_STYLES-1];
+	Vector target_stylevectors[MAX_SURFACE_STYLES-1];
+
 	Vector prev_stylecolors_ambient[MAX_SURFACE_STYLES-1];
 	Vector target_stylecolors_ambient[MAX_SURFACE_STYLES-1];
 

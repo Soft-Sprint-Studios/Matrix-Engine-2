@@ -115,6 +115,13 @@ struct r_interface_t
 	// Renders a VBM model
 	bool				(*pfnDrawVBMModel)( cl_entity_t* pentity, Int32 renderflags );
 
+	// Prepares for vbm decal rendering
+	bool				(*pfnVBMDecalPrepareDraw)( void );
+	// Finishes vbm decal rendering
+	void				(*pfnVBMDecalEndDraw)( void );
+	// Renders a VBM model decal
+	bool				(*pfnDrawVBMModelDecals)( cl_entity_t* pentity );
+
 	// Prepares for vbm vsm rendering
 	bool				(*pfnVBMPrepareVSMDraw)( cl_dlight_t* pdlight );
 	// Finishes vbm vsm rendering

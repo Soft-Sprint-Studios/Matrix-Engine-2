@@ -35,6 +35,22 @@ CFuncWallToggle::~CFuncWallToggle( void )
 // @brief
 //
 //=============================================
+bool CFuncWallToggle::KeyValue( const keyvalue_t& kv )
+{
+	if(!qstrcmp(kv.keyname, "zhlt_noclip"))
+	{
+		if(SDL_atoi(kv.value) == 1)
+			m_pState->flags |= FL_POINTHULL_ONLY;
+		return true;
+	}
+	else
+		return CBaseEntity::KeyValue(kv);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
 bool CFuncWallToggle::Spawn( void )
 {
 	m_pState->movetype = MOVETYPE_PUSH;

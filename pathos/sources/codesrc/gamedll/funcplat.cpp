@@ -32,7 +32,8 @@ LINK_ENTITY_TO_CLASS(func_plat, CFuncPlat);
 //
 //=============================================
 CFuncPlat::CFuncPlat( edict_t* pedict ):
-	CPlatTrainEntity(pedict)
+	CPlatTrainEntity(pedict),
+	m_wasInitialized(false)
 {
 }
 
@@ -48,30 +49,58 @@ CFuncPlat::~CFuncPlat( void )
 // @brief
 //
 //=============================================
+void CFuncPlat::DeclareSaveFields( void )
+{
+	// Call base class to do it first
+	CPlatTrainEntity::DeclareSaveFields();
+	
+	DeclareSaveField(DEFINE_DATA_FIELD(CFuncPlat, m_wasInitialized, EFIELD_BOOLEAN));
+}
+
+//=============================================
+// @brief
+//
+//=============================================
 bool CFuncPlat::Spawn( void )
 {
 	if(!CPlatTrainEntity::Spawn())
 		return false;
 
-	if(!Setup())
-		return false;
-
-	if(m_pFields->targetname != NO_STRING_VALUE)
-	{
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position1, false);
-		m_toggleState = TSTATE_AT_TOP;
-		SetUse(&CFuncPlat::PlatUse);
-	}
-	else
-	{
-		gd_engfuncs.pfnSetOrigin(m_pEdict, m_position2, false);
-		m_toggleState = TSTATE_AT_BOTTOM;
-	}
-
-	if(!IsTogglePlat())
-		CPlatTrigger::SpawnPlatTrigger(this);
+	m_pState->flags |= FL_INITIALIZE;
 
 	return true;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CFuncPlat::InitEntity( void )
+{
+	if(!m_wasInitialized)
+	{
+		if(!Setup())
+			return;
+
+		if(m_pFields->targetname != NO_STRING_VALUE)
+		{
+			gd_engfuncs.pfnSetOrigin(m_pEdict, m_position1, false);
+			m_toggleState = TSTATE_AT_TOP;
+			SetUse(&CFuncPlat::PlatUse);
+		}
+		else
+		{
+			gd_engfuncs.pfnSetOrigin(m_pEdict, m_position2, false);
+			m_toggleState = TSTATE_AT_BOTTOM;
+		}
+
+		if(!IsTogglePlat())
+			CPlatTrigger::SpawnPlatTrigger(this);
+
+		m_wasInitialized = true;
+	}
+
+	CPlatTrainEntity::InitEntity();
 }
 
 //=============================================

@@ -258,22 +258,56 @@ void SV_TouchLinks( edict_t* pentity, areanode_t* pnode )
 		if(Math::CheckMinsMaxs(pentity->state.absmin, pentity->state.absmax, ptouchedict->state.absmin, ptouchedict->state.absmax))
 			continue;
 
-		if(ptouchedict->state.modelindex && gModelCache.GetType(ptouchedict->state.modelindex) == MOD_BRUSH)
+		if(ptouchedict->state.modelindex)
 		{
-			// Get the hull type
-			Vector offset, localOrigin;
-			const hull_t* phull = SV_HullForBSP(ptouchedict, pentity->state.mins, pentity->state.maxs, &offset);
+			const cache_model_t* pmodel = Cache_GetModel(ptouchedict->state.modelindex);
+			if(pmodel->type == MOD_BRUSH)
+			{
+				Vector localOrigin;
+				if(pmodel->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+				{
+					// Offset the test position for the test on this hull
+					Math::VectorSubtract(pentity->state.origin, ptouchedict->state.origin, localOrigin);
 
-			// Offset the test position for the test on this hull
-			Math::VectorSubtract(pentity->state.origin, offset, localOrigin);
+					// Rotate by angles if needed
+					if(!ptouchedict->state.angles.IsZero())
+						Math::RotateToEntitySpace(ptouchedict->state.angles, localOrigin);
 
-			// Rotate by angles if needed
-			if(!ptouchedict->state.angles.IsZero())
-				Math::RotateToEntitySpace(ptouchedict->state.angles, localOrigin);
+					hull_types_t hulltype = TR_GetHullType(pentity->state.mins, pentity->state.maxs, (hull_types_t)pentity->state.forcehull);
+					Int32 contents;
+					if(hulltype == HULL_POINT)
+					{
+						contents = TR_PointContents_Brush(pmodel->getBrushmodel(), localOrigin);
+					}
+					else
+					{
+						Int32 brushtypebits = ((1<<BRUSHTYPE_NORMAL) | (1<<BRUSHTYPE_CLIP_BRUSH));
+						contents = TR_HullPointContents_Brush(pmodel->getBrushmodel(), localOrigin, HULL_MINS[hulltype], HULL_MAXS[hulltype], brushtypebits);
+					}
 
-			// Test for hull intersection with this model
-			if(TR_HullPointContents(phull, phull->firstclipnode, localOrigin) != CONTENTS_SOLID)
-				continue;
+					if(contents != CONTENTS_SOLID)
+						continue;
+				}
+				else
+				{
+					// Get the hull type
+					Vector offset;
+					const hull_t* phull = SV_HullForBSP(ptouchedict, pentity->state.mins, pentity->state.maxs, &offset);
+					if(!phull)
+						continue;
+
+					// Offset the test position for the test on this hull
+					Math::VectorSubtract(pentity->state.origin, offset, localOrigin);
+
+					// Rotate by angles if needed
+					if(!ptouchedict->state.angles.IsZero())
+						Math::RotateToEntitySpace(ptouchedict->state.angles, localOrigin);
+
+					// Test for hull intersection with this model
+					if(TR_HullPointContents_ClipNode(phull, phull->firstclipnode, localOrigin) != CONTENTS_SOLID)
+						continue;
+				}
+			}
 		}
 
 		svs.gamevars.time = svs.time;
@@ -370,7 +404,11 @@ Int32 SV_LinkContents( areanode_t& node, const Vector& position )
 				}
 			}
 
-			if(gModelCache.GetType(ptouchedict->state.modelindex) != MOD_BRUSH)
+			const cache_model_t* pmodel = Cache_GetModel(ptouchedict->state.modelindex);
+			if(!pmodel)
+				continue;
+
+			if(pmodel->type != MOD_BRUSH)
 				continue;
 
 			// Do not count particle blockers
@@ -386,15 +424,37 @@ Int32 SV_LinkContents( areanode_t& node, const Vector& position )
 				Con_Printf("Invalid contents on trigger field: %s\n", SV_GetString(ptouchedict->fields.classname));
 
 			// Get the hull type
-			Vector offset, localOrigin;
-			const hull_t* phull = SV_HullForBSP(ptouchedict, ZERO_VECTOR, ZERO_VECTOR, &offset);
+			Vector localOrigin;
+			if(pmodel->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+			{
+				// Offset the test position for the test on this hull
+				Math::VectorSubtract(position, ptouchedict->state.origin, localOrigin);
 
-			// Offset the test position for the test on this hull
-			Math::VectorSubtract(position, offset, localOrigin);
+				// Rotate by angles if needed
+				if(!ptouchedict->state.angles.IsZero())
+					Math::RotateToEntitySpace(ptouchedict->state.angles, localOrigin);
 
-			// Test for hull intersection with this model
-			if(TR_HullPointContents(phull, phull->firstclipnode, localOrigin) != CONTENTS_EMPTY)
-				return contents;
+				if(TR_PointContents_Brush(pmodel->getBrushmodel(), localOrigin) != CONTENTS_EMPTY)
+					return contents;
+			}
+			else
+			{
+				Vector offset;
+				const hull_t* phull = SV_HullForBSP(ptouchedict, ZERO_VECTOR, ZERO_VECTOR, &offset);
+				if(!phull)
+					continue;
+
+				// Offset the test position for the test on this hull
+				Math::VectorSubtract(position, offset, localOrigin);
+
+				// Rotate by angles if needed
+				if(!ptouchedict->state.angles.IsZero())
+					Math::RotateToEntitySpace(ptouchedict->state.angles, localOrigin);
+
+				// Test for hull intersection with this model
+				if(TR_HullPointContents_ClipNode(phull, phull->firstclipnode, localOrigin) != CONTENTS_EMPTY)
+					return contents;
+			}
 		}
 
 		if(pnode->axis == -1)
@@ -420,40 +480,13 @@ Int32 SV_LinkContents( areanode_t& node, const Vector& position )
 //=============================================
 //
 //=============================================
-const hull_t* SV_HullForEntity( const edict_t* pentity, const Vector& mins, const Vector& maxs, Vector* poffset, hull_types_t hulltype )
-{
-	// Decide which clipping hull to use
-	if(pentity->state.solid == SOLID_BSP && hulltype != HULL_BBOX)
-	{
-		// explicit hulls in the bsp model
-		if(pentity->state.movetype != MOVETYPE_PUSH && pentity->state.movetype != MOVETYPE_PUSHSTEP)
-			Con_Printf("%s - SOLID_BSP without MOVETYPE_PUSH for %s.\n", __FUNCTION__, SV_GetString(pentity->fields.classname));
-
-		return SV_HullForBSP(pentity, mins, maxs, poffset, hulltype);
-	}
-	else
-	{
-		Vector hullmins, hullmaxs;
-		Math::VectorSubtract(pentity->state.mins, maxs, hullmins);
-		Math::VectorSubtract(pentity->state.maxs, mins, hullmaxs);
-
-		if(poffset)
-			Math::VectorCopy(pentity->state.origin, *poffset);
-
-		return TR_HullForBox(hullmins, hullmaxs);
-	}
-}
-
-//=============================================
-//
-//=============================================
 void SV_SingleClipMoveToEntity( edict_t* pentity, const Vector& start, const Vector& mins, const Vector& maxs, const Vector& end, trace_t& trace, Int32 flags, hull_types_t hulltype )
 {
 	// Set these first
 	trace.endpos = end;
 	trace.fraction = 1.0;
+	trace.numhitcontents = 0;
 
-	Vector offset;
 	const cache_model_t* pmodel = Cache_GetModel(pentity->state.modelindex);
 	if(!pmodel)
 	{
@@ -467,198 +500,11 @@ void SV_SingleClipMoveToEntity( edict_t* pentity, const Vector& start, const Vec
 		return;
 	}
 
-	// Do an inexpensive check first, but only if either the entity is mod_brush, or mod_vbm AND has hitboxes specified to be used
-	if(pmodel->cacheindex != WORLD_MODEL_INDEX && (pmodel->type == MOD_BRUSH || pmodel->type == MOD_VBM && (flags & FL_TRACE_HITBOXES || pmodel->flags & STUDIO_MF_TRACE_HITBOX)))
-	{
-		if(!TR_TracelineBBoxCheck(pentity->state, pmodel, start, end, mins, maxs))
-			return;
-	}
-
-	// Set this only if we passed the basic check
-	trace.flags |= FL_TR_ALLSOLID;
-
-	const hull_t* phull = nullptr;
-	const CArray<vbmhitboxhull_t>* pvbmhulls = nullptr;
-	const mcdheader_t* pmcdheader = nullptr;
-
-	// Fetch MCD if we have it
-	if(pmodel->cacheflags & CACHE_FL_HAS_MCD)
-	{
-		const vbmcache_t* pvbmcache = pmodel->getVBMCache();
-		pmcdheader = pvbmcache->pmcdheader;
-	}
-
-	// Get the appropriate hull
-	if(pmodel->type == MOD_VBM && ((flags & FL_TRACE_HITBOXES) || (pmodel->flags & STUDIO_MF_TRACE_HITBOX)) && !pmcdheader && !(pentity->state.flags & FL_NO_HITBOX_TRACE))
-	{
-		// Set VBM hull data if not already set
+	// Check if we need to set the VBM hulls up
+	if(pmodel->type == MOD_VBM && ((flags & FL_TRACE_HITBOXES) || (pmodel->flags & STUDIO_MF_TRACE_HITBOX)) && !(pentity->state.flags & FL_NO_HITBOX_TRACE))
 		TR_VBMSetHullInfo(pentity->pvbmhulldata, pmodel, mins, maxs, pentity->state, svs.time, hulltype);
-		// Retrieve pointer to array
-		pvbmhulls = TR_VBMGetHulls(pentity->pvbmhulldata, mins, maxs, hulltype, flags, &offset);
-	}
-	else if(!pmcdheader)
-	{
-		// Retrieve regular hull
-		phull = SV_HullForEntity(pentity, mins, maxs, &offset, hulltype);
-	}
 
-	Vector start_l;
-	Vector end_l;
-	Math::VectorSubtract(start, offset, start_l);
-	Math::VectorSubtract(end, offset, end_l);
-
-	// Rotate the pentity if needed
-	if((pmcdheader || pmodel->type == MOD_BRUSH && pentity->state.solid == SOLID_BSP) && !pentity->state.angles.IsZero())
-	{
-		Math::RotateToEntitySpace(pentity->state.angles, start_l);
-		Math::RotateToEntitySpace(pentity->state.angles, end_l);
-	}
-
-	if(pmcdheader)
-	{
-		hull_types_t hullType = TR_GetHullType(mins, maxs, hulltype);
-		g_mcdTrace.TraceLineAABB(start_l, end_l, HULL_MINS[hullType], HULL_MAXS[hullType], pmcdheader, pentity->state.body, trace);
-	}
-	else if(pvbmhulls)
-	{
-		if(pvbmhulls->empty())
-		{
-			trace.flags &= ~FL_TR_ALLSOLID;
-			return;
-		}
-
-		// Trace against VBM hulls
-		TR_VBMHullCheck(pvbmhulls, start_l, end_l, trace);
-	}
-	else
-	{
-		// Regular trace
-		TR_RecursiveHullCheck(phull, phull->firstclipnode, 0.0f, 1.0f, start_l, end_l, trace);
-	}
-
-	if(trace.fraction != 1.0f)
-	{
-		if(pmodel->type == MOD_BRUSH && pentity->state.solid == SOLID_BSP && !pentity->state.angles.IsZero())
-			Math::RotateFromEntitySpace(pentity->state.angles, trace.plane.normal);
-
-		Vector point;
-		Math::VectorSubtract(end, start, point);
-		Math::VectorMA(start, trace.fraction, point, trace.endpos);
-	}
-
-	if(trace.fraction < 1.0f || (trace.flags & (FL_TR_ALLSOLID|FL_TR_STARTSOLID)))
-		trace.hitentity = pentity->entindex;
-}
-
-//=============================================
-//
-//=============================================
-void SV_SingleClipMoveToEntityPoint( edict_t* pentity, const Vector& start, const Vector& end, Int32 flags, trace_t& trace )
-{
-	// Set these first
-	trace.endpos = end;
-	trace.fraction = 1.0;
-
-	const cache_model_t* pmodel = Cache_GetModel(pentity->state.modelindex);
-	if(!pmodel)
-	{
-		Con_EPrintf("%s - Called on entity %s with no model.\n", __FUNCTION__, SV_GetString(pentity->fields.classname));
-		return;
-	}
-
-	if(pmodel->type != MOD_BRUSH && pmodel->type != MOD_VBM)
-	{
-		Con_EPrintf("%s - Called on entity %s with model that is not a brush or vbm model.\n", __FUNCTION__, SV_GetString(pentity->fields.classname));
-		return;
-	}
-
-	// Do an inexpensive check first, but only if either the entity is mod_brush, or mod_vbm AND has hitboxes specified to be used
-	if(pmodel->cacheindex != WORLD_MODEL_INDEX && (pmodel->type == MOD_BRUSH || pmodel->type == MOD_VBM && (flags & FL_TRACE_HITBOXES || pmodel->flags & STUDIO_MF_TRACE_HITBOX)))
-	{
-		if(!TR_TracelineBBoxCheck(pentity->state, pmodel, start, end, ZERO_VECTOR, ZERO_VECTOR))
-			return;
-	}
-
-	// Set this only if we passed the basic check
-	trace.flags |= FL_TR_ALLSOLID;
-
-	const hull_t* phull = nullptr;
-	const CArray<vbmhitboxhull_t>* pvbmhulls = nullptr;
-	const mcdheader_t* pmcdheader = nullptr;
-
-	if(pmodel->cacheflags & CACHE_FL_HAS_MCD)
-	{
-		const vbmcache_t* pvbmcache = pmodel->getVBMCache();
-		pmcdheader = pvbmcache->pmcdheader;
-	}
-
-	Vector start_l;
-	Vector end_l;
-	Vector offset;
-
-	// Get the appropriate hull
-	if(pmodel->type == MOD_VBM && ((flags & FL_TRACE_HITBOXES) || (pmodel->flags & STUDIO_MF_TRACE_HITBOX)) && !pmcdheader && !(pentity->state.flags & FL_NO_HITBOX_TRACE))
-	{
-		// Set VBM hull data if not already set
-		TR_VBMSetHullInfo(pentity->pvbmhulldata, pmodel, ZERO_VECTOR, ZERO_VECTOR, pentity->state, svs.time, HULL_POINT);
-		// Retrieve pointer to array
-		pvbmhulls = TR_VBMGetHulls(pentity->pvbmhulldata, ZERO_VECTOR, ZERO_VECTOR, HULL_POINT, flags, nullptr);
-		// Zero offset in this case
-		offset = ZERO_VECTOR;
-	}
-	else
-	{
-		// Retrieve regular hull if not using MCD
-		if(!pmcdheader)
-			phull = SV_HullForEntity(pentity, ZERO_VECTOR, ZERO_VECTOR, nullptr, HULL_POINT); 
-
-		// Offset is entity origin
-		offset = pentity->state.origin;
-	}
-
-	Math::VectorSubtract(start, offset, start_l);
-	Math::VectorSubtract(end, offset, end_l);
-
-	// Rotate the entity if needed
-	if((pmcdheader || pmodel->type == MOD_BRUSH && pentity->state.solid == SOLID_BSP) && !pentity->state.angles.IsZero())
-	{
-		Math::RotateToEntitySpace(pentity->state.angles, start_l);
-		Math::RotateToEntitySpace(pentity->state.angles, end_l);
-	}
-
-	if(pmcdheader)
-	{
-		g_mcdTrace.TraceLinePoint(start_l, end_l, pmcdheader, pentity->state.body, trace);
-	}
-	else if(pvbmhulls)
-	{
-		if(pvbmhulls->empty())
-		{
-			trace.flags &= ~FL_TR_ALLSOLID;
-			return;
-		}
-
-		// Trace against VBM hulls
-		TR_VBMHullCheck(pvbmhulls, start_l, end_l, trace);
-	}
-	else
-	{
-		// Regular trace
-		TR_RecursiveHullCheck(phull, phull->firstclipnode, 0.0f, 1.0f, start_l, end_l, trace);
-	}
-
-	if(trace.fraction != 1.0f)
-	{
-		if((pmcdheader || pmodel->type == MOD_BRUSH && pentity->state.solid == SOLID_BSP) && !pentity->state.angles.IsZero())
-			Math::RotateFromEntitySpace(pentity->state.angles, trace.plane.normal);
-
-		Vector point;
-		Math::VectorSubtract(end, start, point);
-		Math::VectorMA(start, trace.fraction, point, trace.endpos);
-	}
-
-	if(trace.fraction < 1.0f || (trace.flags & FL_TR_STARTSOLID))
-		trace.hitentity = pentity->entindex;
+	TR_TraceAgainstEntity(pentity->state, pmodel, pentity->pvbmhulldata, start, end, hulltype, flags, mins, maxs, trace);
 }
 
 //=============================================
@@ -669,7 +515,18 @@ Int32 SV_PointContents( const Vector& position, Int32* truecontents, bool partic
 	if(particleBlockers)
 		Con_Printf("%s - Warning: The particleBlockers flag only has an effect on the client side.\n", __FUNCTION__);
 
-	Int32 contents = TR_HullPointContents(&ens.pworld->hulls[0], 0, position);
+	const cache_model_t* pworldcache = Cache_GetModel(WORLD_MODEL_INDEX);
+	if(!pworldcache)
+		return CONTENTS_EMPTY;
+
+	const brushmodel_t* pworldmodel = pworldcache->getBrushmodel();
+
+	Int32 contents;
+	if(pworldcache->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+		contents = TR_PointContents_Brush(pworldmodel, position);
+	else
+		contents = TR_HullPointContents_ClipNode(&pworldmodel->hulls[0], 0, position);
+
 	if(truecontents)
 		*truecontents = contents;
 	
@@ -693,7 +550,63 @@ Int32 SV_PointContents( const Vector& position, Int32* truecontents, bool partic
 //=============================================
 Int32 SV_TruePointContents( const Vector& position )
 {
-	return TR_HullPointContents(&ens.pworld->hulls[0], ens.pworld->hulls[0].firstclipnode, position);
+	const cache_model_t* pworldcache = Cache_GetModel(WORLD_MODEL_INDEX);
+	if(!pworldcache)
+		return CONTENTS_EMPTY;
+
+	const brushmodel_t* pworldmodel = pworldcache->getBrushmodel();
+
+	Int32 contents;
+	if(pworldcache->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+		contents = TR_PointContents_Brush(pworldmodel, position);
+	else
+		contents = TR_HullPointContents_ClipNode(&pworldmodel->hulls[0], 0, position);
+
+	return contents;
+}
+
+//=============================================
+//
+//=============================================
+Int32 SV_HullPointContents( entindex_t entindex, hull_types_t hulltype, const Vector& position )
+{
+	edict_t* pedict = gEdicts.GetEdict(entindex);
+	if(!pedict)
+	{
+		Con_EPrintf("%s - Couldn't get edict %d.\n", __FUNCTION__, entindex);
+		return CONTENTS_NONE;
+	}
+
+	const cache_model_t* pcachemodel = Cache_GetModel(pedict->state.modelindex);
+	if(!pcachemodel || pcachemodel->type != MOD_BRUSH)
+	{
+		Con_EPrintf("%s - Entity %d has no model, or is not a brush model.\n", __FUNCTION__, entindex);
+		return CONTENTS_EMPTY;
+	}
+
+	if(hulltype < HULL_POINT || hulltype >= MAX_MAP_HULLS)
+	{
+		Con_EPrintf("%s - Called with invalid hulltype.\n", __FUNCTION__);
+		return CONTENTS_EMPTY;
+	}
+
+	const brushmodel_t* pbrushmodel = pcachemodel->getBrushmodel();
+	Int32 contents;
+	if(pcachemodel->flags & CACHE_FL_HAS_BRUSH_COLLISIONS)
+	{
+		Int32 brushtypebits = ((1<<BRUSHTYPE_NORMAL) | (1<<BRUSHTYPE_SKY));
+		if(hulltype != HULL_POINT)
+			brushtypebits |= (1<<BRUSHTYPE_CLIP_BRUSH);
+
+		contents = TR_HullPointContents_Brush(pbrushmodel, position, ZERO_VECTOR, ZERO_VECTOR, brushtypebits);
+	}
+	else
+	{
+		const hull_t* phull = &pbrushmodel->hulls[hulltype];
+		contents = TR_HullPointContents_ClipNode(phull, phull->firstclipnode, position);
+	}
+
+	return contents;
 }
 
 //=============================================
@@ -958,7 +871,7 @@ void SV_ClipToLinksPoint( areanode_t& node, moveclip_t& clip, Int32 flags )
 		}
 
 		trace_t trace;
-		SV_SingleClipMoveToEntityPoint(ptouchedict, *clip.pstart, *clip.pend, flags, trace);
+		SV_SingleClipMoveToEntity(ptouchedict, *clip.pstart, ZERO_VECTOR, ZERO_VECTOR, *clip.pend, trace, flags, HULL_POINT);
 
 		if((trace.flags & (FL_TR_ALLSOLID|FL_TR_STARTSOLID)) || trace.fraction < clip.trace.fraction)
 		{
@@ -986,21 +899,23 @@ void SV_ClipToLinksPoint( areanode_t& node, moveclip_t& clip, Int32 flags )
 //=============================================
 void SV_Move( trace_t& trace, const Vector& start, const Vector& mins, const Vector& maxs, const Vector& end, Int32 flags, edict_t* pignore_edict, hull_types_t hulltype )
 {
-	moveclip_t clip;
+	trace_t localtrace;
 	edict_t* pworld = gEdicts.GetEdict(WORLDSPAWN_ENTITY_INDEX);
 	if(hulltype == HULL_POINT)
-		SV_SingleClipMoveToEntityPoint(pworld, start, end, flags, clip.trace);
+		SV_SingleClipMoveToEntity(pworld, start, ZERO_VECTOR, ZERO_VECTOR, end, localtrace, flags, HULL_POINT);
 	else
-		SV_SingleClipMoveToEntity(pworld, start, mins, maxs, end, clip.trace, flags, hulltype);
+		SV_SingleClipMoveToEntity(pworld, start, mins, maxs, end, localtrace, flags, hulltype);
 
 	if(!(flags & FL_TRACE_WORLD_ONLY) 
-		&& !clip.trace.allSolid()
-		&& !clip.trace.startSolid())
+		&& !localtrace.allSolid()
+		&& !localtrace.startSolid())
 	{
-		Vector traceEndpos = clip.trace.endpos;
-		Double traceFraction = clip.trace.fraction;
+		Vector traceEndpos = localtrace.endpos;
+		Double traceFraction = localtrace.fraction;
 
+		moveclip_t clip;
 		clip.trace.fraction = 1.0f;
+
 		clip.pstart = &start;
 		clip.pend = &traceEndpos;
 
@@ -1027,11 +942,15 @@ void SV_Move( trace_t& trace, const Vector& start, const Vector& mins, const Vec
 		else
 			SV_ClipToLinks(svs.areanodes[0], clip, flags, hulltype);
 
-		clip.trace.fraction *= traceFraction;
+		if(clip.trace.startSolid() || clip.trace.allSolid() || clip.trace.fraction < 1.0)
+		{
+			clip.trace.fraction *= traceFraction;
+			localtrace = clip.trace;
+		}
 	}
 
-	trace = clip.trace;
-	svs.gamevars.globaltrace = clip.trace;
+	trace = localtrace;
+	svs.gamevars.globaltrace = localtrace;
 }
 
 //=============================================
@@ -1040,19 +959,21 @@ void SV_Move( trace_t& trace, const Vector& start, const Vector& mins, const Vec
 void SV_MoveNoEntities( trace_t& trace, const Vector& start, const Vector& mins, const Vector& maxs, const Vector& end, Int32 flags, edict_t* pignore_edict, hull_types_t hulltype )
 {
 	Vector traceEndpos;
+	trace_t localtrace;
 
-	moveclip_t clip;
 	edict_t* pworld = gEdicts.GetEdict(WORLDSPAWN_ENTITY_INDEX);
-	SV_SingleClipMoveToEntity(pworld, start, mins, maxs, end, clip.trace, flags, hulltype);
+	SV_SingleClipMoveToEntity(pworld, start, mins, maxs, end, localtrace, flags, hulltype);
 
 	if(!(flags & FL_TRACE_WORLD_ONLY) 
-		&& !clip.trace.allSolid()
-		&& !clip.trace.startSolid())
+		&& !localtrace.allSolid()
+		&& !localtrace.startSolid())
 	{
-		Math::VectorCopy(clip.trace.endpos, traceEndpos);
-		Float traceFraction = clip.trace.fraction;
+		Math::VectorCopy(localtrace.endpos, traceEndpos);
+		Float traceFraction = localtrace.fraction;
 
+		moveclip_t clip;
 		clip.trace.fraction = 1.0f;
+
 		clip.pstart = &start;
 		clip.pend = &end;
 
@@ -1076,11 +997,15 @@ void SV_MoveNoEntities( trace_t& trace, const Vector& start, const Vector& mins,
 		TR_MoveBounds(start, clip.mins2, clip.maxs2, traceEndpos, clip.boxmins, clip.boxmaxs);
 		SV_ClipToWorldBrush(svs.areanodes[0], clip, flags, hulltype);
 
-		clip.trace.fraction *= traceFraction;
-		svs.gamevars.globaltrace = clip.trace;
+		if(clip.trace.startSolid() || clip.trace.allSolid() || clip.trace.fraction < 1.0)
+		{
+			clip.trace.fraction *= traceFraction;
+			localtrace = clip.trace;
+		}
 	}
 
-	trace = clip.trace;
+	trace = localtrace;
+	svs.gamevars.globaltrace = localtrace;
 }
 
 //=============================================
@@ -1088,18 +1013,20 @@ void SV_MoveNoEntities( trace_t& trace, const Vector& start, const Vector& mins,
 //=============================================
 void SV_Move_Point( trace_t& trace, const Vector& start, const Vector& end, Int32 flags, edict_t* pignore_edict )
 {
-	moveclip_t clip;
+	trace_t localtrace;
 	edict_t* pworld = gEdicts.GetEdict(WORLDSPAWN_ENTITY_INDEX);
-	SV_SingleClipMoveToEntityPoint(pworld, start, end, flags, clip.trace);
+	SV_SingleClipMoveToEntity(pworld, start, ZERO_VECTOR, ZERO_VECTOR, end, localtrace, flags, HULL_POINT);
 
 	if(!(flags & FL_TRACE_WORLD_ONLY) 
-		&& !clip.trace.allSolid()
-		&& !clip.trace.startSolid())
+		&& !localtrace.allSolid()
+		&& !localtrace.startSolid())
 	{
-		Vector traceEndpos = clip.trace.endpos;
-		Float traceFraction = clip.trace.fraction;
+		Vector traceEndpos = localtrace.endpos;
+		Float traceFraction = localtrace.fraction;
 
+		moveclip_t clip;
 		clip.trace.fraction = 1.0f;
+
 		clip.pstart = &start;
 		clip.pend = &traceEndpos;
 
@@ -1112,11 +1039,15 @@ void SV_Move_Point( trace_t& trace, const Vector& start, const Vector& end, Int3
 		TR_MoveBoundsPoint(start, traceEndpos, clip.boxmins, clip.boxmaxs);
 		SV_ClipToLinksPoint(svs.areanodes[0], clip, flags);
 
-		clip.trace.fraction *= traceFraction;
+		if(clip.trace.startSolid() || clip.trace.allSolid() || clip.trace.fraction < 1.0)
+		{
+			clip.trace.fraction *= traceFraction;
+			localtrace = clip.trace;
+		}
 	}
 
-	trace = clip.trace;
-	svs.gamevars.globaltrace = clip.trace;
+	trace = localtrace;
+	svs.gamevars.globaltrace = localtrace;
 }
 
 //=============================================
@@ -1166,10 +1097,11 @@ void SV_PlayerTrace( const Vector& start, const Vector& end, Int32 traceflags, h
 	trace.fraction = 1.0;
 	trace.hitentity = NO_ENTITY_INDEX;
 	trace.endpos = end;
+	trace.numhitcontents = 0;
 
 	// trace against world first
 	edict_t* pworld = gEdicts.GetEdict(WORLDSPAWN_ENTITY_INDEX);
-	TR_PlayerTraceSingleEntity(pworld->state, pworld->pvbmhulldata, nullptr, start, end, hulltype, traceflags, svs.player_mins[hulltype], svs.player_maxs[hulltype], trace);
+	TR_PlayerTraceSingleEntity(pworld->state, pworld->pvbmhulldata, start, end, hulltype, traceflags, svs.player_mins[hulltype], svs.player_maxs[hulltype], trace);
 
 	gBulletPhysics.ConvexSweepTest(start, end, svs.player_mins[hulltype], svs.player_maxs[hulltype], ignore_ent, trace);
 
@@ -1237,18 +1169,10 @@ void SV_PlayerTrace( const Vector& start, const Vector& end, Int32 traceflags, h
 			if(!pmodel)
 				return;
 
-			// Set VBM data if needed
-			const mcdheader_t* pmcdheader = nullptr;
-			if(pmodel->cacheflags & CACHE_FL_HAS_MCD)
-			{
-				const vbmcache_t* pvbmcache = pmodel->getVBMCache();
-				pmcdheader = pvbmcache->pmcdheader;
-			}
-
-			if(pmodel->type == MOD_VBM && (pmodel->flags & STUDIO_MF_TRACE_HITBOX || traceflags & FL_TRACE_HITBOXES) && !pmcdheader)
+			if(pmodel->type == MOD_VBM && (pmodel->flags & STUDIO_MF_TRACE_HITBOX || traceflags & FL_TRACE_HITBOXES))
 				TR_VBMSetHullInfo(pentity->pvbmhulldata, pmodel, svs.player_mins[hulltype], svs.player_maxs[hulltype], pentity->state, svs.time, hulltype);
 
-			TR_PlayerTraceSingleEntity(pentity->state, pentity->pvbmhulldata, pmcdheader, start, end, hulltype, traceflags, svs.player_mins[hulltype], svs.player_maxs[hulltype], trace);
+			TR_PlayerTraceSingleEntity(pentity->state, pentity->pvbmhulldata, start, end, hulltype, traceflags, svs.player_mins[hulltype], svs.player_maxs[hulltype], trace);
 		}
 	}
 }
