@@ -2368,7 +2368,6 @@ bool CBSPRenderer::Draw( void )
 						{
 							m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, TRUE);
 							R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
-							glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 							CMatrix matrix;
 							matrix.LoadIdentity();
@@ -2447,8 +2446,6 @@ bool CBSPRenderer::Draw( void )
 					m_pShader->SetUniform3f(m_attribs.u_cube_prev_min, 0, 0, 0);
 					m_pShader->SetUniform3f(m_attribs.u_cube_prev_max, 0, 0, 0);
 				}
-
-				glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 			}
 			else if(cubematrixSet)
 			{
@@ -2481,8 +2478,6 @@ bool CBSPRenderer::Draw( void )
 
 			if(pprevcubemapinfo)
 				R_BindCubemapTexture(GL_TEXTURE0 + cubemapUnit + 1, 0);
-
-			glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		}
 
 		if(g_pCvarWireFrame->GetValue() >= 1 && !m_isEntityTransparent)

@@ -92,6 +92,11 @@ bool CEnvDLight::KeyValue( const keyvalue_t& kv )
 		m_framerate = SDL_atof(kv.value);
 		return true;
 	}
+	else if(!qstrcmp(kv.keyname, "volumetricintensity"))
+	{
+		m_pState->iuser4 = SDL_atoi(kv.value);
+		return true;
+	}
 	else
 		return CPointEntity::KeyValue(kv);
 }

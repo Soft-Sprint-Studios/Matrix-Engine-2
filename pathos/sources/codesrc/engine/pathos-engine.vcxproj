@@ -312,6 +312,7 @@
     <ClCompile Include="renderer\r_ssao.cpp" />
     <ClCompile Include="renderer\r_tracers.cpp" />
     <ClCompile Include="renderer\r_video.cpp" />
+    <ClCompile Include="renderer\r_volumetrics.cpp" />
     <ClCompile Include="renderer\r_wadtextures.cpp" />
     <ClCompile Include="renderer\r_mirror.cpp" />
     <ClCompile Include="renderer\r_monitor.cpp" />
@@ -485,6 +486,7 @@
     <ClInclude Include="renderer\r_ssao.h" />
     <ClInclude Include="renderer\r_tracers.h" />
     <ClInclude Include="renderer\r_video.h" />
+    <ClInclude Include="renderer\r_volumetrics.h" />
     <ClInclude Include="renderer\r_wadtextures.h" />
     <ClInclude Include="renderer\r_mirror.h" />
     <ClInclude Include="renderer\r_monitor.h" />

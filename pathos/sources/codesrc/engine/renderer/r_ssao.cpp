@@ -48,7 +48,8 @@ CSSAOManager::CSSAOManager(void) :
 	m_pNoiseTexture(nullptr),
 	m_pCvarSSAO(nullptr),
 	m_pCvarSSAORadius(nullptr),
-	m_pCvarSSAOIntensity(nullptr)
+	m_pCvarSSAOIntensity(nullptr),
+	m_pCvarSSAODownsample(nullptr)
 {
 }
 
@@ -68,6 +69,7 @@ bool CSSAOManager::Init(void)
 	m_pCvarSSAO = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT | FL_CV_SAVE), "r_ssao", "1", "Toggle Screen Space Ambient Occlusion.");
 	m_pCvarSSAORadius = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT | FL_CV_SAVE), "r_ssao_radius", "8.0", "SSAO sample radius in world units.");
 	m_pCvarSSAOIntensity = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT | FL_CV_SAVE), "r_ssao_intensity", "2.0", "SSAO darkness intensity.");
+	m_pCvarSSAODownsample = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT | FL_CV_SAVE), "r_ssao_downsample", "2", "SSAO downsample factor (1 = full res, 2 = half res, 4 = quarter res).");
 
 	GenerateKernel();
 	return true;
@@ -298,9 +300,20 @@ bool CSSAOManager::DrawSSAO(void)
 	if (!m_pShader)
 		return false;
 
+	Uint32 downsample = m_pCvarSSAODownsample ? static_cast<Uint32>(m_pCvarSSAODownsample->GetValue()) : 1;
+	if (downsample < 1)
+		downsample = 1;
+
+	Uint32 ssaoWidth = rns.screenwidth / downsample;
+	Uint32 ssaoHeight = rns.screenheight / downsample;
+	if (ssaoWidth < 1) 
+		ssaoWidth = 1;
+	if (ssaoHeight < 1) 
+		ssaoHeight = 1;
+
 	CFBOCache::cache_fbo_t* pDepthFBO = gFBOCache.Alloc(rns.screenwidth, rns.screenheight, true);
-	CFBOCache::cache_fbo_t* pRawSSAO_FBO = gFBOCache.Alloc(rns.screenwidth, rns.screenheight, false);
-	CFBOCache::cache_fbo_t* pBlurSSAO_FBO = gFBOCache.Alloc(rns.screenwidth, rns.screenheight, false);
+	CFBOCache::cache_fbo_t* pRawSSAO_FBO = gFBOCache.Alloc(ssaoWidth, ssaoHeight, false);
+	CFBOCache::cache_fbo_t* pBlurSSAO_FBO = gFBOCache.Alloc(ssaoWidth, ssaoHeight, false);
 	if (!pDepthFBO || !pRawSSAO_FBO || !pBlurSSAO_FBO)
 	{
 		if (pDepthFBO)
@@ -351,13 +364,13 @@ bool CSSAOManager::DrawSSAO(void)
 	m_pShader->SetUniformMatrix4fv(m_attribs.u_scene_projection_inverse, sceneProjInv);
 
 	R_BindFBO(&pRawSSAO_FBO->fbo);
-	glViewport(0, 0, rns.screenwidth, rns.screenheight);
+	glViewport(0, 0, ssaoWidth, ssaoHeight);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	m_pShader->SetDeterminator(m_attribs.d_pass, SSAO_PASS_RAW);
 
-	m_pShader->SetUniform2f(m_attribs.u_noiseScale, static_cast<Float>(rns.screenwidth) / static_cast<Float>(SSAO_NOISE_DIMENSION), static_cast<Float>(rns.screenheight) / static_cast<Float>(SSAO_NOISE_DIMENSION));
+	m_pShader->SetUniform2f(m_attribs.u_noiseScale, static_cast<Float>(ssaoWidth) / static_cast<Float>(SSAO_NOISE_DIMENSION), static_cast<Float>(ssaoHeight) / static_cast<Float>(SSAO_NOISE_DIMENSION));
 	m_pShader->SetUniform1f(m_attribs.u_sampleRad, m_pCvarSSAORadius->GetValue());
 	m_pShader->SetUniform1f(m_attribs.u_intensity, m_pCvarSSAOIntensity->GetValue());
 	m_pShader->SetUniform3fv(m_attribs.u_kernel, reinterpret_cast<const Float*>(m_kernel), SSAO_KERNEL_SIZE);
@@ -382,6 +395,7 @@ bool CSSAOManager::DrawSSAO(void)
 	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
 
 	R_BindFBO(&rns.mainfbo);
+	glViewport(0, 0, rns.screenwidth, rns.screenheight);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_DST_COLOR, GL_ZERO);

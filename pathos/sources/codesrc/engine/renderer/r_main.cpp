@@ -73,6 +73,7 @@ All Rights Reserved.
 #include "r_lightstyles.h"
 #include "r_tracers.h"
 #include "r_ssao.h"
+#include "r_volumetrics.h"
 
 #include "stepsound.h"
 #include "aldformat.h"
@@ -328,6 +329,9 @@ bool R_Init( void )
 	if (!gSSAO.Init())
 		return false;
 
+	if (!gVolumetrics.Init())
+		return false;
+
 	// Init decal class
 	gDecals.Init();
 
@@ -360,6 +364,7 @@ void R_Shutdown( void )
 	gFBOCache.Shutdown();
 	gTracers.Shutdown();
 	gSSAO.Shutdown();
+	gVolumetrics.Shutdown();
 
 	CBasicDraw::DeleteInstance();
 }
@@ -650,6 +655,9 @@ bool R_InitGL( void )
 	if (!gSSAO.InitGL())
 		return false;
 
+	if (!gVolumetrics.InitGL())
+		return false;
+
 	// Draw the menu loading screen
 	VID_DrawLoadingScreen();
 
@@ -666,6 +674,8 @@ bool R_InitGL( void )
 
 	// Create query objects
 	R_InitQueryObjects();
+
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 	return true;
 }
@@ -702,6 +712,7 @@ void R_ShutdownGL( void )
 	gBlackHoleRenderer.ClearGL();
 	gFBOCache.ClearGL();
 	gSSAO.ClearGL();
+	gVolumetrics.ClearGL();
 
 	// Reset cache states
 	gModelCache.ClearGL();
@@ -798,6 +809,9 @@ bool R_LoadResources( void )
 		return false;
 
 	if (!gSSAO.InitGame())
+		return false;
+
+	if (!gVolumetrics.InitGame())
 		return false;
 
 	// Release lightmap data
@@ -920,6 +934,7 @@ void R_ResetGame( void )
 	gFBOCache.ClearGame();
 	gTracers.ClearGame();
 	gSSAO.ClearGame();
+	gVolumetrics.ClearGame();
 
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 
@@ -2779,6 +2794,9 @@ bool R_DrawHUD( bool hudOnly, bool noFilmGrain )
 	if (!hudOnly)
 	{
 		if (!gSSAO.DrawSSAO())
+			return false;
+
+		if (!gVolumetrics.DrawVolumetrics())
 			return false;
 	}
 

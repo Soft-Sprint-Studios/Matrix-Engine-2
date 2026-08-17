@@ -450,6 +450,9 @@
     <ClCompile Include="renderer\r_ssao.cpp">
       <Filter>Source Files\renderer</Filter>
     </ClCompile>
+    <ClCompile Include="renderer\r_volumetrics.cpp">
+      <Filter>Source Files\renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
@@ -1005,6 +1008,9 @@
       <Filter>Header Files\server</Filter>
     </ClInclude>
     <ClInclude Include="renderer\r_ssao.h">
+      <Filter>Header Files\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="renderer\r_volumetrics.h">
       <Filter>Header Files\renderer</Filter>
     </ClInclude>
   </ItemGroup>

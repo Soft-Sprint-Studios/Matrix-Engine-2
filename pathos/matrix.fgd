@@ -891,6 +891,7 @@
 [
   renderamt(integer) : "Radius" : 15
   rendercolor(color255) : "Render Color" : "255 255 255"
+  volumetricintensity(integer) : "Volumetric Intensity (0 = Off)" : 0
   oscillationv(integer) : "Vertical Oscillation" : 0
   oscillationh(integer) : "Horizontal Oscillation" : 0
 
@@ -1436,6 +1437,7 @@
   scale(string) : "Field of View" : "1.0"
  
   body(integer) : "Texture Index" : 0
+  volumetricintensity(integer) : "Volumetric Intensity (0 = Off)" : 0
 
   skin(Choices) : "Static" : 0 =
   [ 

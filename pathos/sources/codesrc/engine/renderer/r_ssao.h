@@ -137,6 +137,7 @@ private:
 	CCVar* m_pCvarSSAO;
 	CCVar* m_pCvarSSAORadius;
 	CCVar* m_pCvarSSAOIntensity;
+	CCVar* m_pCvarSSAODownsample;
 };
 
 extern CSSAOManager gSSAO;
