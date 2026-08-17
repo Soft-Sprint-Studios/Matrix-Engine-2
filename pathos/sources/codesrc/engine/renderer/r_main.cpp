@@ -2215,9 +2215,21 @@ bool R_Draw( const ref_params_t& params )
 	if(!R_DrawNormal())
 		return false;
 
+	if(rns.mainframe && !rns.view.params.nodraw)
+	{
+		if (!gSSAO.DrawSSAO())
+			return false;
+	}
+
 	// Draw transparents
 	if(!R_DrawTransparent())
 		return false;
+
+	if(rns.mainframe && !rns.view.params.nodraw)
+	{
+		if (!gVolumetrics.DrawVolumetrics())
+			return false;
+	}
 
 	if(!rns.view.params.nodraw)
 	{
@@ -2791,15 +2803,6 @@ bool R_DrawInterface( void )
 //====================================
 bool R_DrawHUD( bool hudOnly, bool noFilmGrain )
 {
-	if (!hudOnly)
-	{
-		if (!gSSAO.DrawSSAO())
-			return false;
-
-		if (!gVolumetrics.DrawVolumetrics())
-			return false;
-	}
-
 	// Draw postprocess effects
 	if(!gPostProcess.Draw(noFilmGrain))
 		return false;

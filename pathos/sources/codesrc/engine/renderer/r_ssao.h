@@ -55,6 +55,7 @@ struct ssao_attribs_t
 		u_sampleRad(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_intensity(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_kernel(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_fogparams(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_pass(CGLSLShader::PROPERTY_UNAVAILABLE)
 		{}
 
@@ -74,6 +75,7 @@ struct ssao_attribs_t
 	Int32 u_sampleRad;
 	Int32 u_intensity;
 	Int32 u_kernel;
+	Int32 u_fogparams;
 
 	Int32 d_pass;
 };

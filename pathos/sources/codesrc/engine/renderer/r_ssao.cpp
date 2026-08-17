@@ -217,6 +217,7 @@ bool CSSAOManager::InitGL(void)
 		m_attribs.u_sampleRad = m_pShader->InitUniform("u_sampleRad", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_intensity = m_pShader->InitUniform("u_intensity", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_kernel = m_pShader->InitUniform("u_kernel[0]", CGLSLShader::UNIFORM_FLOAT3, SSAO_KERNEL_SIZE);
+		m_attribs.u_fogparams = m_pShader->InitUniform("u_fogparams", CGLSLShader::UNIFORM_FLOAT2);
 
 		m_attribs.d_pass = m_pShader->GetDeterminatorIndex("pass");
 
@@ -233,6 +234,7 @@ bool CSSAOManager::InitGL(void)
 			|| !R_CheckShaderUniform(m_attribs.u_sampleRad, "u_sampleRad", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_intensity, "u_intensity", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_kernel, "u_kernel[0]", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_fogparams, "u_fogparams", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_pass, "pass", m_pShader, Sys_ErrorPopup))
 			return false;
 	}
@@ -374,6 +376,15 @@ bool CSSAOManager::DrawSSAO(void)
 	m_pShader->SetUniform1f(m_attribs.u_sampleRad, m_pCvarSSAORadius->GetValue());
 	m_pShader->SetUniform1f(m_attribs.u_intensity, m_pCvarSSAOIntensity->GetValue());
 	m_pShader->SetUniform3fv(m_attribs.u_kernel, reinterpret_cast<const Float*>(m_kernel), SSAO_KERNEL_SIZE);
+
+	if (rns.fog.settings.active)
+	{
+		m_pShader->SetUniform2f(m_attribs.u_fogparams, rns.fog.settings.end, 1.0f / (static_cast<Float>(rns.fog.settings.end) - static_cast<Float>(rns.fog.settings.start)));
+	}
+	else
+	{
+		m_pShader->SetUniform2f(m_attribs.u_fogparams, 0.0f, 0.0f);
+	}
 
 	m_pShader->SetUniform1i(m_attribs.u_depthMap, 0);
 	R_Bind2DTexture(GL_TEXTURE0, pDepthFBO->fbo.pdepth->gl_index);

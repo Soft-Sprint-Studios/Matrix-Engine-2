@@ -33,9 +33,21 @@ uniform vec3 u_kernel[KERNEL_SIZE];
 uniform vec2 u_noiseScale;
 uniform float u_sampleRad;
 uniform float u_intensity;
+uniform vec2 u_fogparams;
 
 in vec2 ps_texcoord;
 out vec4 oColor;
+
+float SplineFraction( float value, float scale )
+{
+	float valueSquared;
+
+	value = scale * value;
+	valueSquared = value * value;
+
+	// Nice little ease-in, ease-out spline-like curve
+	return 3 * valueSquared - 2 * valueSquared * value;
+}
 
 vec3 calcViewPosition(vec2 coords)
 {
@@ -85,6 +97,15 @@ void main()
 
 		float visibility = 1.0 - (occlusion / float(KERNEL_SIZE));
 		visibility = clamp(pow(visibility, u_intensity), 0.0, 1.0);
+		
+		if (u_fogparams.y > 0.0)
+		{
+			float dist = length(viewPos);
+			float fogFactor = (u_fogparams.x - dist) * u_fogparams.y;
+			fogFactor = SplineFraction(clamp(fogFactor, 0.0, 1.0), 1.0);
+			visibility = mix(1.0, visibility, fogFactor);
+		}
+		
 		oColor = vec4(vec3(visibility), 1.0);
 	$end
 
