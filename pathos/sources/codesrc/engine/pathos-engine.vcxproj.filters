@@ -447,6 +447,9 @@
     <ClCompile Include="..\libs\glad\src\glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="renderer\r_ssao.cpp">
+      <Filter>Source Files\renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
@@ -1000,6 +1003,9 @@
     </ClInclude>
     <ClInclude Include="server\sv_bulletphysics.h">
       <Filter>Header Files\server</Filter>
+    </ClInclude>
+    <ClInclude Include="renderer\r_ssao.h">
+      <Filter>Header Files\renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

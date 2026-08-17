@@ -72,6 +72,7 @@ All Rights Reserved.
 #include "r_fbocache.h"
 #include "r_lightstyles.h"
 #include "r_tracers.h"
+#include "r_ssao.h"
 
 #include "stepsound.h"
 #include "aldformat.h"
@@ -324,6 +325,9 @@ bool R_Init( void )
 	if (!gTracers.Init())
 		return false;
 
+	if (!gSSAO.Init())
+		return false;
+
 	// Init decal class
 	gDecals.Init();
 
@@ -360,6 +364,7 @@ void R_Shutdown( void )
 	gLensFlareRenderer.Shutdown();
 	gFBOCache.Shutdown();
 	gTracers.Shutdown();
+	gSSAO.Shutdown();
 
 	CBasicDraw::DeleteInstance();
 }
@@ -657,6 +662,9 @@ bool R_InitGL( void )
 	if (!gFBOCache.InitGL())
 		return false;
 
+	if (!gSSAO.InitGL())
+		return false;
+
 	// Draw the menu loading screen
 	VID_DrawLoadingScreen();
 
@@ -708,6 +716,7 @@ void R_ShutdownGL( void )
 	gPortalManager.ClearGL();
 	gBlackHoleRenderer.ClearGL();
 	gFBOCache.ClearGL();
+	gSSAO.ClearGL();
 
 	// Reset cache states
 	gModelCache.ClearGL();
@@ -802,6 +811,9 @@ bool R_LoadResources( void )
 		return false;
 
 	if (!gTracers.InitGame())
+		return false;
+
+	if (!gSSAO.InitGame())
 		return false;
 
 	// Release lightmap data
@@ -923,6 +935,7 @@ void R_ResetGame( void )
 	gLensFlareRenderer.ClearGame();
 	gFBOCache.ClearGame();
 	gTracers.ClearGame();
+	gSSAO.ClearGame();
 
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 
@@ -2781,6 +2794,12 @@ bool R_DrawInterface( void )
 //====================================
 bool R_DrawHUD( bool hudOnly, bool noFilmGrain )
 {
+	if (!hudOnly)
+	{
+		if (!gSSAO.DrawSSAO())
+			return false;
+	}
+
 	// Draw postprocess effects
 	if(!gPostProcess.Draw(noFilmGrain))
 		return false;

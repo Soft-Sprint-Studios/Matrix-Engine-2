@@ -309,6 +309,7 @@
     <ClCompile Include="renderer\r_nsmoothing.cpp" />
     <ClCompile Include="renderer\r_portals.cpp" />
     <ClCompile Include="renderer\r_sky.cpp" />
+    <ClCompile Include="renderer\r_ssao.cpp" />
     <ClCompile Include="renderer\r_tracers.cpp" />
     <ClCompile Include="renderer\r_video.cpp" />
     <ClCompile Include="renderer\r_wadtextures.cpp" />
@@ -481,6 +482,7 @@
     <ClInclude Include="renderer\r_nsmoothing.h" />
     <ClInclude Include="renderer\r_portals.h" />
     <ClInclude Include="renderer\r_sky.h" />
+    <ClInclude Include="renderer\r_ssao.h" />
     <ClInclude Include="renderer\r_tracers.h" />
     <ClInclude Include="renderer\r_video.h" />
     <ClInclude Include="renderer\r_wadtextures.h" />

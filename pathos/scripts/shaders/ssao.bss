@@ -1,0 +1,113 @@
+$shader_vertex $begin
+#version 130
+uniform mat4 projection;
+uniform mat4 modelview;
+
+in vec4 in_position;
+in vec2 in_texcoord;
+
+out vec2 ps_texcoord;
+
+void main()
+{
+	ps_texcoord = in_texcoord;
+	vec4 position = in_position * modelview;
+	gl_Position = position * projection;
+}
+$end
+$shader_fragment
+$determinator pass 0 2
+$begin
+#version 130
+
+#define KERNEL_SIZE 16
+
+uniform sampler2D u_depthMap;
+uniform sampler2D u_noise;
+uniform sampler2D u_ssaoTexture;
+
+uniform mat4 u_scene_projection;
+uniform mat4 u_scene_projection_inverse;
+
+uniform vec3 u_kernel[KERNEL_SIZE];
+uniform vec2 u_noiseScale;
+uniform float u_sampleRad;
+uniform float u_intensity;
+
+in vec2 ps_texcoord;
+out vec4 oColor;
+
+vec3 calcViewPosition(vec2 coords)
+{
+	float fragmentDepth = texture(u_depthMap, coords).r;
+
+	vec4 ndc = vec4(coords.x * 2.0 - 1.0, coords.y * 2.0 - 1.0, fragmentDepth * 2.0 - 1.0, 1.0);
+
+	vec4 vs_pos = ndc * u_scene_projection_inverse;
+	return vs_pos.xyz / vs_pos.w;
+}
+
+void main()
+{
+	$branch pass == 0
+	$begin
+		float baseDepth = texture(u_depthMap, ps_texcoord).r;
+		if (baseDepth >= 0.9999)
+		{
+			oColor = vec4(1.0);
+			return;
+		}
+
+		vec3 viewPos = calcViewPosition(ps_texcoord);
+
+		vec3 viewNormal = normalize(cross(dFdx(viewPos), dFdy(viewPos)));
+		vec3 randomVec = normalize(texture(u_noise, ps_texcoord * u_noiseScale).xyz);
+
+		vec3 tangent = normalize(randomVec - viewNormal * dot(randomVec, viewNormal));
+		vec3 bitangent = cross(viewNormal, tangent);
+		mat3 TBN = mat3(tangent, bitangent, viewNormal);
+
+		float occlusion = 0.0;
+		for (int i = 0; i < KERNEL_SIZE; i++)
+		{
+			vec3 samplePos = TBN * u_kernel[i];
+			samplePos = viewPos + samplePos * u_sampleRad;
+
+			vec4 offset = vec4(samplePos, 1.0) * u_scene_projection;
+			offset.xy /= offset.w;
+			offset.xy = offset.xy * 0.5 + 0.5;
+
+			float geometryDepth = calcViewPosition(offset.xy).z;
+			float rangeCheck = smoothstep(0.0, 1.0, u_sampleRad / abs(viewPos.z - geometryDepth));
+
+			occlusion += (geometryDepth >= samplePos.z + 0.08 ? 1.0 : 0.0) * rangeCheck;
+		}
+
+		float visibility = 1.0 - (occlusion / float(KERNEL_SIZE));
+		visibility = clamp(pow(visibility, u_intensity), 0.0, 1.0);
+		oColor = vec4(vec3(visibility), 1.0);
+	$end
+
+	$branch pass == 1
+	$begin
+		vec2 texelSize = 1.0 / vec2(textureSize(u_ssaoTexture, 0));
+		float result = 0.0;
+		for (int y = -2; y < 2; ++y)
+		{
+			for (int x = -2; x < 2; ++x)
+			{
+				vec2 offset = vec2(float(x), float(y)) * texelSize;
+				result += texture(u_ssaoTexture, ps_texcoord + offset).r;
+			}
+		}
+		result /= 16.0;
+		oColor = vec4(vec3(result), 1.0);
+	$end
+
+	$branch pass == 2
+	$begin
+		float val = texture(u_ssaoTexture, ps_texcoord).r;
+		oColor = vec4(vec3(val), 1.0);
+	$end
+}
+$end
