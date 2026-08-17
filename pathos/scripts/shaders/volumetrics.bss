@@ -140,7 +140,6 @@ void main()
 			float lRad = u_lights[i].posRadius.w;
 			float lRadSq = lRad * lRad;
 
-			// Intersect ray with light sphere
 			vec3 L = lPos - startPos;
 			float tca = dot(L, rayDir);
 			float d2 = dot(L, L) - tca * tca;
