@@ -16,6 +16,7 @@ All Rights Reserved.
 #include "textures_shared.h"
 #include "cl_main.h"
 #include "r_main.h"
+#include "r_dlights.h"
 #include "texturemanager.h"
 #include "cvar.h"
 #include "r_water.h"
@@ -145,21 +146,36 @@ bool CWaterShader::InitGL( void )
 		m_attribs.a_tangent = m_pShader->InitAttribute("in_tangent", 3, GL_FLOAT, sizeof(water_vertex_t), OFFSET(water_vertex_t, tangent));
 		m_attribs.a_binormal = m_pShader->InitAttribute("in_binormal", 3, GL_FLOAT, sizeof(water_vertex_t), OFFSET(water_vertex_t, binormal));
 		m_attribs.a_texcoords = m_pShader->InitAttribute("in_texcoords", 2, GL_FLOAT, sizeof(water_vertex_t), OFFSET(water_vertex_t, texcoords));
-		m_attribs.a_lightcoords = m_pShader->InitAttribute("in_lightcoords", 2, GL_FLOAT, sizeof(water_vertex_t), OFFSET(water_vertex_t, lightcoords));
+
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			CString name;
+			name << "in_lightcoords[" << i << "]";
+			m_attribs.a_lightcoords[i] = m_pShader->InitAttribute(name.c_str(), 2, GL_FLOAT, sizeof(water_vertex_t), OFFSET(water_vertex_t, lightcoords[i]));
+		}
+		m_attribs.a_styles = m_pShader->InitAttribute("in_styles", 4, GL_FLOAT, sizeof(water_vertex_t), OFFSET(water_vertex_t, styles));
 
 		if(!R_CheckShaderVertexAttribute(m_attribs.a_origin, "in_position", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_normal, "in_normal", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_tangent, "in_tangent", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_binormal, "in_binormal", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderVertexAttribute(m_attribs.a_lightcoords, "in_lightcoords", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderVertexAttribute(m_attribs.a_texcoords, "in_texcoords", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderVertexAttribute(m_attribs.a_styles, "in_styles", m_pShader, Sys_ErrorPopup))
 			return false;
+
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			CString name;
+			name << "in_lightcoords[" << i << "]";
+			if (!R_CheckShaderVertexAttribute(m_attribs.a_lightcoords[i], name.c_str(), m_pShader, Sys_ErrorPopup))
+				return false;
+		}
 
 		m_attribs.d_fog = m_pShader->GetDeterminatorIndex("fog");
 		m_attribs.d_side = m_pShader->GetDeterminatorIndex("side");
 		m_attribs.d_rectrefract = m_pShader->GetDeterminatorIndex("rectrefract");
 		m_attribs.d_mrao = m_pShader->GetDeterminatorIndex("mrao");
 		m_attribs.d_flowmap = m_pShader->GetDeterminatorIndex("flowmap");
-		m_attribs.d_lightonly = m_pShader->GetDeterminatorIndex("lightonly");
 		m_attribs.d_lightmap_bicubic = m_pShader->GetDeterminatorIndex("lightmap_bicubic");
 
 		if(!R_CheckShaderDeterminator(m_attribs.d_fog, "fog", m_pShader, Sys_ErrorPopup)
@@ -167,7 +183,6 @@ bool CWaterShader::InitGL( void )
 			|| !R_CheckShaderDeterminator(m_attribs.d_rectrefract, "rectrefract", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_mrao, "mrao", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_flowmap, "flowmap", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderDeterminator(m_attribs.d_lightonly, "lightonly", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_lightmap_bicubic, "lightmap_bicubic", m_pShader, Sys_ErrorPopup))
 			return false;
 
@@ -186,15 +201,28 @@ bool CWaterShader::InitGL( void )
 		m_attribs.u_normalmatrix_v = m_pShader->InitUniform("normalmatrix_v", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_normalmap = m_pShader->InitUniform("normalMap", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_flowmap = m_pShader->InitUniform("flowMap", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_lightmap = m_pShader->InitUniform("lightMap", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_refract = m_pShader->InitUniform("refractMap", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_reflect = m_pShader->InitUniform("reflectMap", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_rectrefract = m_pShader->InitUniform("rectangleRefractMap", CGLSLShader::UNIFORM_SAMPLERRECT);
-		m_attribs.u_diffusemap = m_pShader->InitUniform("diffuseMap", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_lightvecsmap = m_pShader->InitUniform("lightvecsMap", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_lightstyle_values = m_pShader->InitUniform("u_lightstyle_values", CGLSLShader::UNIFORM_FLOAT1, 256);
+		m_attribs.u_d_numlights = m_pShader->InitUniform("d_numlights", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_modelview = m_pShader->InitUniform("modelview", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_projection = m_pShader->InitUniform("projection", CGLSLShader::UNIFORM_MATRIX4);
-		m_attribs.u_stylestrength = m_pShader->InitUniform("stylestrength", CGLSLShader::UNIFORM_FLOAT1);
+
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			CString name;
+			name << "lightMap[" << i << "]";
+			m_attribs.u_lightmap[i] = m_pShader->InitUniform(name.c_str(), CGLSLShader::UNIFORM_SAMPLER2D);
+
+			name.clear();
+			name << "diffuseMap[" << i << "]";
+			m_attribs.u_diffusemap[i] = m_pShader->InitUniform(name.c_str(), CGLSLShader::UNIFORM_SAMPLER2D);
+
+			name.clear();
+			name << "lightvecsMap[" << i << "]";
+			m_attribs.u_lightvecsmap[i] = m_pShader->InitUniform(name.c_str(), CGLSLShader::UNIFORM_SAMPLER2D);
+		}
 
 		if(!R_CheckShaderUniform(m_attribs.u_fogcolor, "fogcolor", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_fogparams, "fogparams", m_pShader, Sys_ErrorPopup)
@@ -205,22 +233,93 @@ bool CWaterShader::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_texscale, "texscale", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_rectscale, "rectscale", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_lightstrength, "lightstrength", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_d_numlights, "d_numlights", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_wavefresnelstrength, "wavefresnelstrength", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_flowspeed, "flowSpeed", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmatrix, "normalmatrix", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmatrix_v, "normalmatrix_v", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmap, "normalMap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_flowmap, "flowMap", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_lightmap, "lightMap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_refract, "refractMap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_reflect, "reflectMap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_rectrefract, "rectangleRefractMap", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_diffusemap, "diffuseMap", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_lightvecsmap, "lightvecsMap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_modelview, "modelview", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_projection, "projection", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_stylestrength, "stylestrength", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderUniform(m_attribs.u_projection, "projection", m_pShader, Sys_ErrorPopup))
 			return false;
+
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			CString name;
+			name << "lightMap[" << i << "]";
+			if (!R_CheckShaderUniform(m_attribs.u_lightmap[i], name.c_str(), m_pShader, Sys_ErrorPopup))
+				return false;
+
+			name.clear();
+			name << "diffuseMap[" << i << "]";
+			if (!R_CheckShaderUniform(m_attribs.u_diffusemap[i], name.c_str(), m_pShader, Sys_ErrorPopup))
+				return false;
+
+			name.clear();
+			name << "lightvecsMap[" << i << "]";
+			if (!R_CheckShaderUniform(m_attribs.u_lightvecsmap[i], name.c_str(), m_pShader, Sys_ErrorPopup))
+				return false;
+		}
+
+		for(Uint32 i = 0; i < MAX_DLIGHTS; i++)
+		{
+			CString lightcolor;
+			lightcolor << "light_" << i << "_color";
+
+			CString lightorigin;
+			lightorigin << "light_" << i << "_origin";
+
+			CString lightradius;
+			lightradius << "light_" << i << "_radius";
+
+			CString lightcubemap;
+			lightcubemap << "light_" << i << "_cubemap";
+
+			CString lightprojtexture;
+			lightprojtexture << "light_" << i << "_projtexture";
+
+			CString lightshadowmap;
+			lightshadowmap << "light_" << i << "_shadowmap";
+
+			CString lightmatrix;
+			lightmatrix << "light_" << i << "_matrix";
+
+			CString lightconesize;
+			lightconesize << "light_" << i << "_cone_size";
+
+			CString lightspotdirection;
+			lightspotdirection << "light_" << i << "_spotdirection";
+
+			CString lightdeterminatorshadowmap;
+			lightdeterminatorshadowmap << "d_light" << i << "_shadowmap";
+
+			m_attribs.lights[i].u_light_color = m_pShader->InitUniform(lightcolor.c_str(), CGLSLShader::UNIFORM_FLOAT4);
+			m_attribs.lights[i].u_light_origin = m_pShader->InitUniform(lightorigin.c_str(), CGLSLShader::UNIFORM_FLOAT3);
+			m_attribs.lights[i].u_light_radius = m_pShader->InitUniform(lightradius.c_str(), CGLSLShader::UNIFORM_FLOAT1);
+			m_attribs.lights[i].u_light_cubemap = m_pShader->InitUniform(lightcubemap.c_str(), CGLSLShader::UNIFORM_SAMPLERCUBE);
+			m_attribs.lights[i].u_light_projtexture = m_pShader->InitUniform(lightprojtexture.c_str(), CGLSLShader::UNIFORM_SAMPLER2D);
+			m_attribs.lights[i].u_light_shadowmap = m_pShader->InitUniform(lightshadowmap.c_str(), CGLSLShader::UNIFORM_SAMPLER2D);
+			m_attribs.lights[i].u_light_matrix = m_pShader->InitUniform(lightmatrix.c_str(), CGLSLShader::UNIFORM_MATRIX4);
+			m_attribs.lights[i].u_light_cone_size = m_pShader->InitUniform(lightconesize.c_str(), CGLSLShader::UNIFORM_FLOAT1);
+			m_attribs.lights[i].u_light_spotdirection = m_pShader->InitUniform(lightspotdirection.c_str(), CGLSLShader::UNIFORM_FLOAT3);
+			m_attribs.lights[i].u_d_light_shadowmap = m_pShader->InitUniform(lightdeterminatorshadowmap.c_str(), CGLSLShader::UNIFORM_INT1);
+
+			if(!R_CheckShaderUniform(m_attribs.lights[i].u_light_color, lightcolor.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_origin, lightorigin.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_radius, lightradius.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_cubemap, lightcubemap.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_projtexture, lightprojtexture.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_shadowmap, lightshadowmap.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_matrix, lightmatrix.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_cone_size, lightconesize.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_spotdirection, lightspotdirection.c_str(), m_pShader, Sys_ErrorPopup)
+				|| !R_CheckShaderUniform(m_attribs.lights[i].u_d_light_shadowmap, lightdeterminatorshadowmap.c_str(), m_pShader, Sys_ErrorPopup))
+				return false;
+		}
 	}
 
 	if(m_pDepthTexture)
@@ -1094,6 +1193,7 @@ void CWaterShader::AddEntity( cl_entity_t *pentity )
 				pcurvert->lightcoords[k][1] -= psurf->texturemins[1];
 				pcurvert->lightcoords[k][1] += psurf->light_t[k]*psurf->lightmapdivider + (psurf->lightmapdivider / 2.0f);
 				pcurvert->lightcoords[k][1] /= pwater->lightmaptextureheights[k]*psurf->lightmapdivider;
+				pcurvert->styles[k] = static_cast<Float>(psurf->styles[k]);
 			}
 
 			for(Uint32 k = 0; k < 3; k++)
@@ -1130,61 +1230,6 @@ void CWaterShader::AddEntity( cl_entity_t *pentity )
 		}
 
 		Uint32 surf_end_index = index_base + indexoffset;
-
-		// Set up any styles
-		for(Uint32 j = 1; j < MAX_SURFACE_STYLES; j++)
-		{
-			if(psurf->styles[j] == NULL_LIGHTSTYLE_INDEX)
-				break;
-
-			Int32 styleindex = psurf->styles[j];
-			if(styleindex == 0)
-				continue;
-
-			cl_water_style_batches_t* pstylebatch = nullptr;
-			for(Uint32 k = 0; k < pwater->stylebatches.size(); k++)
-			{
-				if(pwater->stylebatches[k].styleindex == styleindex)
-				{
-					pstylebatch = &pwater->stylebatches[k];
-					break;
-				}
-			}
-
-			if(!pstylebatch)
-			{
-				Uint32 insertposition = pwater->stylebatches.size();
-				pwater->stylebatches.resize(pwater->stylebatches.size()+1);
-				pstylebatch = &pwater->stylebatches[insertposition];
-				pstylebatch->styleindex = styleindex;
-			}
-
-			Uint32 k;
-			for(k = 0; k < pstylebatch->batches[j].size(); k++)
-			{
-				cl_water_style_batch_t& batch = pstylebatch->batches[j][k];
-				if(batch.start_index == surf_end_index)
-				{
-					batch.start_index = surf_start_index;
-					break;
-				}
-				else if((batch.start_index+batch.num_indexes) == surf_start_index)
-				{
-					batch.num_indexes = (surf_end_index-batch.start_index);
-					break;
-				}
-			}
-
-			if(k == pstylebatch->batches[j].size())
-			{
-				Uint32 insertposition = pstylebatch->batches[j].size();
-				pstylebatch->batches[j].resize(pstylebatch->batches[j].size()+1);
-
-				cl_water_style_batch_t& batch = pstylebatch->batches[j][insertposition];
-				batch.start_index = surf_start_index;
-				batch.num_indexes = (surf_end_index - batch.start_index);
-			}
-		}
 
 		vertex_base += psurf->numedges;
 	}
@@ -1749,7 +1794,14 @@ bool CWaterShader::DrawWater( bool skybox )
 	m_pShader->EnableAttribute(m_attribs.a_tangent);
 	m_pShader->EnableAttribute(m_attribs.a_binormal);
 	m_pShader->EnableAttribute(m_attribs.a_texcoords);
-	m_pShader->EnableAttribute(m_attribs.a_lightcoords);
+
+	for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+		m_pShader->EnableAttribute(m_attribs.a_lightcoords[k]);
+	m_pShader->EnableAttribute(m_attribs.a_styles);
+
+	CArray<Float>* pLightStyleValuesArray = gLightStyles.GetLightStyleValuesArray();
+	if (pLightStyleValuesArray && !pLightStyleValuesArray->empty())
+		m_pShader->SetUniform1fv(m_attribs.u_lightstyle_values, &((*pLightStyleValuesArray)[0]), 256);
 
 	bool result = true;
 	if(rns.fog.settings.active)
@@ -1779,6 +1831,26 @@ bool CWaterShader::DrawWater( bool skybox )
 	m_pShader->SetUniformMatrix4fv(m_attribs.u_modelview, rns.view.modelview.GetMatrix());
 	m_pShader->SetUniformMatrix4fv(m_attribs.u_normalmatrix, rns.view.modelview.GetInverse());
 	m_pShader->SetUniformMatrix4fv(m_attribs.u_normalmatrix_v, rns.view.modelview.GetInverse());
+
+	cl_dlight_t* active_dlights[MAX_DLIGHTS] = { nullptr };
+	Uint32 num_active_dlights = 0;
+	if(g_pCvarDynamicLights->GetValue() >= 1)
+	{
+		CLinkedList<cl_dlight_t*>& dlightlist = gDynamicLights.GetLightList();
+		dlightlist.begin();
+		while(!dlightlist.end() && num_active_dlights < MAX_DLIGHTS)
+		{
+			cl_dlight_t* dl = dlightlist.get();
+			if(DL_IsLightVisible(rns.view.frustum, dl->mins, dl->maxs, dl))
+			{
+				active_dlights[num_active_dlights] = dl;
+				num_active_dlights++;
+			}
+			dlightlist.next();
+		}
+	}
+
+	m_pShader->SetUniform1i(m_attribs.u_d_numlights, num_active_dlights);
 
 	rtt_texture_t* pRTT = nullptr;
 	CFBOCache::cache_fbo_t* pScreenFBO = nullptr;
@@ -1844,6 +1916,7 @@ bool CWaterShader::DrawWater( bool skybox )
 
 		// Set the normal map
 		Int32 textureUnit = 0;
+		m_pShader->ResetSamplerIndex();
 		en_texture_t* pnormaltex = (psettings->pnormalmap) ? psettings->pnormalmap : m_pDefaultNormalTexture;
 		R_Bind2DTexture(GL_TEXTURE0+textureUnit, pnormaltex->palloc->gl_index);
 		m_pShader->SetUniform1i(m_attribs.u_normalmap, textureUnit);
@@ -1950,121 +2023,149 @@ bool CWaterShader::DrawWater( bool skybox )
 			textureUnit++;
 		}
 
-		m_pShader->SetUniform1i(m_attribs.u_lightmap, textureUnit);
-		R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_textures[BASE_LIGHTMAP_INDEX]->gl_index);
+		bool hasMRAO = (m_pCurrentWater->plightmap_diffuse_textures[BASE_LIGHTMAP_INDEX] != nullptr && m_pCurrentWater->plightmap_lightvecs_textures[BASE_LIGHTMAP_INDEX] != nullptr);
+		result = m_pShader->SetDeterminator(m_attribs.d_mrao, hasMRAO ? 1 : 0);
+		if (!result)
+			break;
 
-		if(m_pCurrentWater->plightmap_diffuse_textures[BASE_LIGHTMAP_INDEX] 
-			&& m_pCurrentWater->plightmap_lightvecs_textures[BASE_LIGHTMAP_INDEX])
+		for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
 		{
-			result = m_pShader->SetDeterminator(m_attribs.d_mrao, TRUE);
-			if(!result)
-				break;
-
-			m_pShader->SetUniform1i(m_attribs.u_diffusemap, textureUnit);
-			R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_diffuse_textures[BASE_LIGHTMAP_INDEX]->gl_index);
+			m_pShader->SetUniform1i(m_attribs.u_lightmap[k], textureUnit);
+			R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_textures[k] ? m_pCurrentWater->plightmap_textures[k]->gl_index : m_pCurrentWater->plightmap_textures[0]->gl_index);
 			textureUnit++;
 
-			m_pShader->SetUniform1i(m_attribs.u_lightvecsmap, textureUnit);
-			R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_lightvecs_textures[BASE_LIGHTMAP_INDEX]->gl_index);
-			textureUnit++;
+			if (hasMRAO)
+			{
+				m_pShader->SetUniform1i(m_attribs.u_diffusemap[k], textureUnit);
+				R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_diffuse_textures[k] ? m_pCurrentWater->plightmap_diffuse_textures[k]->gl_index : m_pCurrentWater->plightmap_diffuse_textures[0]->gl_index);
+				textureUnit++;
+
+				m_pShader->SetUniform1i(m_attribs.u_lightvecsmap[k], textureUnit);
+				R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_lightvecs_textures[k] ? m_pCurrentWater->plightmap_lightvecs_textures[k]->gl_index : m_pCurrentWater->plightmap_lightvecs_textures[0]->gl_index);
+				textureUnit++;
+			}
 		}
-		else
+
+		m_pShader->ResetSamplerIndex(textureUnit);
+
+		for (Uint32 l = 0; l < MAX_DLIGHTS; l++)
 		{
-			result = m_pShader->SetDeterminator(m_attribs.d_mrao, FALSE);
-			if(!result)
-				break;
+			if (l < num_active_dlights)
+			{
+				cl_dlight_t* pdlight = active_dlights[l];
+
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_color);
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_origin);
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_radius);
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_cubemap);
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_projtexture);
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_shadowmap);
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_matrix);
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_cone_size);
+				m_pShader->EnableSync(m_attribs.lights[l].u_light_spotdirection);
+
+				Vector vtransorigin;
+				Math::MatMultPosition(rns.view.modelview.Transpose(), pdlight->origin, &vtransorigin);
+
+				Vector color;
+				Math::VectorCopy(pdlight->color, color);
+				gLightStyles.ApplyLightStyle(pdlight, color);
+
+				m_pShader->SetUniform4f(m_attribs.lights[l].u_light_color, color[0], color[1], color[2], 1.0);
+				m_pShader->SetUniform3f(m_attribs.lights[l].u_light_origin, vtransorigin[0], vtransorigin[1], vtransorigin[2]);
+				m_pShader->SetUniform1f(m_attribs.lights[l].u_light_radius, pdlight->radius);
+
+				Uint32 projUnit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_projtexture);
+				Uint32 shadowUnit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_shadowmap);
+				Uint32 cubeUnit = m_pShader->AutoSetSamplerUniform(m_attribs.lights[l].u_light_cubemap);
+
+				if (pdlight->cone_size > 0.0f)
+				{
+					Vector vforward, vtarget;
+					Vector angles = pdlight->angles;
+					Common::FixVector(angles);
+					Math::AngleVectors(angles, &vforward, nullptr, nullptr);
+					Math::VectorMA(pdlight->origin, pdlight->radius, vforward, vtarget);
+
+					Int32 textureIndex = pdlight->textureindex;
+					if (textureIndex >= rns.objects.projective_textures.size())
+						textureIndex = 0;
+
+					R_Bind2DTexture(GL_TEXTURE0 + projUnit, rns.objects.projective_textures[textureIndex]->palloc->gl_index);
+
+					if (DL_CanShadow(pdlight))
+					{
+						m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, TRUE);
+						R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, pdlight->getProjShadowMap()->pfbo->ptexture1->gl_index);
+					}
+					else
+					{
+						m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
+						R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
+					}
+
+					R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, 0);
+
+					CMatrix matrix;
+					matrix.LoadIdentity();
+					matrix.Translate(0.5, 0.5, 0.5);
+					matrix.Scale(0.5, 0.5, 1.0);
+					Float flsize = tan((M_PI / 360) * pdlight->cone_size);
+					matrix.SetFrustum(-flsize, flsize, -flsize, flsize, 1, pdlight->radius);
+					matrix.LookAt(pdlight->origin[0], pdlight->origin[1], pdlight->origin[2], vtarget[0], vtarget[1], vtarget[2], 0, 0, Common::IsPitchReversed(angles[PITCH]) ? -1 : 1);
+
+					m_pShader->SetUniformMatrix4fv(m_attribs.lights[l].u_light_matrix, matrix.Transpose());
+					m_pShader->SetUniform1f(m_attribs.lights[l].u_light_cone_size, pdlight->cone_size);
+
+					Vector transdirection;
+					Math::MatMult(rns.view.modelview.Transpose(), vforward, &transdirection);
+					m_pShader->SetUniform3f(m_attribs.lights[l].u_light_spotdirection, transdirection[0], transdirection[1], transdirection[2]);
+				}
+				else
+				{
+					m_pShader->SetUniform1f(m_attribs.lights[l].u_light_cone_size, 0.0f);
+					R_Bind2DTexture(GL_TEXTURE0 + projUnit, 0);
+					R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
+
+					if (DL_CanShadow(pdlight))
+					{
+						m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, TRUE);
+						R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
+
+						CMatrix matrix;
+						matrix.LoadIdentity();
+						matrix.Rotate(-90, 1, 0, 0);
+						matrix.Rotate(90, 0, 0, 1);
+						matrix.Translate(-pdlight->origin[0], -pdlight->origin[1], -pdlight->origin[2]);
+						m_pShader->SetUniformMatrix4fv(m_attribs.lights[l].u_light_matrix, matrix.GetMatrix(), true);
+					}
+					else
+					{
+						m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
+						R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, 0);
+					}
+				}
+			}
+			else
+			{
+				m_pShader->SetUniform1i(m_attribs.lights[l].u_d_light_shadowmap, FALSE);
+				m_pShader->SetUniform1i(m_attribs.lights[l].u_light_projtexture, 0);
+				m_pShader->SetUniform1i(m_attribs.lights[l].u_light_shadowmap, 0);
+				m_pShader->SetUniform1i(m_attribs.lights[l].u_light_cubemap, 6);
+			}
 		}
-		
+
 		R_ValidateShader(m_pShader);
 
 		m_pShader->DrawElements(GL_TRIANGLES, m_pCurrentWater->num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(m_pCurrentWater->start_index));
 
-		if(rectangleUnit != NO_POSITION)
-			R_BindRectangleTexture(GL_TEXTURE0+rectangleUnit, 0);
-
-		if(!m_pCurrentWater->stylebatches.empty())
-		{
-			result = m_pShader->SetDeterminator(m_attribs.d_rectrefract, FALSE, false);
-			if(!result)
-				break;
-
-			result = m_pShader->SetDeterminator(m_attribs.d_lightonly, TRUE);
-			if(!result)
-				break;
-
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
-
-			if(rns.fog.settings.active)
-				m_pShader->SetUniform3f(m_attribs.u_fogcolor, 0, 0, 0);
-
-			// Set ptr to lightstyles array
-			CArray<Float>* pLightStyleValuesArray = gLightStyles.GetLightStyleValuesArray();
-			for(Uint32 j = 0; j < m_pCurrentWater->stylebatches.size(); j++)
-			{
-				cl_water_style_batches_t& stylebatches = m_pCurrentWater->stylebatches[j];
-				if(stylebatches.styleindex == NO_POSITION)
-					continue;
-
-				Float styleStrength = (*pLightStyleValuesArray)[stylebatches.styleindex];
-				if(!styleStrength)
-					continue;
-
-				for(Uint32 k = 1; k < MAX_SURFACE_STYLES; k++)
-				{
-					if(stylebatches.batches[k].empty())
-						continue;
-
-					// Reset to base past the normal map unit
-					R_ClearBinds(resetUnit);
-					textureUnit = resetUnit;
-
-					m_pShader->SetUniform1i(m_attribs.u_lightmap, textureUnit);
-					R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_textures[k]->gl_index);
-					textureUnit++;
-
-					m_pShader->SetUniform1f(m_attribs.u_stylestrength, styleStrength);
-
-					if(m_pCurrentWater->plightmap_diffuse_textures[k] 
-						&& m_pCurrentWater->plightmap_lightvecs_textures[k])
-					{
-						result = m_pShader->SetDeterminator(m_attribs.d_mrao, 1);
-						if(!result)
-							break;
-
-						m_pShader->SetUniform1i(m_attribs.u_diffusemap, textureUnit);
-						R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_diffuse_textures[k]->gl_index);
-						textureUnit++;
-
-						m_pShader->SetUniform1i(m_attribs.u_lightvecsmap, textureUnit);
-						R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_lightvecs_textures[k]->gl_index);
-						textureUnit++;
-					}
-					else
-					{
-						result = m_pShader->SetDeterminator(m_attribs.d_mrao, 0);
-						if(!result)
-							break;
-					}
-
-					for(Uint32 l = 0; l < stylebatches.batches[k].size(); l++)
-					{
-						cl_water_style_batch_t& batch = stylebatches.batches[k][l];
-						m_pShader->DrawElements(GL_TRIANGLES, batch.num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(batch.start_index));
-					}
-				}
-			}
-
-			glDisable(GL_BLEND);
-
-			if(rns.fog.settings.active)
-				m_pShader->SetUniform3f(m_attribs.u_fogcolor, rns.fog.settings.color[0], rns.fog.settings.color[1], rns.fog.settings.color[2]);
-
-			result = m_pShader->SetDeterminator(m_attribs.d_lightonly, FALSE, false);
-			if(!result)
-				break;
-		}
+		if (rectangleUnit != NO_POSITION)
+			R_BindRectangleTexture(GL_TEXTURE0 + rectangleUnit, 0);
 	}
+
+	for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+		m_pShader->DisableAttribute(m_attribs.a_lightcoords[k]);
+	m_pShader->DisableAttribute(m_attribs.a_styles);
 
 	m_pShader->DisableShader();
 

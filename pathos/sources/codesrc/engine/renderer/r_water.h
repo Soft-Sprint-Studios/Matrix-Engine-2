@@ -17,20 +17,31 @@ struct cl_entity_t;
 struct ref_params_t;
 struct en_texture_t;
 
-struct cl_water_style_batch_t
+struct water_light_attribs_t
 {
-	Uint32 start_index;
-	Uint32 num_indexes;
-};
-
-struct cl_water_style_batches_t
-{
-	cl_water_style_batches_t():
-		styleindex(NO_POSITION)
+	water_light_attribs_t():
+		u_light_color(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_light_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_light_radius(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_light_cubemap(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_light_projtexture(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_light_shadowmap(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_light_matrix(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_light_cone_size(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_light_spotdirection(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_d_light_shadowmap(CGLSLShader::PROPERTY_UNAVAILABLE)
 	{}
 
-	CArray<cl_water_style_batch_t> batches[MAX_SURFACE_STYLES];
-	Int32 styleindex;
+	Int32 u_light_color;
+	Int32 u_light_origin;
+	Int32 u_light_radius;
+	Int32 u_light_cubemap;
+	Int32 u_light_projtexture;
+	Int32 u_light_shadowmap;
+	Int32 u_light_matrix;
+	Int32 u_light_cone_size;
+	Int32 u_light_spotdirection;
+	Int32 u_d_light_shadowmap;
 };
 
 struct cl_water_t
@@ -78,8 +89,6 @@ struct cl_water_t
 	Uint32 num_indexes;
 
 	Uint32 renderpassidx;
-
-	CArray<cl_water_style_batches_t> stylebatches;
 
 	en_texalloc_t* plightmap_textures[MAX_SURFACE_STYLES];
 	en_texalloc_t* plightmap_diffuse_textures[MAX_SURFACE_STYLES];
@@ -149,8 +158,9 @@ struct water_vertex_t
 
 	Float texcoords[2]; // 60
 	Float lightcoords[MAX_SURFACE_STYLES][2]; // 92
+	Float styles[MAX_SURFACE_STYLES]; // 108
 
-	byte pad[4];
+	byte pad[20];
 };
 
 struct water_attribs
@@ -161,15 +171,13 @@ struct water_attribs
 		a_tangent(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_binormal(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_texcoords(CGLSLShader::PROPERTY_UNAVAILABLE),
-		a_lightcoords(CGLSLShader::PROPERTY_UNAVAILABLE),
+		a_styles(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_flowmap(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_lightmap(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_lightstyle_values(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_refract(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_reflect(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_rectrefract(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_diffusemap(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_lightvecsmap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_normalmatrix_v(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogcolor(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -185,31 +193,40 @@ struct water_attribs
 		u_modelview(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_projection(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_flowspeed(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_stylestrength(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_side(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_fog(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_rectrefract(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_flowmap(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_lightonly(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_lightmap_bicubic(CGLSLShader::PROPERTY_UNAVAILABLE)
-		{}
+	{
+		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		{
+			a_lightcoords[i] = CGLSLShader::PROPERTY_UNAVAILABLE;
+			u_lightmap[i] = CGLSLShader::PROPERTY_UNAVAILABLE;
+			u_diffusemap[i] = CGLSLShader::PROPERTY_UNAVAILABLE;
+			u_lightvecsmap[i] = CGLSLShader::PROPERTY_UNAVAILABLE;
+		}
+	}
 
 	Int32 a_origin;
 	Int32 a_normal;
 	Int32 a_tangent;
 	Int32 a_binormal;
 	Int32 a_texcoords;
-	Int32 a_lightcoords;
+	Int32 a_lightcoords[MAX_SURFACE_STYLES];
+	Int32 a_styles;
 
 	Int32 u_normalmap;
 	Int32 u_flowmap;
-	Int32 u_lightmap;
+	Int32 u_lightstyle_values;
+	Int32 u_lightmap[MAX_SURFACE_STYLES];
 	Int32 u_refract;
 	Int32 u_reflect;
 	Int32 u_rectrefract;
-	Int32 u_diffusemap;
-	Int32 u_lightvecsmap;
+	Int32 u_diffusemap[MAX_SURFACE_STYLES];
+	Int32 u_lightvecsmap[MAX_SURFACE_STYLES];
 
 	Int32 u_normalmatrix;
 	Int32 u_normalmatrix_v;
@@ -227,6 +244,7 @@ struct water_attribs
 	Int32 u_wavefresnelstrength;
 	Int32 u_flowspeed;
 	Int32 u_stylestrength;
+	Int32 u_d_numlights;
 
 	Int32 u_modelview;
 	Int32 u_projection;
@@ -236,8 +254,8 @@ struct water_attribs
 	Int32 d_rectrefract;
 	Int32 d_mrao;
 	Int32 d_flowmap;
-	Int32 d_lightonly;
 	Int32 d_lightmap_bicubic;
+	water_light_attribs_t lights[MAX_DLIGHTS];
 };
 
 /*
