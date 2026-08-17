@@ -91,33 +91,33 @@ public:
 	static const Uint32 SSAO_NOISE_DIMENSION = 4;
 
 public:
-	CSSAOManager(void);
-	~CSSAOManager(void);
+	CSSAOManager( void );
+	~CSSAOManager( void );
 
 public:
 	// Initializes console variables and kernel points
-	bool Init(void);
+	bool Init( void );
 	// Performs complete shutdown
-	void Shutdown(void);
+	void Shutdown( void );
 
 	// Initializes OpenGL objects, compiles shaders, and sets VBO
-	bool InitGL(void);
+	bool InitGL( void );
 	// Clears OpenGL objects
-	void ClearGL(void);
+	void ClearGL( void );
 
 	// Initializes per-game-session resources
-	bool InitGame(void);
+	bool InitGame( void );
 	// Cleans up game resources on map unload
-	void ClearGame(void);
+	void ClearGame( void );
 
 	// Executes depth blit, SSAO generation, blur, and screen multiplicative blend
-	bool DrawSSAO(void);
+	bool DrawSSAO( void );
 
 private:
 	// Generates hemispherical distribution sampling kernel
-	void GenerateKernel(void);
+	void GenerateKernel( void );
 	// Generates 4x4 random rotation noise texture
-	void CreateNoiseTexture(void);
+	void CreateNoiseTexture( void );
 
 private:
 	// GLSL shader object
