@@ -1210,7 +1210,11 @@ Int32 TR_HullPointContents_Brush( const brushmodel_t* pbrushmodel, const Vector&
 	}
 	else
 	{
-		TR_BoxLeafNumsRecursive(&pbrushmodel->pnodes[pbrushmodel->headnodeindex], mins, maxs, g_leafArray, g_numLeafs, nullptr);
+		Vector absmin, absmax;
+		Math::VectorAdd(mins, position, absmin);
+		Math::VectorAdd(maxs, position, absmax);
+
+		TR_BoxLeafNumsRecursive(&pbrushmodel->pnodes[pbrushmodel->headnodeindex], absmin, absmax, g_leafArray, g_numLeafs, nullptr);
 	}
 
 	// If we hit no leafs, return empty

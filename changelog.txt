@@ -1008,3 +1008,6 @@ Merge PR # 55:
  - Fix for parented entities not being kept as engine-side entities instead of client-only ones.
  - Add code to manage zhlt_noclip setting for brush based collisions.
  - Apply epsilon fix to alpha tested trace also in hlrad.
+
+2026 August 17th:
+ - Fix HullPointContents not working due to using local mins/maxs for testing instead of absmin/absmax.
