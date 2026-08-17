@@ -157,8 +157,8 @@ CFBOCache::cache_fbo_t* CFBOCache::Alloc(Uint32 width, Uint32 height, bool depth
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 	assert(pTextureManager != nullptr);
 
-	GLenum internalFormat = rns.usehdr ? GL_RGBA16F : GL_RGBA;
-	GLenum type = rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE;
+	GLenum internalFormat = GL_RGBA16F;
+	GLenum type = GL_HALF_FLOAT;
 
 	GLint textureBound;
 	glGetIntegerv(GL_TEXTURE_BINDING_2D, &textureBound);

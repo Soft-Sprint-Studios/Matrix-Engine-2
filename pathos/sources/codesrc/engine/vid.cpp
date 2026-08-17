@@ -160,44 +160,6 @@ void Cmd_VID_SetVSync( void )
 
 //=============================================
 //=============================================
-void Cmd_VID_SetFBOEnabled(void)
-{
-	if (gCommands.Cmd_Argc() == 2)
-	{
-		const Char* pstrSetting = gCommands.Cmd_Argv(1);
-		if (!Common::IsNumber(pstrSetting))
-		{
-			Con_EPrintf("%s: Invalid value '%s' set.\n", gCommands.Cmd_Argv(0), pstrSetting);
-			return;
-		}
-
-		ens.requestedFBOSetting = SDL_atoi(pstrSetting);
-	}
-	else
-		Con_EPrintf("%s: invalid number of parameters.\n", gCommands.Cmd_Argv(0));
-}
-
-//=============================================
-//=============================================
-void Cmd_VID_SetHDREnabled(void)
-{
-	if (gCommands.Cmd_Argc() == 2)
-	{
-		const Char* pstrSetting = gCommands.Cmd_Argv(1);
-		if (!Common::IsNumber(pstrSetting))
-		{
-			Con_EPrintf("%s: Invalid value '%s' set.\n", gCommands.Cmd_Argv(0), pstrSetting);
-			return;
-		}
-
-		ens.requestedHDRSetting = SDL_atoi(pstrSetting);
-	}
-	else
-		Con_EPrintf("%s: invalid number of parameters.\n", gCommands.Cmd_Argv(0));
-}
-
-//=============================================
-//=============================================
 void VID_InitCommands( void )
 {
 	gCommands.CreateCommand("_vid_restart", &Cmd_VID_Restart, "Restarts the window, reloads all GL resources", CMD_FL_HIDDEN);
@@ -208,8 +170,6 @@ void VID_InitCommands( void )
 	gCommands.CreateCommand("_vid_setdisplay", &Cmd_VID_SetDisplayDevice, "Sets the desired display device. Call '_vid_restart' to apply", CMD_FL_HIDDEN);
 	gCommands.CreateCommand("_vid_setmsaa", &Cmd_VID_SetMSAA, "Sets the desired MSAA setting. Call '_vid_restart' to apply", CMD_FL_HIDDEN);
 	gCommands.CreateCommand("_vid_setvsync", &Cmd_VID_SetVSync, "Sets the desired vertical sync setting. Call '_vid_restart' to apply", CMD_FL_HIDDEN);
-	gCommands.CreateCommand("_vid_setfboenabled", &Cmd_VID_SetFBOEnabled, "Sets the desired framebuffer object setting. Call '_vid_restart' to apply", CMD_FL_HIDDEN);
-	gCommands.CreateCommand("_vid_sethdrenabled", &Cmd_VID_SetHDREnabled, "Sets the desired high dynamic range setting. Call '_vid_restart' to apply", CMD_FL_HIDDEN);
 }
 
 //=============================================
@@ -654,9 +614,8 @@ void VID_Draw( void )
 	if(g_pCvarTimeGraph->GetValue() >= 1.0f)
 		time1 = Sys_FloatTime();
 
-	// Bind FBO if we use HDR
-	if (rns.fboused && rns.usehdr)
-		R_BindMainScreenFBO();
+	// Bind FBO
+	R_BindMainScreenFBO();
 
 	glViewport(0, 0, rns.screenwidth, rns.screenheight);
 	glClearColor(GL_ZERO, GL_ZERO, GL_ZERO, GL_ZERO);
@@ -687,8 +646,7 @@ void VID_Draw( void )
 	}
 
 	// Blit from main FBO to back buffer
-	if (rns.fboused && rns.usehdr)
-		R_PerformMainScreenBlit();
+	R_PerformMainScreenBlit();
 
 	// Draw any menu/UI elements
 	if(!R_DrawInterface())
@@ -799,9 +757,8 @@ void VID_DrawLoadingScreen( const Char* pstrText )
 		return;
 	}
 
-	// Bind FBO if we use HDR
-	if (rns.fboused && rns.usehdr)
-		R_BindMainScreenFBO();
+	// Bind FBO
+	R_BindMainScreenFBO();
 
 	glViewport(0, 0, rns.screenwidth, rns.screenheight);
 	glClearColor(GL_ZERO, GL_ZERO, GL_ZERO, GL_ZERO);
@@ -822,8 +779,7 @@ void VID_DrawLoadingScreen( const Char* pstrText )
 	}
 
 	// Blit from main FBO to back buffer
-	if (rns.fboused && rns.usehdr)
-		R_PerformMainScreenBlit();
+	R_PerformMainScreenBlit();
 
 	// Swap the OGL buffer
 	gWindow.SwapWindow();
@@ -840,9 +796,8 @@ void VID_DrawSceneOnly( void )
 	// on with the boolean
 	rns.validateshaders = (g_pCvarGLSLValidate->GetValue() < 1) ? false : true;
 
-	// Bind FBO if we use HDR
-	if (rns.fboused && rns.usehdr)
-		R_BindMainScreenFBO();
+	// Bind FBO
+	R_BindMainScreenFBO();
 
 	glViewport(0, 0, rns.screenwidth, rns.screenheight);
 	glClearColor(GL_ZERO, GL_ZERO, GL_ZERO, GL_ZERO);
@@ -869,8 +824,7 @@ void VID_DrawSceneOnly( void )
 	}
 
 	// Blit from main FBO to back buffer
-	if (rns.fboused && rns.usehdr)
-		R_PerformMainScreenBlit();
+	R_PerformMainScreenBlit();
 
 	// Increment frame counter
 	rns.framecount++;

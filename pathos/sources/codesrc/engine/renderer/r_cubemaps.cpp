@@ -942,18 +942,15 @@ bool CCubemapManager::RenderCubemaps( cl_entity_t* pRenderEntities, Uint32 numRe
 			glDisable(GL_BLEND);
 
 			CFBOCache::cache_fbo_t* pCubemapFBO = nullptr;
-			if (rns.fboused && rns.usehdr)
+			pCubemapFBO = gFBOCache.Alloc(m_cubemapsArray[i].width, m_cubemapsArray[i].height, true);
+			if (!pCubemapFBO)
 			{
-				pCubemapFBO = gFBOCache.Alloc(m_cubemapsArray[i].width, m_cubemapsArray[i].height, true);
-				if (!pCubemapFBO)
-				{
-					Con_Printf("%s - Failed to get FBO for cubemap rendering with width %d, height %d.\n", __FUNCTION__, m_cubemapsArray[i].width, m_cubemapsArray[i].height);
-					result = false;
-					break;
-				}
-
-				R_BindFBO(&pCubemapFBO->fbo);
+				Con_Printf("%s - Failed to get FBO for cubemap rendering with width %d, height %d.\n", __FUNCTION__, m_cubemapsArray[i].width, m_cubemapsArray[i].height);
+				result = false;
+				break;
 			}
+
+			R_BindFBO(&pCubemapFBO->fbo);
 	
 			// Draw everything
 			result = R_Draw(viewParams);
@@ -963,12 +960,9 @@ bool CCubemapManager::RenderCubemaps( cl_entity_t* pRenderEntities, Uint32 numRe
 				break;
 			}
 
-			if (rns.fboused && rns.usehdr)
-			{
-				assert(pCubemapFBO != nullptr);
-				glBindFramebuffer(GL_READ_FRAMEBUFFER, pCubemapFBO->fbo.fboid);
-				glReadBuffer(GL_COLOR_ATTACHMENT0);
-			}
+			assert(pCubemapFBO != nullptr);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, pCubemapFBO->fbo.fboid);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
 
 			// Save it into the buffer
 			byte* pdest = m_cubemapsArray[i].pimagedata + dxtdatasize * j;
@@ -1001,12 +995,9 @@ bool CCubemapManager::RenderCubemaps( cl_entity_t* pRenderEntities, Uint32 numRe
 			R_BindCubemapTexture(GL_TEXTURE0, m_cubemapsArray[i].palloc->gl_index);
 			glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, m_cubemapsArray[i].width, m_cubemapsArray[i].height, 0, dxtdatasize, pdest);
 
-			if (rns.fboused && rns.usehdr)
-			{
-				// Unbind FBO and free it
-				R_BindFBO(nullptr);
-				gFBOCache.Free(pCubemapFBO);
-			}
+			// Unbind FBO and free it
+			R_BindFBO(nullptr);
+			gFBOCache.Free(pCubemapFBO);
 		}
 
 		// Restore projection

@@ -116,16 +116,12 @@ public:
 	bool IsActive( void ) const;
 	bool IsInitialized( void ) const;
 	bool IsMSAAEnabled( void ) const { return m_bIsMSAAEnabled; }
-	bool AreFBOsEnabled(void) const { return m_areFBOsEnabled; }
-	bool IsHDREnabled(void) const { return m_isHDREnabled; }
 
 private:
 	Int32			m_iDisplayDevice;
 	bool			m_bFullScreen;
 	bool			m_bVerticalSync;
 	bool			m_bIsMSAAEnabled;
-	bool			m_areFBOsEnabled;
-	bool			m_isHDREnabled;
 
 private:
 	// TRUE if the window is in focus

@@ -388,45 +388,6 @@ public:
 
 /*
 =================================
-CUIFramebufferObjectsSelectEvent
-
-=================================
-*/
-class CUIFramebufferObjectsSelectEvent : public CUISettingsEventBase
-{
-public:
-	explicit CUIFramebufferObjectsSelectEvent( CUISettingsWindow* pWindow ):
-		CUISettingsEventBase(pWindow)
-	{ };
-	virtual ~CUIFramebufferObjectsSelectEvent( void ) { };
-
-public:
-	// Performs the action
-	virtual void PerformAction( Float param );
-};
-
-/*
-=================================
-CUIHighDynamicRangeSelectEvent
-
-=================================
-*/
-class CUIHighDynamicRangeSelectEvent : public CUISettingsEventBase
-{
-public:
-	explicit CUIHighDynamicRangeSelectEvent(CUISettingsWindow* pWindow) :
-		CUISettingsEventBase(pWindow)
-	{
-	};
-	virtual ~CUIHighDynamicRangeSelectEvent(void) {};
-
-public:
-	// Performs the action
-	virtual void PerformAction(Float param);
-};
-
-/*
-=================================
 CUISettingsWindow
 
 =================================
@@ -518,14 +479,6 @@ public:
 	static const Char VIDEOTAB_ANTIALIAS_LIST_OBJ_NAME[];
 	// Video tab vertical sync dropdown list object name
 	static const Char VIDEOTAB_VERTICAL_SYNC_LIST_OBJ_NAME[];
-	// Video tab framebuffer object label object name
-	static const Char VIDEOTAB_FRAMEBUFFER_OBJECTS_LABEL_OBJ_NAME[];
-	// Video tab framebuffer object dropdown list object name
-	static const Char VIDEOTAB_FRAMEBUFFER_OBJECTS_LIST_OBJ_NAME[];
-	// Video tab high dynamic range label object name
-	static const Char VIDEOTAB_HIGH_DYNAMIC_RANGE_LABEL_OBJ_NAME[];
-	// Video tab high dynamic range dropdown list object name
-	static const Char VIDEOTAB_HIGH_DYNAMIC_RANGE_LIST_OBJ_NAME[];
 	// Advanced tab options list file
 	static const Char ADVANCED_DESC_FILE[];
 	// Scrollable options surface label object
@@ -676,10 +629,6 @@ public:
 	void SelectAntiAliasSetting( Int32 msaaSetting );
 	// Selects a vsync setitng
 	void SelectVerticalSyncSetting( Int32 setting );
-	// Selects an HDR setitng
-	void SelectHighDynamicRangeSetting(Int32 setting);
-	// Selects an FBO setting
-	void SelectFramebufferObjectsSetting( Int32 setting );
 
 private:
 	// Sets up the Binds tab

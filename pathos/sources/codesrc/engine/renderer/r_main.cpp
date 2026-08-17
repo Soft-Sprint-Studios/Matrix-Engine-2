@@ -331,11 +331,6 @@ bool R_Init( void )
 	// Init decal class
 	gDecals.Init();
 
-	if (rns.usehdr)
-	{
-		glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
-	}
-
 	return true;
 }
 
@@ -506,8 +501,6 @@ bool R_InitGL( void )
 	// Set constants for renderer
 	rns.screenwidth = gWindow.GetWidth();
 	rns.screenheight = gWindow.GetHeight();
-	rns.fboused = gWindow.AreFBOsEnabled();
-	rns.usehdr = gWindow.IsHDREnabled();
 
 	// Restore full-size lightmap data
 	if(cls.cl_state == CLIENT_ACTIVE)
@@ -554,20 +547,12 @@ bool R_InitGL( void )
 	// Load any textures
 	R_LoadTextures();
 
-	if(rns.fboused)
-		Con_Printf("Framebuffer objects are enabled.\n");
-	else
-		Con_Printf("Framebuffer objects are disabled, shadows will not be available.\n");
-
 	// Set whether MSAA is enabled
 	rns.msaa = gWindow.IsMSAAEnabled();
 
 	// Create main screen FBO
-	if (rns.fboused && rns.usehdr)
-	{
-		if (!R_InitMainScreenFBO())
-			return false;
-	}
+	if (!R_InitMainScreenFBO())
+		return false;
 
 	// Create basic draw instance
 	CBasicDraw* pDraw = CBasicDraw::CreateInstance();
@@ -728,8 +713,7 @@ void R_ShutdownGL( void )
 	cls.dllfuncs.pfnGLClear();
 
 	R_ClearQueryObjects();
-	if (rns.usehdr)
-		R_DeleteMainScreenFBO();
+	R_DeleteMainScreenFBO();
 }
 
 //====================================
@@ -2298,14 +2282,12 @@ bool R_DrawScene( void )
 	// Draw any renderpasses
 	if(!rns.view.params.nodraw)
 	{
-		if (rns.fboused && rns.usehdr)
-			R_BindFBO(nullptr);
+		R_BindFBO(nullptr);
 
 		if(!R_DrawRenderPasses())
 			return false;
 
-		if (rns.fboused && rns.usehdr)
-			R_BindFBO(&rns.mainfbo);
+		R_BindFBO(&rns.mainfbo);
 	}
 
 	// Set this so engine knows it's
@@ -3845,8 +3827,6 @@ void R_SetLightmapTexture( Uint32 glindex, Uint32 width, Uint32 height, bool isv
 //====================================
 bool R_InitMainScreenFBO(void)
 {
-	assert(rns.fboused && rns.usehdr);
-
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 	assert(pTextureManager != nullptr);
 
@@ -3914,8 +3894,6 @@ bool R_InitMainScreenFBO(void)
 //====================================
 void R_DeleteMainScreenFBO(void)
 {
-	assert(rns.fboused && rns.usehdr);
-
 	if (rns.mainfbo.fboid)
 		glDeleteFramebuffers(1, &rns.mainfbo.fboid);
 
@@ -3936,7 +3914,6 @@ void R_DeleteMainScreenFBO(void)
 //====================================
 void R_BindMainScreenFBO(void)
 {
-	assert(rns.fboused && rns.usehdr);
 	assert(rns.pboundfbo == nullptr);
 
 	// Reset to no FBO
@@ -3955,7 +3932,6 @@ void R_BindMainScreenFBO(void)
 //====================================
 void R_PerformMainScreenBlit(void)
 {
-	assert(rns.fboused && rns.usehdr);
 	assert(rns.pboundfbo != nullptr);
 	assert(rns.pboundfbo == &rns.mainfbo);
 
@@ -3994,7 +3970,7 @@ void R_GrabScreenToTexture(en_texalloc_t* palloc, Uint32 width, Uint32 height, b
 		else 
 			R_Bind2DTexture(GL_TEXTURE0, palloc->gl_index, true);
 
-		glCopyTexImage2D(target, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, width, height, 0);
+		glCopyTexImage2D(target, 0, GL_RGBA16F, 0, 0, width, height, 0);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, rns.pboundfbo->fboid);
 		gFBOCache.Free(pTempFBO);
@@ -4006,7 +3982,7 @@ void R_GrabScreenToTexture(en_texalloc_t* palloc, Uint32 width, Uint32 height, b
 		else
 			R_Bind2DTexture(GL_TEXTURE0, palloc->gl_index, true);
 
-		glCopyTexImage2D(target, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, width, height, 0);
+		glCopyTexImage2D(target, 0, GL_RGBA16F, 0, 0, width, height, 0);
 	}
 }
 
@@ -5724,9 +5700,8 @@ void Cmd_TimeRefresh( void )
 
 	for(Uint32 i = 0; i < 128; i++)
 	{
-		// Bind FBO if we use HDR
-		if (rns.fboused && rns.usehdr)
-			R_BindMainScreenFBO();
+		// Bind FBO
+		R_BindMainScreenFBO();
 
 		glViewport(0, 0, rns.screenwidth, rns.screenheight);
 		glClearColor(GL_ZERO, GL_ZERO, GL_ZERO, GL_ZERO);
@@ -5736,8 +5711,7 @@ void Cmd_TimeRefresh( void )
 		R_Draw(rns.view.params);
 
 		// Blit from main FBO to back buffer
-		if (rns.fboused && rns.usehdr)
-			R_PerformMainScreenBlit();
+		R_PerformMainScreenBlit();
 
 		// Increment frame counter
 		rns.framecount++;

@@ -312,7 +312,7 @@ bool CSSAOManager::DrawSSAO(void)
 		return false;
 	}
 
-	GLuint srcFBO = (rns.pboundfbo) ? rns.pboundfbo->fboid : ((rns.fboused && rns.usehdr && rns.mainfbo.fboid) ? rns.mainfbo.fboid : 0);
+	GLuint srcFBO = (rns.pboundfbo) ? rns.pboundfbo->fboid : rns.mainfbo.fboid;
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFBO);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pDepthFBO->fbo.fboid);
 	glBlitFramebuffer(0, 0, rns.screenwidth, rns.screenheight, 0, 0, rns.screenwidth, rns.screenheight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
@@ -381,10 +381,7 @@ bool CSSAOManager::DrawSSAO(void)
 	R_ValidateShader(m_pShader);
 	m_pShader->DrawArrays(GL_TRIANGLES, 0, 6);
 
-	if (rns.fboused && rns.usehdr)
-		R_BindFBO(&rns.mainfbo);
-	else
-		R_BindFBO(nullptr);
+	R_BindFBO(&rns.mainfbo);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_DST_COLOR, GL_ZERO);

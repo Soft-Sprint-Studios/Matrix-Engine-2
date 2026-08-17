@@ -227,51 +227,31 @@ void CPortalManager::ClearGL( void )
 bool CPortalManager::CreatePortalTexture( cl_portal_t* pportal )
 {
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
-	
-	if (!rns.fboused)
-	{
-		// Allocate a new texture
-		pportal->ptexture = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
 
-		GLint textureBound;
-		glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE, &textureBound);
-
-		glBindTexture(GL_TEXTURE_RECTANGLE, pportal->ptexture->gl_index);
-		glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, rns.screenwidth, rns.screenheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
-		glBindTexture(GL_TEXTURE_RECTANGLE, textureBound);
-	}
-	else
-	{
 		CreateDepthTexture();
 
-		// Create refraction image
-		pportal->pfbo = new fbobind_t;
+	// Create refraction image
+	pportal->pfbo = new fbobind_t;
 
-		pportal->pfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
-		glBindTexture(GL_TEXTURE_2D, pportal->pfbo->ptexture1->gl_index);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rns.screenwidth, rns.screenheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	pportal->pfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
+	glBindTexture(GL_TEXTURE_2D, pportal->pfbo->ptexture1->gl_index);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rns.screenwidth, rns.screenheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-		glGenFramebuffers(1, &pportal->pfbo->fboid);
-		glBindFramebuffer(GL_FRAMEBUFFER, pportal->pfbo->fboid);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pportal->pfbo->ptexture1->gl_index, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+	glGenFramebuffers(1, &pportal->pfbo->fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, pportal->pfbo->fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pportal->pfbo->ptexture1->gl_index, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
 
-		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (eStatus != GL_FRAMEBUFFER_COMPLETE)
-		{
-			Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
-			delete pportal->pfbo;
-			return false;
-		}
+	GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (eStatus != GL_FRAMEBUFFER_COMPLETE)
+	{
+		Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
+		delete pportal->pfbo;
+		return false;
 	}
 
 	return true;
@@ -509,8 +489,7 @@ bool CPortalManager::DrawPortalPasses( void )
 		FinishPortalPass();
 	}
 
-	if(rns.fboused)
-		R_BindFBO(nullptr);
+	R_BindFBO(nullptr);
 
 	// Make sure this is disabled
 	rns.view.frustum.DisableExtraCullBox();
@@ -610,8 +589,7 @@ bool CPortalManager::SetupPortalPass( void )
 	if(pEnvPosPortalEntity->curstate.body != NO_POSITION)
 		gSkyRenderer.SetCurrentSkySet(pEnvPosPortalEntity->curstate.body);
 
-	if (rns.fboused)
-		R_BindFBO(m_pCurrentPortal->pfbo);
+	R_BindFBO(m_pCurrentPortal->pfbo);
 
 	//Completely clear everything
 	glClearColor(GL_ZERO, GL_ZERO, GL_ZERO, GL_ONE);
@@ -641,16 +619,8 @@ bool CPortalManager::SetupPortalPass( void )
 //====================================
 void CPortalManager::FinishPortalPass( void ) 
 {
-	if (rns.fboused)
-	{
-		// Unbind any FBO
-		R_BindFBO(nullptr);
-	}
-	else
-	{
-		R_BindRectangleTexture(GL_TEXTURE0, m_pCurrentPortal->ptexture->gl_index, true);
-		glCopyTexImage2D(GL_TEXTURE_RECTANGLE, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, rns.view.params.screenwidth, rns.view.params.screenheight, 0);
-	}
+	// Unbind any FBO
+	R_BindFBO(nullptr);
 
 	// Get the aiment
 	Uint32 envPosPortalEntityIndex = m_pCurrentPortal->pentity->curstate.aiment;
@@ -706,7 +676,7 @@ bool CPortalManager::DrawPortals( void )
 		return false;
 	}
 
-	result = m_pShader->SetDeterminator(m_attribs.d_rectangle, rns.fboused ? FALSE : TRUE);
+	result = m_pShader->SetDeterminator(m_attribs.d_rectangle, FALSE);
 	if (!result)
 	{
 		Sys_ErrorPopup("Shader error: %s.", m_pShader->GetError());
@@ -714,21 +684,10 @@ bool CPortalManager::DrawPortals( void )
 		return false;
 	}
 
-	if (!rns.fboused)
-		m_pShader->SetUniform1i(m_attribs.u_texture, 0);
-	else
-		m_pShader->SetUniform1i(m_attribs.u_texturerect, 0);
+	m_pShader->SetUniform1i(m_attribs.u_texturerect, 0);
 
-	if (rns.fboused)
-	{
-		m_pShader->SetUniform1f(m_attribs.u_screenwidth, 1.0f);
-		m_pShader->SetUniform1f(m_attribs.u_screenheight, 1.0f);
-	}
-	else
-	{
-		m_pShader->SetUniform1f(m_attribs.u_screenwidth, rns.view.params.screenwidth);
-		m_pShader->SetUniform1f(m_attribs.u_screenheight, rns.view.params.screenheight);
-	}
+	m_pShader->SetUniform1f(m_attribs.u_screenwidth, 1.0f);
+	m_pShader->SetUniform1f(m_attribs.u_screenheight, 1.0f);
 
 	m_pShader->SetUniformMatrix4fv(m_attribs.u_modelview, rns.view.modelview.GetMatrix());
 	m_pShader->SetUniformMatrix4fv(m_attribs.u_projection, rns.view.projection.GetMatrix());
@@ -753,10 +712,7 @@ bool CPortalManager::DrawPortals( void )
 		if(!pBindPortal)
 			pBindPortal = m_pCurrentPortal;
 
-		if(rns.fboused)
-			R_Bind2DTexture(GL_TEXTURE0, pBindPortal->pfbo->ptexture1->gl_index);
-		else
-			R_BindRectangleTexture(GL_TEXTURE0, pBindPortal->ptexture->gl_index);
+		R_Bind2DTexture(GL_TEXTURE0, pBindPortal->pfbo->ptexture1->gl_index);
 
 		R_ValidateShader(m_pShader);
 

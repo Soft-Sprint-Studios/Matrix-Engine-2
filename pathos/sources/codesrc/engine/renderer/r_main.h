@@ -257,7 +257,6 @@ struct renderer_state_t
 		time(0),
 		screenwidth(0),
 		screenheight(0),
-		fboused(false),
 		inwater(false),
 		drawuiwhileloading(false),
 		isbgrectangletexture(false),
@@ -276,7 +275,6 @@ struct renderer_state_t
 		usevisorigin(false),
 		validateshaders(false),
 		msaa(false),
-		usehdr(false),
 		hasdaystagedata(false),
 		pvisbuffer(nullptr),
 		psecondaryvisbuffer(nullptr),
@@ -327,8 +325,6 @@ struct renderer_state_t
 	// screen height
 	Uint32 screenheight;
 
-	// true if fbos are supported
-	bool fboused;
 	// true if we're underrendering water areas
 	bool inwater;
 	// true if we need to draw UI while loading
@@ -363,8 +359,6 @@ struct renderer_state_t
 	bool validateshaders;
 	// true if using MSAA
 	bool msaa;
-	// true if HDR is enabled
-	bool usehdr;
 	// true if we have relevant daystage data
 	bool hasdaystagedata;
 
@@ -462,7 +456,6 @@ extern CCVar* g_pCvarDrawEntities;
 extern CCVar* g_pCvarWireFrame;
 extern CCVar* g_pCvarCaustics;
 extern CCVar* g_pCvarFarZ;
-extern CCVar* g_pCvarNoFBO;
 extern CCVar* g_pCvarStats;
 extern CCVar* g_pCvarShadows;
 extern CCVar* g_pCvarDynamicLights;

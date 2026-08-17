@@ -276,59 +276,37 @@ bool CMonitorManager::CreateMonitorTextures( cl_monitor_t* pmonitor )
 {
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 
-	if(rns.fboused)
+	pmonitor->pfbo = new fbobind_t;
+
+	// Create image
+	pmonitor->pfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
+	glBindTexture(GL_TEXTURE_2D, pmonitor->pfbo->ptexture1->gl_index);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, pmonitor->xresolution, pmonitor->yresolution, 0, GL_RGBA, GL_HALF_FLOAT, 0);
+
+	glGenRenderbuffers(1, &pmonitor->pfbo->rboid1);
+	glBindRenderbuffer(GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, pmonitor->xresolution, pmonitor->yresolution);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	glGenFramebuffers(1, &pmonitor->pfbo->fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, pmonitor->pfbo->fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pmonitor->pfbo->ptexture1->gl_index, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
+
+	GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
-		pmonitor->pfbo = new fbobind_t;
-
-		// Create image
-		pmonitor->pfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
-		glBindTexture(GL_TEXTURE_2D, pmonitor->pfbo->ptexture1->gl_index);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, pmonitor->xresolution, pmonitor->yresolution, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
-
-		glGenRenderbuffers(1, &pmonitor->pfbo->rboid1);
-		glBindRenderbuffer(GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, pmonitor->xresolution, pmonitor->yresolution);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-		glGenFramebuffers(1, &pmonitor->pfbo->fboid);
-		glBindFramebuffer(GL_FRAMEBUFFER, pmonitor->pfbo->fboid);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pmonitor->pfbo->ptexture1->gl_index, 0);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pmonitor->pfbo->rboid1);
-
-		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
-		{
-			Con_Printf("Framebuffer Object creation failed.\n");
-			delete pmonitor->pfbo;
-			return false;
-		}
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		Con_Printf("Framebuffer Object creation failed.\n");
+		delete pmonitor->pfbo;
+		return false;
 	}
-	else
-	{
-		// Make sure we use valid sizes
-		if(pmonitor->xresolution > rns.screenwidth || pmonitor->yresolution > rns.screenheight)
-		{
-			pmonitor->xresolution = g_monitorResolutions[0][0];
-			pmonitor->yresolution = g_monitorResolutions[0][1];
-		}
 
-		// Create the capture texture
-		pmonitor->ptexture = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
-		glBindTexture(GL_TEXTURE_2D, pmonitor->ptexture->gl_index);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pmonitor->xresolution, pmonitor->yresolution, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return true;
 }
@@ -582,8 +560,7 @@ bool CMonitorManager::DrawMonitorPasses( void )
 
 	rns.monitorpass = false;
 
-	if(rns.fboused)
-		R_BindFBO(nullptr);
+	R_BindFBO(nullptr);
 
 	glViewport(GL_ZERO, GL_ZERO, rns.screenwidth, rns.screenheight);
 
@@ -657,7 +634,7 @@ bool CMonitorManager::SetupMonitorPass( void )
 	m_monitorParams.viewsize = pCameraEntity->curstate.scale;
 
 	// Bind FBO
-	if(rns.fboused && m_pCurrentMonitor->pfbo)
+	if(m_pCurrentMonitor->pfbo)
 		R_BindFBO(m_pCurrentMonitor->pfbo);
 
 	//Completely clear everything
@@ -694,12 +671,6 @@ bool CMonitorManager::SetupMonitorPass( void )
 //====================================
 void CMonitorManager::FinishMonitorPass( void ) 
 {
-	if(!rns.fboused || !m_pCurrentMonitor->pfbo)
-	{
-		R_Bind2DTexture(GL_TEXTURE0, m_pCurrentMonitor->ptexture->gl_index);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, m_pCurrentMonitor->xresolution, m_pCurrentMonitor->yresolution, 0);
-	}
-
 	// Get the aiment
 	entindex_t cameraEntityIndex = m_pCurrentMonitor->pentity->curstate.aiment;
 	cl_entity_t* pCameraEntity = CL_GetEntityByIndex(cameraEntityIndex);
@@ -782,10 +753,8 @@ bool CMonitorManager::DrawMonitors( void )
 		if(!pBindMonitor)
 			pBindMonitor = m_pCurrentMonitor;
 
-		if(rns.fboused && pBindMonitor->pfbo)
+		if(pBindMonitor->pfbo)
 			R_Bind2DTexture(GL_TEXTURE0, pBindMonitor->pfbo->ptexture1->gl_index);
-		else
-			R_Bind2DTexture(GL_TEXTURE0, pBindMonitor->ptexture->gl_index);
 
 		R_ValidateShader(m_pShader);
 

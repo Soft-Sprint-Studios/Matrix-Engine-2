@@ -238,7 +238,7 @@ bool CGlowAura::DrawSolid( void )
 	}
 
 	// Save it to the white RTT
-	m_pWhiteRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, rns.usehdr ? GL_RGBA16F : GL_RGBA);
+	m_pWhiteRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, GL_RGBA16F);
 
 	R_GrabScreenToTexture(m_pWhiteRTT->palloc, rns.screenwidth, rns.screenheight, true);
 
@@ -295,7 +295,7 @@ bool CGlowAura::DrawColors( void )
 	glDisable(GL_POLYGON_OFFSET_FILL);	
 
 	// Save it to the color RTT
-	m_pColorsRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, rns.usehdr ? GL_RGBA16F : GL_RGBA);
+	m_pColorsRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, GL_RGBA16F);
 
 	R_GrabScreenToTexture(m_pColorsRTT->palloc, rns.screenwidth, rns.screenheight, true);
 
@@ -432,7 +432,7 @@ bool CGlowAura::DrawAuras( void )
 	if(!m_iNumEntities)
 		return true;
 
-	m_pScreenRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, rns.usehdr ? GL_RGBA16F : GL_RGBA);
+	m_pScreenRTT = gRTTCache.Alloc(rns.screenwidth, rns.screenheight, true, GL_RGBA16F);
 	R_GrabScreenToTexture(m_pScreenRTT->palloc, rns.screenwidth, rns.screenheight, true);
 
 	glDepthMask(GL_FALSE);

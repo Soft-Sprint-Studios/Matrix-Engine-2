@@ -68,8 +68,6 @@ struct engine_state_t
 		requestedDisplayDevice(-1),
 		requestedMSAASetting(-1),
 		requestedVSyncSetting(-1),
-		requestedFBOSetting(-1),
-		requestedHDRSetting(-1),
 		arg_max_edicts(0),
 		lowshift(0),
 		perffreq(0),
@@ -121,10 +119,6 @@ struct engine_state_t
 	Int32 requestedMSAASetting;
 	// Requested vsync setting
 	Int32 requestedVSyncSetting;
-	// Requested FBO setting
-	Int32 requestedFBOSetting;
-	// Requested HDR setting
-	Int32 requestedHDRSetting;
 
 	// max_edicts specified via launch args
 	Uint32 arg_max_edicts;

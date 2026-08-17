@@ -1244,105 +1244,70 @@ bool CWaterShader::CreateRenderToTexture( cl_water_t* pwater )
 	// Get water entity's settings
 	const water_settings_t* psettings = GetWaterSettings(pwater);
 
-	if(rns.fboused)
+	if(!m_pDepthTexture)
+		CreateDepthTexture();
+
+	if(m_waterQuality > WATER_QUALITY_NO_REFLECT_REFRACT 
+		&& !psettings->cheaprefraction)
 	{
-		if(!m_pDepthTexture)
-			CreateDepthTexture();
+		// Create refraction image
+		pwater->prefractfbo = new fbobind_t;
 
-		if(m_waterQuality > WATER_QUALITY_NO_REFLECT_REFRACT 
-			&& !psettings->cheaprefraction)
+		pwater->prefractfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
+		glBindTexture(GL_TEXTURE_2D, pwater->prefractfbo->ptexture1->gl_index);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, GL_HALF_FLOAT, 0);
+
+		glGenFramebuffers(1, &pwater->prefractfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, pwater->prefractfbo->fboid);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pwater->prefractfbo->ptexture1->gl_index, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+
+		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 		{
-			// Create refraction image
-			pwater->prefractfbo = new fbobind_t;
+			Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
+			delete pwater->prefractfbo;
+			return false;
+		}
+	}
 
-			pwater->prefractfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
-			glBindTexture(GL_TEXTURE_2D, pwater->prefractfbo->ptexture1->gl_index);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
+	if(m_waterQuality > WATER_QUALITY_NO_REFLECT 
+		&& !psettings->refractonly)
+	{
+		// Create reflection image
+		pwater->preflectfbo = new fbobind_t;
 
-			glGenFramebuffers(1, &pwater->prefractfbo->fboid);
-			glBindFramebuffer(GL_FRAMEBUFFER, pwater->prefractfbo->fboid);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pwater->prefractfbo->ptexture1->gl_index, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+		pwater->preflectfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
+		glBindTexture(GL_TEXTURE_2D, pwater->preflectfbo->ptexture1->gl_index);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, GL_HALF_FLOAT, 0);
 
-			GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-			if(eStatus != GL_FRAMEBUFFER_COMPLETE)
-			{
-				Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
+		glGenFramebuffers(1, &pwater->preflectfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, pwater->preflectfbo->fboid);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pwater->preflectfbo->ptexture1->gl_index, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+
+		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
+		{
+			Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
+			if(pwater->prefractfbo)
 				delete pwater->prefractfbo;
-				return false;
-			}
+
+			delete pwater->preflectfbo;
+			return false;
 		}
-
-		if(m_waterQuality > WATER_QUALITY_NO_REFLECT 
-			&& !psettings->refractonly)
-		{
-			// Create reflection image
-			pwater->preflectfbo = new fbobind_t;
-
-			pwater->preflectfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
-			glBindTexture(GL_TEXTURE_2D, pwater->preflectfbo->ptexture1->gl_index);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, WATER_FBO_SIZE, WATER_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
-
-			glGenFramebuffers(1, &pwater->preflectfbo->fboid);
-			glBindFramebuffer(GL_FRAMEBUFFER, pwater->preflectfbo->fboid);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pwater->preflectfbo->ptexture1->gl_index, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
-
-			GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-			if(eStatus != GL_FRAMEBUFFER_COMPLETE)
-			{
-				Con_Printf("%s - Framebuffer Object creation failed.\n", __FUNCTION__);
-				if(pwater->prefractfbo)
-					delete pwater->prefractfbo;
-
-				delete pwater->preflectfbo;
-				return false;
-			}
-		}
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glBindTexture(GL_TEXTURE_2D, 0);
 	}
-	else
-	{
-		if(m_waterQuality > WATER_QUALITY_NO_REFLECT
-			&& !psettings->refractonly)
-		{
-			// Create the reflection texture
-			pwater->preflect_texture = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
 
-			glBindTexture(GL_TEXTURE_2D, pwater->preflect_texture->gl_index);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WATER_RTT_SIZE, WATER_RTT_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		}
-
-		if(m_waterQuality > WATER_QUALITY_NO_REFLECT_REFRACT 
-			&& !psettings->cheaprefraction)
-		{
-			// Create the reflection texture
-			pwater->prefract_texture = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
-
-			glBindTexture(GL_TEXTURE_2D, pwater->prefract_texture->gl_index);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WATER_RTT_SIZE, WATER_RTT_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		}
-
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return true;
 }
@@ -1433,10 +1398,7 @@ bool CWaterShader::DrawWaterPasses( void )
 		return true;
 
 	//Completely clear everything
-	if(rns.fboused)
-		glViewport(GL_ZERO, GL_ZERO, WATER_FBO_SIZE, WATER_FBO_SIZE);
-	else
-		glViewport(GL_ZERO, GL_ZERO, WATER_RTT_SIZE, WATER_RTT_SIZE);
+	glViewport(GL_ZERO, GL_ZERO, WATER_FBO_SIZE, WATER_FBO_SIZE);
 
 	// Raise this at start
 	m_drawCounter++;
@@ -1562,8 +1524,7 @@ bool CWaterShader::DrawWaterPasses( void )
 	rns.mirroring = false;
 	rns.water_skydraw = false;
 
-	if(rns.fboused)
-		R_BindFBO(nullptr);
+	R_BindFBO(nullptr);
 
 	glViewport(GL_ZERO, GL_ZERO, rns.screenwidth, rns.screenheight);
 
@@ -1676,7 +1637,7 @@ void CWaterShader::SetupRefract( const water_settings_t* psettings )
 		SetupClipping(&m_waterParams, true);
 	}
 
-	if(rns.fboused && m_pCurrentWater->prefractfbo)
+	if(m_pCurrentWater->prefractfbo)
 		R_BindFBO(m_pCurrentWater->prefractfbo);
 
 	// Completely clear everything
@@ -1695,12 +1656,6 @@ void CWaterShader::FinishRefract( void )
 	rns.view.frustum.DisableExtraCullBox();
 	rns.view.projection.PopMatrix();
 	rns.inwater = false;
-
-	if(!rns.fboused || !m_pCurrentWater->prefractfbo)
-	{
-		R_Bind2DTexture(GL_TEXTURE0, m_pCurrentWater->prefract_texture->gl_index);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, WATER_RTT_SIZE, WATER_RTT_SIZE, 0);
-	}
 }
 
 //====================================
@@ -1745,7 +1700,7 @@ void CWaterShader::SetupReflect( void )
 	rns.view.frustum.SetExtraCullBox(vMins, vMaxs);
 	SetupClipping(&m_waterParams, true);
 
-	if(rns.fboused && m_pCurrentWater->preflectfbo)
+	if(m_pCurrentWater->preflectfbo)
 		R_BindFBO(m_pCurrentWater->preflectfbo);
 
 	// Completely clear everything
@@ -1768,12 +1723,6 @@ void CWaterShader::FinishReflect( void )
 	// Turn culling off
 	rns.view.frustum.DisableExtraCullBox();
 	rns.view.projection.PopMatrix();
-
-	if(!rns.fboused || !m_pCurrentWater->preflectfbo)
-	{
-		R_Bind2DTexture(GL_TEXTURE0, m_pCurrentWater->preflect_texture->gl_index);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, WATER_RTT_SIZE, WATER_RTT_SIZE, 0);
-	}
 
 	rns.usevisorigin = false;
 }
@@ -1954,10 +1903,8 @@ bool CWaterShader::DrawWater( bool skybox )
 
 			m_pShader->SetUniform1i(m_attribs.u_refract, textureUnit);
 
-			if(rns.fboused && m_pCurrentWater->prefractfbo)
+			if(m_pCurrentWater->prefractfbo)
 				R_Bind2DTexture(GL_TEXTURE0+textureUnit, m_pCurrentWater->prefractfbo->ptexture1->gl_index);
-			else
-				R_Bind2DTexture(GL_TEXTURE0+textureUnit, m_pCurrentWater->prefract_texture->gl_index);
 
 			textureUnit++;
 		}
@@ -1986,10 +1933,8 @@ bool CWaterShader::DrawWater( bool skybox )
 				{
 					if(GetWaterOrigin(pwater).z == GetWaterOrigin().z)
 					{
-						if(rns.fboused && pwater->preflectfbo)
+						if(pwater->preflectfbo)
 							R_Bind2DTexture(GL_TEXTURE0+textureUnit, pwater->preflectfbo->ptexture1->gl_index);
-						else
-							R_Bind2DTexture(GL_TEXTURE0+textureUnit, pwater->preflect_texture->gl_index);
 
 						break;
 					}
@@ -1998,10 +1943,8 @@ bool CWaterShader::DrawWater( bool skybox )
 
 			if(j == i)
 			{
-				if(rns.fboused && m_pCurrentWater->preflectfbo)
+				if(m_pCurrentWater->preflectfbo)
 					R_Bind2DTexture(GL_TEXTURE0+textureUnit, m_pCurrentWater->preflectfbo->ptexture1->gl_index);
-				else
-					R_Bind2DTexture(GL_TEXTURE0+textureUnit, m_pCurrentWater->preflect_texture->gl_index);
 			}
 
 			textureUnit++;

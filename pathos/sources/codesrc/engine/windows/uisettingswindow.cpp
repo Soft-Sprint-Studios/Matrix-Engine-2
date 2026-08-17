@@ -75,14 +75,6 @@ const Char CUISettingsWindow::VIDEOTAB_ANTIALIAS_LIST_OBJ_NAME[] = "AntiAliasLis
 const Char CUISettingsWindow::VIDEOTAB_VERTICAL_SYNC_LABEL_OBJ_NAME[] = "VerticalSyncLabel";
 // Video tab vertical sync dropdown list object name
 const Char CUISettingsWindow::VIDEOTAB_VERTICAL_SYNC_LIST_OBJ_NAME[] = "VerticalSyncList";
-// Video tab framebuffer object label object name
-const Char CUISettingsWindow::VIDEOTAB_FRAMEBUFFER_OBJECTS_LABEL_OBJ_NAME[] = "FramebufferObjectsLabel";
-// Video tab framebuffer object dropdown list object name
-const Char CUISettingsWindow::VIDEOTAB_FRAMEBUFFER_OBJECTS_LIST_OBJ_NAME[] = "FramebufferObjectsList";
-// Video tab high dynamic range label object name
-const Char CUISettingsWindow::VIDEOTAB_HIGH_DYNAMIC_RANGE_LABEL_OBJ_NAME[] = "HighDynamicRangeLabel";
-// Video tab high dynamic range dropdown list object name
-const Char CUISettingsWindow::VIDEOTAB_HIGH_DYNAMIC_RANGE_LIST_OBJ_NAME[] = "HighDynamicRangeList";
 // Video tab display device label object name
 const Char CUISettingsWindow::VIDEOTAB_GAMMA_LABEL_OBJ_NAME[] = "GammaLabel";
 // Video tab display resolution dropdown list object name
@@ -1340,108 +1332,6 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 		pVerticalSyncDropList->setSelection(1);
 	else
 		pVerticalSyncDropList->setSelection(0);
-
-	// Create the label
-	const ui_objectinfo_t* pFramebufferObjectsLabelObjectInfo = pWinDesc->getObject(UI_OBJECT_TEXT, VIDEOTAB_FRAMEBUFFER_OBJECTS_LABEL_OBJ_NAME);
-	if (!pFramebufferObjectsLabelObjectInfo)
-	{
-		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_FRAMEBUFFER_OBJECTS_LABEL_OBJ_NAME);
-		return false;
-	}
-
-	// Create the label
-	CUIText* pFramebufferObjectsLabel = new CUIText(pFramebufferObjectsLabelObjectInfo->getFlags(),
-		pFramebufferObjectsLabelObjectInfo->getFont(),
-		pFramebufferObjectsLabelObjectInfo->getText().c_str(),
-		pTabObject->getXInset() + pFramebufferObjectsLabelObjectInfo->getXOrigin(),
-		pTabObject->getYInset() + pFramebufferObjectsLabelObjectInfo->getYOrigin());
-
-	pFramebufferObjectsLabel->setParent(pVideoTab);
-
-	// Create the display device tab
-	const ui_objectinfo_t* pFramebufferObjectsListObject = pWinDesc->getObject(UI_OBJECT_LIST, VIDEOTAB_FRAMEBUFFER_OBJECTS_LIST_OBJ_NAME);
-	if (!pFramebufferObjectsListObject)
-	{
-		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_FRAMEBUFFER_OBJECTS_LIST_OBJ_NAME);
-		return false;
-	}
-
-	CUIFramebufferObjectsSelectEvent* pFramebufferObjectsSelectEvent = new CUIFramebufferObjectsSelectEvent(this);
-	CUIDropDownList* pFramebufferObjectsDropList = new CUIDropDownList(pFramebufferObjectsListObject->getFlags(),
-		pFramebufferObjectsSelectEvent,
-		nullptr,
-		pFramebufferObjectsListObject->getFont(),
-		pFramebufferObjectsListObject->getWidth(),
-		pFramebufferObjectsListObject->getHeight(),
-		pTabObject->getXInset() + pFramebufferObjectsListObject->getXOrigin(),
-		pTabObject->getYInset() + pFramebufferObjectsListObject->getYOrigin());
-	pFramebufferObjectsDropList->setParent(pVideoTab);
-
-	if (!pFramebufferObjectsDropList->init(pFramebufferObjectsListObject->getSchema().c_str()))
-	{
-		Con_EPrintf("Failed to initiate 'CUIDropDownList' for 'CUISettingsWindow'.\n");
-		return nullptr;
-	}
-
-	// Populate the FBO list
-	pFramebufferObjectsDropList->addChoice("Disabled");
-	pFramebufferObjectsDropList->addChoice("Enabled");
-
-	if (gWindow.AreFBOsEnabled())
-		pFramebufferObjectsDropList->setSelection(1);
-	else
-		pFramebufferObjectsDropList->setSelection(0);
-
-	// Create the label
-	const ui_objectinfo_t* pHighDynamicRangeLabelObjectInfo = pWinDesc->getObject(UI_OBJECT_TEXT, VIDEOTAB_HIGH_DYNAMIC_RANGE_LABEL_OBJ_NAME);
-	if (!pHighDynamicRangeLabelObjectInfo)
-	{
-		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_HIGH_DYNAMIC_RANGE_LABEL_OBJ_NAME);
-		return false;
-	}
-
-	// Create the label
-	CUIText* pHighDynamicRangeLabel = new CUIText(pHighDynamicRangeLabelObjectInfo->getFlags(),
-		pHighDynamicRangeLabelObjectInfo->getFont(),
-		pHighDynamicRangeLabelObjectInfo->getText().c_str(),
-		pTabObject->getXInset() + pHighDynamicRangeLabelObjectInfo->getXOrigin(),
-		pTabObject->getYInset() + pHighDynamicRangeLabelObjectInfo->getYOrigin());
-
-	pHighDynamicRangeLabel->setParent(pVideoTab);
-
-	// Create the display device tab
-	const ui_objectinfo_t* pHighDynamicRangeListObject = pWinDesc->getObject(UI_OBJECT_LIST, VIDEOTAB_HIGH_DYNAMIC_RANGE_LIST_OBJ_NAME);
-	if (!pHighDynamicRangeListObject)
-	{
-		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_HIGH_DYNAMIC_RANGE_LIST_OBJ_NAME);
-		return false;
-	}
-
-	CUIHighDynamicRangeSelectEvent* pHighDynamicRangeSelectEvent = new CUIHighDynamicRangeSelectEvent(this);
-	CUIDropDownList* pHighDynamicRangeDropList = new CUIDropDownList(pHighDynamicRangeListObject->getFlags(),
-		pHighDynamicRangeSelectEvent,
-		nullptr,
-		pHighDynamicRangeListObject->getFont(),
-		pHighDynamicRangeListObject->getWidth(),
-		pHighDynamicRangeListObject->getHeight(),
-		pTabObject->getXInset() + pHighDynamicRangeListObject->getXOrigin(),
-		pTabObject->getYInset() + pHighDynamicRangeListObject->getYOrigin());
-	pHighDynamicRangeDropList->setParent(pVideoTab);
-
-	if (!pHighDynamicRangeDropList->init(pHighDynamicRangeListObject->getSchema().c_str()))
-	{
-		Con_EPrintf("Failed to initiate 'CUIDropDownList' for 'CUISettingsWindow'.\n");
-		return nullptr;
-	}
-
-	// Populate the HDR list
-	pHighDynamicRangeDropList->addChoice("Disabled");
-	pHighDynamicRangeDropList->addChoice("Enabled");
-
-	if (gWindow.IsHDREnabled())
-		pHighDynamicRangeDropList->setSelection(1);
-	else
-		pHighDynamicRangeDropList->setSelection(0);
 
 	return pVideoTab;
 }
@@ -2950,36 +2840,6 @@ void CUISettingsWindow::SelectDevice( Int32 deviceIndex )
 // @brief
 //
 //=============================================
-void CUISettingsWindow::SelectHighDynamicRangeSetting(Int32 setting)
-{
-	// Add the command to the queue
-	CString cmd;
-	cmd << "_vid_sethdrenabled " << static_cast<Int32>(setting);
-
-	AddPendingSetting("Video.HighDynamicRange", cmd.c_str());
-
-	m_bResetVideo = true;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-void CUISettingsWindow::SelectFramebufferObjectsSetting(Int32 setting)
-{
-	// Add the command to the queue
-	CString cmd;
-	cmd << "_vid_setfboenabled " << static_cast<Int32>(setting);
-
-	AddPendingSetting("Video.FramebufferObjects", cmd.c_str());
-
-	m_bResetVideo = true;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
 void CUISettingsWindow::SelectResolution( Int32 resIndex )
 {
 	// Skip if nothing was changed
@@ -3391,28 +3251,4 @@ void CUISliderAdjustEvent::PerformAction( Float param )
 		sprintf(szValue, "%d", static_cast<Int32>(param));
 		m_pWindow->SetFOVTabText(szValue);
 	}
-}
-
-//=============================================
-// @brief Peforms the action of the button
-//
-//=============================================
-void CUIHighDynamicRangeSelectEvent::PerformAction(Float param)
-{
-	if (!m_pWindow)
-		return;
-
-	m_pWindow->SelectHighDynamicRangeSetting(param);
-}
-
-//=============================================
-// @brief Peforms the action of the button
-//
-//=============================================
-void CUIFramebufferObjectsSelectEvent::PerformAction(Float param)
-{
-	if (!m_pWindow)
-		return;
-
-	m_pWindow->SelectFramebufferObjectsSetting(param);
 }

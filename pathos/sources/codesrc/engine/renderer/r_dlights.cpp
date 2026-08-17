@@ -329,9 +329,6 @@ bool CDynamicLightManager::CheckFBOs( void )
 //====================================
 bool CDynamicLightManager::InitFBOs( void )
 {
-	if(!rns.fboused)
-		return true;
-	
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 
 	//
@@ -785,7 +782,7 @@ void CDynamicLightManager::UpdateShadowingLights( void )
 		}
 
 		// Manage hot swapping of blitting
-		if(m_pCvarShadowmapBlit->GetValue() >= 1 && rns.fboused)
+		if(m_pCvarShadowmapBlit->GetValue() >= 1)
 		{
 			if(!dl->psceneinfo)
 			{
@@ -1617,7 +1614,7 @@ cl_dlight_t* CDynamicLightManager::AllocDynamicSpotlight( Int32 key, Int32 subke
 			pdlight->nomaincull = false;
 			pdlight->decay_delay = 0;
 
-			if(m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
+			if(m_pCvarShadowmapBlit->GetValue() < 1)
 			{
 				if(!pdlight->isstatic && pdlight->psceneinfo)
 				{
@@ -1681,7 +1678,7 @@ cl_dlight_t* CDynamicLightManager::AllocDynamicSpotlight( Int32 key, Int32 subke
 	}
 
 	// Allocate static dlight info if needed
-	if(m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
+	if(m_pCvarShadowmapBlit->GetValue() < 1)
 	{
 		if(pdlight->isstatic && !pdlight->psceneinfo)
 		{
@@ -1728,7 +1725,7 @@ cl_dlight_t* CDynamicLightManager::AllocDynamicPointLight( Int32 key, Int32 subk
 			pdlight->nomaincull = false;
 			pdlight->decay_delay = 0;
 
-			if(m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
+			if(m_pCvarShadowmapBlit->GetValue() < 1)
 			{
 				if(!pdlight->isstatic && pdlight->psceneinfo)
 				{
@@ -1793,7 +1790,7 @@ cl_dlight_t* CDynamicLightManager::AllocDynamicPointLight( Int32 key, Int32 subk
 	}
 
 	// Allocate static dlight info if needed
-	if(m_pCvarShadowmapBlit->GetValue() < 1 && rns.fboused)
+	if(m_pCvarShadowmapBlit->GetValue() < 1)
 	{
 		if(pdlight->isstatic && !pdlight->psceneinfo)
 		{
@@ -2096,9 +2093,6 @@ bool DL_IsLightVisible( const CFrustum& mainFrustum, const Vector& mins, const V
 //====================================
 bool DL_CanShadow( const cl_dlight_t *dl )
 {
-	if(!rns.fboused)
-		return false;
-
 	if(g_pCvarShadows->GetValue() < 1)
 		return false;
 

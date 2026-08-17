@@ -39,8 +39,6 @@ CWindow::CWindow( void ):
 	m_bFullScreen(false),
 	m_bVerticalSync(false),
 	m_bIsMSAAEnabled(false),
-	m_areFBOsEnabled(false),
-	m_isHDREnabled(false),
 	m_bWindowActive(false),
 	m_bWindowInitialized(false),
 	m_pSDLWindow(nullptr),
@@ -226,64 +224,6 @@ bool CWindow::Init( void )
 	for(Int32 i = 2; i <= maxMultiSample; i += 2)
 		m_multiSampleSettingsArray.push_back(i);
 
-	// get FBO enabled state
-	if (ens.requestedFBOSetting != -1)
-	{
-		bool requestEnable = ens.requestedFBOSetting == 0 ? false : true;
-		if (requestEnable != m_areFBOsEnabled)
-		{
-			gConfig.SetValue(GetConfigGroup(), "FramebufferObjects", requestEnable ? 1 : 0, true);
-			m_areFBOsEnabled = requestEnable;
-		}
-
-		// Make sure to reset this
-		ens.requestedFBOSetting = -1;
-	}
-	else
-	{
-		m_areFBOsEnabled = gConfig.GetInt(GetConfigGroup(), "FramebufferObjects");
-		if (gConfig.GetStatus() != CONF_ERR_NONE)
-		{
-			m_areFBOsEnabled = true;
-			gConfig.SetValue(GetConfigGroup(), "FramebufferObjects", TRUE, true);
-		}
-	}
-
-	// Get HDR state
-	if (!m_areFBOsEnabled)
-	{
-		// Make sure to reset this
-		ens.requestedHDRSetting = -1;
-
-		m_isHDREnabled = gConfig.GetInt(GetConfigGroup(), "HighDynamicRange");
-		if (m_isHDREnabled)
-		{
-			gConfig.SetValue(GetConfigGroup(), "HighDynamicRange", FALSE, true);
-			m_isHDREnabled = false;
-		}
-	}
-	else if (ens.requestedHDRSetting != -1)
-	{
-		bool requestEnable = ens.requestedHDRSetting == 0 ? false : true;
-		if (requestEnable != m_isHDREnabled)
-		{
-			gConfig.SetValue(GetConfigGroup(), "HighDynamicRange", requestEnable ? 1 : 0, true);
-			m_isHDREnabled = requestEnable;
-		}
-
-		// Make sure to reset this
-		ens.requestedHDRSetting = -1;
-	}
-	else
-	{
-		m_isHDREnabled = gConfig.GetInt(GetConfigGroup(), "HighDynamicRange");
-		if (gConfig.GetStatus() != CONF_ERR_NONE)
-		{
-			m_isHDREnabled = true;
-			gConfig.SetValue(GetConfigGroup(), "HighDynamicRange", TRUE, true);
-		}
-	}
-
 	// Get current MSAA setting
 	Int32 currentMSAASetting = GetCurrentMSAASetting();
 	Int32 msaaSettingValue;
@@ -301,16 +241,8 @@ bool CWindow::Init( void )
 
 	m_bIsMSAAEnabled = (msaaSettingValue != 0) ? true : false;
 
-	if(msaaSettingValue != 0 && !m_isHDREnabled)
-	{
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, msaaSettingValue);
-	}
-	else
-	{
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
-	}
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
 
 	// Create the window
 	m_pSDLWindow = SDL_CreateWindow(ens.gametitle.c_str(), 
@@ -330,10 +262,7 @@ bool CWindow::Init( void )
 		return false;
 	}
 
-	if(msaaSettingValue != 0 && !m_isHDREnabled)
-		glEnable(GL_MULTISAMPLE);
-	else
-		glDisable(GL_MULTISAMPLE);
+	glDisable(GL_MULTISAMPLE);
 
 	// Set vertical sync
 	SDL_GL_SetSwapInterval( m_bVerticalSync ? 1 : 0 );

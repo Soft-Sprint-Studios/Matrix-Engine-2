@@ -225,49 +225,34 @@ bool CMirrorManager::AllocTextures( cl_mirror_t *pmirror )
 {
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 
-	if(rns.fboused)
+	CreateDepthTexture();
+
+	pmirror->pfbo = new fbobind_t;
+
+	// Create image
+	pmirror->pfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
+	glBindTexture(GL_TEXTURE_2D, pmirror->pfbo->ptexture1->gl_index);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, MIRROR_FBO_SIZE, MIRROR_FBO_SIZE, 0, GL_RGBA, GL_HALF_FLOAT, 0);
+
+	glGenFramebuffers(1, &pmirror->pfbo->fboid);
+	glBindFramebuffer(GL_FRAMEBUFFER, pmirror->pfbo->fboid);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pmirror->pfbo->ptexture1->gl_index, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
+
+	GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if(eStatus != GL_FRAMEBUFFER_COMPLETE)
 	{
-		CreateDepthTexture();
-
-		pmirror->pfbo = new fbobind_t;
-
-		// Create image
-		pmirror->pfbo->ptexture1 = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
-		glBindTexture(GL_TEXTURE_2D, pmirror->pfbo->ptexture1->gl_index);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, MIRROR_FBO_SIZE, MIRROR_FBO_SIZE, 0, GL_RGBA, rns.usehdr ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, 0);
-
-		glGenFramebuffers(1, &pmirror->pfbo->fboid);
-		glBindFramebuffer(GL_FRAMEBUFFER, pmirror->pfbo->fboid);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pmirror->pfbo->ptexture1->gl_index, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pDepthTexture->gl_index, 0);
-
-		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
-		{
-			Con_Printf("Framebuffer Object creation failed.\n");
-			delete pmirror->pfbo;
-			return false;
-		}
+		Con_Printf("Framebuffer Object creation failed.\n");
+		delete pmirror->pfbo;
+		return false;
+	}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-	else
-	{
-		// Create the reflection texture
-		pmirror->ptexture = pTextureManager->GenTextureIndex(RS_GAME_LEVEL);
-		glBindTexture(GL_TEXTURE_2D, pmirror->ptexture->gl_index);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, MIRROR_RTT_SIZE, MIRROR_RTT_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
 
 	return true;
 }
@@ -407,10 +392,7 @@ bool CMirrorManager::DrawMirrorPasses( void )
 	rns.mirroring = true;
 
 	// Set viewport
-	if(rns.fboused)
-		glViewport(GL_ZERO, GL_ZERO, MIRROR_FBO_SIZE, MIRROR_FBO_SIZE);
-	else
-		glViewport(GL_ZERO, GL_ZERO, MIRROR_RTT_SIZE, MIRROR_RTT_SIZE);
+	glViewport(GL_ZERO, GL_ZERO, MIRROR_FBO_SIZE, MIRROR_FBO_SIZE);
 
 	CFrustum mainFrustum;
 	R_SetFrustum(mainFrustum, rns.view.params.v_origin, rns.view.params.v_angles, rns.view.fov, rns.view.viewsize_x, rns.view.viewsize_y, true);
@@ -455,8 +437,7 @@ bool CMirrorManager::DrawMirrorPasses( void )
 
 	rns.mirroring = false;
 
-	if(rns.fboused)
-		R_BindFBO(nullptr);
+	R_BindFBO(nullptr);
 
 	glViewport(GL_ZERO, GL_ZERO, rns.screenwidth, rns.screenheight);
 	return result;
@@ -557,7 +538,7 @@ void CMirrorManager::SetupMirrorPass( void )
 	SetupClipping();
 
 	// Bind FBO
-	if(rns.fboused && m_pCurrentMirror->pfbo)
+	if(m_pCurrentMirror->pfbo)
 		R_BindFBO(m_pCurrentMirror->pfbo);
 
 	//Completely clear everything
@@ -577,12 +558,6 @@ void CMirrorManager::SetupMirrorPass( void )
 void CMirrorManager::FinishMirrorPass( void ) 
 {
 	rns.view.projection.PopMatrix();
-
-	if(!rns.fboused || !m_pCurrentMirror->pfbo)
-	{
-		R_Bind2DTexture(GL_TEXTURE0, m_pCurrentMirror->ptexture->gl_index);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, rns.usehdr ? GL_RGBA16F : GL_RGBA, 0, 0, MIRROR_RTT_SIZE, MIRROR_RTT_SIZE, 0);
-	}
 
 	rns.usevisorigin = false;
 }
@@ -660,10 +635,8 @@ bool CMirrorManager::DrawMirrors( void )
 			m_pShader->SetUniform1f(m_attribs.u_dt_y, 1);
 		}
 
-		if(rns.fboused && m_pCurrentMirror->pfbo)
+		if(m_pCurrentMirror->pfbo)
 			R_Bind2DTexture(GL_TEXTURE0, m_pCurrentMirror->pfbo->ptexture1->gl_index);
-		else
-			R_Bind2DTexture(GL_TEXTURE0, m_pCurrentMirror->ptexture->gl_index);
 
 		R_ValidateShader(m_pShader);
 

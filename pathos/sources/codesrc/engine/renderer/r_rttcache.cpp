@@ -170,7 +170,7 @@ void CRenderToTextureCache :: CreateTexture( rtt_texture_t* ptexture, rs_level_t
 	GLenum internalFormat = ptexture->internalformat;
 	GLenum type = GL_UNSIGNED_BYTE;
 
-	if (rns.usehdr && internalFormat == GL_RGBA)
+	if (internalFormat == GL_RGBA)
 	{
 		internalFormat = GL_RGBA16F;
 		type = GL_HALF_FLOAT;
