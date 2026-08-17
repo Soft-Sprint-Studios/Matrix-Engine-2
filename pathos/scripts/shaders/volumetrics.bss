@@ -135,8 +135,6 @@ void main()
 		for (int i = 0; i < u_numLights; ++i)
 		{
 			float vIntensity = u_lights[i].colorIntensity.w;
-			if (vIntensity <= 0.0)
-				continue;
 
 			vec3 lPos = u_lights[i].posRadius.xyz;
 			float lRad = u_lights[i].posRadius.w;
