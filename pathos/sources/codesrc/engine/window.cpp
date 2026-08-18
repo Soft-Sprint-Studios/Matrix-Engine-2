@@ -148,8 +148,6 @@ bool CWindow::Init( void )
 	}
 
 	// Set the OpenGL version
-	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, true);
-
 #ifdef _DEBUG
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_RELEASE_BEHAVIOR, SDL_GL_CONTEXT_RELEASE_BEHAVIOR_NONE);
@@ -180,12 +178,6 @@ bool CWindow::Init( void )
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, nbDepthBits);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, nbStencilBits);
-
-	if (Sys_CheckLaunchArgs("-renderdoc") != NO_POSITION)
-	{
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-	}
 
 	Int32 windowFlags = SDL_WINDOW_OPENGL;
 	if(m_bFullScreen)
