@@ -507,8 +507,8 @@ void CEntityManager::Entity_EnvModel( const entitydata_t& entity, entindex_t& en
 		spawnFlags = SDL_atoi(pvalue);
 
 	// Entities with a collision mesh not set to not solid are handled by the engine
-	if((pmodel->cacheflags & CACHE_FL_HAS_MCD) && !(spawnFlags & ENVMODEL_SF_NOT_SOLID))
-		return;
+	//if((pmodel->cacheflags & CACHE_FL_HAS_MCD) && !(spawnFlags & ENVMODEL_SF_NOT_SOLID))
+	//	return;
 
 	if(m_entitiesArray.size() == MAX_SERVER_ENTITIES)
 	{
