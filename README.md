@@ -28,3 +28,5 @@ Replace SDL2 with SDL3
 SSAO
 
 Volumetric Lighting
+
+Video rendering
