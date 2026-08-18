@@ -210,7 +210,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\libs\glad\include;.\;..\libs\SDL3-3.4.14\include;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\sentry\include;..\libs\bullet\include;..\libs\pl_mpeg\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\scripts\shaders\;..\libs\glad\include;.\;..\libs\SDL3-3.4.14\include;.\renderer\;..\common\;..\libs\;..\libs\freetype\include\;.\ui\;.\server\;.\client\;..\shared\;..\libs\enet\include;..\libs\openal\include;..\libs\detours\include;..\libs\libogg\include;..\libs\sentry\include;..\libs\bullet\include;..\libs\pl_mpeg\include;..\libs\libvorbis\include;..\shared\renderer;.\windows;.\rygsdxtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996;4305;4244;4127;4100;4481;4512;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -296,6 +296,7 @@
     <ClCompile Include="renderer\r_beams.cpp" />
     <ClCompile Include="renderer\r_blackhole.cpp" />
     <ClCompile Include="renderer\r_cables.cpp" />
+    <ClCompile Include="renderer\r_cas.cpp" />
     <ClCompile Include="renderer\r_cubemaps.cpp" />
     <ClCompile Include="renderer\r_decals.cpp" />
     <ClCompile Include="renderer\r_dlights.cpp" />
@@ -471,6 +472,7 @@
     <ClInclude Include="renderer\r_beams.h" />
     <ClInclude Include="renderer\r_blackhole.h" />
     <ClInclude Include="renderer\r_cables.h" />
+    <ClInclude Include="renderer\r_cas.h" />
     <ClInclude Include="renderer\r_cubemaps.h" />
     <ClInclude Include="renderer\r_decals.h" />
     <ClInclude Include="renderer\r_dlights.h" />

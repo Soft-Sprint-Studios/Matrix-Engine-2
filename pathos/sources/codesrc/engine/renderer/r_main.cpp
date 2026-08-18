@@ -75,6 +75,7 @@ All Rights Reserved.
 #include "r_tracers.h"
 #include "r_ssao.h"
 #include "r_volumetrics.h"
+#include "r_cas.h"
 
 #include "stepsound.h"
 #include "aldformat.h"
@@ -336,6 +337,9 @@ bool R_Init( void )
 	if (!gVolumetrics.Init())
 		return false;
 
+	if (!gCAS.Init())
+		return false;
+
 	// Init decal class
 	gDecals.Init();
 
@@ -370,6 +374,7 @@ void R_Shutdown( void )
 	gTracers.Shutdown();
 	gSSAO.Shutdown();
 	gVolumetrics.Shutdown();
+	gCAS.Shutdown();
 
 	CBasicDraw::DeleteInstance();
 }
@@ -666,6 +671,9 @@ bool R_InitGL( void )
 	if (!gVolumetrics.InitGL())
 		return false;
 
+	if (!gCAS.InitGL())
+		return false;
+
 	// Draw the menu loading screen
 	VID_DrawLoadingScreen();
 
@@ -722,6 +730,7 @@ void R_ShutdownGL( void )
 	gFBOCache.ClearGL();
 	gSSAO.ClearGL();
 	gVolumetrics.ClearGL();
+	gCAS.ClearGL();
 
 	// Reset cache states
 	gModelCache.ClearGL();
@@ -824,6 +833,9 @@ bool R_LoadResources( void )
 		return false;
 
 	if (!gVolumetrics.InitGame())
+		return false;
+
+	if (!gCAS.InitGame())
 		return false;
 
 	// Release lightmap data
@@ -948,6 +960,7 @@ void R_ResetGame( void )
 	gTracers.ClearGame();
 	gSSAO.ClearGame();
 	gVolumetrics.ClearGame();
+	gCAS.ClearGame();
 
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 
@@ -2838,6 +2851,10 @@ bool R_DrawHUD( bool hudOnly, bool noFilmGrain )
 {
 	// Draw postprocess effects
 	if(!gPostProcess.Draw(noFilmGrain))
+		return false;
+
+	// Apply CAS
+	if(!gCAS.Apply())
 		return false;
 
 	// Call client to draw it's overlay stuff

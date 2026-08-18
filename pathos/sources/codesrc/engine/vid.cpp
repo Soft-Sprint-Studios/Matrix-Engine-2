@@ -395,6 +395,8 @@ bool VID_Init( void )
 		ens.pgllogfile->Printf(" - Total vertex shader status get call time: %.4f seconds.\n", CGLSLShader::GetTotalVertexShaderGetStatusCallTime());
 		ens.pgllogfile->Printf(" - Total fragment shader compile time: %.4f seconds.\n", CGLSLShader::GetTotalFragmentShaderCompileTime());
 		ens.pgllogfile->Printf(" - Total fragment shader status get call time: %.4f seconds.\n", CGLSLShader::GetTotalFragmentShaderGetStatusCallTime());
+		ens.pgllogfile->Printf(" - Total compute shader compile time: %.4f seconds.\n", CGLSLShader::GetTotalComputeShaderCompileTime());
+		ens.pgllogfile->Printf(" - Total compute shader status get call time: %.4f seconds.\n", CGLSLShader::GetTotalComputeShaderGetStatusCallTime());
 		ens.pgllogfile->Printf(" - Total shader link time: %.4f seconds.\n", CGLSLShader::GetTotalShaderLinkTime());
 		ens.pgllogfile->Printf(" - Total shader link get status call time: %.4f seconds.\n", CGLSLShader::GetTotalShaderLinkGetStatusCallTime());
 		ens.pgllogfile->Printf(" - Number of shader programs linked: %d.\n", CGLSLShader::GetNbTotalShaderProgramsLinked());

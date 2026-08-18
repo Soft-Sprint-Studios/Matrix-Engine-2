@@ -21,6 +21,7 @@ All Rights Reserved.
 
 #define SHADER_VERTEX			0
 #define SHADER_FRAGMENT			1
+#define SHADER_COMPUTE			2
 
 #define CSD_HEADER_ENCODED		(('1'<<24)+('D'<<16)+('S'<<8)+'C')
 #define CSD_FILE_VERSION		1
@@ -84,6 +85,7 @@ public:
 		DETERMINATOR_UNDEFINED = -1,
 		DETERMINATOR_VERTEX,
 		DETERMINATOR_FRAGMENT,
+		DETERMINATOR_COMPUTE,
 		DETERMINATOR_SHARED
 	};
 
@@ -309,7 +311,9 @@ public:
 			vertexdataoffs(0),
 			vertexdatasize(0),
 			fragmentdataoffs(0),
-			fragmentdatasize(0)
+			fragmentdatasize(0),
+			computedataoffs(0),
+			computedatasize(0)
 		{}
 
 		Int32 vertexdataoffs;
@@ -317,6 +321,9 @@ public:
 
 		Int32 fragmentdataoffs;
 		Int32 fragmentdatasize;
+
+		Int32 computedataoffs;
+		Int32 computedatasize;
 	};
 
 	// <csddisabled_state_t>
@@ -536,6 +543,10 @@ public:
 	static Double GetTotalShaderLinkTime( void );
 	// Returns the cumulative get call time time for shaders
 	static Double GetTotalShaderLinkGetStatusCallTime( void );
+	// Returns the cumulative compile time for compute shaders
+	static Double GetTotalComputeShaderCompileTime( void );
+	// Returns the cumulative status get call time for compute shaders
+	static Double GetTotalComputeShaderGetStatusCallTime( void );
 	// Returns the number of shader programs linked total
 	static Uint32 GetNbTotalShaderProgramsLinked( void );
 
@@ -570,7 +581,7 @@ private:
 	bool ReadChunks( const Char **ppscan, shader_chunk_t** pchunkptr, Uint32* numchunkptr, glsl_branchcondition_t* pconditionals, Uint32 numconditionals );
 
 	// Splices the vertex and fragment scripts for a shader
-	bool SpliceScripts( Uint32 id, Char **vsptr, Char **fsptr );
+	bool SpliceScripts( Uint32 id, Char **vsptr, Char **fsptr, Char **csptr );
 	// Tells if a chunk should be included in this variation
 	bool ShouldIncludeChunk( Uint32 id, shader_chunk_t *pchunk );
 	// Recursively adds all usable shader chunks to a shader
@@ -645,6 +656,8 @@ private:
 	shader_script_t *m_pVertexScript;
 	// Compile-time fragment script data
 	shader_script_t *m_pFragmentScript;
+	// Compile-time compute script data
+	shader_script_t *m_pComputeScript;
 	// Pointer to shader data header
 	csdheader_t* m_pCSDHeader;
 
@@ -678,6 +691,10 @@ private:
 	static Double g_fragmentShaderCompileTotalDuration;
 	// Total duration of fragment shader compile calls
 	static Double g_fragmentShaderGetStatusCallTotalDuration;
+	// Total duration of compute shader compile calls
+	static Double g_computeShaderCompileTotalDuration;
+	// Total duration of compute shader verification calls
+	static Double g_computeShaderGetStatusCallTotalDuration;
 	// Total duration of shader linking calls
 	static Double g_shaderLinkTotalDuration;
 	// Total duration of shader linking calls

@@ -19,7 +19,6 @@ $end
 $shader_fragment 
 $begin
 #version 460
-#extension GL_ARB_texture_rectangle : enable
 
 // Thanks to stevenmarky from gamedev.net for the shader code
 

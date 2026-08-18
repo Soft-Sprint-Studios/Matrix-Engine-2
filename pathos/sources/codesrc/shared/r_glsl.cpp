@@ -27,6 +27,10 @@ Double CGLSLShader::g_vertexShaderGetStatusCallTotalDuration = 0;
 Double CGLSLShader::g_fragmentShaderCompileTotalDuration = 0;
 // Total duration of fragment shader compile calls
 Double CGLSLShader::g_fragmentShaderGetStatusCallTotalDuration = 0;
+// Total duration of compute shader compile calls
+Double CGLSLShader::g_computeShaderCompileTotalDuration = 0;
+// Total duration of compute shader verification calls
+Double CGLSLShader::g_computeShaderGetStatusCallTotalDuration = 0;
 // Total duration of shader linking calls
 Double CGLSLShader::g_shaderLinkTotalDuration = 0;
 // Total duration of shader linking calls
@@ -47,6 +51,7 @@ CGLSLShader::CGLSLShader ( const file_interface_t& fileFuncs, const Char *szfile
 	m_vboAttribsChangedBits( 0 ),
 	m_pVertexScript( nullptr ),
 	m_pFragmentScript( nullptr ),
+	m_pComputeScript( nullptr ),
 	m_pDeterminatorValues( nullptr ),
 	m_pShaderDeterminatorValues( nullptr ),
 	m_pCSDHeader( nullptr ),
@@ -92,6 +97,7 @@ CGLSLShader::CGLSLShader ( const file_interface_t& fileFuncs, Int32 flags, pfnPr
 	m_vboAttribsChangedBits( 0 ),
 	m_pVertexScript( nullptr ),
 	m_pFragmentScript( nullptr ),
+	m_pComputeScript( nullptr ),
 	m_pDeterminatorValues( nullptr ),
 	m_pShaderDeterminatorValues( nullptr ),
 	m_pCSDHeader( nullptr ),
@@ -190,6 +196,18 @@ void CGLSLShader::FreeTempData ( void )
 		m_pFragmentScript = nullptr;
 	}
 
+	if(m_pComputeScript)
+	{
+		for(Uint32 i = 0; i < m_pComputeScript->numchunks; i++)
+			RecursiveFreeChunks(&m_pComputeScript->pchunks[i]);
+
+		if(m_pComputeScript->pchunks)
+			delete[] m_pComputeScript->pchunks;
+
+		delete[] m_pComputeScript;
+		m_pComputeScript = nullptr;
+	}
+
 	if(!m_disabledStatesArray.empty())
 		m_disabledStatesArray.clear();
 }
@@ -278,6 +296,81 @@ void CGLSLShader::FreeData ( void )
 //=============================================
 bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshaderdata_t* pshaderdata )
 {
+	CString basename;
+	Common::Basename(m_shaderFile.c_str(), basename);
+
+	if(pshaderdata->computedatasize > 0)
+	{
+		// Get start clock
+		clock_t beginTime = clock();
+
+		const Char *cp = reinterpret_cast<Char*>(reinterpret_cast<byte*>(m_pCSDHeader) + pshaderdata->computedataoffs);
+		GLuint compute_id = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(compute_id, 1, &cp, &pshaderdata->computedatasize);
+		glCompileShader(compute_id);
+
+		g_computeShaderCompileTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
+
+		CString csOut;
+		csOut << "logs/" << basename << "_" << static_cast<Int32>(index) << "_cs";
+
+		// Get start clock
+		beginTime = clock();
+
+		Int32 iStatus = FALSE;
+		glGetShaderiv(compute_id, GL_COMPILE_STATUS, &iStatus);
+		g_computeShaderGetStatusCallTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
+		if(!Shader_PrintLog(compute_id, cp, pshaderdata->computedatasize, csOut.c_str(), (iStatus != TRUE) ? true : false))
+			return false;
+
+		if(iStatus != TRUE)
+		{
+			m_errorString = "Compute shader " + m_shaderFile + " failed to compile. Log file was written.";
+			return false;
+		}
+
+		// Get start clock
+		beginTime = clock();
+
+		pshader->program_id = glCreateProgram();
+		glAttachShader(pshader->program_id, compute_id);
+		glLinkProgram(pshader->program_id);
+
+		g_shaderLinkTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
+
+		CString progOut;
+		progOut << "logs/" << basename << "_" << static_cast<Int32>(index) << "_prog";
+
+		// Get start clock
+		beginTime = clock();
+
+		glGetProgramiv(pshader->program_id, GL_LINK_STATUS, &iStatus);
+		g_shaderLinkGetStatusCallDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
+		if(!Program_PrintLog(pshader->program_id, progOut.c_str()))
+			return false;
+
+		bool result = true;
+		if(iStatus != TRUE)
+		{
+			result = Shader_PrintLog(compute_id, cp, pshaderdata->computedatasize, csOut.c_str(), true);
+			m_errorString = "Program " + m_shaderFile + " failed to compile. Log file was written.";
+		}
+
+		glDetachShader(pshader->program_id, compute_id);
+		glDeleteShader(compute_id);
+
+		if(!result)
+			return false;
+
+		if(iStatus == TRUE)
+		{
+			pshader->compiled = true;
+			g_numShaderProgramsLinked++;
+		}
+
+		return (iStatus == TRUE) ? true : false;
+	}
+
 	// Get start clock
 	clock_t beginTime = clock();
 
@@ -289,9 +382,6 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 
 	// Now get elapsed time
 	g_vertexShaderCompileTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
-
-	CString basename;
-	Common::Basename(m_shaderFile.c_str(), basename);
 
 	CString vsOut;
 	vsOut << "logs/" << basename << "_" << static_cast<Int32>(index) << "_vs";
@@ -1060,10 +1150,12 @@ bool CGLSLShader :: CompileFromScript( void )
 	// Allocate the temporary structures
 	m_pVertexScript = new shader_script_t();
 	m_pFragmentScript = new shader_script_t();
+	m_pComputeScript = new shader_script_t();
 
 	// Set data types
 	m_pVertexScript->type = SHADER_VERTEX;
 	m_pFragmentScript->type = SHADER_FRAGMENT;
+	m_pComputeScript->type = SHADER_COMPUTE;
 
 	// Parse the script data
 	CString sztoken;
@@ -1113,9 +1205,11 @@ bool CGLSLShader :: CompileFromScript( void )
 			pscript = m_pVertexScript;
 		else if(!qstrcmp("$shader_fragment", sztoken))
 			pscript = m_pFragmentScript;
+		else if(!qstrcmp("$shader_compute", sztoken))
+			pscript = m_pComputeScript;
 		else
 		{
-			m_errorString << "Invalid token " << sztoken << ", was expecting either $shader_vertex or $shader_fragment in " << m_shaderFile;
+			m_errorString << "Invalid token " << sztoken << ", was expecting $shader_vertex, $shader_fragment, or $shader_compute in " << m_shaderFile;
 			m_fileInterface.pfnFreeFile(pfile);
 			return false;
 		}
@@ -1411,6 +1505,36 @@ bool CGLSLShader::ReadChunks( const Char **ppscan, shader_chunk_t** pchunkptr, U
 				// Start from the beginning
 				continue;
 			}
+			else if(!qstrcmp(szToken1, "$include"))
+			{
+				CString szIncFile;
+				(*ppscan) = Common::Parse((*ppscan), szIncFile);
+				if(szIncFile.empty())
+				{
+					m_errorString << "Missing filename for $include in " << m_shaderFile;
+					return false;
+				}
+
+				CString incFilePath;
+				if(!m_rootDirectory.empty())
+					incFilePath << m_rootDirectory << PATH_SLASH_CHAR;
+				incFilePath << "scripts/shaders/" << szIncFile;
+
+				Uint32 incSize = 0;
+				const Char* pIncFile = reinterpret_cast<const Char*>(m_fileInterface.pfnLoadFile(incFilePath.c_str(), &incSize));
+				if(!pIncFile)
+					pIncFile = reinterpret_cast<const Char*>(m_fileInterface.pfnLoadFile(szIncFile.c_str(), &incSize));
+
+				if(!pIncFile)
+				{
+					m_errorString << "Could not open $include file '" << szIncFile << "' in " << m_shaderFile;
+					return false;
+				}
+
+				chunkBuffer.append(pIncFile, incSize);
+				m_fileInterface.pfnFreeFile(pIncFile);
+				continue;
+			}
 			else if(!qstrcmp(szToken1, "$end"))
 			{
 				// End of chunk
@@ -1601,8 +1725,31 @@ bool CGLSLShader::RecursiveAddChunks( Uint32 id, shader_chunk_t* pchunk, CBuffer
 // @param vsptr Pointer to pointer to hold the vertex shader data
 // @param fsptr Pointer to pointer to hold the fragment shader data
 //=============================================
-bool CGLSLShader::SpliceScripts( Uint32 id, Char **vsptr, Char **fsptr )
+bool CGLSLShader::SpliceScripts( Uint32 id, Char **vsptr, Char **fsptr, Char **csptr )
 {
+	*vsptr = nullptr;
+	*fsptr = nullptr;
+	*csptr = nullptr;
+
+	if(m_pComputeScript && m_pComputeScript->numchunks > 0)
+	{
+		CBuffer tempBuffer(BUFFER_ALLOC_SIZE);
+		for(Uint32 i = 0; i < m_pComputeScript->numchunks; i++)
+		{
+			if(!ShouldIncludeChunk(id, &m_pComputeScript->pchunks[i]))
+				continue;
+
+			if(!RecursiveAddChunks(id, &m_pComputeScript->pchunks[i], tempBuffer))
+				return false;
+		}
+
+		Uint32 buffersize = tempBuffer.getdatasize();
+		(*csptr) = new Char[buffersize+1];
+		memcpy((*csptr), tempBuffer.getbufferdata(), sizeof(Char)*buffersize);
+		(*csptr)[buffersize] = '\0';
+		return true;
+	}
+
 	// Buffer to write to
 	CBuffer tempBuffer(BUFFER_ALLOC_SIZE);
 
@@ -1805,28 +1952,40 @@ bool CGLSLShader::ConstructBranches ( const Char* pSrc, Uint32 fileSize )
 	for(Uint32 i = 0; i < nbShaders; i++)
 	{
 		// Perform the script splices
-		Char *vsscript, *fsscript;
-		if(!SpliceScripts(i, &vsscript, &fsscript))
+		Char *vsscript = nullptr, *fsscript = nullptr, *csscript = nullptr;
+		if(!SpliceScripts(i, &vsscript, &fsscript, &csscript))
 			return false;
 
-		// Allocate in the output
-		Uint32 vslength = qstrlen(vsscript);
-		poutshaders[i].vertexdataoffs = csdBuffer.getdatasize();
-		poutshaders[i].vertexdatasize = vslength;
+		if(csscript)
+		{
+			Uint32 cslength = qstrlen(csscript);
+			poutshaders[i].computedataoffs = csdBuffer.getdatasize();
+			poutshaders[i].computedatasize = cslength;
 
-		// Copy the vertex shader data
-		csdBuffer.append(vsscript, sizeof(Char)*vslength);
+			csdBuffer.append(csscript, sizeof(Char)*cslength);
+			delete[] csscript;
+		}
+		else
+		{
+			// Allocate in the output
+			Uint32 vslength = qstrlen(vsscript);
+			poutshaders[i].vertexdataoffs = csdBuffer.getdatasize();
+			poutshaders[i].vertexdatasize = vslength;
 
-		// Allocate in the output
-		Uint32 fslength = qstrlen(fsscript);
-		poutshaders[i].fragmentdataoffs = csdBuffer.getdatasize();
-		poutshaders[i].fragmentdatasize = fslength;
+			// Copy the vertex shader data
+			csdBuffer.append(vsscript, sizeof(Char)*vslength);
 
-		// Copy the vertex shader data
-		csdBuffer.append(fsscript, sizeof(Char)*fslength);
-		
-		delete[] vsscript;
-		delete[] fsscript;
+			// Allocate in the output
+			Uint32 fslength = qstrlen(fsscript);
+			poutshaders[i].fragmentdataoffs = csdBuffer.getdatasize();
+			poutshaders[i].fragmentdatasize = fslength;
+
+			// Copy the fragment shader data
+			csdBuffer.append(fsscript, sizeof(Char)*fslength);
+			
+			delete[] vsscript;
+			delete[] fsscript;
+		}
 	}
 
 	// Save the determinator data
@@ -3049,6 +3208,8 @@ void CGLSLShader :: ClearTimeCounters( void )
 	g_vertexShaderGetStatusCallTotalDuration = 0;
 	g_fragmentShaderCompileTotalDuration = 0;
 	g_fragmentShaderGetStatusCallTotalDuration = 0;
+	g_computeShaderCompileTotalDuration = 0;
+	g_computeShaderGetStatusCallTotalDuration = 0;
 	g_shaderLinkTotalDuration = 0;
 	g_shaderLinkGetStatusCallDuration = 0;
 	g_numShaderProgramsLinked = 0;
@@ -3092,6 +3253,26 @@ Double CGLSLShader :: GetTotalFragmentShaderCompileTime( void )
 Double CGLSLShader :: GetTotalFragmentShaderGetStatusCallTime( void )
 {
 	return g_fragmentShaderGetStatusCallTotalDuration;
+}
+
+//=============================================
+// @brief Returns the cumulative compile time for compute shaders
+//
+// @return Cumulative compile time for compute shaders
+//=============================================
+Double CGLSLShader :: GetTotalComputeShaderCompileTime( void )
+{
+	return g_computeShaderCompileTotalDuration;
+}
+
+//=============================================
+// @brief Returns the cumulative status get call time for compute shaders
+//
+// @return Cumulative status get call time for compute shaders
+//=============================================
+Double CGLSLShader :: GetTotalComputeShaderGetStatusCallTime( void )
+{
+	return g_computeShaderGetStatusCallTotalDuration;
 }
 
 //=============================================

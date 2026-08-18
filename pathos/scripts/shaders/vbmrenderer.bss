@@ -226,7 +226,6 @@ $invalid_state 2 vertexlight 1 1 shadertype 6 6
 $invalid_state 2 vertexlight 1 1 shadertype 8 9
 $begin
 #version 460
-#extension GL_ARB_texture_rectangle : enable
 
 uniform sampler2D texture0;
 uniform sampler2D texture1;

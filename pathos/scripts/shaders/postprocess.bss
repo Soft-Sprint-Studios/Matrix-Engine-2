@@ -21,7 +21,6 @@ $shader_fragment
 $determinator pp_type 0 18
 $begin
 #version 460
-#extension GL_ARB_texture_rectangle : enable
 uniform sampler2DRect texture0rect;
 
 uniform vec4 u_color;

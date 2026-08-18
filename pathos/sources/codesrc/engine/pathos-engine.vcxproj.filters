@@ -456,6 +456,9 @@
     <ClCompile Include="renderer\r_glass.cpp">
       <Filter>Source Files\renderer</Filter>
     </ClCompile>
+    <ClCompile Include="renderer\r_cas.cpp">
+      <Filter>Source Files\renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="system.h">
@@ -1017,6 +1020,9 @@
       <Filter>Header Files\renderer</Filter>
     </ClInclude>
     <ClInclude Include="renderer\r_glass.h">
+      <Filter>Header Files\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="renderer\r_cas.h">
       <Filter>Header Files\renderer</Filter>
     </ClInclude>
   </ItemGroup>

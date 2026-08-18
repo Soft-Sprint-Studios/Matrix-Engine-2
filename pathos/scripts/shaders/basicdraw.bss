@@ -36,7 +36,6 @@ $shader_fragment
 $determinator rectangle 0 1
 $begin
 #version 460
-#extension GL_ARB_texture_rectangle : enable
 $branch texture == 1
 $begin
 	$branch rectangle == 0
