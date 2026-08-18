@@ -65,8 +65,7 @@ struct pp_shader_attribs
 		u_brightness_treshold(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_origin(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_texcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_type(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_rectangle(CGLSLShader::PROPERTY_UNAVAILABLE)
+		d_type(CGLSLShader::PROPERTY_UNAVAILABLE)
 		{}
 
 	Int32	u_modelview;
@@ -102,7 +101,6 @@ struct pp_shader_attribs
 	Int32	a_texcoord;
 
 	Int32 d_type;
-	Int32 d_rectangle;
 };
 
 /*

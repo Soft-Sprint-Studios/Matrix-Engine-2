@@ -17,24 +17,13 @@ void main()
 }
 $end
 $shader_fragment 
-$determinator rectangle 0 1
 $begin
 #version 130
-$branch rectangle == 1
-$begin
-	#extension GL_ARB_texture_rectangle : enable
-$end
+#extension GL_ARB_texture_rectangle : enable
 
 // Thanks to stevenmarky from gamedev.net for the shader code
 
-$branch rectangle == 0
-$begin
-	uniform sampler2D texture0;
-$end
-$branch rectangle == 1
-$begin
-	uniform sampler2DRect texture0Rect;
-$end
+uniform sampler2DRect texture0Rect;
 
 uniform vec2 screensize;
 uniform vec2 screenpos;
@@ -69,15 +58,8 @@ void main()
 	// normalized	
 	vec3 newBeam = refract(rayDirection, surfaceNormal, 2.6);
 	vec2 newPos = scrcoords.xy + vec2(newBeam.x, newBeam.y);
-	
-$branch rectangle == 0
-$begin
-	vec4 finalColor = texture(texture0, newPos);
-$end
-$branch rectangle == 1
-$begin
+
 	vec4 finalColor = texture(texture0Rect, (newPos)*screensize);
-$end
 
 	finalColor *= length(newBeam);
 	finalColor.a = 1.0f;

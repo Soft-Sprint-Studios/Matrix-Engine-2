@@ -144,7 +144,6 @@ bool CPortalManager::InitGL( void )
 		m_attribs.u_projection = m_pShader->InitUniform("projection", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_modelview = m_pShader->InitUniform("modelview", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_texture = m_pShader->InitUniform("texture0", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_texturerect = m_pShader->InitUniform("texture0Rect", CGLSLShader::UNIFORM_SAMPLERRECT);
 		m_attribs.u_screenwidth = m_pShader->InitUniform("screenwidth", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_screenheight = m_pShader->InitUniform("screenheight", CGLSLShader::UNIFORM_FLOAT1);
 
@@ -153,16 +152,13 @@ bool CPortalManager::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_projection, "projection", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_modelview, "modelview", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_texture, "texture0", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_texturerect, "texture0Rect", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_screenwidth, "screenwidth", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_screenheight, "screenheight", m_pShader, Sys_ErrorPopup))
 			return false;
 
 		m_attribs.d_fog = m_pShader->GetDeterminatorIndex("fog");
-		m_attribs.d_rectangle = m_pShader->GetDeterminatorIndex("rectangle");
 
-		if(!R_CheckShaderDeterminator(m_attribs.d_fog, "fog", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderDeterminator(m_attribs.d_rectangle, "rectangle", m_pShader, Sys_ErrorPopup))
+		if(!R_CheckShaderDeterminator(m_attribs.d_fog, "fog", m_pShader, Sys_ErrorPopup))
 			return false;
 	}
 
@@ -675,16 +671,6 @@ bool CPortalManager::DrawPortals( void )
 		m_pShader->DisableShader();
 		return false;
 	}
-
-	result = m_pShader->SetDeterminator(m_attribs.d_rectangle, FALSE);
-	if (!result)
-	{
-		Sys_ErrorPopup("Shader error: %s.", m_pShader->GetError());
-		m_pShader->DisableShader();
-		return false;
-	}
-
-	m_pShader->SetUniform1i(m_attribs.u_texturerect, 0);
 
 	m_pShader->SetUniform1f(m_attribs.u_screenwidth, 1.0f);
 	m_pShader->SetUniform1f(m_attribs.u_screenheight, 1.0f);

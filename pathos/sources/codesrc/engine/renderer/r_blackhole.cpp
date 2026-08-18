@@ -89,7 +89,6 @@ bool CBlackHoleRenderer::InitGL( void )
 
 		m_attribs.u_projection = m_pShader->InitUniform("projection", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_modelview = m_pShader->InitUniform("modelview", CGLSLShader::UNIFORM_MATRIX4);
-		m_attribs.u_texture = m_pShader->InitUniform("texture0", CGLSLShader::UNIFORM_SAMPLER2D);
 		m_attribs.u_texturerect = m_pShader->InitUniform("texture0Rect", CGLSLShader::UNIFORM_SAMPLERRECT);
 
 		m_attribs.u_screensize = m_pShader->InitUniform("screensize", CGLSLShader::UNIFORM_FLOAT2);
@@ -97,17 +96,13 @@ bool CBlackHoleRenderer::InitGL( void )
 		m_attribs.u_distance = m_pShader->InitUniform("distance", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_size = m_pShader->InitUniform("size", CGLSLShader::UNIFORM_FLOAT1);
 
-		m_attribs.d_rectangle = m_pShader->GetDeterminatorIndex("rectangle");
-
 		if(!R_CheckShaderUniform(m_attribs.u_screensize, "screensize", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_screenpos, "screenpos", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_distance, "distance", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_size, "size", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_projection, "projection", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_modelview, "modelview", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_texture, "texture0", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_texturerect, "texture0Rect", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderDeterminator(m_attribs.d_rectangle, "rectangle", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderUniform(m_attribs.u_texturerect, "texture0Rect", m_pShader, Sys_ErrorPopup))
 			return false;
 	}
 
@@ -397,12 +392,6 @@ bool CBlackHoleRenderer::DrawBlackHoles( void )
 	if (!pTexture)
 	{
 		Sys_ErrorPopup("%s - Failed to get screen texture.", __FUNCTION__);
-		return false;
-	}
-
-	if (!m_pShader->SetDeterminator(m_attribs.d_rectangle, TRUE))
-	{
-		Sys_ErrorPopup("Shader error: %s.", m_pShader->GetError());
 		return false;
 	}
 

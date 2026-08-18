@@ -1,5 +1,4 @@
 $global_determinator fog 0 1
-$global_determinator rectangle 0 1
 $shader_vertex $begin
 #version 130
 
@@ -28,17 +27,7 @@ $end
 $shader_fragment
 $begin
 #version 130
-$branch rectangle == 0
-$begin
 uniform sampler2D texture0;
-$end
-$branch rectangle == 1
-$begin
-#extension GL_ARB_texture_rectangle : enable
-uniform sampler2DRect texture0Rect;
-$end
-
-
 
 uniform vec2 fogparams;
 uniform vec3 fogcolor;
@@ -66,15 +55,8 @@ void main()
 	vec2 ps_texcoord;
 	ps_texcoord.x = ((ps_screenpos.x / ps_screenpos.w * 0.5) + 0.5) * screenwidth;
 	ps_texcoord.y = ((ps_screenpos.y / ps_screenpos.w * 0.5) + 0.5) * screenheight;
-	
-	$branch rectangle == 0
-	$begin
-		vec4 finalColor = texture(texture0, ps_texcoord);
-	$end
-	$branch rectangle == 1
-	$begin
-		vec4 finalColor = texture(texture0Rect, ps_texcoord);
-	$end
+
+	vec4 finalColor = texture(texture0, ps_texcoord);
 	
 	$branch fog == 1
 	$begin

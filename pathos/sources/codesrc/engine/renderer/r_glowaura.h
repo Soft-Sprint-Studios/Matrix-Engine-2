@@ -50,8 +50,7 @@ struct aura_attribs
 		u_texture0(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_scrntexture(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_scrntexturerect(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_type(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_rectangle(CGLSLShader::PROPERTY_UNAVAILABLE)
+		d_type(CGLSLShader::PROPERTY_UNAVAILABLE)
 		{}
 
 	Int32 a_origin;
@@ -68,7 +67,6 @@ struct aura_attribs
 	Int32 u_scrntexturerect;
 
 	Int32 d_type;
-	Int32 d_rectangle;
 };
 
 /*

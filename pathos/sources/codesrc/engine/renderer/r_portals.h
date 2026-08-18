@@ -75,8 +75,7 @@ struct portal_attribs
 		u_screenheight(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogcolor(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_fogparams(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_fog(CGLSLShader::PROPERTY_UNAVAILABLE),
-		d_rectangle(CGLSLShader::PROPERTY_UNAVAILABLE)
+		d_fog(CGLSLShader::PROPERTY_UNAVAILABLE)
 		{}
 
 	Int32 a_vertex;
@@ -93,7 +92,6 @@ struct portal_attribs
 	Int32 u_fogparams;
 
 	Int32 d_fog;
-	Int32 d_rectangle;
 };
 
 /*
