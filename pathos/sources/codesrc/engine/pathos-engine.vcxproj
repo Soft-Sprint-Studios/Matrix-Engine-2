@@ -300,6 +300,7 @@
     <ClCompile Include="renderer\r_decals.cpp" />
     <ClCompile Include="renderer\r_dlights.cpp" />
     <ClCompile Include="renderer\r_fbocache.cpp" />
+    <ClCompile Include="renderer\r_glass.cpp" />
     <ClCompile Include="renderer\r_glowaura.cpp" />
     <ClCompile Include="renderer\r_glqueries.cpp" />
     <ClCompile Include="renderer\r_interfacefuncs.cpp" />
@@ -474,6 +475,7 @@
     <ClInclude Include="renderer\r_decals.h" />
     <ClInclude Include="renderer\r_dlights.h" />
     <ClInclude Include="renderer\r_fbocache.h" />
+    <ClInclude Include="renderer\r_glass.h" />
     <ClInclude Include="renderer\r_glowaura.h" />
     <ClInclude Include="renderer\r_glqueries.h" />
     <ClInclude Include="renderer\r_interfacefuncs.h" />

@@ -297,6 +297,7 @@
     <ClCompile Include="envsetskin.cpp" />
     <ClCompile Include="funcbikeblock.cpp" />
     <ClCompile Include="funcdoorrotating.cpp" />
+    <ClCompile Include="funcglass.cpp" />
     <ClCompile Include="funcladder.cpp" />
     <ClCompile Include="funcmonitor.cpp" />
     <ClCompile Include="funcnull.cpp" />
@@ -555,6 +556,7 @@
     <ClInclude Include="envsyncanimation.h" />
     <ClInclude Include="envtracereffect.h" />
     <ClInclude Include="envvignette.h" />
+    <ClInclude Include="funcglass.h" />
     <ClInclude Include="funcparticleblocker.h" />
     <ClInclude Include="funcphysics.h" />
     <ClInclude Include="funcportalsurface.h" />

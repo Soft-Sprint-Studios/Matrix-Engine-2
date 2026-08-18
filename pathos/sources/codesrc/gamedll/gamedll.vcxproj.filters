@@ -966,6 +966,9 @@
     <ClCompile Include="envmodelphysics.cpp">
       <Filter>Source Files\entities\env</Filter>
     </ClCompile>
+    <ClCompile Include="funcglass.cpp">
+      <Filter>Source Files\entities\func</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gamedll.h">
@@ -1819,6 +1822,9 @@
     </ClInclude>
     <ClInclude Include="envmodelphysics.h">
       <Filter>Header Files\entities\env</Filter>
+    </ClInclude>
+    <ClInclude Include="funcglass.h">
+      <Filter>Header Files\entities\func</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

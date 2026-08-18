@@ -2893,6 +2893,8 @@ bool CBSPRenderer::DrawBrushModel( cl_entity_t& entity, bool isstatic )
 
 	if(entity.curstate.rendertype == RT_WATERSHADER 
 		|| entity.curstate.rendertype == RT_MIRROR 
+		|| entity.curstate.rendertype == RT_VIDEO
+		|| entity.curstate.rendertype == RT_GLASS
 		|| entity.curstate.rendertype == RT_MONITORENTITY
 		|| entity.curstate.rendertype == RT_PORTALSURFACE)
 		return true;
@@ -3182,6 +3184,8 @@ bool CBSPRenderer::DrawVSM( cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 nume
 				pEntity->curstate.renderfx == RenderFx_NoShadow ||
 				pEntity->curstate.rendertype == RT_WATERSHADER ||
 				pEntity->curstate.rendertype == RT_MIRROR ||
+				pEntity->curstate.rendertype == RT_VIDEO ||
+				pEntity->curstate.rendertype == RT_GLASS ||
 				pEntity->curstate.rendertype == RT_MONITORENTITY ||
 				pEntity->curstate.rendertype == RT_PORTALSURFACE)
 				continue;
@@ -3234,6 +3238,12 @@ bool CBSPRenderer::DrawVSM( cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 nume
 			if(pEntity->curstate.rendertype == RT_MIRROR)
 				continue;
 
+			if(pEntity->curstate.rendertype == RT_VIDEO)
+				continue;
+
+			if(pEntity->curstate.rendertype == RT_GLASS)
+				continue;
+
 			if(pEntity->curstate.rendertype == RT_MONITORENTITY)
 				continue;
 
@@ -3269,6 +3279,8 @@ bool CBSPRenderer::BatchBrushModelForVSM( cl_entity_t& entity, bool isstatic )
 
 	if(entity.curstate.rendertype == RT_WATERSHADER 
 		|| entity.curstate.rendertype == RT_MIRROR 
+		|| entity.curstate.rendertype == RT_VIDEO
+		|| entity.curstate.rendertype == RT_GLASS
 		|| entity.curstate.rendertype == RT_MONITORENTITY
 		|| entity.curstate.rendertype == RT_PORTALSURFACE)
 		return true;

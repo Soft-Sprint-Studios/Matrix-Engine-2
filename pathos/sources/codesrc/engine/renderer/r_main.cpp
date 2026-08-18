@@ -54,6 +54,7 @@ All Rights Reserved.
 #include "r_water.h"
 #include "r_mirror.h"
 #include "r_video.h"
+#include "r_glass.h"
 #include "r_monitor.h"
 #include "r_particles.h"
 #include "r_sprites.h"
@@ -284,6 +285,9 @@ bool R_Init( void )
 	if(!gWaterShader.Init())
 		return false;
 
+	if(!gGlassManager.Init())
+		return false;
+
 	if(!gMonitorManager.Init())
 		return false;
 
@@ -351,6 +355,7 @@ void R_Shutdown( void )
 	gGlowAura.Shutdown();
 	gWaterShader.Shutdown();
 	gMonitorManager.Shutdown();
+	gGlassManager.Shutdown();
 	gParticleEngine.Shutdown();
 	gSpriteRenderer.Shutdown();
 	gCubemaps.Shutdown();
@@ -619,6 +624,9 @@ bool R_InitGL( void )
 	if(!gVideoManager.InitGL())
 		return false;
 
+	if(!gGlassManager.InitGL())
+		return false;
+
 	if(!gParticleEngine.InitGL())
 		return false;
 
@@ -700,6 +708,7 @@ void R_ShutdownGL( void )
 	gMonitorManager.ClearGL();
 	gMirrorManager.ClearGL();
 	gVideoManager.ClearGL();
+	gGlassManager.ClearGL();
 	gParticleEngine.ClearGL();
 	gSpriteRenderer.ClearGL();
 	gCubemaps.ClearGL();
@@ -766,6 +775,9 @@ bool R_LoadResources( void )
 		return false;
 
 	if(!gVideoManager.InitGame())
+		return false;
+
+	if(!gGlassManager.InitGame())
 		return false;
 
 	VID_DrawLoadingScreen("Initializing particles");
@@ -920,6 +932,7 @@ void R_ResetGame( void )
 	gMonitorManager.ClearGame();
 	gMirrorManager.ClearGame();
 	gVideoManager.ClearGame();
+	gGlassManager.ClearGame();
 	gParticleEngine.ClearGame();
 	gSpriteRenderer.ClearGame();
 	gCubemaps.ClearGame();
@@ -1527,6 +1540,18 @@ void R_Ent_Video(cl_entity_t* pentity)
 	gVideoManager.AllocNewVideo(pentity);
 }
 
+//=============================================
+//
+//=============================================
+void R_Ent_Glass(cl_entity_t* pentity)
+{
+	entity_extrainfo_t* pinfo = CL_GetEntityExtraData(pentity);
+	if (pinfo->pglassdata)
+		return;
+
+	gGlassManager.AllocNewGlass(pentity);
+}
+
 //====================================
 //
 //====================================
@@ -1650,6 +1675,7 @@ bool R_IsSpecialRenderEntity( const cl_entity_t& entity )
 	case RT_SKYWATERENT:
 	case RT_MIRROR:
 	case RT_VIDEO:
+	case RT_GLASS:
 	case RT_MONITORENTITY:
 	case RT_PORTALSURFACE:
 	case RT_BEAM:
@@ -1707,6 +1733,12 @@ bool R_AddSpecialEntity( cl_entity_t *pentity )
 	case RT_VIDEO:
 		{
 			R_Ent_Video(pentity);
+			return true;
+		}
+		break;
+	case RT_GLASS:
+		{
+			R_Ent_Glass(pentity);
 			return true;
 		}
 		break;
@@ -2135,6 +2167,10 @@ bool R_DrawTransparent( void )
 		if(!gBSPRenderer.DrawTransparent())
 			return false;
 
+		// Draw glass
+		if(!gGlassManager.DrawGlass())
+			return false;
+
 		if(!rns.cubemapdraw)
 		{
 			if(!(rns.renderflags & RENDERER_FL_DONT_DRAW_PARTICLES))
@@ -2219,17 +2255,14 @@ bool R_Draw( const ref_params_t& params )
 	{
 		if (!gSSAO.DrawSSAO())
 			return false;
+
+		if (!gVolumetrics.DrawVolumetrics())
+			return false;
 	}
 
 	// Draw transparents
 	if(!R_DrawTransparent())
 		return false;
-
-	if(rns.mainframe && !rns.view.params.nodraw)
-	{
-		if (!gVolumetrics.DrawVolumetrics())
-			return false;
-	}
 
 	if(!rns.view.params.nodraw)
 	{

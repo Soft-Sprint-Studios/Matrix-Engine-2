@@ -117,6 +117,7 @@ struct entity_extrainfo_t
 		pmonitordata(nullptr),
 		pmirrordata(nullptr),
 		pvideodata(nullptr),
+		pglassdata(nullptr),
 		pshadowmap(nullptr),
 		pportaldata(nullptr),
 		ppvsdata(nullptr),
@@ -162,6 +163,8 @@ struct entity_extrainfo_t
 	struct cl_mirror_t* pmirrordata;
 	// tied video data
 	struct cl_video_t* pvideodata;
+	// tied glass data
+	struct cl_glass_t* pglassdata;
 	// dynamic light shadow map tied to this entity
 	struct shadowmap_t* pshadowmap;
 	// tied portal data
