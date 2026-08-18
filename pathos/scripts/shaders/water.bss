@@ -1,7 +1,7 @@
 $global_determinator mrao 0 1
 $global_determinator flowmap 0 1
 $shader_vertex $begin
-#version 130
+#version 460
 
 uniform mat4 projection;
 uniform mat4 modelview;
@@ -94,7 +94,7 @@ $determinator side 0 1
 $determinator rectrefract 0 1
 $determinator lightmap_bicubic 0 1
 $begin
-#version 130
+#version 460
 #extension GL_ARB_texture_rectangle : enable
 
 #define M_PI 3.14159265358979323846264338327950288
@@ -244,7 +244,7 @@ float h1(float a)
 	return 1.0 + w3(a) / (w2(a) + w3(a));
 }
 
-vec4 texture2D_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) 
+vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) 
 {
 	vec2 texel_size = vec2(1.0) / texture_size;
 
@@ -273,7 +273,7 @@ vec4 SampleLightmap(sampler2D tex, vec2 uv)
 {
 	$branch lightmap_bicubic == 1
 	$begin
-		return texture2D_bicubic(tex, uv, vec2(textureSize(tex, 0)));
+		return texture_bicubic(tex, uv, vec2(textureSize(tex, 0)));
 	$end
 	$branch lightmap_bicubic == 0
 	$begin
@@ -578,7 +578,7 @@ void main()
 	
 	$branch flowmap == 1
     $begin
-        vec2 flowDirection = texture2D(flowMap, ps_flowcoords).xy * 2.0 - 1.0;
+        vec2 flowDirection = texture(flowMap, ps_flowcoords).xy * 2.0 - 1.0;
         texcoord += flowDirection * time * flowSpeed;
     $end
 

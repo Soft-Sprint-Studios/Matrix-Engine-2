@@ -1,5 +1,5 @@
 $shader_vertex $begin
-#version 130
+#version 460
 uniform mat4 projection;
 uniform mat4 modelview;
 
@@ -18,7 +18,7 @@ $end
 $shader_fragment
 $determinator pass 0 2
 $begin
-#version 130
+#version 460
 
 #define KERNEL_SIZE 16
 

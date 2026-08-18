@@ -1,5 +1,5 @@
 $shader_vertex $begin
-#version 130
+#version 460
 
 uniform mat4 projection;
 uniform mat4 modelview;
@@ -25,7 +25,7 @@ $end
 $shader_fragment 
 $determinator fog 0 1
 $begin
-#version 130
+#version 460
 
 uniform sampler2D texture0;
 
@@ -60,7 +60,7 @@ void main()
 	mirror_tc = mirror_tc/(ps_texcoord.w*2);
 	mirror_tc = mirror_tc + 0.5;
 
-	vec4 finalColor = texture2D(texture0, mirror_tc);
+	vec4 finalColor = texture(texture0, mirror_tc);
 
 	$branch fog == 1
 	$begin

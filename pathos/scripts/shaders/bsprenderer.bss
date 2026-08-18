@@ -3,7 +3,7 @@ $global_determinator alphatest 0 2
 $global_determinator blended 0 1
 $invalid_state 2 alphatest 1 2 shadertype 6 8
 $shader_vertex $begin
-#version 130
+#version 460
 
 uniform mat4 projection;
 uniform mat4 modelview;
@@ -170,7 +170,7 @@ void main()
 }
 $end
 $shader_fragment $begin
-#version 130
+#version 460
 #define M_PI 3.14159265358979323846264338327950288
 
 uniform samplerCube cubemap;
@@ -609,7 +609,7 @@ float h1(float a)
 	return 1.0 + w3(a) / (w2(a) + w3(a));
 }
 
-vec4 texture2D_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) 
+vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) 
 {
 	vec2 texel_size = vec2(1.0) / texture_size;
 
@@ -638,7 +638,7 @@ vec4 SampleLightmap(sampler2D tex, vec2 uv)
 {
 	if (d_lightmap_bicubic == 1) 
 	{
-		return texture2D_bicubic(tex, uv, vec2(textureSize(tex, 0)));
+		return texture_bicubic(tex, uv, vec2(textureSize(tex, 0)));
 	} 
 	else 
 	{
@@ -905,7 +905,7 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao, float mraoAl
 	$branch shadertype == 0
 	$begin
 		vec4 texColor = GetMainTexture(uv);
-		vec4 detailTexColor = texture2D(detailtex, ps_dtexcoord);
+		vec4 detailTexColor = texture(detailtex, ps_dtexcoord);
 		
 		finalColor = finalColor*texColor*detailTexColor;
 		finalColor.xyz = finalColor.xyz*4;
@@ -925,7 +925,7 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao, float mraoAl
 		finalColor = lightColor*texColor;
 		finalColor.xyz = finalColor.xyz*2;
 
-		vec4 chromeTex = texture2D(chrometex, ps_chromecoord);
+		vec4 chromeTex = texture(chrometex, ps_chromecoord);
 		finalColor.xyz += chromeTex.xyz*lightColor.xyz*2*color.w;
 	$end
 	
@@ -1174,7 +1174,7 @@ void main()
 	$branch shadertype == 9
 	$begin
 		vec4 tex0 = GetMainTexture(texCoord);
-		vec4 tex1 = texture2D(detailtex, ps_dtexcoord);
+		vec4 tex1 = texture(detailtex, ps_dtexcoord);
 		finalColor = tex0*tex1;
 		finalColor.xyz = finalColor.xyz*2;
 		finalColor = finalColor*color;
@@ -1184,7 +1184,7 @@ void main()
 	$branch shadertype == 10
 	$begin
 		finalColor = GetMainTexture(texCoord);
-		vec4 tex1 = texture2D(detailtex, ps_dtexcoord);
+		vec4 tex1 = texture(detailtex, ps_dtexcoord);
 		finalColor.a = finalColor.a*tex1.a;
 		finalColor.xyz = (decalalpha * finalColor.xyz) + (1.0 - decalalpha) * vec3(0.5, 0.5, 0.5);
 	$end
