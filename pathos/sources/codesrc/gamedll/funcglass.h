@@ -32,12 +32,18 @@
 class CFuncGlass : public CFuncWall
 {
 public:
-	explicit CFuncGlass(edict_t* pedict);
-	virtual ~CFuncGlass(void);
+	enum
+	{
+		FL_START_OFF = (1 << 0)
+	};
+public:
+	explicit CFuncGlass( edict_t* pedict );
+	virtual ~CFuncGlass( void );
 
 public:
-	virtual bool Spawn(void) override;
-	virtual bool KeyValue(const keyvalue_t& kv) override;
-	virtual bool CanEntityBeParented(void) const override { return true; }
+	virtual bool Spawn( void ) override;
+	virtual bool KeyValue( const keyvalue_t& kv ) override;
+	virtual void CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value ) override;
+	virtual bool CanEntityBeParented( void ) const override { return true; }
 };
 #endif // FUNCGLASS_H

@@ -25,6 +25,7 @@
 #include "gd_includes.h"
 #include "funcglass.h"
 
+// Link the entity to its class
 LINK_ENTITY_TO_CLASS(func_glass, CFuncGlass);
 
 //=============================================
@@ -78,5 +79,31 @@ bool CFuncGlass::Spawn( void )
 	if (m_pState->scale <= 0.0f)
 		m_pState->scale = 0.05f;
 
+	if (HasSpawnFlag(FL_START_OFF))
+		m_pState->effects |= EF_NODRAW;
+
 	return true;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CFuncGlass::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usemode_t useMode, Float value )
+{
+	switch (useMode)
+	{
+	case USE_ON:
+		m_pState->effects &= ~EF_NODRAW;
+		break;
+	case USE_OFF:
+		m_pState->effects |= EF_NODRAW;
+		break;
+	case USE_TOGGLE:
+		if (m_pState->effects & EF_NODRAW)
+			m_pState->effects &= ~EF_NODRAW;
+		else
+			m_pState->effects |= EF_NODRAW;
+		break;
+	}
 }
