@@ -782,11 +782,14 @@ void CBulletPhysics::SyncPhysicsToEntity(edict_t* pedict, Uint32 entindex)
 
 	Float mat[3][4];
 	vec4_t vq;
-	vq[0] = rot.x(); vq[1] = rot.y(); vq[2] = rot.z(); vq[3] = rot.w();
+	vq[0] = rot.x(); 
+	vq[1] = rot.y(); 
+	vq[2] = rot.z(); 
+	vq[3] = rot.w();
 
 	Math::QuaternionMatrix(vq, mat);
 
-	pedict->state.angles.x = -SDL_asin(clamp(mat[2][0], -1.0f, 1.0f)) * (180.0f / M_PI);
+	pedict->state.angles.x = SDL_asin(mat[2][0]) * (180.0f / M_PI);
 	pedict->state.angles.y = SDL_atan2(mat[1][0], mat[0][0]) * (180.0f / M_PI);
 	pedict->state.angles.z = SDL_atan2(mat[2][1], mat[2][2]) * (180.0f / M_PI);
 

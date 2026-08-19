@@ -1770,6 +1770,11 @@
 		2 : "Loop Video" : 0
 	]
 ]
+@SolidClass base(Targetname, ParentedEnt, Appearflags) = func_glass : "Refractive Glass Entity"
+[
+	normalid(integer) : "Normalmap Index (loads textures/general/glass_N.dds)" : 0
+	amount(string) : "Distortion Amount" : "0.05"
+]
 @SolidClass base(RenderFields) = func_null : "Null brush entity" 
 [
   zhlt_noclip(integer) : "Noclip" : 1
