@@ -34,7 +34,7 @@ jobs:
         with:
           name: matrix-engine-x64-Release
           path: |
-            matrix_x64.exe
+            matrix-engine.exe
             pathos/dlls/client_x64.dll
             pathos/dlls/game_x64.dll
 
