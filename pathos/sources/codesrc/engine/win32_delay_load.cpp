@@ -35,6 +35,13 @@ Other libraries (like OpenAL) are handled by SDL itself so it's unnecessary to a
 #define ARCH_LIBRARY_PATH "x86"
 #endif
 
+#if defined(_MSC_VER)
+extern "C" {
+	typedef double (*_pfn_ldexp_t)(double, int);
+	__declspec(selectany) _pfn_ldexp_t __imp_ldexp = (_pfn_ldexp_t)&ldexp;
+}
+#endif
+
 //=============================================
 // @brief Utility function to show error message boxes.
 // Pass "nullptr" to "szProcedure" if SDL2 is being loaded 
