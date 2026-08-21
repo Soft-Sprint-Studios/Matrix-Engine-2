@@ -18,13 +18,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Build Solution
+      - name: Configure CMake
         run: |
-          msbuild pathos/sources/codesrc/matrix-engine.sln /p:Configuration=Release /p:Platform=x64
+          cmake -B pathos/sources/codesrc/build_windows_x64 -S pathos/sources/codesrc -G "Visual Studio 17 2022" -A x64
+
+      - name: Build with CMake
+        run: |
+          cmake --build pathos/sources/codesrc/build_windows_x64 --config Release --parallel
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
