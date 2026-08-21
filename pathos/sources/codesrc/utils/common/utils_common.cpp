@@ -9,9 +9,6 @@ All Rights Reserved.
 
 
 #include <SDL3/SDL.h>
-#ifdef WIN32
-#include <Windows.h>
-#endif
 
 #include "includes.h"
 #include "utils_common.h"
@@ -95,12 +92,12 @@ void ErrorMsg( const Char *fmt, ... )
 //===============================================
 bool DirectoryExists( const Char* dirPath )
 {
-	DWORD ftyp = GetFileAttributesA(dirPath);
-	if (ftyp == INVALID_FILE_ATTRIBUTES)
-		return false;  //something is wrong with your path!
+	SDL_PathInfo info;
+	if (!SDL_GetPathInfo(dirPath, &info))
+		return false;  // Something is wrong with your path or it doesn't exist!
 
-	if (ftyp & FILE_ATTRIBUTE_DIRECTORY)
-		return true;   // this is a directory!
+	if (info.type == SDL_PATHTYPE_DIRECTORY)
+		return true;   // This is a directory!
 
-	return false;    // this is not a directory!
+	return false;    // This is not a directory!
 }

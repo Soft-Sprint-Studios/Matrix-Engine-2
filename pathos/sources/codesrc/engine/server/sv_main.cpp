@@ -2519,7 +2519,7 @@ Float SV_GetWAVFileDuration( const Char* pstrfilename )
 		if(pbegin >= pend)
 			break;
 
-		DWORD ilength = Common::ByteToInt32(pbegin+4);
+		Uint32 ilength = Common::ByteToInt32(pbegin+4);
 		Common::ScaleByte(&ilength);
 
 		if(!strncmp(reinterpret_cast<const char*>(pbegin), "fmt ", 4))

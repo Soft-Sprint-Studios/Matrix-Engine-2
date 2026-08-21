@@ -7,9 +7,6 @@ All Rights Reserved.
 ===============================================
 */
 #include <SDL3/SDL.h>
-#ifdef WIN32
-#include <Windows.h>
-#endif
 
 #include "includes.h"
 #include "utils_filefuncs.h"
@@ -188,26 +185,22 @@ Int32 FL_CompareFileDates( const file_dateinfo_t& d1, const file_dateinfo_t& d2 
 //=============================================
 bool FL_GetFileDate( const Char* pstrFile, file_dateinfo_t& dateinfo )
 {
-	WIN32_FIND_DATAA findData;
-	HANDLE hFile = FindFirstFileA(pstrFile, &findData);
-	if(hFile == INVALID_HANDLE_VALUE)
+	SDL_PathInfo info;
+	if(!SDL_GetPathInfo(pstrFile, &info))
 		return false;
 
-	SYSTEMTIME sysTime;
-	if(!FileTimeToSystemTime(&findData.ftLastWriteTime, &sysTime))
-	{
-		FindClose(hFile);
+	time_t modtime = (time_t)(info.modify_time / SDL_NS_PER_SECOND);
+	struct tm* t = localtime(&modtime);
+	if(!t)
 		return false;
-	}
 
-	dateinfo.year = sysTime.wYear;
-	dateinfo.month = sysTime.wMonth;
-	dateinfo.day = sysTime.wDay;
-	dateinfo.hour = sysTime.wHour;
-	dateinfo.minute = sysTime.wMinute;
-	dateinfo.second = sysTime.wSecond;
+	dateinfo.year = t->tm_year + 1900;
+	dateinfo.month = t->tm_mon + 1;
+	dateinfo.day = t->tm_mday;
+	dateinfo.hour = t->tm_hour;
+	dateinfo.minute = t->tm_min;
+	dateinfo.second = t->tm_sec;
 
-	FindClose(hFile);
 	return true;
 }
 
@@ -219,15 +212,7 @@ bool FL_GetFileDate( const Char* pstrFile, file_dateinfo_t& dateinfo )
 //=============================================
 bool FL_CreateDirectory( const Char* pstrpath )
 {
-	DWORD type = GetFileAttributesA(pstrpath);
-	if(type == INVALID_FILE_ATTRIBUTES)
-		return CreateDirectoryA(pstrpath, nullptr) ? true : false;
-
-	// Check if it's a directory
-	if(type & FILE_ATTRIBUTE_DIRECTORY)
-		return true;
-
-	return false;
+	return SDL_CreateDirectory(pstrpath);
 }
 
 //=============================================

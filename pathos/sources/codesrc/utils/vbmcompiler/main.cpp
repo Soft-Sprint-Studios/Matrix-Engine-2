@@ -16,9 +16,6 @@ All Rights Reserved.
 #pragma warning( disable : 4305 )
 
 #include <SDL3/SDL.h>
-#ifdef WIN32
-#include <Windows.h>
-#endif
 
 #include <stdarg.h>
 
@@ -185,7 +182,7 @@ void OnExitApplication( bool forceKeyInput )
 // @param argv Array of command arguments
 // @return Exit code
 //===============================================
-int _tmain(Int32 argc, _TCHAR* argv[])
+Int32 main(Int32 argc, Char* argv[])
 {
 	// Check for usage
 	if(argc < 2)

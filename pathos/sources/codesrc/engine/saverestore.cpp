@@ -129,20 +129,23 @@ void CSaveRestore::CleanSaveFiles( const Char* pstrLastSave )
 {
 	// Load save files list
 	CString searchPath;
-	searchPath << ens.gamedir << PATH_SLASH_CHAR << SAVE_DIR_PATH << "*" << SAVE_FILE_EXTENSION;
+	searchPath << ens.gamedir << PATH_SLASH_CHAR << SAVE_DIR_PATH;
+
+	CString globPattern;
+	globPattern << "*" << SAVE_FILE_EXTENSION;
 
 	// List of saves that are not referenced by master saves
 	CLinkedList<CString> unreferencedSavesList;
 
 	// First add all PSF files to the list
-	WIN32_FIND_DATAA findData;
-	HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findData);
-	if(hFind != INVALID_HANDLE_VALUE)
+	int count = 0;
+	char** files = SDL_GlobDirectory(searchPath.c_str(), globPattern.c_str(), 0, &count);
+	if(files)
 	{
-		do
+		for(int i = 0; i < count; i++)
 		{
 			CString filePath;
-			filePath << CSaveRestore::SAVE_DIR_PATH << findData.cFileName;
+			filePath << CSaveRestore::SAVE_DIR_PATH << files[i];
 
 			if(qstrcmp(filePath, pstrLastSave))
 			{
@@ -164,20 +167,18 @@ void CSaveRestore::CleanSaveFiles( const Char* pstrLastSave )
 						unreferencedSavesList.radd(filePath);
 				}
 			}
-
-		} while(FindNextFileA(hFind, &findData));
-		
-		FindClose(hFind);
+		}
+		SDL_free(files);
 	}
 
 	// Now remove all save files which are not referenced
-	hFind = FindFirstFileA(searchPath.c_str(), &findData);
-	if(hFind != INVALID_HANDLE_VALUE)
+	files = SDL_GlobDirectory(searchPath.c_str(), globPattern.c_str(), 0, &count);
+	if(files)
 	{
-		do
+		for(int i = 0; i < count; i++)
 		{
 			CString filePath;
-			filePath << CSaveRestore::SAVE_DIR_PATH << findData.cFileName;
+			filePath << CSaveRestore::SAVE_DIR_PATH << files[i];
 			
 			const byte* psavefile = LoadSaveFile(filePath.c_str());
 			if(psavefile)
@@ -193,10 +194,8 @@ void CSaveRestore::CleanSaveFiles( const Char* pstrLastSave )
 				}
 			}
 			FreeSaveFile(psavefile);
-
-		} while(FindNextFileA(hFind, &findData));
-		
-		FindClose(hFind);
+		}
+		SDL_free(files);
 	}
 
 	// Try to delete the files
@@ -224,34 +223,44 @@ bool CSaveRestore::GetMostRecentSave( CString* pOutput )
 {
 	// Load save files list
 	CString searchPath;
-	searchPath << ens.gamedir << PATH_SLASH_CHAR << SAVE_DIR_PATH << "*" << SAVE_FILE_EXTENSION;
+	searchPath << ens.gamedir << PATH_SLASH_CHAR << SAVE_DIR_PATH;
+
+	CString globPattern;
+	globPattern << "*" << SAVE_FILE_EXTENSION;
 
 	file_dateinfo_t lastBestDate;
 	CString lastBestFilename;
 
-	WIN32_FIND_DATAA findData;
-	HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findData);
-	if(hFind != INVALID_HANDLE_VALUE)
+	int count = 0;
+	char** files = SDL_GlobDirectory(searchPath.c_str(), globPattern.c_str(), 0, &count);
+	if(files)
 	{
-		do
+		for(int i = 0; i < count; i++)
 		{
 			CString filePath;
-			filePath << CSaveRestore::SAVE_DIR_PATH << findData.cFileName;
+			CString fullPath;
+			fullPath << ens.gamedir << PATH_SLASH_CHAR << CSaveRestore::SAVE_DIR_PATH << files[i];
+			filePath << CSaveRestore::SAVE_DIR_PATH << files[i];
 			
 			savefile_type_t type = GetSaveFileType(filePath.c_str());
 			if(type != SAVE_TRANSITION && type != SAVE_MAPSAVE && type != SAVE_UNDEFINED)
 			{
-				SYSTEMTIME sysTime;
-				if(!FileTimeToSystemTime(&findData.ftLastWriteTime, &sysTime))
-					Con_EPrintf("Failed to get file creation time for '%s'.\n", filePath.c_str());
+				SDL_PathInfo info;
+				if(!SDL_GetPathInfo(fullPath.c_str(), &info))
+					Con_EPrintf("Failed to get file info for '%s'.\n", fullPath.c_str());
+
+				time_t modtime = (time_t)(info.modify_time / SDL_NS_PER_SECOND);
+				struct tm* t = localtime(&modtime);
+				if(!t)
+					continue;
 
 				file_dateinfo_t fd;
-				fd.year = sysTime.wYear;
-				fd.month = sysTime.wMonth;
-				fd.day = sysTime.wDay;
-				fd.hour = sysTime.wHour;
-				fd.minute = sysTime.wMinute;
-				fd.second = sysTime.wSecond;
+				fd.year = t->tm_year + 1900;
+				fd.month = t->tm_mon + 1;
+				fd.day = t->tm_mday;
+				fd.hour = t->tm_hour;
+				fd.minute = t->tm_min;
+				fd.second = t->tm_sec;
 
 				if(FL_CompareFileDates(lastBestDate, fd) == 1)
 				{
@@ -259,9 +268,8 @@ bool CSaveRestore::GetMostRecentSave( CString* pOutput )
 					lastBestFilename = filePath;
 				}
 			}
-		} while(FindNextFileA(hFind, &findData));
-		
-		FindClose(hFind);
+		}
+		SDL_free(files);
 	}
 
 	if(lastBestFilename.empty())

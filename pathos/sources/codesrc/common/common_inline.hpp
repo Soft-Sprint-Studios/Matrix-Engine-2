@@ -655,12 +655,12 @@ namespace Common
 	}
 
 	//====================================
-	// @brief Takes an input DWORD pointer and modifies it's value to
+	// @brief Takes an input pointer and modifies it's value to
 	// ensure that it's is divisible by 2. Used for parsing WAVs
 	//
 	// @param nInput Pointer to the input value
 	//====================================
-	inline void ScaleByte( DWORD *nInput )
+	inline void ScaleByte( Uint32 *nInput )
 	{
 		if(*nInput % 2 != 0)
 		{

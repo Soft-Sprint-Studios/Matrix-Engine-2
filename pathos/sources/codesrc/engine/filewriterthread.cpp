@@ -16,7 +16,7 @@ All Rights Reserved.
 writerthread_t g_fileThreadData;
 
 // File writer thread function
-extern DWORD WINAPI FileWriterThread( LPVOID lpParam );
+static int SDLCALL FileWriterThread( void* lpParam );
 
 //=============================================
 // @brief
@@ -24,18 +24,32 @@ extern DWORD WINAPI FileWriterThread( LPVOID lpParam );
 //=============================================
 void FWT_Init( void )
 {
-	InitializeCriticalSection(&g_fileThreadData.criticalsection);
-	InitializeConditionVariable(&g_fileThreadData.condition);
-
-	g_fileThreadData.exitevent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-	if(!g_fileThreadData.exitevent)
+	g_fileThreadData.mutex = SDL_CreateMutex();
+	if(!g_fileThreadData.mutex)
 	{
-		Con_Printf("Failed to initialize file writer thread.\n");
+		Con_Printf("Failed to initialize file writer mutex: %s\n", SDL_GetError());
 		return;
 	}
 
-	DWORD threadId;
-	g_fileThreadData.threadhandle = CreateThread(nullptr, 0, FileWriterThread, &g_fileThreadData, 0, &threadId);
+	g_fileThreadData.condition = SDL_CreateCondition();
+	if(!g_fileThreadData.condition)
+	{
+		Con_Printf("Failed to initialize file writer condition variable: %s\n", SDL_GetError());
+		SDL_DestroyMutex(g_fileThreadData.mutex);
+		g_fileThreadData.mutex = nullptr;
+		return;
+	}
+
+	g_fileThreadData.threadhandle = SDL_CreateThread(FileWriterThread, "FileWriterThread", &g_fileThreadData);
+	if(!g_fileThreadData.threadhandle)
+	{
+		Con_Printf("Failed to initialize file writer thread: %s\n", SDL_GetError());
+		SDL_DestroyCondition(g_fileThreadData.condition);
+		SDL_DestroyMutex(g_fileThreadData.mutex);
+		g_fileThreadData.condition = nullptr;
+		g_fileThreadData.mutex = nullptr;
+		return;
+	}
 
 	// Mark file writer as available
 	g_fileThreadData.available = true;
@@ -50,15 +64,28 @@ void FWT_Shutdown( void )
 	if(!g_fileThreadData.available)
 		return;
 
-	SetEvent(g_fileThreadData.exitevent);
-	WakeConditionVariable(&g_fileThreadData.condition);
+	SDL_LockMutex(g_fileThreadData.mutex);
+	g_fileThreadData.exit = true;
+	SDL_UnlockMutex(g_fileThreadData.mutex);
 
-	WaitForSingleObject(g_fileThreadData.threadhandle, INFINITE);
+	SDL_SignalCondition(g_fileThreadData.condition);
 
-	CloseHandle(g_fileThreadData.threadhandle);
-	CloseHandle(g_fileThreadData.exitevent);
+	SDL_WaitThread(g_fileThreadData.threadhandle, nullptr);
+	g_fileThreadData.threadhandle = nullptr;
 
-	DeleteCriticalSection(&g_fileThreadData.criticalsection);
+	if(g_fileThreadData.condition)
+	{
+		SDL_DestroyCondition(g_fileThreadData.condition);
+		g_fileThreadData.condition = nullptr;
+	}
+
+	if(g_fileThreadData.mutex)
+	{
+		SDL_DestroyMutex(g_fileThreadData.mutex);
+		g_fileThreadData.mutex = nullptr;
+	}
+
+	g_fileThreadData.available = false;
 }
 
 //=============================================
@@ -89,12 +116,12 @@ bool FWT_AddFile( const Char* pstrFilename, const byte* pData, Uint32 dataSize, 
 	pnew->filename = pstrFilename;
 
 	// Add to list
-	EnterCriticalSection(&g_fileThreadData.criticalsection);
+	SDL_LockMutex(g_fileThreadData.mutex);
 	g_fileThreadData.fileslist.radd(pnew);
-	LeaveCriticalSection(&g_fileThreadData.criticalsection);
+	SDL_UnlockMutex(g_fileThreadData.mutex);
 
 	// Wake writer thread
-	WakeConditionVariable(&g_fileThreadData.condition);
+	SDL_SignalCondition(g_fileThreadData.condition);
 
 	return true;
 }
@@ -103,19 +130,26 @@ bool FWT_AddFile( const Char* pstrFilename, const byte* pData, Uint32 dataSize, 
 // @brief
 //
 //=============================================
-DWORD WINAPI FileWriterThread( LPVOID lpParam )
+static int SDLCALL FileWriterThread( void* lpParam )
 {
 	writerthread_t* pThreadData = static_cast<writerthread_t*>(lpParam);
 
-	while(!pThreadData->exit)
+	while(true)
 	{
-		if(WaitForSingleObject(pThreadData->exitevent, 0) == WAIT_OBJECT_0)
+		// Enter critical section (lock mutex)
+		SDL_LockMutex(pThreadData->mutex);
+
+		// Wait until there is work or we are exiting
+		while (pThreadData->fileslist.empty() && !pThreadData->exit)
 		{
-			ExitThread(0);
+			SDL_WaitCondition(pThreadData->condition, pThreadData->mutex);
 		}
 
-		// Enter critical section
-		EnterCriticalSection(&pThreadData->criticalsection);
+		if(pThreadData->exit && pThreadData->fileslist.empty())
+		{
+			SDL_UnlockMutex(pThreadData->mutex);
+			break;
+		}
 
 		if(!pThreadData->fileslist.empty())
 		{
@@ -125,6 +159,9 @@ DWORD WINAPI FileWriterThread( LPVOID lpParam )
 				// Get file pointer and remove from list
 				threadfile_t* pfile = pThreadData->fileslist.get();
 				pThreadData->fileslist.remove(pThreadData->fileslist.get_link());
+
+				// Temporarily unlock mutex while doing I/O operations to prevent blocking main thread additions for too long
+				SDL_UnlockMutex(pThreadData->mutex);
 
 				CString filename;
 				if(!pfile->incremental)
@@ -176,16 +213,15 @@ DWORD WINAPI FileWriterThread( LPVOID lpParam )
 				// Delete file object
 				delete pfile;
 
+				// Re-acquire lock for list iteration
+				SDL_LockMutex(pThreadData->mutex);
+
 				// Move onto next file
 				pThreadData->fileslist.next();
 			}
 		}
 
-		LeaveCriticalSection(&pThreadData->criticalsection);
-
-		// Wait until next opportunity
-		if(!SleepConditionVariableCS(&pThreadData->condition, &pThreadData->criticalsection, INFINITE))
-			FWT_Con_Printf(pThreadData, "File writer thread couldn't sleep.\n");
+		SDL_UnlockMutex(pThreadData->mutex);
 	}
 
 	return 0;
@@ -208,9 +244,9 @@ void FWT_Con_Printf( writerthread_t* pThreadData, const Char *fmt, ... )
 	va_end(vArgPtr);
 
 	// Enter critical section
-	EnterCriticalSection(&pThreadData->criticalsection);
+	SDL_LockMutex(pThreadData->mutex);
 	pThreadData->consoleprints.radd(cMsg);
-	LeaveCriticalSection(&pThreadData->criticalsection);
+	SDL_UnlockMutex(pThreadData->mutex);
 }
 
 //=============================================
@@ -225,11 +261,11 @@ void FWT_GetConsolePrints( CArray<CString>& destArray )
 		return;
 
 	// Enter critical section
-	EnterCriticalSection(&g_fileThreadData.criticalsection);
+	SDL_LockMutex(g_fileThreadData.mutex);
 
 	if(g_fileThreadData.consoleprints.empty())
 	{
-		LeaveCriticalSection(&g_fileThreadData.criticalsection);
+		SDL_UnlockMutex(g_fileThreadData.mutex);
 		return;
 	}
 
@@ -245,5 +281,5 @@ void FWT_GetConsolePrints( CArray<CString>& destArray )
 	g_fileThreadData.consoleprints.clear();
 
 	// Leave critical section
-	LeaveCriticalSection(&g_fileThreadData.criticalsection);
+	SDL_UnlockMutex(g_fileThreadData.mutex);
 }

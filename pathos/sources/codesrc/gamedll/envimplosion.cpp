@@ -163,7 +163,7 @@ void CEnvImplosion::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usem
 // @brief
 //
 //=============================================
-VOID CEnvImplosion::SpawnThink( void )
+void CEnvImplosion::SpawnThink( void )
 {
 	Uint32 spawnRate = m_tracerCount / m_duration;
 	Double intervalTime = g_pGameVars->time - m_lastSpawnTime;

@@ -10,8 +10,6 @@ All Rights Reserved.
 #ifndef INCLUDES_H
 #define INCLUDES_H
 
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
 
@@ -21,7 +19,6 @@ All Rights Reserved.
 #include <exception>
 
 #include <stdlib.h>
-#include <tchar.h>
 #include <stdio.h>
 
 #include "datatypes.h"

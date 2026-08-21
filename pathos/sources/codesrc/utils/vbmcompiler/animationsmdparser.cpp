@@ -7,9 +7,6 @@ All Rights Reserved.
 ===============================================
 */
 #include <SDL3/SDL.h>
-#ifdef WIN32
-#include <Windows.h>
-#endif
 
 #include "includes.h"
 #include "studiocompiler.h"

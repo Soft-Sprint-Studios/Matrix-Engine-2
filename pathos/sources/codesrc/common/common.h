@@ -242,7 +242,7 @@ namespace Common
 	extern inline Int64 RandomLong( Int64 low, Int64 high );
 	extern inline bool IsNAN( Float value );
 	extern inline Float SplineFraction( Float value, Float scale );
-	extern inline void ScaleByte( DWORD *nInput );
+	extern inline void ScaleByte( Uint32 *nInput );
 	extern inline CString FixSlashes( const Char* pstring );
 	extern inline bool CheckVisibility( const CArray<Uint32>& leafnums, Uint32 numleafs, const byte* pset );
 	extern bool GetWADList( const Char* pstrEntityData, CArray<CString>& outputArray );

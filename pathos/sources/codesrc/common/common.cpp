@@ -7,10 +7,6 @@ All Rights Reserved.
 ===============================================
 */
 
-#ifdef WIN32
-#include <Windows.h>
-#endif
-
 #include <time.h>
 #include <SDL3/SDL.h>
 

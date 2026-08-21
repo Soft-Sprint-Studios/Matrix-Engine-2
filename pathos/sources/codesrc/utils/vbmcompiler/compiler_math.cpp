@@ -8,9 +8,6 @@ All Rights Reserved.
 */
 
 #include <SDL3/SDL.h>
-#ifdef WIN32
-#include <Windows.h>
-#endif
 
 #include "compiler_math.h"
 #include "com_math.h"

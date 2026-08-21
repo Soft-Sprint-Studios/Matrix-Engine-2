@@ -106,7 +106,7 @@ public:
 
 private:
 	// Retrieves save file info
-	void AddSaveFileInfo( const CString& filePath, FILETIME& fileTime );
+	void AddSaveFileInfo( const CString& filePath, const file_dateinfo_t& fileTime );
 	// Sets background texture
 	void SetBackgroundTexture( save_file_t* psave );
 	// Creates a save file row

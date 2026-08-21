@@ -37,9 +37,7 @@ All Rights Reserved.
 #include "r_main.h"
 #include "window.h"
 
-#ifdef PlaySound
 #undef PlaySound
-#endif
 
 #ifdef _64BUILD
 // OpenAL library path
@@ -1241,7 +1239,7 @@ bool CSoundEngine::LoadSoundData( const Char *sample, snd_cache_t* pcache, Int32
 		if(pbegin >= pend)
 			break;
 
-		DWORD ilength = Common::ByteToInt32(pbegin+4);
+		Uint32 ilength = Common::ByteToInt32(pbegin+4);
 		Common::ScaleByte(&ilength);
 
 		if(!strncmp(reinterpret_cast<const char*>(pbegin), "fmt ", 4))

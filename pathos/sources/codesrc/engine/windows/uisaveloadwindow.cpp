@@ -170,7 +170,7 @@ CUISaveLoadWindow* CUISaveLoadWindow::GetInstance( void )
 // @brief Returns the current instance of the console window
 //
 //=============================================
-void CUISaveLoadWindow::AddSaveFileInfo( const CString& filePath, FILETIME& fileTime )
+void CUISaveLoadWindow::AddSaveFileInfo( const CString& filePath, const file_dateinfo_t& fileTime )
 {
 	// Load the file
 	const byte* pdata = gSaveRestore.LoadSaveFile(filePath.c_str());
@@ -186,45 +186,24 @@ void CUISaveLoadWindow::AddSaveFileInfo( const CString& filePath, FILETIME& file
 	}
 
 	// Get file time
-	SYSTEMTIME sysTime;
-	if(!FileTimeToSystemTime(&fileTime, &sysTime))
-	{
-		Con_EPrintf("Failed to get file creation time for '%s'. Error code returned is %d.\n", filePath.c_str(), GetLastError());
-		return;
-	}
-	
-	TIME_ZONE_INFORMATION tzInfo;
-	if(!GetTimeZoneInformation(&tzInfo))
-	{
-		Con_EPrintf("Failed to get time zone info for '%s'. Error code returned is %d.\n", filePath.c_str(), GetLastError());
-		return;
-	}
-
-	SYSTEMTIME tzTime;
-	if(!SystemTimeToTzSpecificLocalTime(&tzInfo, &sysTime, &tzTime))
-	{
-		Con_EPrintf("Failed to get time zone specific time information for '%s'. Error code returned is %d.\n", filePath.c_str(), GetLastError());
-		return;
-	}
-
 	CString dateString;
-	dateString << tzTime.wYear << "/";
-	
-	if(tzTime.wMonth < 10)
-		dateString << '0';
-	dateString << tzTime.wMonth << "/";
+	dateString << fileTime.year << "/";
 
-	if(tzTime.wDay < 10)
+	if(fileTime.month < 10)
 		dateString << '0';
-	dateString << tzTime.wDay << " - ";
-	
-	if(tzTime.wHour < 10)
+	dateString << fileTime.month << "/";
+
+	if(fileTime.day < 10)
 		dateString << '0';
-	dateString << tzTime.wHour << ":";
-	
-	if(tzTime.wMinute < 10)
+	dateString << fileTime.day << " - ";
+
+	if(fileTime.hour < 10)
 		dateString << '0';
-	dateString << tzTime.wMinute;
+	dateString << fileTime.hour << ":";
+
+	if(fileTime.minute < 10)
+		dateString << '0';
+	dateString << fileTime.minute;
 
 	save_file_t saveFile;
 
@@ -235,12 +214,7 @@ void CUISaveLoadWindow::AddSaveFileInfo( const CString& filePath, FILETIME& file
 	saveFile.datestring = dateString;
 	saveFile.type = pheader->type;
 
-	saveFile.date.year = tzTime.wYear;
-	saveFile.date.month = tzTime.wMonth;
-	saveFile.date.day = tzTime.wDay;
-	saveFile.date.hour = tzTime.wHour;
-	saveFile.date.minute = tzTime.wMinute;
-	saveFile.date.second = tzTime.wSecond;
+	saveFile.date = fileTime;
 
 	m_saveFilesArray.push_back(saveFile);
 
@@ -567,23 +541,28 @@ void CUISaveLoadWindow::LoadSaves( bool isIngame )
 	}
 
 	// Load save files list
-	CString searchPath;
-	searchPath << ens.gamedir << PATH_SLASH_CHAR << CSaveRestore::SAVE_DIR_PATH << "*" << SAVE_FILE_EXTENSION;
+	CString saveDirectory;
+	saveDirectory << ens.gamedir << PATH_SLASH_CHAR << CSaveRestore::SAVE_DIR_PATH;
 
-	WIN32_FIND_DATAA findData;
-	HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findData);
-	if(hFind != INVALID_HANDLE_VALUE)
+	CString pattern;
+	pattern << "*" << SAVE_FILE_EXTENSION;
+
+	int numFiles = 0;
+	char** files = SDL_GlobDirectory(saveDirectory.c_str(), pattern.c_str(), SDL_GLOB_CASEINSENSITIVE, &numFiles);
+
+	if(files)
 	{
-		do
+		for(int i = 0; i < numFiles; i++)
 		{
 			CString filePath;
-			filePath << CSaveRestore::SAVE_DIR_PATH << findData.cFileName;
-			
-			AddSaveFileInfo(filePath, findData.ftLastWriteTime);
+			filePath << CSaveRestore::SAVE_DIR_PATH << files[i];
 
-		} while(FindNextFileA(hFind, &findData));
-		
-		FindClose(hFind);
+			file_dateinfo_t fileDate;
+			if(FL_GetFileDate(filePath.c_str(), fileDate))
+				AddSaveFileInfo(filePath, fileDate);
+		}
+
+		SDL_free(files);
 	}
 
 	// Re-organize save files based on date

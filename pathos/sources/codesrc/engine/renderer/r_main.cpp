@@ -6146,23 +6146,25 @@ void Cmd_ShowListMaterial( void )
 void Cmd_LoadAllParticleScripts( void )
 {
 	CString searchpath;
-	searchpath << ens.gamedir << PARTICLE_SCRIPT_PATH << "*.txt";
+	searchpath << ens.gamedir << PARTICLE_SCRIPT_PATH;
 
-	// Parse directory for files
-	HANDLE dir;
-	WIN32_FIND_DATA file_data;
-	if ((dir = FindFirstFile(searchpath.c_str(), &file_data)) == INVALID_HANDLE_VALUE)
+	int fileCount = 0;
+	char** files = SDL_GlobDirectory(searchpath.c_str(), "*.txt", 0, &fileCount);
+	
+	if(!files)
 	{
-		printf("Directory %s not found.\n", searchpath.c_str());
+		printf("Directory %s not found or empty.\n", searchpath.c_str());
 		return;
 	}
 
-	while (true) 
+	for(int i = 0; i < fileCount; i++)
 	{
-		if (qstrcmp(file_data.cFileName, ".") != 0 && qstrcmp(file_data.cFileName, "..") != 0 && qstrstr(file_data.cFileName, ".txt"))
+		CString fileName = files[i];
+
+		if(qstrcmp(fileName.c_str(), ".") != 0 && qstrcmp(fileName.c_str(), "..") != 0)
 		{
 			CString path;
-			path << PARTICLE_SCRIPT_PATH << file_data.cFileName;
+			path << PARTICLE_SCRIPT_PATH << fileName.c_str();
 
 			const byte* pf = FL_LoadFile(path.c_str());
 			if(pf)
@@ -6171,16 +6173,14 @@ void Cmd_LoadAllParticleScripts( void )
 				Common::Parse(reinterpret_cast<const Char*>(pf), token);
 
 				if(!qstrcmp(token, "$particlescript"))
-					gParticleEngine.PrecacheScript(PART_SCRIPT_SYSTEM, file_data.cFileName, false);
+					gParticleEngine.PrecacheScript(PART_SCRIPT_SYSTEM, fileName.c_str(), false);
 				else
-					gParticleEngine.PrecacheScript(PART_SCRIPT_CLUSTER, file_data.cFileName, false);
+					gParticleEngine.PrecacheScript(PART_SCRIPT_CLUSTER, fileName.c_str(), false);
 			}
-
 		}
-
-		if(!FindNextFile(dir, &file_data))
-			break;
 	}
+	
+	SDL_free(files);
 }
 
 //====================================

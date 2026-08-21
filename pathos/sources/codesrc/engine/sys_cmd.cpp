@@ -94,25 +94,29 @@ void Cmd_ListMaps()
 	CString searchPath;
 	searchPath << ens.gamedir << PATH_SLASH_CHAR << "maps" << PATH_SLASH_CHAR << "*.bsp";
 
-	WIN32_FIND_DATA fileData;
-	HANDLE hFind = FindFirstFile(searchPath.c_str(), &fileData);
-	if (hFind == INVALID_HANDLE_VALUE) 
+	CString searchDirectory;
+	searchDirectory << ens.gamedir << PATH_SLASH_CHAR << "maps";
+
+	int numFiles = 0;
+	char** files = SDL_GlobDirectory(searchDirectory.c_str(), "*.bsp", SDL_GLOB_CASEINSENSITIVE, &numFiles);
+	if(!files)
 	{
 		Con_Printf("Error: Failed to parse '%s' for level list.\n", searchPath.c_str());
 		return;
 	}
 
 	CArray<CString> mapNames;
-	do 
+	for(int i = 0; i < numFiles; ++i)
 	{
-		CString mapFilePath(fileData.cFileName);
+		CString mapFilePath(files[i]);
 		Int32 dotPosition = mapFilePath.find(0, ".");
 		if(dotPosition != CString::CSTRING_NO_POSITION)
 			mapFilePath.erase(dotPosition, mapFilePath.length()-dotPosition);
 
 		mapNames.push_back(mapFilePath);
-	} 
-	while (FindNextFile(hFind, &fileData) != 0);
+	}
+
+	SDL_free(files);
 
 	if(mapNames.empty())
 	{
@@ -121,7 +125,7 @@ void Cmd_ListMaps()
 	}
 
 	Con_Printf("List of maps found under search path '%s':\n", searchPath.c_str());
-	for (Uint32 i = 0; i < mapNames.size(); ++i)
+	for(Uint32 i = 0; i < mapNames.size(); ++i)
 		Con_Printf("%d - %s.\n", (i+1), mapNames[i].c_str());
 
 	Con_Printf("%d files found total.\n", mapNames.size());

@@ -15,13 +15,15 @@ All Rights Reserved.
 #include "includes.h"
 #include "system.h"
 
+#ifdef _WIN32
 // Hint Windows to prefer discrete AMD/NVIDIA GPUs over integrated ones (mostly
 // for laptops).
 extern "C"
 {
-	__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
-	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
+	__declspec(dllexport) Uint32 NvOptimusEnablement = 0x00000001;
+	__declspec(dllexport) Uint32 AmdPowerXpressRequestHighPerformance = 0x00000001;
 }
+#endif
 
 //===============================================
 // main

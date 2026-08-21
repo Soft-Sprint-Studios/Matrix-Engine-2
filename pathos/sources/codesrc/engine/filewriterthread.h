@@ -10,6 +10,8 @@ All Rights Reserved.
 #ifndef FILEWRITERTHREAD_H
 #define FILEWRITERTHREAD_H
 
+#include <SDL3/SDL.h>
+
 extern void FWT_Init( void );
 extern void FWT_Shutdown( void );
 extern bool FWT_AddFile( const Char* pstrFilename, const byte* pData, Uint32 dataSize, bool incremental = false, bool prompt = false, bool append = false );
@@ -43,17 +45,15 @@ struct writerthread_t
 {
 	writerthread_t():
 		threadhandle(nullptr),
-		exitevent(nullptr),
-		criticalsection(),
-		condition(),
+		mutex(nullptr),
+		condition(nullptr),
 		exit(false),
 		available(false)
 		{}
 
-	HANDLE threadhandle;
-	HANDLE exitevent;
-	CRITICAL_SECTION criticalsection;
-	CONDITION_VARIABLE condition;
+	SDL_Thread* threadhandle;
+	SDL_Mutex* mutex;
+	SDL_Condition* condition;
 
 	bool exit;
 	bool available;

@@ -8,9 +8,6 @@ All Rights Reserved.
 */
 
 #include <SDL3/SDL.h>
-#ifdef WIN32
-#include <Windows.h>
-#endif
 
 #include "includes.h"
 #include "file.h"
@@ -549,7 +546,7 @@ bool FL_DeleteFileRoot( const Char* pstrpath )
 }
 
 //=============================================
-// @brief Creates a directory path recirsively
+// @brief Creates a directory path recursively
 //
 // @param pstrpath The directory path to create
 // @return TRUE if successful, FALSE otherwise
@@ -576,8 +573,10 @@ bool FL_CreateDirectory( const Char* pstrpath )
 	CString filepath;
 	filepath << ens.gamedir << PATH_SLASH_CHAR << pstrpath;
 
-	DWORD type = GetFileAttributesA(filepath.c_str());
-	if(type == INVALID_FILE_ATTRIBUTES)
+	SDL_PathInfo info;
+	bool pathExists = SDL_GetPathInfo(filepath.c_str(), &info);
+
+	if(!pathExists)
 	{
 		CString createpath;
 
@@ -594,13 +593,14 @@ bool FL_CreateDirectory( const Char* pstrpath )
 				CString foldername(pstrnextbegin, length);
 
 				createpath << foldername << PATH_SLASH_CHAR;
-				type = GetFileAttributesA(createpath.c_str());
-				if(type == INVALID_FILE_ATTRIBUTES)
+				
+				SDL_PathInfo subinfo;
+				if(!SDL_GetPathInfo(createpath.c_str(), &subinfo))
 				{
-					if(!CreateDirectoryA(createpath.c_str(), nullptr))
+					if(!SDL_CreateDirectory(createpath.c_str()))
 						return false;
 				}
-				else if(!(type & FILE_ATTRIBUTE_DIRECTORY))
+				else if(subinfo.type != SDL_PATHTYPE_DIRECTORY)
 				{
 					return false;
 				}
@@ -617,12 +617,13 @@ bool FL_CreateDirectory( const Char* pstrpath )
 	else
 	{
 		// Check if it's a directory
-		if(type & FILE_ATTRIBUTE_DIRECTORY)
+		if(info.type == SDL_PATHTYPE_DIRECTORY)
 			return true;
 		else
 			return false;
 	}
 }
+
 
 //=============================================
 // @brief Compares file dates
@@ -703,39 +704,38 @@ bool FL_GetFileDate( const Char* pstrFile, file_dateinfo_t& dateinfo )
 		ens.pfileiologfile->Write(str.c_str());
 	}
 
-	WIN32_FIND_DATAA findData;
-	HANDLE hFile = FindFirstFileA(filepath.c_str(), &findData);
-	if(hFile == INVALID_HANDLE_VALUE && qstrcmp(ens.gamedir, COMMON_GAMEDIR))
+	SDL_PathInfo info;
+	bool success = SDL_GetPathInfo(filepath.c_str(), &info);
+	if(!success && qstrcmp(ens.gamedir, COMMON_GAMEDIR))
 	{
 		// Try loading from the base dir if it's a mod
 		filepath.clear();
 		filepath << COMMON_GAMEDIR << PATH_SLASH_CHAR << pstrFile;
 
-		hFile = FindFirstFileA(filepath.c_str(), &findData);
+		success = SDL_GetPathInfo(filepath.c_str(), &info);
 	}
 
-	if(hFile == INVALID_HANDLE_VALUE)
+	if(!success)
 	{
 		Con_DPrintf("%s - Failed to open '%s' for reading.\n", __FUNCTION__, filepath.c_str());
 		return false;
 	}
 
-	SYSTEMTIME sysTime;
-	if(!FileTimeToSystemTime(&findData.ftLastWriteTime, &sysTime))
+	time_t modtime = (time_t)(info.modify_time / SDL_NS_PER_SECOND);
+	struct tm* t = localtime(&modtime);
+	if(!t)
 	{
 		Con_Printf("%s - Failed to get file write date for '%s'.\n", __FUNCTION__, filepath.c_str());
-		FindClose(hFile);
 		return false;
 	}
 
-	dateinfo.year = sysTime.wYear;
-	dateinfo.month = sysTime.wMonth;
-	dateinfo.day = sysTime.wDay;
-	dateinfo.hour = sysTime.wHour;
-	dateinfo.minute = sysTime.wMinute;
-	dateinfo.second = sysTime.wSecond;
+	dateinfo.year = t->tm_year + 1900;
+	dateinfo.month = t->tm_mon + 1;
+	dateinfo.day = t->tm_mday;
+	dateinfo.hour = t->tm_hour;
+	dateinfo.minute = t->tm_min;
+	dateinfo.second = t->tm_sec;
 
-	FindClose(hFile);
 	return true;
 }
 
