@@ -49,10 +49,6 @@ All Rights Reserved.
 #include "sys_print.h"
 #include "mcdformat.h"
 
-#ifdef WIN32
-#include <detours.h>
-#endif
-
 // Datatype for GameDLLInit function in the game dll
 typedef bool (*pfnGameDLLInit_t)( Uint32 version, gdll_funcs_t& dllFuncs, const gdll_engfuncs_t& engFuncs, const trace_interface_t& traceFuncs, const file_interface_t& fileFuncs, gamevars_t& gamevars );
 

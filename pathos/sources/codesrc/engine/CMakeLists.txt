@@ -72,6 +72,8 @@ target_sources(matrix-engine
         ../common/vector.h
         ../common/wad3file.h
         ../libs/glad/src/glad.c
+		../libs/minivorbis/minivorbis.c
+        ../libs/minivorbis/minivorbis.h
         ../shared/animinfo.h
         ../shared/beam_shared.h
         ../shared/cmd_shared.h
@@ -355,11 +357,10 @@ target_include_directories(matrix-engine
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/enet/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/openal/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/detours/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/libogg/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/minivorbis"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/sentry/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/pl_mpeg/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/libvorbis/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/../shared/renderer"
         "${CMAKE_CURRENT_SOURCE_DIR}/windows"
         "${CMAKE_CURRENT_SOURCE_DIR}/rygsdxtc"
@@ -395,9 +396,6 @@ target_link_libraries(matrix-engine
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/BulletCollision.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/BulletDynamics.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/LinearMath.lib"
-        libogg_static
-        libvorbis_static
-        libvorbisfile_static
         winmm
         ws2_32
         gdiplus
