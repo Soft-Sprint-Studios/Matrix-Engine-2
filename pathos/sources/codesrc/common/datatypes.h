@@ -11,19 +11,19 @@ All Rights Reserved.
 
 #ifndef DATATYPES_H
 #define DATATYPES_H
-typedef	char				Char;
-typedef	unsigned char		Uchar;
-typedef	unsigned __int8		byte;
-typedef	__int32				Int32;
-typedef unsigned __int32	Uint32;
-typedef __int16				Int16;
-typedef	unsigned __int16	Uint16;
-typedef __int64				Int64;
-typedef unsigned __int64	Uint64;
-typedef float				Float;
-typedef double				Double;
-typedef Uint32				string_t;
-typedef Int32				entindex_t;
+typedef char                Char;
+typedef unsigned char       Uchar;
+typedef uint8_t             byte;
+typedef int32_t             Int32;
+typedef uint32_t            Uint32;
+typedef int16_t             Int16;
+typedef uint16_t            Uint16;
+typedef int64_t             Int64;
+typedef uint64_t            Uint64;
+typedef float               Float;
+typedef double              Double;
+typedef Uint32              string_t;
+typedef Int32               entindex_t;
 
 struct vec4_t
 {

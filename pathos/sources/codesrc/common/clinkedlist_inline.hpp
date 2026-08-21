@@ -168,7 +168,7 @@ template <typename T> inline typename CLinkedList<T>::link_t* CLinkedList<T>::in
 //
 // @param link Pointer to link to remove
 //=============================================
-template <typename T> inline void CLinkedList<T>::remove( typename const CLinkedList<T>::link_t* link )
+template <typename T> inline void CLinkedList<T>::remove( const typename CLinkedList<T>::link_t* link )
 {
 	if(link == m_iterator.plink)
 	{
@@ -241,7 +241,7 @@ template <typename T> inline typename CLinkedList<T>::link_t* CLinkedList<T>::ge
 //
 // @return Reference to the current element
 //=============================================
-template <typename T> inline typename T& CLinkedList<T>::get( void )
+template <typename T> inline T& CLinkedList<T>::get( void )
 {
 	return m_iterator.plink->_val;
 }
