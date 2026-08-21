@@ -7,10 +7,6 @@ All Rights Reserved.
 ===============================================
 */
 
-#ifdef USE_VLD
-#include <vld.h>
-#endif
-
 #include "includes.h"
 
 #include "vector.h"

@@ -7,14 +7,10 @@ All Rights Reserved.
 ===============================================
 */
 
-// Required on Windows because SDL2 redirects "main" (and all Windows variants)
+// Required on Windows because SDL3 redirects "main" (and all Windows variants)
 // to its own before coming back here.
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-
-#ifdef USE_VLD
-#include <vld.h>
-#endif
 
 #include "includes.h"
 #include "system.h"
@@ -29,7 +25,7 @@ extern "C"
 
 //===============================================
 // main
-// SDL2's Windows FAQ says the standard "main" is prefered over any Windows version.
+// SDL3's Windows FAQ says the standard "main" is prefered over any Windows version.
 //===============================================
 int main(Int32 argc, Char* argv[])
 {
