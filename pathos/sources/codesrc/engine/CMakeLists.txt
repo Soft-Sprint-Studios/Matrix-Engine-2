@@ -74,6 +74,8 @@ target_sources(matrix-engine
         ../libs/glad/src/glad.c
 		../libs/minivorbis/minivorbis.c
         ../libs/minivorbis/minivorbis.h
+		../libs/enet/enet.c
+        ../libs/enet/enet.h
         ../shared/animinfo.h
         ../shared/beam_shared.h
         ../shared/cmd_shared.h
@@ -354,7 +356,7 @@ target_include_directories(matrix-engine
         "${CMAKE_CURRENT_SOURCE_DIR}/server"
         "${CMAKE_CURRENT_SOURCE_DIR}/client"
         "${CMAKE_CURRENT_SOURCE_DIR}/../shared"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/enet/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/enet"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/openal/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/detours/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/minivorbis"
@@ -388,7 +390,6 @@ target_link_libraries(matrix-engine
         gdi32
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/freetype/lib/freetype.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/enet/enet64.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/openal/libs/Win64/openal32.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/detours/lib.X64/detours.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/sentry/libs/sentry.lib"

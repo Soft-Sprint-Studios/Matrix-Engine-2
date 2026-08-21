@@ -37,6 +37,10 @@ All Rights Reserved.
 #include "r_main.h"
 #include "window.h"
 
+#ifdef PlaySound
+#undef PlaySound
+#endif
+
 #ifdef _64BUILD
 // OpenAL library path
 static const Char OPENAL_LIBRARY_PATH[] = "x64/OpenAL32.dll";

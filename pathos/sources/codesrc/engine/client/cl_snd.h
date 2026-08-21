@@ -27,6 +27,10 @@ All Rights Reserved.
 #include "sentencesfile.h"
 #include "ogg_common.h"
 
+#ifdef PlaySound
+#undef PlaySound
+#endif
+
 #ifndef ALC_SOFT_HRTF
 #define ALC_SOFT_HRTF 1
 #define ALC_HRTF_SOFT                            0x1992

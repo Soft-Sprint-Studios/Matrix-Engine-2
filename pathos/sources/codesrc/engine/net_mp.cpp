@@ -423,7 +423,7 @@ void CMPNetworking::ClientConnect( ENetEvent* pevent )
 		if(cl.cl_state != NETCL_LOST_CONNECTION)
 			continue;
 
-		if(pevent->peer->address.host == cl.ip_address.host)
+		if(enet_host_equal(pevent->peer->address.host, cl.ip_address.host))
 		{
 			// Set as new peer and return
 			cl.ptrpeer = pevent->peer;

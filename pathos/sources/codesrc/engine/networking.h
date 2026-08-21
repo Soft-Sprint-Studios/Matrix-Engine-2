@@ -218,8 +218,7 @@ struct net_client_t
 		timeoutbegintime(0),
 		lastmsgtime(0)
 		{
-			ip_address.host = 0;
-			ip_address.port = 0;
+			memset(&ip_address, 0, sizeof(ip_address));
 		}
 
 	// client's index

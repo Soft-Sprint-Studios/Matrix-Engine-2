@@ -444,8 +444,7 @@ void CNetworking::ResetClient( net_client_t& cl )
 	cl.nbmsgbrecieved = 0;
 	cl.nbmsgsent = 0;
 	cl.cl_state = NETCL_STATE_NONE;
-	cl.ip_address.host = 0;
-	cl.ip_address.port = 0;
+	memset(&cl.ip_address, 0, sizeof(cl.ip_address));
 	cl.nbmsgbrecieved = 0;
 	cl.nbmsgsent = 0;
 
