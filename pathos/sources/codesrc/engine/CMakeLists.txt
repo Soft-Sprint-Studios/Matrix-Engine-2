@@ -387,7 +387,7 @@ target_link_libraries(matrix-engine
         shell32
         gdi32
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../x64/Release/freetype253.lib"
+        freetype
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/enet/enet64.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/openal/libs/Win64/openal32.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/detours/lib.X64/detours.lib"
@@ -396,9 +396,9 @@ target_link_libraries(matrix-engine
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/BulletCollision.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/BulletDynamics.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/LinearMath.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../x64/Release/libogg_static.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../x64/Release/libvorbisfile_static.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../x64/Release/libvorbis_static.lib"
+        libogg_static
+        libvorbis_static
+        libvorbisfile_static
         winmm
         ws2_32
         gdiplus
