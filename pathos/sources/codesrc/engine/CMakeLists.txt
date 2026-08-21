@@ -310,7 +310,6 @@ target_sources(matrix-engine
         vbmtrace.h
         vid.cpp
         vid.h
-        win32_delay_load.cpp
         window.cpp
         window.h
         windows/uiconsolewindow.cpp
@@ -387,7 +386,7 @@ target_link_libraries(matrix-engine
         shell32
         gdi32
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
-        freetype
+        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/freetype/lib/freetype.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/enet/enet64.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/openal/libs/Win64/openal32.lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../libs/detours/lib.X64/detours.lib"

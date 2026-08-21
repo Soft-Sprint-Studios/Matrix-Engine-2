@@ -14,9 +14,10 @@ All Rights Reserved.
 // FreeType Headers
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include <ftglyph.h> // needed for bounding box bit
+#include FT_GLYPH_H // needed for bounding box bit
+#include FT_STROKER_H
+
 #include "fontset.h"
-#include <ftstroke.h>
 
 #include "r_glsl.h"
 
