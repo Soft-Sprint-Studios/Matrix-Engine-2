@@ -513,7 +513,7 @@ const flexscript_t* CFlexManager::LoadScript( const Char* pscriptname )
 								newbind.strength = SDL_atof(szvalue.c_str());
 							else
 							{
-								SetError(false, "Error reading %s: Unknown field: %s", pscriptname, szfield.c_str());
+								SetError("Error reading %s: Unknown field: %s", pscriptname, szfield.c_str());
 								bError = true;
 								break;
 							}
@@ -592,14 +592,14 @@ const flexscript_t* CFlexManager::LoadScript( const Char* pscriptname )
 						pscript->flags |= FLEX_FLAG_STAY;
 					else
 					{
-						SetError(false, "Error reading %s: Unknown flag: %s", pscriptname, szvalue.c_str());
+						SetError("Error reading %s: Unknown flag: %s", pscriptname, szvalue.c_str());
 						bError = true;
 					}
 				}
 			}
 			else
 			{
-				SetError(false, "Error reading %s: Unknown field: %s", pscriptname, szfield.c_str());
+				SetError("Error reading %s: Unknown field: %s", pscriptname, szfield.c_str());
 				bError = true;
 			}
 		}
