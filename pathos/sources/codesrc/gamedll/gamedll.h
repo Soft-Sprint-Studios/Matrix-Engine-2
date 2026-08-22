@@ -24,6 +24,7 @@ struct file_interface_t;
 struct gamevars_t;
 struct usercmd_t;
 struct pm_info_t;
+enum savefile_type_t : int;
 
 // Declaration of gamedll enginefuncs struct
 extern gdll_engfuncs_t gd_engfuncs;

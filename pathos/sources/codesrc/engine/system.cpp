@@ -52,12 +52,14 @@ state variables and functionality.
 #include "cl_snd.h"
 #include "sv_msg.h"
 #include "r_main.h"
-#include "dllexports.h"
 #include "filewriterthread.h"
 #include "sys_sentry.h"
 
-#if defined WIN32 && _64BUILD
+#if defined WIN32
 #include <detours.h>
+#else
+#include <link.h>
+#include <elf.h>
 #endif
 
 extern file_interface_t ENGINE_FILE_FUNCTIONS;
@@ -66,7 +68,7 @@ extern file_interface_t ENGINE_FILE_FUNCTIONS;
 engine_state_t ens;
 
 // Mutex for console prints
-HANDLE g_hPrintMutex = nullptr;
+SDL_Mutex* g_hPrintMutex = nullptr;
 
 // Target array for exports
 CArray<dll_export_t>* g_pExportsTargetArray = nullptr;
@@ -99,12 +101,10 @@ bool Sys_ShouldExit( void )
 bool Sys_Init( CArray<CString>* argsArray )
 {
 	// Create console print mutex
-	g_hPrintMutex = CreateMutex(nullptr, FALSE, "MatrixConsolePrintMutex");
-	if(nullptr != g_hPrintMutex)
-		GetLastError();
+	g_hPrintMutex = SDL_CreateMutex();
 
 	// Start SDL
-	if(!SDL_Init( SDL_INIT_AUDIO | SDL_INIT_EVENTS |
+	if(!SDL_Init(  SDL_INIT_EVENTS |
        SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMEPAD | SDL_INIT_SENSOR | SDL_INIT_VIDEO))
 	{
 		Sys_ErrorPopup("SDL_Init returned an error: %s", SDL_GetError());
@@ -227,11 +227,7 @@ bool Sys_Init( CArray<CString>* argsArray )
 	strPrint << " - [color r255]DEBUG[/color] build";
 #endif
 
-#ifdef _64BUILD
 	strPrint << " - x64 platform";
-#else
-	strPrint << " - x86 platform";
-#endif
 
 	strPrint << "\n";
 
@@ -316,7 +312,7 @@ void Sys_Shutdown( void )
 	}
 
 	if(g_hPrintMutex)
-		CloseHandle(g_hPrintMutex);
+		SDL_DestroyMutex(g_hPrintMutex);
 
 	// Shut down Sentry
 	gSentry.Shutdown();
@@ -351,7 +347,7 @@ void Sys_ErrorPopup ( const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	SDL_Window* pWindow = gWindow.GetWindow();
@@ -370,34 +366,8 @@ void Sys_ErrorPopup ( const Char *fmt, ... )
 //=============================================
 bool Sys_InitFloatTime( void )
 {
-	// Originally I used my own solution for tracking time, but that had
-	// some serious issues causing stutter. In the relied on referencing
-	// Quake's Sys_FloatTime to write something better. Credit goes to Id
-	// Software for the original code I referenced.
-	LARGE_INTEGER performanceFrequency;
-	if(!QueryPerformanceFrequency(&performanceFrequency))
-	{
-		Sys_ErrorPopup("Unable to get hardware timer.\n");
-		return false;
-	}
-
-	Uint32 lowPart = static_cast<Uint32>(performanceFrequency.LowPart);
-	Uint32 highPart = static_cast<Uint32>(performanceFrequency.HighPart);
-
-	// Default to this value
+	ens.perffreq = 1.0 / static_cast<Double>(SDL_GetPerformanceFrequency());
 	ens.lowshift = 0;
-
-	while(highPart || (lowPart > 2000000.0))
-	{
-		ens.lowshift++;
-
-		lowPart >>= 1;
-		lowPart |= (highPart & 1) << 31;
-
-		highPart >>= 1;
-	}
-
-	ens.perffreq = 1.0f / static_cast<Double>(lowPart);
 
 	// So values are filled
 	Sys_FloatTime();
@@ -422,13 +392,8 @@ Double Sys_FloatTime( void )
 	static Int32 sametimecount = 0;
 	static bool isfirstcall = true;
 
-	// I ended up recoding Quake's time stuff after realizing my
-	// own implementation caused massive stuttering
-	LARGE_INTEGER performanceFrequency;
-	QueryPerformanceCounter(&performanceFrequency);
-
-	Uint32 tmp = (static_cast<Uint32>(performanceFrequency.LowPart) >> ens.lowshift)
-		| (static_cast<Uint32>(performanceFrequency.HighPart) << (32 - ens.lowshift));
+	Uint64 counter = SDL_GetPerformanceCounter();
+	Uint32 tmp = static_cast<Uint32>(counter);
 
 	if(isfirstcall)
 	{
@@ -901,7 +866,7 @@ void Sys_SetPaused( bool paused, bool print )
 // @brief Manages think functions for the interface
 // 
 //=============================================
-#ifdef _64BUILD
+#ifdef _WIN32
 static BOOL CALLBACK ExportCallback( PVOID pContext, ULONG nOrdinal, LPCSTR szSymbol, PVOID pbTarget )
 {
 	dll_export_t newExport;
@@ -911,11 +876,106 @@ static BOOL CALLBACK ExportCallback( PVOID pContext, ULONG nOrdinal, LPCSTR szSy
 	return TRUE;
 }
 #else
-static void ExportCallback( Char* pstrSymbolName )
+struct DLLExportSearch_t
 {
-	dll_export_t newExport;
-	newExport.functionname = pstrSymbolName;
-	g_pExportsTargetArray->push_back(newExport);
+	const Char* pTargetDLLName;
+	CArray<dll_export_t>* pDestArray;
+};
+
+static int LinuxExportCallback( struct dl_phdr_info* info, size_t size, void* data )
+{
+	DLLExportSearch_t* pSearch = reinterpret_cast<DLLExportSearch_t*>(data);
+	if(!info->dlpi_name || !qstrstr(info->dlpi_name, pSearch->pTargetDLLName))
+		return 0;
+
+	const ElfW(Phdr)* phdr = info->dlpi_phdr;
+	ElfW(Addr) load_addr = info->dlpi_addr;
+	const ElfW(Dyn)* dyn = nullptr;
+
+	for(size_t i = 0; i < info->dlpi_phnum; i++)
+	{
+		if(phdr[i].p_type == PT_DYNAMIC)
+		{
+			dyn = reinterpret_cast<const ElfW(Dyn)*>(load_addr + phdr[i].p_vaddr);
+			break;
+		}
+	}
+
+	if(!dyn)
+		return 0;
+
+	const ElfW(Sym)* symtab = nullptr;
+	const char* strtab = nullptr;
+	size_t sym_count = 0;
+
+	for(const ElfW(Dyn)* d = dyn; d->d_tag != DT_NULL; ++d)
+	{
+		if(d->d_tag == DT_SYMTAB)
+			symtab = reinterpret_cast<const ElfW(Sym)*>(d->d_un.d_ptr);
+		else if(d->d_tag == DT_STRTAB)
+			strtab = reinterpret_cast<const char*>(d->d_un.d_ptr);
+		else if(d->d_tag == DT_HASH)
+		{
+			const ElfW(Word)* hash = reinterpret_cast<const ElfW(Word)*>(d->d_un.d_ptr);
+			if(hash)
+				sym_count = hash[1];
+		}
+		else if(d->d_tag == DT_GNU_HASH && sym_count == 0)
+		{
+			const uint32_t* gnu_hash = reinterpret_cast<const uint32_t*>(d->d_un.d_ptr);
+			if(gnu_hash)
+			{
+				uint32_t nbuckets = gnu_hash[0];
+				uint32_t symoffset = gnu_hash[1];
+				uint32_t bloom_size = gnu_hash[2];
+				const uint32_t* buckets = reinterpret_cast<const uint32_t*>(
+					reinterpret_cast<const uint8_t*>(&gnu_hash[4]) + bloom_size * sizeof(ElfW(Addr)));
+				const uint32_t* chains = &buckets[nbuckets];
+
+				uint32_t max_chain = 0;
+				for(uint32_t b = 0; b < nbuckets; ++b)
+				{
+					if(buckets[b] > max_chain)
+						max_chain = buckets[b];
+				}
+				if(max_chain >= symoffset)
+				{
+					while(true)
+					{
+						uint32_t chain_entry = chains[max_chain - symoffset];
+						max_chain++;
+						if(chain_entry & 1)
+							break;
+					}
+					sym_count = max_chain;
+				}
+			}
+		}
+	}
+
+	if(symtab && strtab && sym_count > 0)
+	{
+		for(size_t i = 0; i < sym_count; i++)
+		{
+			const ElfW(Sym)* sym = &symtab[i];
+			if(sym->st_shndx != SHN_UNDEF && (ELF32_ST_BIND(sym->st_info) == STB_GLOBAL || ELF32_ST_BIND(sym->st_info) == STB_WEAK))
+			{
+				if(sym->st_name != 0)
+				{
+					const char* symName = strtab + sym->st_name;
+					if(symName && symName[0] != '\0')
+					{
+						dll_export_t newExport;
+						newExport.functionname = symName;
+						pSearch->pDestArray->push_back(newExport);
+					}
+				}
+			}
+		}
+		return 1;
+	}
+
+	return 0;
 }
 #endif
 
@@ -925,7 +985,7 @@ static void ExportCallback( Char* pstrSymbolName )
 //=============================================
 bool Sys_GetDLLExports( const Char* pstrDLLName, void* pDLLHandle, CArray<dll_export_t>& destArray )
 {
-#ifdef _64BUILD
+#ifdef _WIN32
 	HMODULE hDLL = GetModuleHandleA(pstrDLLName);
 	if(!hDLL)
 	{
@@ -943,14 +1003,11 @@ bool Sys_GetDLLExports( const Char* pstrDLLName, void* pDLLHandle, CArray<dll_ex
 		return false;
 	}
 #else
-	// Set the destination array
-	g_pExportsTargetArray = &destArray;
+	DLLExportSearch_t search;
+	search.pTargetDLLName = pstrDLLName;
+	search.pDestArray = &destArray;
 
-	if(!EnumExportedFunctions(pstrDLLName, ExportCallback))
-	{
-		Con_EPrintf("Couldn't get exports for '%s'.\n", pstrDLLName);
-		return false;
-	}
+	dl_iterate_phdr(LinuxExportCallback, &search);
 #endif
 	// Set the function pointers
 	for(Uint32 i = 0; i < destArray.size(); i++)
@@ -1110,27 +1167,9 @@ void Sys_PollEvents( void )
 //=============================================
 Int32 Sys_Main( CArray<CString>* argsArray )
 {
-	// Avoid launching multiple instances
-	HANDLE hMutex = CreateMutex(nullptr, FALSE, "PathosEngineInstanceMutex");
-
-	if(nullptr != hMutex)
-		GetLastError();
-
-	DWORD mutexResult = WaitForSingleObject(hMutex, 0);
-	if(mutexResult != WAIT_OBJECT_0 && mutexResult != WAIT_ABANDONED)
-	{
-		Sys_ErrorPopup("Only one instance of this game can be running at a time.");
-		Con_EPrintf("Error during system initialization.\n");
-		ReleaseMutex(hMutex);
-		CloseHandle(hMutex);
-		return -1;
-	}
-
 	if(!Sys_Init( argsArray ))
 	{
 		Con_EPrintf("Error during system initialization.\n");
-		ReleaseMutex(hMutex);
-		CloseHandle(hMutex);
 		return -1;
 	}
 
@@ -1162,9 +1201,6 @@ Int32 Sys_Main( CArray<CString>* argsArray )
 	}
 
 	Sys_Shutdown();
-
-	ReleaseMutex(hMutex);
-	CloseHandle(hMutex);
 
 	return 0;
 }

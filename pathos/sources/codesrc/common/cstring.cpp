@@ -142,7 +142,7 @@ void CString::Append(const Char* psrc)
 		g_pWorkBuffer[0] = '\0';
 
 		if(m_pString && m_pString != EMPTY_STRING)
-			sprintf_s(g_pWorkBuffer, g_workBufferSize, "%s%s", m_pString, psrc);
+			snprintf(g_pWorkBuffer, g_workBufferSize, "%s%s", m_pString, psrc);
 		else
 			qstrcpy_s(g_pWorkBuffer, psrc, g_workBufferSize);
 
@@ -169,9 +169,9 @@ void CString::Append(Char c)
 	g_pWorkBuffer[0] = '\0';
 
 	if(m_pString && m_pString != EMPTY_STRING)
-		sprintf_s(g_pWorkBuffer, g_workBufferSize, "%s%c", m_pString, c);
+		snprintf(g_pWorkBuffer, g_workBufferSize, "%s%c", m_pString, c);
 	else
-		sprintf_s(g_pWorkBuffer, g_workBufferSize, "%c", c);
+		snprintf(g_pWorkBuffer, g_workBufferSize, "%c", c);
 
 #ifdef _DEBUG
 	assert(qstrlen(g_pWorkBuffer) == newlength);
@@ -200,9 +200,9 @@ void CString::Append(Int32 i)
 	CheckBuffer(newlength);
 
 	if(m_pString && m_pString != EMPTY_STRING)
-		sprintf_s(g_pWorkBuffer, g_workBufferSize, "%s%d", m_pString, i);
+		snprintf(g_pWorkBuffer, g_workBufferSize, "%s%d", m_pString, i);
 	else
-		sprintf_s(g_pWorkBuffer, g_workBufferSize, "%d", i);
+		snprintf(g_pWorkBuffer, g_workBufferSize, "%d", i);
 
 #ifdef _DEBUG
 	assert(qstrlen(g_pWorkBuffer) == newlength);
@@ -228,9 +228,9 @@ void CString::Append(Uint32 i)
 	g_pWorkBuffer[0] = '\0';
 
 	if(m_pString && m_pString != EMPTY_STRING)
-		sprintf_s(g_pWorkBuffer, g_workBufferSize, "%s%u", m_pString, i);
+		snprintf(g_pWorkBuffer, g_workBufferSize, "%s%u", m_pString, i);
 	else
-		sprintf_s(g_pWorkBuffer, g_workBufferSize, "%u", i);
+		snprintf(g_pWorkBuffer, g_workBufferSize, "%u", i);
 
 #ifdef _DEBUG
 	assert(qstrlen(g_pWorkBuffer) == newlength);

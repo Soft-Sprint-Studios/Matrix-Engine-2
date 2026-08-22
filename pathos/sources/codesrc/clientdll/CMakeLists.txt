@@ -139,6 +139,7 @@ target_sources(client
 )
 
 set_target_properties(client PROPERTIES
+    PREFIX ""
     OUTPUT_NAME client_x64
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
     MSVC_RUNTIME_CHECKS ""
@@ -157,24 +158,33 @@ target_include_directories(client
 
 target_compile_definitions(client
     PRIVATE
-        WIN32
-        _64BUILD
+        $<$<PLATFORM_ID:Windows>:WIN32 _WINDOWS UNICODE _UNICODE>
+        $<$<NOT:$<PLATFORM_ID:Windows>>:_LINUX>
         NDEBUG
-        _WINDOWS
         _USRDLL
         CLIENT_EXPORTS
         _CRT_SECURE_NO_WARNINGS
         CLIENT
-        UNICODE
-        _UNICODE
 )
 
-target_link_libraries(client
-    PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/discordrpc/libs/discord-rpc.lib"
-        opengl32
-)
+if(WIN32)
+    target_link_libraries(client
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/discordrpc/libs/x64/discord-rpc.lib"
+            opengl32
+    )
+else()
+    target_link_libraries(client
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/linux/libSDL3.so"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/discordrpc/libs/linux/libdiscord-rpc.so"
+            GL
+            dl
+            pthread
+            m
+    )
+endif()
 
 target_compile_options(client
     PRIVATE

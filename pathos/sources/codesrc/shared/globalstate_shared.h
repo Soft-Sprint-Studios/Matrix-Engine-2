@@ -10,7 +10,7 @@ All Rights Reserved.
 #ifndef GLOBALSTATE_SHARED_H
 #define GLOBALSTATE_SHARED_H
 
-enum globalstate_state_t
+enum globalstate_state_t : int
 {
 	GLOBAL_NONE = -1,
 	GLOBAL_OFF = 0,

@@ -15,10 +15,10 @@ All Rights Reserved.
 #include "trace.h"
 #include "tracer.h"
 
-enum part_script_type_t;
-enum flextypes_t;
-enum usemode_t;
-enum beam_types_t;
+enum part_script_type_t : int;
+enum flextypes_t : int;
+enum usemode_t : int;
+enum beam_types_t : int;
 
 namespace Util
 {

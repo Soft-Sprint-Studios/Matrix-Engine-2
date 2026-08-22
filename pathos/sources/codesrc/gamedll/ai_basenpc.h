@@ -24,8 +24,11 @@ All Rights Reserved.
 #include "ai_common.h"
 #include "weapons_shared.h"
 
+enum flexaistates_t : int;
+enum ladder_verify_codes_t : int;
+
 // AI Conditions can't be enums, because they go over 32 bits
-enum ai_condition_bits_t
+enum ai_condition_bits_t : int
 {
 	AI_COND_NO_AMMO_LOADED = 0,
 	AI_COND_SEE_HATE,
@@ -334,9 +337,9 @@ public:
 	};
 
 	// Door group bits
-	static const Uint32 CBaseNPC::AI_CAP_DOORS_GROUP_BITS[];
+	static const Uint32 AI_CAP_DOORS_GROUP_BITS[];
 	// Door group bitset
-	static const CBitSet CBaseNPC::AI_CAP_GROUP_DOORS;
+	static const CBitSet AI_CAP_GROUP_DOORS;
 
 	enum movementflag_t
 	{

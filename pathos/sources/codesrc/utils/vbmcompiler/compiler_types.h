@@ -10,6 +10,7 @@ All Rights Reserved.
 #ifndef COMPILER_TYPES_H
 #define COMPILER_TYPES_H
 
+#include <list>
 #include <map>
 
 #include "studio.h"

@@ -49,7 +49,7 @@ enum beam_msgtype_t
 	BEAM_MSG_KILLENTITYBEAMS
 };
 
-enum beam_types_t
+enum beam_types_t : int
 {
 	BEAM_POINTS = 0,
 	BEAM_TORUS,

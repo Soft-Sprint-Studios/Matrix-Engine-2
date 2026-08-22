@@ -24,7 +24,8 @@ class CEnvLadder;
 class CItemMotorBike;
 class CTriggerCameraModel;
 
-enum subwayline_t;
+enum subwayline_t : int;
+enum ladder_verify_codes_t : int;
 
 extern void ClientPreThink( edict_t* pclient );
 extern void ClientPostThink( edict_t* pclient );

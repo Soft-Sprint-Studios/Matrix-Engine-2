@@ -36,8 +36,8 @@ public:
 	virtual void AddPortalSurfaceEntity( const edict_t* pedict ) override;
 	virtual bool CheckPortalBBox( const edict_t* pedict ) const override;
 
-	virtual Uint32 GetNbPortalSurfaces( void ) const override;
-	virtual const edict_t* GetPortalSurfaceByIndex( Uint32 index ) const override;
+	virtual Uint32 GetNbEnvPortalSurfaces( void ) const override;
+	virtual const edict_t* GetEnvPortalSurfaceByIndex( Uint32 index ) const override;
 
 	virtual void SetPVSData( void ) override;
 	virtual const byte* GetPVSData( void ) const override;

@@ -34,7 +34,7 @@ enum subwayflags_t
 	FL_SUBWAY_DISABLED			= (1<<6),
 };
 
-enum subwayline_t
+enum subwayline_t : int
 {
 	SUBWAYLINE_BERGEN_ECKHART = 0,
 	SUBWAYLINE_KASSAR_STILLWELL,

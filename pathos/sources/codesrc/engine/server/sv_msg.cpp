@@ -2012,7 +2012,7 @@ void SV_ClientPrintf( const edict_t* pclient, const Char *fmt, ... )
 	Char cMsg[MAX_PARSE_LENGTH];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, MAX_PARSE_LENGTH, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	// Tell the client(s)

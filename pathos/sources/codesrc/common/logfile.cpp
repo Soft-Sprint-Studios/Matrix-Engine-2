@@ -295,7 +295,7 @@ bool CLogFile::Printf( const Char *fmt, ... )
 	va_list	vArgPtr;
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(m_pTempWriteBuffer, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
+	vsnprintf_safe(m_pTempWriteBuffer, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	return Write(m_pTempWriteBuffer);

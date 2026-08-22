@@ -294,7 +294,7 @@ void CEnvPosPortal::AddPortalSurfaceEntity( const edict_t* pedict )
 // @brief
 //
 //=============================================
-Uint32 CEnvPosPortal::GetNbPortalSurfaces( void ) const
+Uint32 CEnvPosPortal::GetNbEnvPortalSurfaces( void ) const
 {
 	return m_numPortalSurfaces;
 }
@@ -303,7 +303,7 @@ Uint32 CEnvPosPortal::GetNbPortalSurfaces( void ) const
 // @brief
 //
 //=============================================
-const edict_t* CEnvPosPortal::GetPortalSurfaceByIndex( Uint32 index ) const
+const edict_t* CEnvPosPortal::GetEnvPortalSurfaceByIndex( Uint32 index ) const
 {
 	assert(index < (Uint32)m_numPortalSurfaces);
 	return m_pPortalSurfaces[index];

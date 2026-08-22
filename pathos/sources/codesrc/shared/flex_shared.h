@@ -18,7 +18,7 @@ enum flexmsg_t
 	MSG_FLEX_SCRIPT
 };
 
-enum flextypes_t
+enum flextypes_t : int
 {
 	FLEX_NPC_TYPE_NONE = -1,
 	FLEX_NPC_TYPE_HUMAN,
@@ -27,7 +27,7 @@ enum flextypes_t
 	NUM_FLEX_NPC_TYPES
 };
 
-enum flexaistates_t
+enum flexaistates_t : int
 {
 	FLEX_AISTATE_NONE = -1,
 	FLEX_AISTATE_IDLE,

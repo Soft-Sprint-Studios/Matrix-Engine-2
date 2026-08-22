@@ -240,7 +240,7 @@ void FWT_Con_Printf( writerthread_t* pThreadData, const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	// Enter critical section

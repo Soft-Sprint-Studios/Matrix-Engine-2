@@ -338,7 +338,7 @@ particle_system_t *CParticleEngine::AllocSystem( void )
 //====================================
 //
 //====================================
-__forceinline cl_particle_t *CParticleEngine::AllocParticle( particle_system_t *psystem ) 
+FORCEINLINE cl_particle_t *CParticleEngine::AllocParticle( particle_system_t *psystem ) 
 {
 	if(!m_pFreeParticles)
 		AllocParticles();
@@ -1014,14 +1014,14 @@ bool CParticleEngine::LoadSystemScript( script_cache_t* pCache, const Char* pstr
 	{
 		Con_Printf("%s - Particle script '%s' is incomplete after '%s'.\n", 
 			__FUNCTION__, pCache->name.c_str(), token);
-		return nullptr;
+		return false;
 	}
 
 	if(qstrcmp(token, "$particlescript"))
 	{
 		Con_Printf("%s - Expected '$particlescript' token at beginning of script '%s', got '%s' instead.\n", 
 			__FUNCTION__, pCache->name.c_str(), token);
-		return nullptr;
+		return false;
 	}
 
 	// Second token must be '{'
@@ -1030,14 +1030,14 @@ bool CParticleEngine::LoadSystemScript( script_cache_t* pCache, const Char* pstr
 	{
 		Con_Printf("%s - Particle script '%s' is incomplete after '%s'.\n", 
 			__FUNCTION__, pCache->name.c_str(), token);
-		return nullptr;
+		return false;
 	}
 
 	if(qstrcmp(token, "{"))
 	{
 		Con_Printf("%s - Expected '{' token at beginning of script '%s', got '%s' instead.\n", 
 			__FUNCTION__, pCache->name.c_str(), token);
-		return nullptr;
+		return false;
 	}
 
 	// Skip ahead to next non-space
@@ -1051,7 +1051,7 @@ bool CParticleEngine::LoadSystemScript( script_cache_t* pCache, const Char* pstr
 		{
 			Con_Printf("%s - Particle script '%s' is incomplete, missing '}' closing bracket.\n", 
 				__FUNCTION__, pCache->name.c_str());
-			return nullptr;
+			return false;
 		}
 
 		// Read this line
@@ -1142,14 +1142,14 @@ bool CParticleEngine::LoadClusterScript( script_cache_t* pCache, const Char* pst
 	{
 		Con_Printf("%s - Particle script '%s' is incomplete after '%s'.\n", 
 			__FUNCTION__, pCache->name.c_str(), token);
-		return nullptr;
+		return false;
 	}
 
 	if(qstrcmp(token, "$clusterscript"))
 	{
 		Con_Printf("%s - Expected '$clusterscript' token at beginning of script '%s', got '%s' instead.\n", 
 			__FUNCTION__, pCache->name.c_str(), token);
-		return nullptr;
+		return false;
 	}
 
 	// Second token must be '{'
@@ -1158,14 +1158,14 @@ bool CParticleEngine::LoadClusterScript( script_cache_t* pCache, const Char* pst
 	{
 		Con_Printf("%s - Particle script '%s' is incomplete after '%s'.\n", 
 			__FUNCTION__, pCache->name.c_str(), token);
-		return nullptr;
+		return false;
 	}
 
 	if(qstrcmp(token, "{"))
 	{
 		Con_Printf("%s - Expected '{' token at beginning of script '%s', got '%s' instead.\n", 
 			__FUNCTION__, pCache->name.c_str(), token);
-		return nullptr;
+		return false;
 	}
 
 	// Skip ahead to next non-space
@@ -1179,7 +1179,7 @@ bool CParticleEngine::LoadClusterScript( script_cache_t* pCache, const Char* pst
 		{
 			Con_Printf("%s - Particle script '%s' is incomplete, missing '}' closing bracket.\n", 
 				__FUNCTION__, pCache->name.c_str());
-			return nullptr;
+			return false;
 		}
 
 		// Read this line
@@ -2221,7 +2221,7 @@ Vector CParticleEngine::LightForParticle( cl_particle_t *pparticle )
 //====================================
 //
 //====================================
-__forceinline Int32 CParticleEngine::CheckWater( const Vector& origin ) 
+FORCEINLINE Int32 CParticleEngine::CheckWater( const Vector& origin ) 
 {
 	for(Uint32 i = 0; i < rns.objects.numvisents; i++)
 	{
@@ -2924,7 +2924,7 @@ void CParticleEngine::GetLights( particle_system_t *psystem, cl_dlight_t **pligh
 //====================================
 //
 //====================================
-__forceinline void CParticleEngine::BatchVertex( cl_particle_t *pparticle, const Vector& vertex, Float alpha,  Int32 tc )
+FORCEINLINE void CParticleEngine::BatchVertex( cl_particle_t *pparticle, const Vector& vertex, Float alpha,  Int32 tc )
 {
 	particle_vertex_t *pvert = &m_pVertexes[m_numVertexes];
 	m_numVertexes++;
@@ -2942,7 +2942,7 @@ __forceinline void CParticleEngine::BatchVertex( cl_particle_t *pparticle, const
 //====================================
 //
 //====================================
-__forceinline bool CParticleEngine::ClipTracer( const Vector &start, const Vector &delta, Vector &clippedStart, Vector &clippedDelta )
+FORCEINLINE bool CParticleEngine::ClipTracer( const Vector &start, const Vector &delta, Vector &clippedStart, Vector &clippedDelta )
 {
 	Float dist1 = -start[2];
 	Float dist2 = dist1 - delta[2];
@@ -3817,7 +3817,7 @@ void CParticleEngine::RemoveSystem( entindex_t entindex, Int32 iId, bool keepcac
 //====================================
 //
 //====================================
-__forceinline void CParticleEngine::RemoveParticle( cl_particle_t *particle ) 
+FORCEINLINE void CParticleEngine::RemoveParticle( cl_particle_t *particle ) 
 {
 	if(particle->prev) particle->prev->next = particle->next;
 	else particle->psystem->pparticleheader = particle->next;

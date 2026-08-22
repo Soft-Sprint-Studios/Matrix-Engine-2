@@ -485,7 +485,7 @@ void CL_CreateGenericDecal( const Char *pstrname, const Vector& origin, const Ve
 //====================================
 void CL_PrecacheParticleScript( part_script_type_t type, const Char* pstrFilepath )
 {
-	gParticleEngine.PrecacheScript(type, pstrFilepath, false);
+	gParticleEngine.PrecacheScript(type, pstrFilepath, nullptr);
 }
 
 //====================================

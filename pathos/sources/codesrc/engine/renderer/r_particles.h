@@ -668,7 +668,7 @@ private:
 	// Allocates a particle system object
 	particle_system_t *AllocSystem( void );
 	// Allocates a particle
-	__forceinline cl_particle_t *AllocParticle( particle_system_t *psystem );
+	FORCEINLINE cl_particle_t *AllocParticle( particle_system_t *psystem );
 	// Releases a particle system
 	void ReleaseSystem( particle_system_t* psystem );
 
@@ -690,24 +690,24 @@ private:
 	void EnvironmentCreateFirst( particle_system_t *psystem );
 
 	// Removes a particle
-	__forceinline void RemoveParticle( cl_particle_t *particle );
+	FORCEINLINE void RemoveParticle( cl_particle_t *particle );
 	// Updates a particle
 	bool UpdateParticle( cl_particle_t *pparticle );
 	// Checks collisions for a particle
 	bool CheckCollision( Vector& vecOrigin, Vector& vecVelocity, particle_system_t* psystem, cl_particle_t *pparticle ) ;
 	// Retreives lighting info for a particle
-	__forceinline Vector LightForParticle( cl_particle_t *pparticle );
+	FORCEINLINE Vector LightForParticle( cl_particle_t *pparticle );
 
 	// Retreives dynamic lights for a particle
 	static void GetLights( particle_system_t *psystem, cl_dlight_t **plights, Uint32 *numlights, bool spotlight, Uint32 max );
 
 private:
 	// Checks water state for a particle
-	__forceinline static Int32 CheckWater( const Vector& origin );
+	FORCEINLINE static Int32 CheckWater( const Vector& origin );
 	// Clips a tracer particle
-	__forceinline static bool ClipTracer( const Vector &start, const Vector &delta, Vector &clippedStart, Vector &clippedDelta );
+	FORCEINLINE static bool ClipTracer( const Vector &start, const Vector &delta, Vector &clippedStart, Vector &clippedDelta );
 	// Batches vertexes for a particle
-	__forceinline void BatchVertex( cl_particle_t *pparticle, const Vector& vertex, Float alpha,  Int32 tc );
+	FORCEINLINE void BatchVertex( cl_particle_t *pparticle, const Vector& vertex, Float alpha,  Int32 tc );
 	// Batches a particle
 	void BatchParticle( cl_particle_t *pparticle, Float flup, Float flright, const Float *pfltranspose );
 	

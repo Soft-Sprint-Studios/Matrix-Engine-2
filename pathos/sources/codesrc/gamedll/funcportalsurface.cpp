@@ -233,10 +233,10 @@ bool CFuncPortalSurface::CheckVISForEntity( const edict_t* pclient, const edict_
 	}
 	else if(pEntity->IsEnvPosPortalEntity())
 	{
-		Uint32 nbportalsurfaces = pEntity->GetNbPortalSurfaces();
+		Uint32 nbportalsurfaces = pEntity->GetNbEnvPortalSurfaces();
 		for(Uint32 i = 0; i < nbportalsurfaces; i++)
 		{
-			const edict_t* pPortalSurface = pEntity->GetPortalSurfaceByIndex(i);
+			const edict_t* pPortalSurface = pEntity->GetEnvPortalSurfaceByIndex(i);
 			if(pPortalSurface && !(pPortalSurface->state.effects & EF_NODRAW) 
 				&& Common::CheckVisibility(pPortalSurface->leafnums, pPortalSurface->numleaves, pset) 
 				&& !CEnvFog::FogCull(*pclient, *pPortalSurface))

@@ -3030,7 +3030,7 @@ void R_BindFBO( fbobind_t *pfbo )
 //====================================
 //
 //====================================
-inline void R_ValidateShader( CGLSLShader* pShader )
+void R_ValidateShader( CGLSLShader* pShader )
 {
 	if(!rns.validateshaders)
 		return;
@@ -3041,7 +3041,7 @@ inline void R_ValidateShader( CGLSLShader* pShader )
 //====================================
 //
 //====================================
-inline void R_ValidateShader( CBasicDraw* pDraw )
+void R_ValidateShader( CBasicDraw* pDraw )
 {
 	if(!rns.validateshaders)
 		return;
@@ -6173,9 +6173,9 @@ void Cmd_LoadAllParticleScripts( void )
 				Common::Parse(reinterpret_cast<const Char*>(pf), token);
 
 				if(!qstrcmp(token, "$particlescript"))
-					gParticleEngine.PrecacheScript(PART_SCRIPT_SYSTEM, fileName.c_str(), false);
+					gParticleEngine.PrecacheScript(PART_SCRIPT_SYSTEM, fileName.c_str(), nullptr);
 				else
-					gParticleEngine.PrecacheScript(PART_SCRIPT_CLUSTER, fileName.c_str(), false);
+					gParticleEngine.PrecacheScript(PART_SCRIPT_CLUSTER, fileName.c_str(), nullptr);
 			}
 		}
 	}

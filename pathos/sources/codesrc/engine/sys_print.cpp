@@ -353,7 +353,7 @@ void Con_Printf( const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	// Send to print interface to complete
@@ -382,7 +382,7 @@ void Con_DPrintf( const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	// Send to print interface to complete
@@ -411,7 +411,7 @@ void Con_VPrintf( const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	// Send to print interface to complete
@@ -437,7 +437,7 @@ void Con_EPrintf( const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	// Send to print interface to complete

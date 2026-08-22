@@ -10,7 +10,7 @@ All Rights Reserved.
 #ifndef TRACER_H
 #define TRACER_H
 
-enum tracer_type_t
+enum tracer_type_t : int
 {
 	TRACER_NORMAL = 0,
 	TRACER_GRAVITY,

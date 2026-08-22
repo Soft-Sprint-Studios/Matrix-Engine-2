@@ -306,7 +306,8 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 
 		const Char *cp = reinterpret_cast<Char*>(reinterpret_cast<byte*>(m_pCSDHeader) + pshaderdata->computedataoffs);
 		GLuint compute_id = glCreateShader(GL_COMPUTE_SHADER);
-		glShaderSource(compute_id, 1, &cp, &pshaderdata->computedatasize);
+		GLint cSize = static_cast<GLint>(pshaderdata->computedatasize);
+		glShaderSource(compute_id, 1, &cp, &cSize);
 		glCompileShader(compute_id);
 
 		g_computeShaderCompileTotalDuration += static_cast<Double>(clock() - beginTime) / CLOCKS_PER_SEC;
@@ -377,7 +378,8 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 	// Try to compile the vertex shader
 	const Char *vp = reinterpret_cast<Char*>(reinterpret_cast<byte*>(m_pCSDHeader) + pshaderdata->vertexdataoffs);
 	GLuint vertex_id = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_id, 1, &vp, &pshaderdata->vertexdatasize);
+	GLint vSize = static_cast<GLint>(pshaderdata->vertexdatasize);
+	glShaderSource(vertex_id, 1, &vp, &vSize);
 	glCompileShader(vertex_id);
 
 	// Now get elapsed time
@@ -407,7 +409,8 @@ bool CGLSLShader::CompileShader( Uint32 index, glsl_shader_t* pshader, csdshader
 	// Compile the fragment shader now
 	const Char *fp = reinterpret_cast<Char*>(reinterpret_cast<byte*>(m_pCSDHeader) + pshaderdata->fragmentdataoffs);
 	GLuint fragment_id = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_id, 1, &fp, &pshaderdata->fragmentdatasize);
+	GLint fSize = static_cast<GLint>(pshaderdata->fragmentdatasize);
+	glShaderSource(fragment_id, 1, &fp, &fSize);
 	glCompileShader(fragment_id);
 		
 	// Now get elapsed time
@@ -702,12 +705,8 @@ bool CGLSLShader::LoadFromBSD( void )
 		bsdFilePath << m_rootDirectory << PATH_SLASH_CHAR;
 
 	bsdFilePath << "scripts/shaders/";
-		
-#ifdef _64BUILD
-	bsdFilePath << "binary_x64/";
-#else
-	bsdFilePath << "binary_x86/";
-#endif
+
+	bsdFilePath << "binary/";
 
 	bsdFilePath << basename << ".bsd";
 
@@ -985,11 +984,7 @@ bool CGLSLShader::CompileCSDShaderData( void )
 		CString folderPath;
 		folderPath << "scripts/shaders/";
 
-#ifdef _64BUILD
-		folderPath << "binary_x64/";
-#else
-		folderPath << "binary_x86/";
-#endif
+		folderPath << "binar/";
 		if(!m_fileInterface.pfnCreateDirectory(folderPath.c_str()))
 		{
 			m_errorString << "Failed to create directory " << folderPath;
@@ -1948,6 +1943,7 @@ bool CGLSLShader::ConstructBranches ( const Char* pSrc, Uint32 fileSize )
 
 	csdshaderdata_t* poutshaders = reinterpret_cast<csdshaderdata_t*>(reinterpret_cast<byte*>(pheader) + pheader->shaderdataoffset);
 	csdBuffer.addpointer(reinterpret_cast<void**>(&poutshaders));
+	memset(poutshaders, 0, sizeof(csdshaderdata_t) * nbShaders);
 
 	for(Uint32 i = 0; i < nbShaders; i++)
 	{

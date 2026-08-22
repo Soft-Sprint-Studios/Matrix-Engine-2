@@ -567,6 +567,7 @@ target_sources(gamedll
 )
 
 set_target_properties(gamedll PROPERTIES
+    PREFIX ""
     OUTPUT_NAME game_x64
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
     MSVC_RUNTIME_CHECKS ""
@@ -582,22 +583,29 @@ target_include_directories(gamedll
 
 target_compile_definitions(gamedll
     PRIVATE
-        WIN32
-        _64BUILD
+        $<$<PLATFORM_ID:Windows>:WIN32 _WINDOWS UNICODE _UNICODE>
+        $<$<NOT:$<PLATFORM_ID:Windows>>:_LINUX>
         NDEBUG
-        _WINDOWS
         _USRDLL
         GAMEDLL_EXPORTS
         _CRT_SECURE_NO_WARNINGS
         GAMEDLL
-        UNICODE
-        _UNICODE
 )
 
-target_link_libraries(gamedll
-    PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
-)
+if(WIN32)
+    target_link_libraries(gamedll
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
+    )
+else()
+    target_link_libraries(gamedll
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/linux/libSDL3.so"
+            dl
+            pthread
+            m
+    )
+endif()
 
 target_compile_options(gamedll
     PRIVATE

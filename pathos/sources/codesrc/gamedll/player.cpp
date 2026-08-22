@@ -5189,7 +5189,7 @@ bool CPlayerEntity::CanPickupWeapon( Int32 slot, weaponid_t weaponid )
 //=============================================
 void CPlayerEntity::SetWeaponBit( Int64 weaponid )
 {
-	m_pState->weapons |= (1i64<<weaponid);
+	m_pState->weapons |= (1ULL<<weaponid);
 }
 
 //=============================================
@@ -5198,7 +5198,7 @@ void CPlayerEntity::SetWeaponBit( Int64 weaponid )
 //=============================================
 void CPlayerEntity::RemoveWeaponBit( Int64 weaponid )
 {
-	m_pState->weapons &= ~(1i64<<weaponid);
+	m_pState->weapons &= ~(1ULL<<weaponid);
 }
 
 //=============================================
@@ -5277,7 +5277,7 @@ void CPlayerEntity::RemoveWeapon( CPlayerWeapon* pWeapon )
 	}
 
 	// Remove bit
-	m_pState->weapons &= ~(1i64<<pWeapon->GetId());
+	m_pState->weapons &= ~(1ULL<<pWeapon->GetId());
 
 	if(pWeapon == m_pWeaponsList)
 	{
@@ -5330,7 +5330,7 @@ bool CPlayerEntity::HasPlayerWeapon( const Char* pstrWeaponClassName ) const
 const CPlayerWeapon* CPlayerEntity::GetPlayerWeaponByClassName( const Char* pstrWeaponClassName ) const
 {
 	if(!m_pWeaponsList)
-		return false;
+		return nullptr;
 
 	CPlayerWeapon* pNext = m_pWeaponsList;
 	while(pNext)
@@ -5341,7 +5341,7 @@ const CPlayerWeapon* CPlayerEntity::GetPlayerWeaponByClassName( const Char* pstr
 		pNext = pNext->GetNextWeapon();
 	}
 
-	return false;
+	return nullptr;
 }
 
 //=============================================

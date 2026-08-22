@@ -34,7 +34,7 @@ public:
 	virtual bool CheckCameraBBox( const edict_t* pedict ) const override;
 
 	virtual Uint32 GetNbCameraMonitors( void ) const override;
-	virtual const edict_t* GetMonitorByIndex( Uint32 index ) const override;
+	virtual const edict_t* GetCameraMonitorByIndex( Uint32 index ) const override;
 
 	virtual void SetPVSData( void ) override;
 	virtual const byte* GetPVSData( void ) const override;

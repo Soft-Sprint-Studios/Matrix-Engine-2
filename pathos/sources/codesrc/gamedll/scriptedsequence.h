@@ -33,7 +33,7 @@ enum script_loop_t
 	SCRIPT_LOOP_PLAYING_EXIT
 };
 
-enum scripted_sequence_anim_t
+enum scripted_sequence_anim_t : int
 {
 	SCRIPT_SEQ_PLAY = 0,
 	SCRIPT_SEQ_LOOP,

@@ -1057,7 +1057,7 @@ void CL_ReadParticlePrecacheMessage( void )
 		return;
 	}
 
-	gParticleEngine.PrecacheScript(type, pstrfilepath, false);
+	gParticleEngine.PrecacheScript(type, pstrfilepath, nullptr);
 }
 
 //=============================================

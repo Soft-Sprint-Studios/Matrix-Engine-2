@@ -10,7 +10,6 @@ All Rights Reserved.
 #ifndef R_FBOCACHE_H
 #define R_FBOCACHE_H
 
-#include <gl/GL.h>
 #include "r_fbo.h"
 
 /*

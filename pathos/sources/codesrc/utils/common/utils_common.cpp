@@ -33,7 +33,7 @@ void Msg( const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	printf(cMsg);
@@ -55,7 +55,7 @@ void WarningMsg( const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	printf("Warning: %s", cMsg);
@@ -77,7 +77,7 @@ void ErrorMsg( const Char *fmt, ... )
 	static Char cMsg[PRINT_MSG_BUFFER_SIZE];
 	
 	va_start(vArgPtr,fmt);
-	vsprintf_s(cMsg, fmt, vArgPtr);
+	vsnprintf_safe(cMsg, PRINT_MSG_BUFFER_SIZE, fmt, vArgPtr);
 	va_end(vArgPtr);
 
 	printf("Error: %s", cMsg);

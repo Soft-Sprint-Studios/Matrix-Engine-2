@@ -14,7 +14,7 @@ All Rights Reserved.
 #include "activity.h"
 #include "util.h"
 
-enum usemode_t
+enum usemode_t : int
 {
 	USE_OFF = 0,
 	USE_ON,
@@ -35,12 +35,12 @@ class CTriggerLogin;
 class CPlayerWeapon;
 class CTriggerCameraModel;
 
-enum subwayline_t;
+enum subwayline_t : int;
 enum activity_t;
 enum deathstate_t;
-enum weaponid_t;
-enum scripted_sequence_anim_t;
-enum ai_condition_bits_t;
+enum weaponid_t : int;
+enum scripted_sequence_anim_t : int;
+enum ai_condition_bits_t : int;
 
 struct weaponinfo_t;
 
@@ -303,7 +303,7 @@ public:
 	// Returns the number of monitors tied to an info_monitorcamera entity
 	virtual Uint32 GetNbCameraMonitors( void ) const { STUBWARNING;  return 0; }
 	// Returns a monitor by it's index
-	virtual const edict_t* GetMonitorByIndex( Uint32 index ) const { STUBWARNING; return nullptr; }
+	virtual const edict_t* GetCameraMonitorByIndex( Uint32 index ) const { STUBWARNING; return nullptr; }
 	// Checks entity against info_monitorcamera's bounding box
 	virtual bool CheckCameraBBox( const edict_t* pedict ) const { STUBWARNING; return false; }
 	// Tells the trigger_multiple to wait
@@ -333,9 +333,9 @@ public:
 	virtual void SetToggleState( togglestate_t state, bool reverse ) { };
 
 	// Returns the number of portal surfaces tied to an envpos_portal entity
-	virtual Uint32 GetNbPortalSurfaces( void ) const { return 0; }
+	virtual Uint32 GetNbEnvPortalSurfaces( void ) const { return 0; }
 	// Returns a particular func_portal_surface entity by index
-	virtual const edict_t* GetPortalSurfaceByIndex( Uint32 index ) const { return nullptr; }
+	virtual const edict_t* GetEnvPortalSurfaceByIndex( Uint32 index ) const { return nullptr; }
 
 	// Returns the entity's toggle state
 	virtual togglestate_t GetToggleState( void ) { return TSTATE_NONE; }

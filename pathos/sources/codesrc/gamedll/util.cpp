@@ -499,7 +499,7 @@ namespace Util
 		Char cMsg[MAX_PATH];
 	
 		va_start(vArgPtr, fmt);
-		vsprintf_s(cMsg, fmt, vArgPtr);
+		vsnprintf_safe(cMsg, MAX_PATH, fmt, vArgPtr);
 		va_end(vArgPtr);
 
 		if(pentity->fields.targetname != NO_STRING_VALUE)
@@ -517,7 +517,7 @@ namespace Util
 		Char cMsg[MAX_PATH];
 	
 		va_start(vArgPtr, fmt);
-		vsprintf_s(cMsg, fmt, vArgPtr);
+		vsnprintf_safe(cMsg, MAX_PATH, fmt, vArgPtr);
 		va_end(vArgPtr);
 
 		if(pentity->fields.targetname != NO_STRING_VALUE)
@@ -2645,7 +2645,7 @@ namespace Util
 		Char cMsg[MAX_PATH];
 	
 		va_start(vArgPtr, fmt);
-		vsprintf_s(cMsg, fmt, vArgPtr);
+		vsnprintf_safe(cMsg, MAX_PATH, fmt, vArgPtr);
 		va_end(vArgPtr);
 
 		gd_engfuncs.pfnUserMessageBegin(MSG_ALL, g_usermsgs.screentext, nullptr, nullptr);

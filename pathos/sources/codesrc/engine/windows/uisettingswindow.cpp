@@ -415,10 +415,10 @@ CUITabBody* CUISettingsWindow::InitAdvancedTab( CUITabList* pTabList, const ui_w
 	// Create the advanced settings tab
 	CUITabBody* pAdvancedTab = pTabList->createTab("Advanced");
 	if(!pAdvancedTab)
-		return false;
+		return nullptr;
 
 	if(!LoadScrollableOptionsList(pAdvancedTab, pWinDesc, pTabObject, ADVANCED_TAB_LIST_OBJ_NAME, ADVANCED_DESC_FILE))
-		return false;
+		return nullptr;
 
 	return pAdvancedTab;
 }
@@ -434,7 +434,7 @@ bool CUISettingsWindow::LoadScrollableOptionsList( CUITabBody* pTab, const ui_wi
 	if(!pTabListObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, ADVANCED_TAB_LIST_OBJ_NAME);
-		return nullptr;
+		return false;
 	}
 	
 	CUIScrollableSurface* pScrollSurface = new CUIScrollableSurface(pTabListObjectInfo->getFlags(), 
@@ -705,21 +705,21 @@ bool CUISettingsWindow::LoadScrollableOptionsList( CUITabBody* pTab, const ui_wi
 	if(!pScrollSurfaceOptionLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, SCROLLSURFACE_OPTION_LABEL_OBJ_NAME);
-		return nullptr;
+		return false;
 	}
 
 	const ui_objectinfo_t* pScrollSurfaceOptionListObjectInfo = pWinDesc->getObject(UI_OBJECT_LIST, SCROLLSURFACE_OPTION_LIST_OBJ_NAME);
 	if(!pScrollSurfaceOptionListObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, SCROLLSURFACE_OPTION_LIST_OBJ_NAME);
-		return nullptr;
+		return false;
 	}
 
 	const ui_objectinfo_t* pScrollSurfaceOptionTabObjectInfo = pWinDesc->getObject(UI_OBJECT_TAB, SCROLLSURFACE_OPTION_TAB_OBJ_NAME);
 	if(!pScrollSurfaceOptionTabObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, SCROLLSURFACE_OPTION_TAB_OBJ_NAME);
-		return nullptr;
+		return false;
 	}
 
 	// Add the new elements to the list
@@ -952,7 +952,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pDeviceLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_DISPLAY_DEVICE_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create the label
@@ -969,7 +969,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pDeviceListObject)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_DISPLAY_DEVICE_LIST_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIDeviceSelectEvent* pDeviceSelectEvent = new CUIDeviceSelectEvent(this);
@@ -994,7 +994,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pDeviceLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_RESOLUTION_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pResolutionLabel = new CUIText(pResolutionLabelObjectInfo->getFlags(), 
@@ -1010,7 +1010,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pDeviceListObject)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_DISPLAY_RESOLUTION_LIST_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIResolutionSelectEvent* pResSelectEvent = new CUIResolutionSelectEvent(this);
@@ -1054,7 +1054,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pWindowModeLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_WINDOW_MODE_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pModeLabel = new CUIText(pWindowModeLabelObjectInfo->getFlags(), 
@@ -1070,7 +1070,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pWindowModeListObject)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_DISPLAY_WINDOWMODE_LIST_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIWindowModeSelectEvent* pModeSelectEvent = new CUIWindowModeSelectEvent(this);
@@ -1105,7 +1105,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pGammaLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_GAMMA_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pText = new CUIText(pGammaLabelObjectInfo->getFlags(),
@@ -1121,7 +1121,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pGammaSliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_GAMMA_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -1141,7 +1141,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pSlider->init(pGammaSliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	CCVar* pCVar = gConsole.GetCVar(GAMMA_CVAR_NAME);
@@ -1165,7 +1165,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pAnisotropyLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_ANISOTROPY_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create the label
@@ -1182,7 +1182,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pAnisotropyListObject)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_ANISOTROPY_LIST_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIAnisotropySelectEvent* pAnisotropySelectEvent = new CUIAnisotropySelectEvent(this);
@@ -1241,7 +1241,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pAntiAliasLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_ANTIALIAS_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create the label
@@ -1258,7 +1258,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pAntiAliasListObject)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_ANTIALIAS_LIST_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIAntiAliasSelectEvent* pAntiAliasSelectEvent = new CUIAntiAliasSelectEvent(this);
@@ -1286,7 +1286,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pVerticalSyncLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_VERTICAL_SYNC_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create the label
@@ -1303,7 +1303,7 @@ CUITabBody* CUISettingsWindow::InitVideoTab( CUITabList* pTabList, const ui_wind
 	if(!pVerticalSyncListObject)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, VIDEOTAB_VERTICAL_SYNC_LIST_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIVerticalSyncSelectEvent* pVerticalSyncSelectEvent = new CUIVerticalSyncSelectEvent(this);
@@ -1350,7 +1350,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pMasterVolumeLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, AUDIO_TAB_MASTER_VOLUME_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pText = new CUIText(pMasterVolumeLabelObjectInfo->getFlags(),
@@ -1366,7 +1366,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pMasterVolumeSliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, AUDIO_TAB_MASTER_VOLUME_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -1386,7 +1386,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pSlider->init(pMasterVolumeSliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	CCVar* pCVar = gConsole.GetCVar(VOLUME_CVAR_NAME);
@@ -1410,7 +1410,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pGameVolumeLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, AUDIO_TAB_GAME_VOLUME_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	pText = new CUIText(pGameVolumeLabelObjectInfo->getFlags(),
@@ -1426,7 +1426,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pGameVolumeSliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, AUDIO_TAB_GAME_VOLUME_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -1446,7 +1446,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pSlider->init(pGameVolumeSliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	pCVar = gConsole.GetCVar(GAME_VOLUME_CVAR_NAME);
@@ -1470,7 +1470,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pMusicVolumeLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, AUDIO_TAB_MUSIC_VOLUME_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	pText = new CUIText(pMusicVolumeLabelObjectInfo->getFlags(),
@@ -1486,7 +1486,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pMusicVolumeSliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, AUDIO_TAB_MUSIC_VOLUME_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -1506,7 +1506,7 @@ CUITabBody* CUISettingsWindow::InitAudioTab( CUITabList* pTabList, const ui_wind
 	if(!pSlider->init(pMusicVolumeSliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	pCVar = gConsole.GetCVar(MUSIC_VOLUME_CVAR_NAME);
@@ -1662,7 +1662,7 @@ CUITabBody* CUISettingsWindow::InitBindsTab( CUITabList* pTabList, const ui_wind
 	if(!pBindClearKeyObjInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, BINDSTAB_CLEAR_BTN_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIBindsClearBtnEvent* pClearEvent = new CUIBindsClearBtnEvent(this);
@@ -1679,7 +1679,7 @@ CUITabBody* CUISettingsWindow::InitBindsTab( CUITabList* pTabList, const ui_wind
 	if(!pClearButton->init(pBindClearKeyObjInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize button object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the Bind Key button
@@ -1687,7 +1687,7 @@ CUITabBody* CUISettingsWindow::InitBindsTab( CUITabList* pTabList, const ui_wind
 	if(!pBindBindButtonObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, BINDSTAB_BIND_BTN_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIBindsBindBtnEvent* pBindEvent = new CUIBindsBindBtnEvent(this);
@@ -1705,7 +1705,7 @@ CUITabBody* CUISettingsWindow::InitBindsTab( CUITabList* pTabList, const ui_wind
 	if(!pBindButton->init(pBindBindButtonObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize button object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the "Restore Defaults" button
@@ -1713,7 +1713,7 @@ CUITabBody* CUISettingsWindow::InitBindsTab( CUITabList* pTabList, const ui_wind
 	if(!pBindRestoreDefaultsButtonInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, BINDSTAB_RESTORE_DEFAULTS_BTN_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIBindsRestoreButtonEvent* pRestoreButtonEvent = new CUIBindsRestoreButtonEvent(this);
@@ -1731,7 +1731,7 @@ CUITabBody* CUISettingsWindow::InitBindsTab( CUITabList* pTabList, const ui_wind
 	if(!pRestoreButton->init(pBindRestoreDefaultsButtonInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize button object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	return pBindsTab;
@@ -1779,7 +1779,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pSensitivitySliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, MOUSE_TAB_SENSITIVITY_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -1799,7 +1799,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pSensitivitySlider->init(pSensitivitySliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the slider label
@@ -1807,7 +1807,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pSensitivityLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, MOUSE_TAB_SENSITIVITY_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pSensitivityText = new CUIText(pSensitivityLabelObjectInfo->getFlags(),
@@ -1823,7 +1823,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pSensitivityTabObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, MOUSE_TAB_SENSITIVITY_TAB_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUISurface* pSensitivitySurface = new CUISurface(pSensitivityTabObjectInfo->getFlags(),
@@ -1837,7 +1837,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pSensitivitySurface->init(pSensitivityTabObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize tab object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the display for the value
@@ -1845,7 +1845,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pSensitivityTextObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, MOUSE_TAB_SENSITIVITY_TEXT_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	m_pSensitivityValueText = new CUIText(pSensitivityTextObjectInfo->getFlags(), 
@@ -1885,7 +1885,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pFilterFramesSliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, MOUSE_TAB_FILTER_FRAMES_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -1905,7 +1905,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pFilterFramesSlider->init(pFilterFramesSliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the slider label
@@ -1913,7 +1913,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pFilterFramesLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, MOUSE_TAB_FILTER_FRAMES_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pFilterFramesText = new CUIText(pFilterFramesLabelObjectInfo->getFlags(),
@@ -1929,7 +1929,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pFilterFramesTabObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, MOUSE_TAB_FILTER_FRAMES_TAB_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUISurface* pFilterFramesSurface = new CUISurface(pFilterFramesTabObjectInfo->getFlags(),
@@ -1943,7 +1943,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pFilterFramesSurface->init(pFilterFramesTabObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize tab object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the display for the value
@@ -1951,7 +1951,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 	if(!pFilterFramesTextObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, MOUSE_TAB_FILTER_FRAMES_TEXT_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	m_pFilterFramesValueText = new CUIText(pFilterFramesTextObjectInfo->getFlags(), 
@@ -1976,7 +1976,7 @@ CUITabBody* CUISettingsWindow::InitMouseTab( CUITabList* pTabList, const ui_wind
 			pFilterFramesSlider->setValue(value);
 
 			Char szValue[64];
-			sprintf_s(szValue, "%d", static_cast<Int32>(value));
+			snprintf(szValue, sizeof(szValue), "%d", static_cast<Int32>(value));
 
 			m_pFilterFramesValueText->setText(szValue);
 		}
@@ -2003,7 +2003,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewBobSliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_VIEWBOB_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -2023,7 +2023,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewBobSlider->init(pViewBobSliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the slider label
@@ -2031,7 +2031,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewBobLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_VIEWBOB_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pViewBobText = new CUIText(pViewBobLabelObjectInfo->getFlags(),
@@ -2047,7 +2047,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewBobTabObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_VIEWBOB_TAB_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUISurface* pViewBobSurface = new CUISurface(pViewBobTabObjectInfo->getFlags(),
@@ -2061,7 +2061,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewBobSurface->init(pViewBobTabObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize tab object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the text
@@ -2069,7 +2069,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewBobTextObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_VIEWBOB_TEXT_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	m_pViewBobValueText = new CUIText(pViewBobTextObjectInfo->getFlags(), 
@@ -2109,7 +2109,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewRollSliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_VIEWROLL_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -2129,7 +2129,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewRollSlider->init(pViewRollSliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the slider label
@@ -2137,7 +2137,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewRollLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_VIEWROLL_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pViewRollText = new CUIText(pViewRollLabelObjectInfo->getFlags(),
@@ -2153,7 +2153,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewRollTabObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_VIEWROLL_TAB_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUISurface* pViewRollSurface = new CUISurface(pViewRollTabObjectInfo->getFlags(),
@@ -2167,7 +2167,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewRollSurface->init(pViewRollTabObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize tab object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the text
@@ -2175,7 +2175,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pViewRollTextObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_VIEWROLL_TEXT_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	m_pViewRollValueText = new CUIText(pViewRollTextObjectInfo->getFlags(), 
@@ -2215,7 +2215,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pFOVSliderObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_FOV_SLIDER_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	// Create object
@@ -2235,7 +2235,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pFOVSlider->init(pFOVSliderObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize slider object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the slider label
@@ -2243,7 +2243,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pFOVLabelObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_FOV_LABEL_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUIText* pFOVText = new CUIText(pFOVLabelObjectInfo->getFlags(),
@@ -2259,7 +2259,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pFOVTabObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_FOV_TAB_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	CUISurface* pFOVSurface = new CUISurface(pFOVTabObjectInfo->getFlags(),
@@ -2273,7 +2273,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pFOVSurface->init(pFOVTabObjectInfo->getSchema().c_str()))
 	{
 		Con_EPrintf("Failed to initialize tab object for settings UI window.\n");
-		return false;
+		return nullptr;
 	}
 
 	// Create the text
@@ -2281,7 +2281,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	if(!pFOVTextObjectInfo)
 	{
 		Con_EPrintf("Window description file '%s' has no definition for '%s'.\n", WINDOW_DESC_FILE, GAMEPLAY_TAB_FOV_TEXT_OBJ_NAME);
-		return false;
+		return nullptr;
 	}
 
 	m_pFOVValueText = new CUIText(pFOVTextObjectInfo->getFlags(), 
@@ -2317,7 +2317,7 @@ CUITabBody* CUISettingsWindow::InitGameplayTab( CUITabList* pTabList, const ui_w
 	}
 
 	if(!LoadScrollableOptionsList(pGameplayTab, pWinDesc, pTabObject, GAMEPLAY_TAB_LIST_OBJ_NAME, GAMEPLAY_DESC_FILE))
-		return false;
+		return nullptr;
 
 	return pGameplayTab;
 }

@@ -32,16 +32,63 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: matrix-engine-x64-Release
+          name: matrix-engine-windows-x64-Release
           path: |
             matrix-engine.exe
             pathos/dlls/client_x64.dll
             pathos/dlls/game_x64.dll
 
+  build-linux:
+    name: Build - Linux x64 (Release)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Linux Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            libgl1-mesa-dev \
+            libx11-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxi-dev \
+            libxcursor-dev \
+            libfontconfig1-dev \
+            libwayland-dev \
+            libegl1-mesa-dev
+
+      - name: Configure CMake
+        run: |
+          cmake -S pathos/sources/codesrc -B pathos/sources/codesrc/build_linux_x64 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++
+
+      - name: Build with CMake
+        run: |
+          cmake --build pathos/sources/codesrc/build_linux_x64 --parallel $(nproc)
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-engine-linux-x64-Release
+          path: |
+            matrix-engine
+            pathos/dlls/client_x64.so
+            pathos/dlls/game_x64.so
+
   create-release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     name: Create Release
-    needs: build-windows
+    needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -53,14 +100,21 @@ jobs:
       - name: Download Windows x64 Release
         uses: actions/download-artifact@v4
         with:
-          name: matrix-engine-x64-Release
+          name: matrix-engine-windows-x64-Release
           path: artifacts/windows-x64
+
+      - name: Download Linux x64 Release
+        uses: actions/download-artifact@v4
+        with:
+          name: matrix-engine-linux-x64-Release
+          path: artifacts/linux-x64
 
       - name: Create archives
         run: |
           mkdir -p release
           cd artifacts
           zip -r ../release/windows-x64.zip windows-x64
+          tar -czvf ../release/linux-x64.tar.gz linux-x64
 
       - name: Recreate release tag
         run: |
@@ -76,3 +130,4 @@ jobs:
             Build Date: ${{ github.event.head_commit.timestamp }}
           files: |
             release/windows-x64.zip
+            release/linux-x64.tar.gz

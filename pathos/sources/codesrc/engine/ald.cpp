@@ -121,7 +121,7 @@ bool ALD_Load( daystage_t stage, byte** pdestlmaparrays, byte** pdestvertexlight
 
 	const byte* pFile = ALD_LoadALDFile(filename.c_str(), pworldcache);
 	if(!pFile)
-		return nullptr;
+		return false;
 
 	// Load lump infos
 	const aldheader_t* ploadheader = reinterpret_cast<const aldheader_t*>(pFile);
@@ -1234,7 +1234,7 @@ bool ALD_HasStageData( daystage_t stage )
 	if(!pworldcache)
 	{
 		Con_Printf("%s - Couldn't get world model.\n", __FUNCTION__);
-		return nullptr;
+		return false;
 	}
 
 	// Build the file name
@@ -1247,7 +1247,7 @@ bool ALD_HasStageData( daystage_t stage )
 
 	const byte* pFile = ALD_LoadALDFile(filename.c_str(), pworldcache);
 	if(!pFile)
-		return nullptr;
+		return false;
 
 	// Load lump infos
 	const aldheader_t* ploadheader = reinterpret_cast<const aldheader_t*>(pFile);

@@ -6123,7 +6123,7 @@ CBaseEntity* CBaseNPC::DropItem( weaponid_t weaponId, Uint32 attachmentIndex, bo
 	if(weaponName.empty())
 	{
 		Util::EntityConPrintf(m_pEdict, "No classname specified.\n");
-		return false;
+		return nullptr;
 	}
 
 	CBaseEntity* pEntity = CBaseEntity::CreateEntity(weaponName.c_str(), gunPosition, angles, this);

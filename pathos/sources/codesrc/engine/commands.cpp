@@ -336,7 +336,7 @@ void CCommandManager::CacheCommand( const Char* pstrCommand )
 			break;
 		}
 
-		pstr = Common::Parse(pstr, argument, '\0', true);
+		pstr = Common::Parse(pstr, argument, nullptr, true);
 
 		// Add new arg
 		m_commandArgs[m_numArgs] = argument;

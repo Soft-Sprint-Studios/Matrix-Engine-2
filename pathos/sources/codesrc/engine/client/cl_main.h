@@ -53,10 +53,10 @@ static constexpr Uint32 MAX_ENTITY_LIGHTS = 256;
 static constexpr Uint32 PARTICLEBLOCKER_ALLOC_SIZE = 16;
 
 // Server dll path
-#ifdef _64BUILD
+#ifdef _WIN32
 static const Char CLIENT_DLL_PATH[] = "dlls/client_x64.dll";
 #else
-static const Char CLIENT_DLL_PATH[] = "dlls/client_x86.dll";
+static const Char CLIENT_DLL_PATH[] = "dlls/client_x64.so";
 #endif
 
 // Datatype for ClientDLLInit function in the game dll

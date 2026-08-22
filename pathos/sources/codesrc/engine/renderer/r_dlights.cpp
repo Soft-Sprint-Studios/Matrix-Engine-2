@@ -481,7 +481,7 @@ shadowmap_t *CDynamicLightManager::AllocProjectiveShadowMap( bool allocblitmap )
 	if(allocblitmap && m_pCvarShadowmapBlit->GetValue() >= 1)
 	{
 		if(!CreateShadowmapBlitFBOs((*pshadowmap), GetShadowmapSize(), 1))
-			return false;
+			return nullptr;
 	}
 
 	m_projectivePoolList.add(pshadowmap);
@@ -524,7 +524,7 @@ shadowmap_t *CDynamicLightManager::AllocCubemapShadowMap( bool allocblitmap )
 	if(allocblitmap && m_pCvarShadowmapBlit->GetValue() >= 1)
 	{
 		if(!CreateShadowmapBlitFBOs((*pshadowmap), GetCubeShadowmapSize(), 6))
-			return false;
+			return nullptr;
 	}
 
 	m_cubemapPoolList.add(pshadowmap);

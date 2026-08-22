@@ -39,14 +39,6 @@ All Rights Reserved.
 
 #undef PlaySound
 
-#ifdef _64BUILD
-// OpenAL library path
-static const Char OPENAL_LIBRARY_PATH[] = "x64/OpenAL32.dll";
-#else
-// OpenAL library path
-static const Char OPENAL_LIBRARY_PATH[] = "x86/OpenAL32.dll";
-#endif
-
 // Max active tempent sounds
 const Uint32 CSoundEngine::MAX_ACTIVE_TEMP_SOUNDS = 4;
 
@@ -257,26 +249,23 @@ CSoundEngine::~CSoundEngine( void )
 //=============================================
 bool CSoundEngine::Init( void )
 {
-	//
-	// Load dll and create context
-	//
-	if(!m_hOpenALDLL)
-	{
-		m_hOpenALDLL = SDL_LoadObject(OPENAL_LIBRARY_PATH);
-		if(!m_hOpenALDLL)
-		{
-			CString str;
-			str << "Failed to load " << OPENAL_LIBRARY_PATH;
-			MessageBox(nullptr, str.c_str(), "Error", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
-			return false;
-		}
-	}
+	// Create cvars
+	m_pCVarVolume		= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), VOLUME_CVAR_NAME, "1", "Controls master volume.");
+	m_pCVarGameVolume	= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), GAME_VOLUME_CVAR_NAME, "1", "Controls game volume.");
+	m_pCVarMusicVolume	= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), MUSIC_VOLUME_CVAR_NAME, "1", "Controls music volume.");
+	m_pCVarOcclusion	= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "s_occlusion", "1", "Controls sound occlusion dimming.");
+	m_pCvarDebug		= gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "s_debug", "0", "Draws sound debug points.");
+	m_pCvarOnDemandLoad	= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "s_ondemand", "0", "Load larger audio files on-demand.");
 
+	//
+	// Create context
+	//
 	m_pDevice = alcOpenDevice(nullptr);
 	if(!m_pDevice)
 	{
-		Con_EPrintf("%s - alcOpenDevice failed.\n", __FUNCTION__);
-		return false;
+		Con_EPrintf("%s - alcOpenDevice failed: No audio output device available. Sound will be disabled.\n", __FUNCTION__);
+		m_isMuted = true;
+		return true;
 	}
 
 	ALCint hrtfSetting = ALC_FALSE;
@@ -312,16 +301,16 @@ bool CSoundEngine::Init( void )
 	// Load extended functions
 	//
 
-	alGenEffects					= static_cast<LPALGENEFFECTS>(alGetProcAddress("alGenEffects"));
-	alDeleteEffects					= static_cast<LPALDELETEEFFECTS>(alGetProcAddress("alDeleteEffects"));
-	alEffecti						= static_cast<LPALEFFECTI>(alGetProcAddress("alEffecti"));
-	alEffectf						= static_cast<LPALEFFECTF>(alGetProcAddress("alEffectf"));
-	alEffectfv						= static_cast<LPALEFFECTFV>(alGetProcAddress("alEffectfv"));
+	alGenEffects					= reinterpret_cast<LPALGENEFFECTS>(alGetProcAddress("alGenEffects"));
+	alDeleteEffects					= reinterpret_cast<LPALDELETEEFFECTS>(alGetProcAddress("alDeleteEffects"));
+	alEffecti						= reinterpret_cast<LPALEFFECTI>(alGetProcAddress("alEffecti"));
+	alEffectf						= reinterpret_cast<LPALEFFECTF>(alGetProcAddress("alEffectf"));
+	alEffectfv						= reinterpret_cast<LPALEFFECTFV>(alGetProcAddress("alEffectfv"));
 
-	alGenAuxiliaryEffectSlots		= static_cast<LPALGENAUXILIARYEFFECTSLOTS>(alGetProcAddress("alGenAuxiliaryEffectSlots"));
-	alDeleteAuxiliaryEffectSlots	= static_cast<LPALDELETEAUXILIARYEFFECTSLOTS>(alGetProcAddress("alDeleteAuxiliaryEffectSlots"));
-	alAuxiliaryEffectSloti			= static_cast<LPALAUXILIARYEFFECTSLOTI>(alGetProcAddress("alAuxiliaryEffectSloti"));
-	alAuxiliaryEffectSlotf			= static_cast<LPALAUXILIARYEFFECTSLOTF>(alGetProcAddress("alAuxiliaryEffectSlotf"));
+	alGenAuxiliaryEffectSlots		= reinterpret_cast<LPALGENAUXILIARYEFFECTSLOTS>(alGetProcAddress("alGenAuxiliaryEffectSlots"));
+	alDeleteAuxiliaryEffectSlots	= reinterpret_cast<LPALDELETEAUXILIARYEFFECTSLOTS>(alGetProcAddress("alDeleteAuxiliaryEffectSlots"));
+	alAuxiliaryEffectSloti			= reinterpret_cast<LPALAUXILIARYEFFECTSLOTI>(alGetProcAddress("alAuxiliaryEffectSloti"));
+	alAuxiliaryEffectSlotf			= reinterpret_cast<LPALAUXILIARYEFFECTSLOTF>(alGetProcAddress("alAuxiliaryEffectSlotf"));
 
 	if(!alGenEffects || !alDeleteEffects || !alEffecti || !alEffectf 
 		|| !alEffectfv || !alGenAuxiliaryEffectSlots || !alDeleteAuxiliaryEffectSlots
@@ -330,14 +319,6 @@ bool CSoundEngine::Init( void )
 		Con_EPrintf("Sound engine failed to load functions. Your openal.dll might be out of date.\n");
 		return false;
 	}
-
-	// Create cvars
-	m_pCVarVolume		= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), VOLUME_CVAR_NAME, "1", "Controls master volume.");
-	m_pCVarGameVolume	= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), GAME_VOLUME_CVAR_NAME, "1", "Controls game volume.");
-	m_pCVarMusicVolume	= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), MUSIC_VOLUME_CVAR_NAME, "1", "Controls music volume.");
-	m_pCVarOcclusion	= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "s_occlusion", "1", "Controls sound occlusion dimming.");
-	m_pCvarDebug		= gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "s_debug", "0", "Draws sound debug points.");
-	m_pCvarOnDemandLoad	= gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "s_ondemand", "0", "Load larger audio files on-demand.");
 	
 	// Set distance model
 	alDistanceModel(AL_LINEAR_DISTANCE);
@@ -432,12 +413,6 @@ void CSoundEngine::Shutdown( void )
 	if(m_pDevice)
 	{
 		alcCloseDevice(m_pDevice);
-	}
-
-	if(m_hOpenALDLL)
-	{
-		SDL_UnloadObject(reinterpret_cast<SDL_SharedObject*>(m_hOpenALDLL));
-		m_hOpenALDLL = nullptr;
 	}
 
 	if(m_pPASBuffer)
@@ -1211,7 +1186,7 @@ bool CSoundEngine::LoadSoundData( const Char *sample, snd_cache_t* pcache, Int32
 		for(Uint32 i = 0; i < m_missingArray.size(); i++)
 		{
 			if(!qstrcmp(sample, m_missingArray[i].filename.c_str()))
-				return nullptr;
+				return false;
 		}
 
 		snd_missing_t newMissing;
@@ -1220,14 +1195,14 @@ bool CSoundEngine::LoadSoundData( const Char *sample, snd_cache_t* pcache, Int32
 		m_missingArray.push_back(newMissing);
 
 		Con_Printf("%s - Could not precache: %s.\n", __FUNCTION__, sample);
-		return nullptr;
+		return false;
 	}
 
 	if(strncmp(reinterpret_cast<const Char *>(pfile), "RIFF", 4))
 	{
 		Con_Printf("%s - %s is not a valid .WAV file!\n", __FUNCTION__, sample);
 		FL_FreeFile(pfile);
-		return nullptr;
+		return false;
 	}
 
 	// Allocate new data
@@ -1566,6 +1541,9 @@ void CSoundEngine::UpdateSound( const Char *sample, const Vector* pOrigin, Int32
 //=============================================
 void CSoundEngine::PlaySound( const Char *sample, const Vector* pOrigin, Int32 flags, Int32 channel, Float volume, Int32 pitch, Float attenuation, cl_entity_t *entity, entindex_t entindex, Int32 svindex, Float timeoffs )
 {
+	if(!m_pDevice)
+		return;
+
 	if(!CL_CanPlayGameSounds() && !(flags & SND_FL_MENU))
 	{
 		if(sample)
@@ -1886,6 +1864,9 @@ CSoundEngine::stream_result_t CSoundEngine::Stream( ALuint buffer, snd_music_t& 
 //=============================================
 void CSoundEngine::Update( ref_params_t *pparams )
 {
+	if(!m_pDevice || m_isMuted)
+		return;
+
 	if(CL_CanPlayGameSounds())
 	{
 		//

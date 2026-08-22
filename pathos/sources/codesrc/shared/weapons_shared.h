@@ -149,7 +149,7 @@ enum weaponflags_t
 };
 
 // Weapon IDs
-enum weaponid_t
+enum weaponid_t : int
 {
 	WEAPON_NONE	= 0,
 	WEAPON_GLOCK,
@@ -184,7 +184,7 @@ static const Uint32 MAX_AMMO_COUNTS[NUM_WEAPONS] =
 	0
 };
 
-enum bullet_types_t
+enum bullet_types_t : int
 {
 	BULLET_NONE = 0,
 	BULLET_PLAYER_GLOCK,

@@ -40,12 +40,12 @@ static constexpr Int32 MAX_TOUCHENTS = 64;
 static constexpr Uint32 USERCMD_ALLOC_SIZE = 64;
 
 // Server dll path
-#ifdef _64BUILD
+#ifdef _WIN32
 static const Char SERVER_DLL_PATH[] = "dlls/game_x64.dll";
 static const Char SERVER_DLL_NAME[] = "game_x64.dll";
 #else
-static const Char SERVER_DLL_PATH[] = "dlls/game_x86.dll";
-static const Char SERVER_DLL_NAME[] = "game_x86.dll";
+static const Char SERVER_DLL_PATH[] = "dlls/game_x64.so";
+static const Char SERVER_DLL_NAME[] = "game_x64.so";
 #endif
 
 class Vector;

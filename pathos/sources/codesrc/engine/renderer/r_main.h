@@ -513,8 +513,8 @@ extern void R_SetModelViewMatrix( const Vector& origin, const Vector& angles );
 extern void R_SetProjectionMatrix( Float znear, Float fovY );
 extern void R_BindFBO( struct fbobind_t *pfbo );
 
-extern inline void R_ValidateShader( CGLSLShader* pShader );
-extern inline void R_ValidateShader( CBasicDraw* pDraw );
+extern void R_ValidateShader( CBasicDraw* pDraw );
+extern void R_ValidateShader( CGLSLShader* pShader );
 
 extern bool R_LoadTextureListFile( const Char* pstrTextureListFile, CArray<en_texture_t*>& texArray, rs_level_t level, const GLint* pborder, bool clamp );
 

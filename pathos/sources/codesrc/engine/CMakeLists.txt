@@ -164,8 +164,6 @@ target_sources(matrix-engine
         console.h
         disptrace.cpp
         disptrace.h
-        dllexports.cpp
-        dllexports.h
         edictmanager.cpp
         edictmanager.h
         enginefuncs.cpp
@@ -332,12 +330,6 @@ target_sources(matrix-engine
 
 set_target_properties(matrix-engine PROPERTIES
     OUTPUT_NAME matrix-engine
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/$(Platform)/$<CONFIG>"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/$(Platform)/$<CONFIG>"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/$(Platform)/$<CONFIG>"
-    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/$(Platform)/$<CONFIG>"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/$(Platform)/$<CONFIG>"
-    ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/$(Platform)/$<CONFIG>"
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
     MSVC_RUNTIME_CHECKS ""
 )
@@ -370,10 +362,9 @@ target_include_directories(matrix-engine
 
 target_compile_definitions(matrix-engine
     PRIVATE
-        WIN32
-        _64BUILD
+        $<$<PLATFORM_ID:Windows>:WIN32 _MBCS>
+        $<$<NOT:$<PLATFORM_ID:Windows>>:_LINUX>
         _CRT_SECURE_NO_WARNINGS
-        _MBCS
 )
 
 target_link_directories(matrix-engine
@@ -381,27 +372,45 @@ target_link_directories(matrix-engine
         x64/Release
 )
 
-target_link_libraries(matrix-engine
-    PRIVATE
-        user32
-        opengl32
-        glu32
-        shell32
-        gdi32
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/freetype/lib/freetype.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/openal/libs/Win64/openal32.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/detours/lib.X64/detours.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/sentry/libs/sentry.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/Bullet3Dynamics.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/BulletCollision.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/BulletDynamics.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/LinearMath.lib"
-        winmm
-        ws2_32
-        gdiplus
-        comctl32
-)
+if(WIN32)
+    target_link_libraries(matrix-engine
+        PRIVATE
+            user32
+            opengl32
+            glu32
+            shell32
+            gdi32
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/freetype/lib/x64/freetype.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/openal/libs/Win64/openal32.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/detours/lib.X64/detours.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/sentry/libs/x64/sentry.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/Bullet3Dynamics.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/BulletCollision.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/BulletDynamics.lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/x64/LinearMath.lib"
+            winmm
+            ws2_32
+            gdiplus
+            comctl32
+    )
+else()
+    target_link_libraries(matrix-engine
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/SDL3-3.4.14/lib/linux/libSDL3.so"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/freetype/lib/linux/libfreetype.so"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/openal/libs/linux/libopenal.so"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/sentry/libs/linux/libsentry.so"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/linux/libBullet3Dynamics.a"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/linux/libBulletDynamics.a"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/linux/libBulletCollision.a"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../libs/bullet/lib/linux/libLinearMath.a"
+            GL
+            dl
+            pthread
+            m
+    )
+endif()
 
 target_compile_options(matrix-engine
     PRIVATE

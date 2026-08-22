@@ -508,9 +508,9 @@ private:
 
 private:
 	// Batches a surface
-	__forceinline void BatchSurface( msurface_t* psurface );
+	FORCEINLINE void BatchSurface( msurface_t* psurface );
 	// Adds a render batch to the array
-	__forceinline void AddBatch( CArray<drawbatch_t>& batches, Uint32& numbatches, bsp_surface_t *psurface );
+	FORCEINLINE void AddBatch( CArray<drawbatch_t>& batches, Uint32& numbatches, bsp_surface_t *psurface );
 
 private:
 	// Prepares for rendering an object

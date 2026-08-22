@@ -13,6 +13,20 @@ All Rights Reserved.
 class Vector;
 template <typename T> class CArray;
 
+#if defined(_MSC_VER)
+    #define vsnprintf_safe(buf, size, fmt, va) vsnprintf_s(buf, size, _TRUNCATE, fmt, va)
+#else
+    #define vsnprintf_safe(buf, size, fmt, va) vsnprintf(buf, size, fmt, va)
+#endif
+
+#ifdef _MSC_VER
+	#define FORCEINLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+	#define FORCEINLINE inline __attribute__((always_inline))
+#else
+	#define FORCEINLINE inline
+#endif
+
 #ifndef MAX_PATH
 #define MAX_PATH			260
 #endif //MAX_PATH
@@ -232,17 +246,17 @@ namespace Common
 	extern inline Double ByteToDouble( const byte *pdata );
 
 	extern bool IsPowerOfTwo( Uint32 size );
-	extern inline CString GetDate( void );
-	extern inline CString GetDateFilename( void );
-	extern inline Int32 IsPitchReversed( Float pitch );
+	extern CString GetDate( void );
+	extern CString GetDateFilename( void );
+	extern Int32 IsPitchReversed( Float pitch );
 	extern void FixVector( Float* pflVector );
-	extern inline Float RandomFloat( Float low, Float high );
-	extern inline Int64 RandomLong( Int64 low, Int64 high );
+	extern Float RandomFloat( Float low, Float high );
+	extern Int64 RandomLong( Int64 low, Int64 high );
 	extern inline bool IsNAN( Float value );
 	extern inline Float SplineFraction( Float value, Float scale );
 	extern inline void ScaleByte( Uint32 *nInput );
-	extern inline CString FixSlashes( const Char* pstring );
-	extern inline bool CheckVisibility( const CArray<Uint32>& leafnums, Uint32 numleafs, const byte* pset );
+	extern CString FixSlashes( const Char* pstring );
+	extern bool CheckVisibility( const CArray<Uint32>& leafnums, Uint32 numleafs, const byte* pset );
 	extern bool GetWADList( const Char* pstrEntityData, CArray<CString>& outputArray );
 	extern Uint32 GetFileLineCount( const Char* pstrdata );
 

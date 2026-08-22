@@ -1225,7 +1225,7 @@ en_texture_t* CTextureManager::LoadTexture( const Char* pstrFilename, rs_level_t
 	if(!Common::IsPowerOfTwo(width) || !Common::IsPowerOfTwo(height))
 	{
 		m_printErrorFunction("%s is not a power of two texture.\n", filename.c_str());
-		return false;
+		return nullptr;
 	}
 
 	// Allocate a new texture if it's not already present

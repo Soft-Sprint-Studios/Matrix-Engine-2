@@ -19,7 +19,7 @@ extern CCVar* g_pCvarAutoAim;
 extern CCVar* g_pCvarHoldToWalk;
 extern CCVar* g_pCvarOldSchoolBlood;
 
-enum bullet_types_t;
+enum bullet_types_t : int;
 
 class CFlexManager;
 class CSentencesFile;

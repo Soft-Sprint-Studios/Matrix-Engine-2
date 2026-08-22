@@ -212,7 +212,7 @@ Uint32 CInfoMonitorCamera::GetNbCameraMonitors( void ) const
 // @brief
 //
 //=============================================
-const edict_t* CInfoMonitorCamera::GetMonitorByIndex( Uint32 index ) const
+const edict_t* CInfoMonitorCamera::GetCameraMonitorByIndex( Uint32 index ) const
 {
 	assert(index < (Uint32)m_numCameraMonitors);
 	return m_pCameraMonitors[index];

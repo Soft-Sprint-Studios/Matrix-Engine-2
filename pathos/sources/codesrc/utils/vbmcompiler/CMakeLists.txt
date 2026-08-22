@@ -109,7 +109,8 @@ target_include_directories(vbmcompiler
 
 target_compile_definitions(vbmcompiler
     PRIVATE
-        WIN32
+        $<$<PLATFORM_ID:Windows>:WIN32>
+        $<$<NOT:$<PLATFORM_ID:Windows>>:_LINUX>
         NDEBUG
         _CONSOLE
         vbmcompiler
@@ -120,10 +121,20 @@ target_link_directories(vbmcompiler
         ../../x64/Release
 )
 
-target_link_libraries(vbmcompiler
-    PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
-)
+if(WIN32)
+    target_link_libraries(vbmcompiler
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/SDL3-3.4.14/lib/x64/SDL3.lib"
+    )
+else()
+    target_link_libraries(vbmcompiler
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/SDL3-3.4.14/lib/linux/libSDL3.so"
+            dl
+            pthread
+            m
+    )
+endif()
 
 target_compile_options(vbmcompiler
     PRIVATE

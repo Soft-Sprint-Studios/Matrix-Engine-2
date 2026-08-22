@@ -847,11 +847,11 @@ void CInput::GetMouseDelta( Int32 &deltaX, Int32 &deltaY )
 	{
 		if(!rawInput)
 		{
-			POINT p;
-			GetCursorPos(&p);
+			float px = 0, py = 0;
+			SDL_GetGlobalMouseState(&px, &py);
 
-			deltaX = (p.x-x) - centerX;
-			deltaY = (p.y-y) - centerY;
+			deltaX = static_cast<Int32>(px - x) - centerX;
+			deltaY = static_cast<Int32>(py - y) - centerY;
 		}
 		else
 		{
@@ -878,7 +878,7 @@ void CInput::GetMouseDelta( Int32 &deltaX, Int32 &deltaY )
 
 	// Reposition mouse on center
 	if(!rawInput)
-		SetCursorPos(x + centerX, y + centerY);
+		SDL_WarpMouseGlobal(x + centerX, y + centerY);
 }
 
 //=============================================
@@ -926,11 +926,11 @@ void CInput::UpdateMousePositions( bool clearReset )
 	{
 		if(!rawInput)
 		{
-			POINT p;
-			GetCursorPos(&p);
+			float px = 0, py = 0;
+			SDL_GetGlobalMouseState(&px, &py);
 
-			deltaX = (p.x-x) - centerX;
-			deltaY = (p.y-y) - centerY;
+			deltaX = static_cast<Int32>(px - x) - centerX;
+			deltaY = static_cast<Int32>(py - y) - centerY;
 		}
 		else
 		{
@@ -959,7 +959,7 @@ void CInput::UpdateMousePositions( bool clearReset )
 
 	// Reposition mouse on center
 	if(!rawInput)
-		SetCursorPos(x + centerX, y + centerY);
+		SDL_WarpMouseGlobal(x + centerX, y + centerY);
 }
 
 //=============================================

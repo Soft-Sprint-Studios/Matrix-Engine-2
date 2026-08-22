@@ -393,6 +393,7 @@ bool CBSPRenderer::InitGL( void )
 			m_attribs.lights[i].u_light_spotdirection = m_pShader->InitUniform(lightspotdirection.c_str(), CGLSLShader::UNIFORM_FLOAT3);
 			m_attribs.lights[i].u_d_light_shadowmap = m_pShader->InitUniform(lightdeterminatorshadowmap.c_str(), CGLSLShader::UNIFORM_INT1);
 
+			/*
 			if(!R_CheckShaderUniform(m_attribs.lights[i].u_light_color, lightcolor.c_str(), m_pShader, Sys_ErrorPopup)
 				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_origin, lightorigin.c_str(), m_pShader, Sys_ErrorPopup)
 				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_radius, lightradius.c_str(), m_pShader, Sys_ErrorPopup)
@@ -404,6 +405,7 @@ bool CBSPRenderer::InitGL( void )
 				|| !R_CheckShaderUniform(m_attribs.lights[i].u_light_spotdirection, lightspotdirection.c_str(), m_pShader, Sys_ErrorPopup)
 				|| !R_CheckShaderUniform(m_attribs.lights[i].u_d_light_shadowmap, lightdeterminatorshadowmap.c_str(), m_pShader, Sys_ErrorPopup))
 				return false;
+				*/
 		}
 
 		if(!R_CheckShaderUniform(m_attribs.u_cubemap, "cubemap", m_pShader, Sys_ErrorPopup)
@@ -2010,7 +2012,7 @@ void CBSPRenderer::RecursiveWorldNode( mnode_t* pnode )
 // @brief
 //
 //=============================================
-__forceinline void CBSPRenderer::BatchSurface( msurface_t* psurface )
+FORCEINLINE void CBSPRenderer::BatchSurface( msurface_t* psurface )
 {
 	bsp_surface_t* pbspsurface = nullptr;
 	pbspsurface = &m_surfacesArray[psurface->infoindex];
@@ -2027,7 +2029,7 @@ __forceinline void CBSPRenderer::BatchSurface( msurface_t* psurface )
 // @brief
 //
 //=============================================
-__forceinline void CBSPRenderer::AddBatch( CArray<drawbatch_t>& batches, Uint32& numbatches, bsp_surface_t *psurface )
+FORCEINLINE void CBSPRenderer::AddBatch( CArray<drawbatch_t>& batches, Uint32& numbatches, bsp_surface_t *psurface )
 {
 	drawbatch_t *pbatch;
 	if(numbatches > 0)

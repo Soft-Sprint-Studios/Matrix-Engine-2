@@ -62,7 +62,7 @@ static const Float LADDER_LF_EXIT_FW			= 25;
 static const Float LADDER_TP_EXIT_FW			= -24;
 static const Float LADDER_TP_EXIT_UP			= 100;
 
-enum ladder_verify_codes_t
+enum ladder_verify_codes_t : int
 {
 	LADDER_VR_NOMOVE = 0,
 	LADDER_VR_MOVE_VALID,

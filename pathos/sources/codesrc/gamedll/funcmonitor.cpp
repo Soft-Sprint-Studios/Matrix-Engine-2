@@ -234,7 +234,7 @@ bool CFuncMonitor::CheckVISForEntity( const edict_t* pclient, const edict_t* ped
 		Uint32 nbcameramonitors = pEntity->GetNbCameraMonitors();
 		for(Uint32 i = 0; i < nbcameramonitors; i++)
 		{
-			const edict_t* pmonitor = pEntity->GetMonitorByIndex(i);
+			const edict_t* pmonitor = pEntity->GetCameraMonitorByIndex(i);
 			if(pmonitor && !(pmonitor->state.effects & EF_NODRAW) 
 				&& Common::CheckVisibility(pmonitor->leafnums, pmonitor->numleaves, pset) 
 				&& !CEnvFog::FogCull(*pclient, *pmonitor))
