@@ -68,6 +68,8 @@ jobs:
             libwayland-dev \
             libegl1-mesa-dev
 
+          sudo ln -s /usr/include/AL /usr/include/al
+
       - name: Configure CMake
         run: |
           cmake -S pathos/sources/codesrc -B pathos/sources/codesrc/build_linux_x64 \
