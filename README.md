@@ -30,3 +30,5 @@ SSAO
 Volumetric Lighting
 
 Video rendering
+
+Linux support
