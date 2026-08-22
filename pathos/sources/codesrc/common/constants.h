@@ -334,13 +334,13 @@ static const Char* NPC_LEGACY_STEPTYPE_NAMES[NB_NPC_LEGACY_STEPTYPES] =
 };
 
 // TODO: This shit isn't even used, get rid of it
-enum npc_movetype_t
+enum npc_movetype_t : int
 {
 	MOVE_NORMAL = 0,
 	MOVE_STRAFE
 };
 
-enum walkmove_t
+enum walkmove_t : int
 {
 	WALKMOVE_NORMAL = 0,
 	WALKMOVE_WORLDONLY,
@@ -701,7 +701,7 @@ enum part_msg_types_t
 	PART_MSG_REMOVE
 };
 
-enum part_script_type_t
+enum part_script_type_t : int
 {
 	PART_SCRIPT_SYSTEM = 0,
 	PART_SCRIPT_CLUSTER
@@ -949,7 +949,7 @@ enum lightstyles_t
 	LS_SLOW_PULSE_NOBLACK
 };
 
-enum daystage_t
+enum daystage_t : int
 {
 	DAYSTAGE_NORMAL = 0,
 	DAYSTAGE_NIGHTSTAGE,
@@ -979,7 +979,7 @@ enum usableobject_type_t
 // Used to define for what reason an entity is being
 // released by the engine, and at what time during
 // the game process.
-enum edict_removed_t
+enum edict_removed_t : int
 {
 	EDICT_REMOVED_KILLED = 0,
 	EDICT_REMOVED_GAMECLEAR,

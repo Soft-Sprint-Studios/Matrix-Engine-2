@@ -27,13 +27,16 @@ struct mleaf_t;
 struct brushmodel_t;
 struct save_globalentity_t;
 
-enum cmodel_type_t;
-enum savefile_type_t;
-enum entfieldtype_t;
-enum msgdest_t;
-enum part_script_type_t;
-enum npc_movetype_t;
-enum edict_removed_t;
+enum cmodel_type_t : int;
+enum savefile_type_t : int;
+enum entfieldtype_t : int;
+enum globalstate_state_t : int;
+enum snd_effects_t : int;
+enum msgdest_t : int;
+enum part_script_type_t : int;
+enum npc_movetype_t : int;
+enum edict_removed_t : int;
+enum walkmove_t : int;
 
 // GameDLL interface version
 #define GDLL_INTERFACE_VERSION 1
@@ -117,7 +120,7 @@ struct gdll_funcs_t
 
 	Uint32			(*pfnGetNbGlobalStates)( void );
 	void			(*pfnSaveGlobalStates)( void );
-	void			(*pfnReadGlobalStateData)( const Char* pstrglobalname, const Char* pstrlevelname, enum globalstate_state_t state );
+	void			(*pfnReadGlobalStateData)( const Char* pstrglobalname, const Char* pstrlevelname, globalstate_state_t state );
 
 	bool			(*pfnAreCheatsEnabled)( void );
 
@@ -179,7 +182,7 @@ struct gdll_engfuncs_t
 
 	void					(*pfnPlayEntitySound)( entindex_t entindex, const Char* pstrPath, Int32 flags, Int32 channel, Float volume, Float attenuation, Int32 pitch, Float timeoffset, Int32 dest_player );
 	void					(*pfnPlayAmbientSound)( entindex_t entindex, const Char* pstrPath, const Vector& origin, Int32 flags, Float volume, Float attenuation, Int32 pitch, Float timeoffset, Int32 dest_player );
-	void					(*pfnApplySoundEffect)( entindex_t entindex, const Char* pstrPath, Int32 channel, enum snd_effects_t effect, Float duration, Float targetvalue, Int32 dest_player );
+	void					(*pfnApplySoundEffect)( entindex_t entindex, const Char* pstrPath, Int32 channel, snd_effects_t effect, Float duration, Float targetvalue, Int32 dest_player );
 	void					(*pfnStopEntitySounds)( entindex_t entindex, Int32 channel, Int32 dest_player );
 	void					(*pfnSetMuteAllSounds)( bool mutesounds );
 	void					(*pfnSetRoomType)( Int32 roomtype );
@@ -215,7 +218,7 @@ struct gdll_engfuncs_t
 	void					(*pfnSaveWriteVector)( const Char* fieldname, const byte* pdata, Uint32 fieldsize, entfieldtype_t fieldtype );
 	void					(*pfnSaveWriteCoord)( const Char* fieldname, const byte* pdata, Uint32 fieldsize, entfieldtype_t fieldtype );
 	void					(*pfnSaveWriteEntindex)( const Char* fieldname, const byte* const pdata, Uint32 fieldsize, entfieldtype_t fieldtype );
-	void					(*pfnSaveWriteGlobalState)( Uint32 index, const Char* pstrglobalname, const Char* pstrlevelname, enum globalstate_state_t state );
+	void					(*pfnSaveWriteGlobalState)( Uint32 index, const Char* pstrglobalname, const Char* pstrlevelname, globalstate_state_t state );
 
 	Int32					(*pfnRegisterUserMessage)( const Char* pstrMsgName, Int32 msgsize );
 	void					(*pfnUserMessageBegin)( msgdest_t dest, Int32 msgid, const Vector* porigin, const edict_t* pedict );
@@ -270,7 +273,7 @@ struct gdll_engfuncs_t
 
 	void					(*pfnAddSavedDecal)( const Vector& origin, const Vector& normal, entindex_t entityindex, const Char* pstrDecalTexture, Int32 decalflags );
 
-	bool					(*pfnWalkMove)( edict_t* pentity, Float yaw, Float dist, enum walkmove_t movemode );
+	bool					(*pfnWalkMove)( edict_t* pentity, Float yaw, Float dist, walkmove_t movemode );
 	void					(*pfnMoveToOrigin)( edict_t* pedict, const Vector& goalPosition, Float moveyaw, Float dist, npc_movetype_t movetype );
 	bool					(*pfnCheckBottom)( edict_t* pedict );
 	edict_t*				(*pfnFindClientInPVS)( const edict_t* pedict );

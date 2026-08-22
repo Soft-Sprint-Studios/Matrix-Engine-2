@@ -13,7 +13,7 @@ All Rights Reserved.
 //
 // Messages destination types
 // 
-enum msgdest_t
+enum msgdest_t : int
 {
 	MSG_UNDEFINED = -1,
 	MSG_ONE = 0,

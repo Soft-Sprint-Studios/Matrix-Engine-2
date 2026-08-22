@@ -9,6 +9,10 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 project(matrix-engine)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-fpermissive)
+endif()
+
 add_subdirectory(clientdll)
 add_subdirectory(engine)
 add_subdirectory(gamedll)

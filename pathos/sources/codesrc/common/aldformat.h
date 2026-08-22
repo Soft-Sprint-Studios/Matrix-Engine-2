@@ -27,7 +27,7 @@ enum aldlumptype_t
 	ALD_LUMP_DAYLIGHT_RETURN_DATA_BUMP
 };
 
-enum aldcompression_t
+enum aldcompression_t : int
 {
 	ALD_COMPRESSION_NONE = 0,
 	ALD_COMPRESSION_MINIZ

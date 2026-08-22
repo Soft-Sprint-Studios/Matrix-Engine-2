@@ -61,7 +61,7 @@ enum vbmcontroller_type_t
 	CONTROLLER_L_EYE_XY,
 };
 
-enum vbmlod_type_t
+enum vbmlod_type_t : int
 {
 	VBM_LOD_NONE = -1,
 	VBM_LOD_DISTANCE,

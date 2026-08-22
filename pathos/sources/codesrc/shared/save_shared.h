@@ -23,7 +23,7 @@ static const Char QUICKSAVE_FILE_NAME[] = "quick";
 static const Char AUTOSAVE_FILE_NAME[] = "autosave";
 
 // Entity field types
-enum entfieldtype_t
+enum entfieldtype_t : int
 {
 	EFIELD_UNDEFINED = -1,
 	EFIELD_FLOAT,				// A float vlaue
@@ -72,7 +72,7 @@ enum entfieldtype_t
 	NB_FIELDTYPES
 };
 
-enum savefile_type_t
+enum savefile_type_t : int
 {
 	SAVE_UNDEFINED = -1,
 	SAVE_REGULAR, // Regular savefile, saved from menu or on exit

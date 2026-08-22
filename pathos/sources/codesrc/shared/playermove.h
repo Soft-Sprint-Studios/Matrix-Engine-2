@@ -16,7 +16,7 @@ All Rights Reserved.
 
 struct cache_model_t;
 struct en_material_t;
-enum cmodel_type_t;
+enum cmodel_type_t : int;
 
 // Waterjump height
 static const Float WATERJUMP_HEIGHT = 8.0f;

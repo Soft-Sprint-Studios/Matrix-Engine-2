@@ -15,7 +15,7 @@ All Rights Reserved.
 #include "sprformat.h"
 
 // Model types
-enum cmodel_type_t
+enum cmodel_type_t : int
 {
 	MOD_NONE = 0,
 	MOD_BRUSH,

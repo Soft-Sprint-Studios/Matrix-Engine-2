@@ -17,10 +17,10 @@ struct tempentity_t;
 struct beam_t;
 struct tracer_t;
 
-enum beam_types_t;
+enum beam_types_t : int;
 enum overlay_rendermode_t;
 enum overlay_effect_t;
-enum tracer_type_t;
+enum tracer_type_t : int;
 
 extern void CL_SetFade( Uint32 layerindex, Float duration, Float holdtime, Int32 flags, const color24_t& color, byte alpha, Float timeoffset );
 extern void CL_SetMotionBlur( bool active, Float blurfade, bool override );

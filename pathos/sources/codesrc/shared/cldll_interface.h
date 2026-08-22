@@ -30,8 +30,9 @@ struct ui_windowdescription_t;
 struct cl_dlight_t;
 struct font_set_t;
 
-enum cmodel_type_t;
-enum snd_effects_t;
+enum cmodel_type_t : int;
+enum snd_effects_t : int;
+enum flextypes_t : int;
 
 class Vector;
 class CDecalList;
@@ -168,7 +169,7 @@ struct cldll_engfuncs_t
 	bool					(*pfnRecursiveLightPoint)( const brushmodel_t* pworld, struct mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles, Float* poutstylevalues );
 	bool					(*pfnRecursiveLightPointBumpData)( const brushmodel_t* pworld, struct mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles, Float* poutstylevalues );
 
-	void					(*pfnPrecacheFlexScript)( enum flextypes_t npctype, const Char* pstrscript );
+	void					(*pfnPrecacheFlexScript)( flextypes_t npctype, const Char* pstrscript );
 	void					(*pfnSetFlexScript)( entindex_t entindex, const Char* pstrscript );
 
 	Vector					(*pfnGetAttachment)( entindex_t entindex, Uint32 attachment );

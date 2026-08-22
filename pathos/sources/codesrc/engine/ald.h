@@ -9,8 +9,8 @@ All Rights Reserved.
 
 #ifndef ALD_H
 #define ALD_H
-enum daystage_t;
-enum aldcompression_t;
+enum daystage_t : int;
+enum aldcompression_t : int;
 struct cache_model_t;
 
 extern bool ALD_Load( daystage_t stage, byte** pdestlmaparrays, byte** pdestvertexlightarrays, byte** pdestlightgridarrays );

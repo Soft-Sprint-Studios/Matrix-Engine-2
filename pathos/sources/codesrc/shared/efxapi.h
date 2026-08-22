@@ -18,10 +18,10 @@ struct mlight_t;
 struct beam_t;
 struct tracer_t;
 
-enum beam_types_t;
+enum beam_types_t : int;
 enum overlay_rendermode_t;
 enum overlay_effect_t;
-enum tracer_type_t;
+enum tracer_type_t : int;
 
 struct cl_efxapi_t
 {

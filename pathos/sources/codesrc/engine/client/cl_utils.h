@@ -21,7 +21,7 @@ struct ui_windowdescription_t;
 struct cl_entity_t;
 struct font_set_t;
 
-enum snd_effects_t;
+enum snd_effects_t : int;
 
 class CUIWindow;
 

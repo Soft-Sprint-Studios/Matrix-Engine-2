@@ -33,7 +33,7 @@ enum ogg_flags_t
 	OGG_FL_MENU				= (1<<4)
 };
 
-enum snd_effects_t
+enum snd_effects_t : int
 {
 	SND_EF_UNDEFINED = 0,
 	SND_EF_CHANGE_VOLUME,

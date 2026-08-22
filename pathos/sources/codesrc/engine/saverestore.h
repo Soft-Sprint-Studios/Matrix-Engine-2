@@ -17,7 +17,7 @@ All Rights Reserved.
 class CCVar;
 
 struct edict_t;
-enum globalstate_state_t;
+enum globalstate_state_t : int;
 
 extern void Save_WriteBool( const Char* fieldname, const byte* pdata, Uint32 fieldsize, entfieldtype_t fieldtype );
 extern void Save_WriteByte( const Char* fieldname, const byte* pdata, Uint32 fieldsize, entfieldtype_t fieldtype );

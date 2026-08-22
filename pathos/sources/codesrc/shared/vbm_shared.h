@@ -35,7 +35,7 @@ struct entity_state_t;
 struct en_material_t;
 struct cache_model_t;
 
-enum vbmlod_type_t;
+enum vbmlod_type_t : int;
 
 extern Float VBM_EstimateInterpolant( Float time, Float animtime, Float prevanimtime );
 extern void VBM_CalculateRotations( const studiohdr_t* phdr, Float time, Float animtime, Float prevanimtime, CArray<Vector>& positions, CArray<vec4_t>& quaternions, const mstudioseqdesc_t* pseqdesc, const mstudioanim_t* panim, Float frame, const Float* pcontroller1, const Float* pcontroller2, byte mouth );
