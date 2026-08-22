@@ -105,13 +105,13 @@ void CPlayerMovement::DropPunchAngle( void )
 
 	// Toroidal spring
 	Float springmagnitude = VIEW_PUNCH_SPRING_CONSTANT * m_frameTime;
-	springmagnitude = clamp(springmagnitude, 0, 2);
+	springmagnitude = CLAMP(springmagnitude, 0, 2);
 
 	Math::VectorMA(m_pPlayerState->punchamount, -springmagnitude, m_pPlayerState->punchangles, m_pPlayerState->punchamount);
 
-	m_pPlayerState->punchangles[0] = clamp(m_pPlayerState->punchangles[0], -89, 89);
-	m_pPlayerState->punchangles[1] = clamp(m_pPlayerState->punchangles[1], -179, 179);
-	m_pPlayerState->punchangles[2] = clamp(m_pPlayerState->punchangles[2], -89, 89);
+	m_pPlayerState->punchangles[0] = CLAMP(m_pPlayerState->punchangles[0], -89, 89);
+	m_pPlayerState->punchangles[1] = CLAMP(m_pPlayerState->punchangles[1], -179, 179);
+	m_pPlayerState->punchangles[2] = CLAMP(m_pPlayerState->punchangles[2], -89, 89);
 }
 
 //=============================================
@@ -1766,7 +1766,7 @@ void CPlayerMovement::Duck( void )
 	if(m_pPlayerState->induck)
 	{
 		Float time = (float)m_pPlayerState->ducktime / PLAYER_DUCK_WAIT_TIME;
-		Float timeto = clamp((1.0 - (float)m_pPlayerState->ducktime / PLAYER_DUCK_WAIT_TIME), 0.0, 1.0);
+		Float timeto = CLAMP((1.0 - (float)m_pPlayerState->ducktime / PLAYER_DUCK_WAIT_TIME), 0.0, 1.0);
 		Float ducktime = PLAYER_DUCK_TIME*MILLISECONDS_TO_SECONDS;
 
 		if(!(m_pPlayerState->flags & FL_DUCKING))

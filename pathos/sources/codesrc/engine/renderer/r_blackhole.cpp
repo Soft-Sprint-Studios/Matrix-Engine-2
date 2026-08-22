@@ -208,7 +208,7 @@ bool CBlackHoleRenderer::AffectObject( const Vector& origin, Vector& velocity, F
 		}
 
 		Float attenuation = ((distance/radiusSquared) - 1.0) * -1.0;
-		attenuation = clamp(attenuation, 0.0, 1.0);
+		attenuation = CLAMP(attenuation, 0.0, 1.0);
 
 		// Calculate strength of pull by black hole
 		Float pullStrength = attenuation*BLACK_HOLE_SUCK_SPEED*blackhole.strength*m_pStrengthDebugCvar->GetValue();
@@ -229,7 +229,7 @@ bool CBlackHoleRenderer::AffectObject( const Vector& origin, Vector& velocity, F
 			Math::GetUpRight(direction, up, right);
 
 			Float orbitAtten = radiusSquared/(distance*sqrt(distance));
-			orbitAtten = clamp(orbitAtten, 0.0, 1.0);
+			orbitAtten = CLAMP(orbitAtten, 0.0, 1.0);
 
 			// Orbit direction should pull towards the black hole the closer we are
 			velocity = velocity + right * BLACK_HOLE_SUCK_SPEED * blackhole.rotation * (1.0 - orbitAtten) * cls.frametime;

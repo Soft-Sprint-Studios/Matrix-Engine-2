@@ -264,7 +264,7 @@ void CEnvParticleEffect::CreateEffect( void )
 		break;
 	case EFFECT_PARTICLEEXPLOSION2:
 		{
-			Util::CreateParticleExplosion2(m_pState->origin, clamp(m_startColor, 0, 255), clamp(m_endColor, 0, 255));
+			Util::CreateParticleExplosion2(m_pState->origin, CLAMP(m_startColor, 0, 255), CLAMP(m_endColor, 0, 255));
 		}
 		break;
 	case EFFECT_BLOBEXPLOSION:
@@ -274,7 +274,7 @@ void CEnvParticleEffect::CreateEffect( void )
 		break;
 	case EFFECT_ROCKETEXPLOSION:
 		{
-			Util::CreateRocketExplosion(m_pState->origin, clamp(m_startColor, 0, 255));
+			Util::CreateRocketExplosion(m_pState->origin, CLAMP(m_startColor, 0, 255));
 		}
 		break;
 	case EFFECT_PARTICLEEFFECT:
@@ -282,7 +282,7 @@ void CEnvParticleEffect::CreateEffect( void )
 			Vector forward;
 			Math::AngleVectors(m_pState->angles, &forward);
 
-			Util::CreateParticleEffect(m_pState->origin, forward*m_pState->speed, clamp(m_startColor, 0, 255), m_particleCount);
+			Util::CreateParticleEffect(m_pState->origin, forward*m_pState->speed, CLAMP(m_startColor, 0, 255), m_particleCount);
 		}
 		break;
 	case EFFECT_LAVASPLASH:
@@ -324,7 +324,7 @@ void CEnvParticleEffect::CreateEffect( void )
 			Vector forward;
 			Math::AngleVectors(m_pState->angles, &forward);
 
-			Util::CreateBloodStream(m_pState->origin, forward, clamp(m_startColor, 0, 255), m_pState->speed);
+			Util::CreateBloodStream(m_pState->origin, forward, CLAMP(m_startColor, 0, 255), m_pState->speed);
 		}
 		break;
 	case EFFECT_BLOODPARTICLES:
@@ -332,7 +332,7 @@ void CEnvParticleEffect::CreateEffect( void )
 			Vector forward;
 			Math::AngleVectors(m_pState->angles, &forward);
 
-			Util::CreateBloodParticles(m_pState->origin, forward, clamp(m_startColor, 0, 255), m_pState->speed);
+			Util::CreateBloodParticles(m_pState->origin, forward, CLAMP(m_startColor, 0, 255), m_pState->speed);
 		}
 		break;
 	}

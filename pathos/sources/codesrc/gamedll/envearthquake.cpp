@@ -213,7 +213,7 @@ void CEnvEarthQuake::QuakeThink( void )
 		if(fadeBeginTime <= g_pGameVars->time)
 		{
 			Float factor = (g_pGameVars->time - fadeBeginTime) / m_duration;
-			factor = 1.0 - clamp(factor, 0.0, 1.0);
+			factor = 1.0 - CLAMP(factor, 0.0, 1.0);
 			shakeForce *= factor;
 		}
 	}

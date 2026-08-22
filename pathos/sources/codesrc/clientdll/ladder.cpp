@@ -357,7 +357,7 @@ void CLadder::Think( void )
 
 			if(m_viewEntBlend)
 			{
-				Double time = clamp((m_time - m_viewEntBlendBeginTime), 0,  m_viewEntBlendDelta);
+				Double time = CLAMP((m_time - m_viewEntBlendBeginTime), 0,  m_viewEntBlendDelta);
 				Float fldelta = Common::SplineFraction( time, (1.0/m_viewEntBlendDelta) );
 				m_viewEntity.curstate.origin = (1.0-fldelta)*pplayer->curstate.origin+fldelta*m_viewEntBlendOrigin;
 			}
@@ -367,7 +367,7 @@ void CLadder::Think( void )
 	// degrade the view add value
 	if(m_lastMouseMove != -1 && (m_lastMouseMove+LADDER_MOUSEMOVE_TIMEOUT) <= m_time)
 	{
-		Float time = clamp((m_time-(m_lastMouseMove+LADDER_MOUSEMOVE_TIMEOUT)), 0, LADDER_MOUSEMOVE_TIMEOUT_BLEND);
+		Float time = CLAMP((m_time-(m_lastMouseMove+LADDER_MOUSEMOVE_TIMEOUT)), 0, LADDER_MOUSEMOVE_TIMEOUT_BLEND);
 		Float flfrac = Common::SplineFraction( time, (1.0/LADDER_MOUSEMOVE_TIMEOUT_BLEND) );
 
 		if(flfrac >= 1.0)
@@ -421,9 +421,9 @@ void CLadder::CalcRefDef( ref_params_t& params )
 			}
 		}
 		
-		Float time = clamp((params.time - m_viewBlendBeginTime), 0, m_viewBlendDelta);
+		Float time = CLAMP((params.time - m_viewBlendBeginTime), 0, m_viewBlendDelta);
 		Float fldelta = Common::SplineFraction( time, (1.0/m_viewBlendDelta) );
-		fldelta = clamp(fldelta, 0.0, 1.0);
+		fldelta = CLAMP(fldelta, 0.0, 1.0);
 
 		if(m_activeLadderState == LADDER_STATE_ENTERING)
 		{

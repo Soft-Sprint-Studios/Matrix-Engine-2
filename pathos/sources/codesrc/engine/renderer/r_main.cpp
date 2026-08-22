@@ -2712,7 +2712,7 @@ bool R_DrawFPSGraph( void )
 		// Calculate first value
 		Float fpsValue1 = fpsHistory[i-1];
 		Float fpsValue1Frac = fpsValue1 / static_cast<Float>(referenceFPS);
-		fpsValue1Frac = clamp(fpsValue1Frac, 0.0, 1.0);
+		fpsValue1Frac = CLAMP(fpsValue1Frac, 0.0, 1.0);
 
 		Vector value1Color = highColor * fpsValue1Frac + lowColor * (1.0 - fpsValue1Frac);
 		Float value1YCoord = y1 + (1.0 - fpsValue1Frac) * innerHeight;
@@ -2720,7 +2720,7 @@ bool R_DrawFPSGraph( void )
 		// Calculate second value
 		Float fpsValue2 = fpsHistory[i];
 		Float fpsValue2Frac = fpsValue2 / static_cast<Float>(referenceFPS);
-		fpsValue2Frac = clamp(fpsValue2Frac, 0.0, 1.0);
+		fpsValue2Frac = CLAMP(fpsValue2Frac, 0.0, 1.0);
 
 		Vector value2Color = highColor * fpsValue2Frac + lowColor * (1.0 - fpsValue2Frac);
 		Float value2YCoord = y1 + (1.0 - fpsValue2Frac) * innerHeight;
@@ -3670,7 +3670,7 @@ Float R_RenderFxBlend( cl_entity_t* pentity )
 		break;
 	}
 
-	return clamp(alpha, 0, 255);
+	return CLAMP(alpha, 0, 255);
 }
 
 //====================================
@@ -5681,7 +5681,7 @@ void Cmd_BSPToSMD_Lightmap( void )
 		Uint32 ysize = (psurface->extents[1] / psurface->lightmapdivider)+1;
 		Uint32 size = xsize*ysize;
 
-		Uint32 paddingAmount = clamp(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
+		Uint32 paddingAmount = CLAMP(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
 
 		// Build the base lightmap
 		color24_t* psrc = reinterpret_cast<color24_t*>(plmapdatapointers[SURF_LIGHTMAP_DEFAULT] + psurface->lightoffset);

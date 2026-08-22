@@ -37,9 +37,7 @@ template <typename T> class CArray;
 #define RAD2DEG( a ) ( a * 180.0F ) / M_PI
 #endif //RAD2DEG
 
-#ifndef clamp
-#define clamp( val, min, max ) ( ((val) > (max)) ? (max) : ( ((val) < (min)) ? (min) : (val) ) )
-#endif //clamp
+#define CLAMP( val, min, max ) ( ((val) > (max)) ? (max) : ( ((val) < (min)) ? (min) : (val) ) )
 
 #ifndef _max
 #define _max( max, val ) ( ((val) > (max)) ? (max) : (val) )

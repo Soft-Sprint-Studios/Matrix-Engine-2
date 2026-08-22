@@ -174,7 +174,7 @@ bool CFuncRotating::KeyValue( const keyvalue_t& kv )
 	else if(!qstrcmp(kv.keyname, "volume"))
 	{
 		m_volume = SDL_atof(kv.value)/10.0f;
-		m_volume = clamp(m_volume, 0.0, 1.0);
+		m_volume = CLAMP(m_volume, 0.0, 1.0);
 		return true;
 	}
 	else if(!qstrcmp(kv.keyname, "spawnorigin"))

@@ -3129,7 +3129,7 @@ void SV_AddSavedDecal( const Vector& origin, const Vector& normal, entindex_t en
 //=============================================
 Int32 SV_NewCheckClient( Int32 check )
 {
-	Int32 _check = clamp(check, 1, (Int32)svs.maxclients);
+	Int32 _check = CLAMP(check, 1, (Int32)svs.maxclients);
 
 	Int32 i = 1;
 	if(_check != static_cast<Int32>(svs.maxclients))

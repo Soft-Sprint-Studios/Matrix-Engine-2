@@ -610,8 +610,8 @@ void CBeamRenderer::DrawBeamSegments( void )
 		{
 			// Apply some small fade to the end and beginning
 			Float endsfraction = static_cast<Float>(i - 1) / static_cast<Float>(_numsegments - 2);
-			Float startfade = clamp(endsfraction / BEAM_FADE_FRACTION, 0.0, 1.0);
-			Float endfade = clamp((1.0 - endsfraction) / BEAM_FADE_FRACTION, 0.0, 1.0);
+			Float startfade = CLAMP(endsfraction / BEAM_FADE_FRACTION, 0.0, 1.0);
+			Float endfade = CLAMP((1.0 - endsfraction) / BEAM_FADE_FRACTION, 0.0, 1.0);
 			brightness2 *= startfade * endfade;
 		}
 		else
@@ -777,8 +777,8 @@ void CBeamRenderer::DrawBeamTesla( const Vector& src, const Vector& delta, Float
 		{
 			// Apply some small fade to the end and beginning
 			Float endsfraction = static_cast<Float>(i - 1) / static_cast<Float>(_numsegments - 2);
-			Float startfade = clamp(endsfraction / BEAM_FADE_FRACTION, 0.0, 1.0);
-			Float endfade = clamp((1.0 - endsfraction) / BEAM_FADE_FRACTION, 0.0, 1.0);
+			Float startfade = CLAMP(endsfraction / BEAM_FADE_FRACTION, 0.0, 1.0);
+			Float endfade = CLAMP((1.0 - endsfraction) / BEAM_FADE_FRACTION, 0.0, 1.0);
 			brightness2 *= startfade * endfade;
 		}
 		else
@@ -1546,7 +1546,7 @@ void CBeamRenderer::DrawBeamFollow( void )
 	Float div = 1.0/m_pCurrentBeam->lifetime;
 	distance = (pnext->position-delta).Length();
 	Float fraction = distance / BEAM_POSITION_SEGMENT_DISTANCE;
-	fraction = clamp(fraction, 0, 2) * div;
+	fraction = CLAMP(fraction, 0, 2) * div;
 
 	R_ValidateShader(m_pBasicDraw);
 
@@ -1573,7 +1573,7 @@ void CBeamRenderer::DrawBeamFollow( void )
 		last += step;
 
 		if(pnext->pnext)
-			fraction = clamp(pnext->life - rns.time, 0, 2)*div;
+			fraction = CLAMP(pnext->life - rns.time, 0, 2)*div;
 		else
 			fraction = 0;
 

@@ -465,14 +465,14 @@ bool CPostProcess :: DrawFade( screenfade_t& fade )
 	if(fade.flags & FL_FADE_OUT)
 	{
 		if(rns.time <= fade.end)
-			fade.curfade = clamp(fade.curfade+fade.speed*cls.frametime, 0.0, 1.0);
+			fade.curfade = CLAMP(fade.curfade+fade.speed*cls.frametime, 0.0, 1.0);
 		else
 			fade.curfade = 1.0;
 	}
 	else
 	{
 		if(rns.time >= fade.end)
-			fade.curfade = clamp(fade.curfade+fade.speed*cls.frametime, 0.0, 1.0);
+			fade.curfade = CLAMP(fade.curfade+fade.speed*cls.frametime, 0.0, 1.0);
 		else
 			fade.curfade = 1.0;
 	}
@@ -637,7 +637,7 @@ void CPostProcess::CalculateAutoExposure(void)
 
 	Float minExp = m_pCvarAutoExposureMin ? m_pCvarAutoExposureMin->GetValue() : 0.1f;
 	Float maxExp = m_pCvarAutoExposureMax ? m_pCvarAutoExposureMax->GetValue() : 5.0f;
-	targetExposure = clamp(targetExposure, minExp, maxExp);
+	targetExposure = CLAMP(targetExposure, minExp, maxExp);
 
 	Float speed = m_pCvarAutoExposureSpeed ? m_pCvarAutoExposureSpeed->GetValue() : 2.0f;
 	m_currentExposure += (targetExposure - m_currentExposure) * (1.0f - exp(-rns.frametime * speed));
@@ -731,7 +731,7 @@ bool CPostProcess::DrawOverlays( void )
 			}
 
 			// Make sure this value is clamped
-			alphamultiplier = clamp(alphamultiplier, 0, 1);
+			alphamultiplier = CLAMP(alphamultiplier, 0, 1);
 		}
 
 		Vector renderColor;
@@ -814,15 +814,15 @@ bool CPostProcess :: DrawBloom( void )
 	}
 
 	Float darkenBrightness = m_pCvarBloomDarkenMultiplier->GetValue();
-	darkenBrightness = clamp(darkenBrightness, 0, 1);
+	darkenBrightness = CLAMP(darkenBrightness, 0, 1);
 	m_pShader->SetUniform1f(m_attribs.u_brighten_multiplier, darkenBrightness);
 
 	Float darkenStepsCvarValue = m_pCvarBloomDarkenSteps->GetValue();
-	Uint32 darkenSteps = clamp(darkenStepsCvarValue, 1, 128);
+	Uint32 darkenSteps = CLAMP(darkenStepsCvarValue, 1, 128);
 	m_pShader->SetUniform1f(m_attribs.u_darken_steps, darkenSteps);
 
 	Float brightnessTreshold = m_pCvarBloomBrightnessTreshold->GetValue();
-	brightnessTreshold = clamp(brightnessTreshold, 0, 4);
+	brightnessTreshold = CLAMP(brightnessTreshold, 0, 4);
 	m_pShader->SetUniform1f(m_attribs.u_brightness_treshold, brightnessTreshold);
 
 	R_ValidateShader(m_pShader);
@@ -836,7 +836,7 @@ bool CPostProcess :: DrawBloom( void )
 	rtt_texture_t* pDarkenRTT = nullptr;
 
 	Float blurStepCvarValue = m_pCvarBloomBlurSteps->GetValue();
-	Uint32 numBlurSteps = clamp(blurStepCvarValue, 1, 64);
+	Uint32 numBlurSteps = CLAMP(blurStepCvarValue, 1, 64);
 
 	m_pShader->SetUniform1f(m_attribs.u_brighten_multiplier, 1.0);
 	m_pShader->SetUniform1f(m_attribs.u_blur_brightness, 1.0);
@@ -898,7 +898,7 @@ bool CPostProcess :: DrawBloom( void )
 	}
 
 	Float brightenCvarValue = m_pCvarBloomBrightenMultiplier->GetValue();
-	brightenCvarValue = clamp(brightenCvarValue, 0, 16);
+	brightenCvarValue = CLAMP(brightenCvarValue, 0, 16);
 	m_pShader->SetUniform1f(m_attribs.u_brighten_multiplier, brightenCvarValue);
 
 	R_ValidateShader(m_pShader);
@@ -1082,7 +1082,7 @@ bool CPostProcess :: Draw( bool noFilmGrain )
 			if(bInWater && !m_gaussianBlurActive)
 			{
 				alpha = 1.0 - ((rns.time - m_lastWaterTime)/WATER_FADE_TIME);
-				alpha = clamp(alpha, 0.0, 1.0);
+				alpha = CLAMP(alpha, 0.0, 1.0);
 			}
 			else if(m_gaussianBlurActive && m_gaussianBlurAlpha != 1.0)
 			{

@@ -623,7 +623,7 @@ void CBSPRenderer::ClearGame( void )
 //=============================================
 void CBSPRenderer::SetLightmapCoords( void ) 
 {
-	Uint32 paddingAmount = clamp(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
+	Uint32 paddingAmount = CLAMP(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
 
 	// Set default height
 	for(Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
@@ -679,7 +679,7 @@ void CBSPRenderer::InitLightmaps( void )
 	if(overdarken < 0)
 		overdarken = 0;
 
-	Uint32 paddingAmount = clamp(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
+	Uint32 paddingAmount = CLAMP(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
 
 	// Reset this
 	m_bumpMaps = false;
@@ -4148,7 +4148,7 @@ bool CBSPRenderer::DrawDecal( bsp_decal_t *pdecal, bool transparents, decal_rend
 			else
 			{
 				decalalpha = 1.0 - ((rns.time - fadebegin) / pdecal->fadetime);
-				decalalpha = clamp(decalalpha, 0.0, 1.0);
+				decalalpha = CLAMP(decalalpha, 0.0, 1.0);
 			}
 		}
 		else
@@ -4161,7 +4161,7 @@ bool CBSPRenderer::DrawDecal( bsp_decal_t *pdecal, bool transparents, decal_rend
 		if(pdecal->growthtime > 0 && rns.time < (pdecal->spawntime + pdecal->growthtime))
 		{
 			decalscale = (rns.time - pdecal->spawntime) / pdecal->growthtime;
-			decalscale = clamp(decalscale, 0.0, 1.0);
+			decalscale = CLAMP(decalscale, 0.0, 1.0);
 			decalscale = (1.0 - decalscale) * 10 + decalscale;
 		}
 		else

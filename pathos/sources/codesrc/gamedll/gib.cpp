@@ -155,7 +155,7 @@ void CGib::BounceTouch( CBaseEntity* pOther )
 		if(m_material != MAT_NONE && Common::RandomLong(0, 2) == 0)
 		{
 			Float zvelocity = SDL_fabs(m_pState->velocity.z);
-			Float volume = clamp(zvelocity/FULL_VOLUME_VELOCITY, 0.0, VOL_NORM);
+			Float volume = CLAMP(zvelocity/FULL_VOLUME_VELOCITY, 0.0, VOL_NORM);
 
 			CString sound = Util::GetDebrisSound((breakmaterials_t)m_material);
 			Util::EmitEntitySound(this, sound.c_str(), SND_CHAN_BODY, volume);

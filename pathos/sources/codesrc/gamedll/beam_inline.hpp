@@ -250,9 +250,9 @@ inline Float CBeam::GetBeamAmplitude( void ) const
 //=============================================
 inline void CBeam::SetBeamColor( Int32 r, Int32 g, Int32 b )
 {
-	m_pState->rendercolor.x = clamp(r, 0, 255);
-	m_pState->rendercolor.y = clamp(g, 0, 255);
-	m_pState->rendercolor.z = clamp(b, 0, 255);
+	m_pState->rendercolor.x = CLAMP(r, 0, 255);
+	m_pState->rendercolor.y = CLAMP(g, 0, 255);
+	m_pState->rendercolor.z = CLAMP(b, 0, 255);
 }
 
 //=============================================
@@ -270,7 +270,7 @@ inline const Vector& CBeam::GetBeamColor( void ) const
 //=============================================
 inline void CBeam::SetBeamBrightness( Float brightness )
 {
-	m_pState->renderamt = clamp(brightness, 0, 255);
+	m_pState->renderamt = CLAMP(brightness, 0, 255);
 }
 
 //=============================================

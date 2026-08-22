@@ -211,7 +211,7 @@ void CUIObject::getSize( Uint32& width, Uint32& height )
 //=============================================
 void CUIObject::setAlpha( Int32 alpha, bool recursive )
 {
-	m_color.a = clamp(alpha, 0, 255);
+	m_color.a = CLAMP(alpha, 0, 255);
 
 	if(recursive)
 	{
@@ -2435,7 +2435,7 @@ void CUIDragButton::setLength( Uint32 length )
 //=============================================
 void CUIDragButton::setPosition( Float position )
 {
-	m_position = clamp(position, 0.0, 1.0);
+	m_position = CLAMP(position, 0.0, 1.0);
 }
 
 //=============================================
@@ -2490,7 +2490,7 @@ bool CUIDragButton::adjPosition( Int32 adjAmt, bool isMouseDrag, bool callEvent 
 	Double adjFrac = static_cast<Double>(adjAmt)/ static_cast<Double>(referenceRange);
 
 	m_position += adjFrac;
-	m_position = clamp(m_position, 0.0, 1.0);
+	m_position = CLAMP(m_position, 0.0, 1.0);
 
 	// Set appropriate position
 	if(m_alignment == UIEL_SCROLL_V)
@@ -2543,7 +2543,7 @@ void CUIDragButton::adjustPosition( void )
 
 		// Determine current position based on this
 		Double currentPosition = static_cast<Double>(prevRelativePosition)/static_cast<Double>(parentLength);
-		m_position = clamp(currentPosition, 0.0, 1.0);
+		m_position = CLAMP(currentPosition, 0.0, 1.0);
 
 		// Determine my own range
 		Int32 myRange = parentLength-getLength()-m_startInset-m_endInset;
@@ -4867,5 +4867,5 @@ bool CUIProgressBar::draw( void )
 void CUIProgressBar::setValue( Float value )
 {
 	// Do not allow values outside bounds
-	m_meterValue = clamp(value, 0, 1);
+	m_meterValue = CLAMP(value, 0, 1);
 }

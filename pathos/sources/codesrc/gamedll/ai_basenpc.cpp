@@ -1091,7 +1091,7 @@ void CBaseNPC::ExecuteMovement( CBaseEntity* pTargetEntity, const Vector& direct
 		SetIdealActivity(m_movementActivity);
 
 	Float totalDistance = m_groundSpeed * animInterval;
-	totalDistance = clamp(totalDistance, 0, checkDistance);
+	totalDistance = CLAMP(totalDistance, 0, checkDistance);
 	totalDistance *= m_pState->framerate;
 
 	// Get reference to current point
@@ -1106,7 +1106,7 @@ void CBaseNPC::ExecuteMovement( CBaseEntity* pTargetEntity, const Vector& direct
 	while(totalDistance > 0.001)
 	{
 		// Clamp step distance to the max step size
-		Float stepDistance = clamp(totalDistance, 0, NPC_STEP_SIZE);
+		Float stepDistance = CLAMP(totalDistance, 0, NPC_STEP_SIZE);
 		gd_engfuncs.pfnMoveToOrigin(m_pEdict, endPosition, moveYaw, stepDistance, MOVE_NORMAL);
 		totalDistance -= stepDistance;
 	}
@@ -1217,7 +1217,7 @@ void CBaseNPC::BecomeDead( bool startedDead )
 		SetOrigin(newOrigin);
 
 		Float upDp = -Math::DotProduct(Vector(0, 0, 1), m_damageDirection);
-		upDp = clamp(upDp, 0, 1);
+		upDp = CLAMP(upDp, 0, 1);
 		Float blastVelocity = upDp * Common::RandomFloat(250, 350) + (1.0 - upDp) * Common::RandomFloat(1250, 1450);
 
 		// Set angles
@@ -1651,7 +1651,7 @@ bool CBaseNPC::TakeDamageDead( CBaseEntity* pInflictor, CBaseEntity* pAttacker, 
 		&& m_pState->velocity.Length() > 0)
 	{
 		Float upDp = -Math::DotProduct(Vector(0, 0, 1), gMultiDamage.GetShotDirection());
-		upDp = clamp(upDp, 0, 1);
+		upDp = CLAMP(upDp, 0, 1);
 		Float blastVelocity = upDp * Common::RandomFloat(250, 350) + (1.0 - upDp) * Common::RandomFloat(1250, 1450);
 
 		// Set angles
@@ -3444,7 +3444,7 @@ void CBaseNPC::UpdatePartialAwareness( enemyawareness_t* pAwarenessinfo, Uint64 
 			Vector forward;
 			Math::AngleVectors(m_pState->angles, &forward);
 			Float dp = Math::DotProduct(playerDir, forward);
-			dp = clamp(dp, 0.0, 1.0);
+			dp = CLAMP(dp, 0.0, 1.0);
 
 			if(dp > 0.5)
 			{
@@ -7783,7 +7783,7 @@ bool CBaseNPC::AttemptTriangulation( const Vector& startPosition, const Vector& 
 {
 	// Use a minimum of 24, because CheckLocalMove uses that size
 	Float sizeX = m_pState->size.x;
-	sizeX = clamp(sizeX, NPC_TRIANGULATION_MIN_SIZE_X, NPC_TRIANGULATION_MAX_SIZE_X);
+	sizeX = CLAMP(sizeX, NPC_TRIANGULATION_MIN_SIZE_X, NPC_TRIANGULATION_MAX_SIZE_X);
 	Float sizeZ = m_pState->size.z;
 
 	Vector forwardDirection = (endPosition-startPosition);
@@ -9004,7 +9004,7 @@ activity_t CBaseNPC::GetBlowbackDeathActivity( void )
 
 	// Check if we're landing aimed towards ground
 	Float downDot = Math::DotProduct(forward, Vector(0, 0, 1));
-	downDot = clamp(downDot, 0, 1);
+	downDot = CLAMP(downDot, 0, 1);
 
 	// Determine if there's space behind us
 	Vector traceForward(forward);
@@ -9451,7 +9451,7 @@ Uint32 CBaseNPC::GetFogAttenuatedFiringCone( Uint32 coneIndex )
 	else
 		_coneIndex += add * 2.5;
 
-	_coneIndex = clamp(_coneIndex, 0, 11);
+	_coneIndex = CLAMP(_coneIndex, 0, 11);
 	return _coneIndex;
 }
 

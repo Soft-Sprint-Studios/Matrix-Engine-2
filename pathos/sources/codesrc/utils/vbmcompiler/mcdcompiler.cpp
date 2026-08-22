@@ -214,7 +214,7 @@ bool CMCDCompiler::CreateMCDFile( void )
 		// Create collision data
 		for(Uint32 j = 0; j < NB_MCD_COLLISION_TYPES; j++)
 		{
-			switch(j)
+			switch(static_cast<int>(j))
 			{
 			case MCD_COLLISION_BVH:
 				{

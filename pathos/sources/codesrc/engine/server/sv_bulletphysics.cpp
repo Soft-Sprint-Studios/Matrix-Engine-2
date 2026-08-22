@@ -652,7 +652,7 @@ void CBulletPhysics::ApplyBuoyancy( edict_t* pedict, btRigidBody* body )
 
 	Float totalHeight = pedict->state.maxs.z - pedict->state.mins.z;
 	Float submergedHeight = SV_Submerged(pedict);
-	Float submergedRatio = (totalHeight > 0) ? clamp(submergedHeight / totalHeight, 0.0f, 1.0f) : 1.0f;
+	Float submergedRatio = (totalHeight > 0) ? CLAMP(submergedHeight / totalHeight, 0.0f, 1.0f) : 1.0f;
 
 	if (submergedRatio <= 0)
 		return;

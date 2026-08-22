@@ -232,9 +232,9 @@ bool CInput::LoadKeyNames( void )
 			}
 
 			// Set the values
-			color.r = clamp(SDL_atoi(keyColor.c_str()), 0, 255);
-			color.g = clamp(SDL_atoi(keyColorG.c_str()), 0, 255);
-			color.b = clamp(SDL_atoi(keyColorB.c_str()), 0, 255);
+			color.r = CLAMP(SDL_atoi(keyColor.c_str()), 0, 255);
+			color.g = CLAMP(SDL_atoi(keyColorG.c_str()), 0, 255);
+			color.b = CLAMP(SDL_atoi(keyColorB.c_str()), 0, 255);
 		}
 		
 		// Get the scancode from the file

@@ -1676,7 +1676,7 @@ void CGameUIDragButton::setLength( Uint32 length )
 //=============================================
 void CGameUIDragButton::setPosition( Float position )
 {
-	m_position = clamp(position, 0.0, 1.0);
+	m_position = CLAMP(position, 0.0, 1.0);
 }
 
 //=============================================
@@ -1731,7 +1731,7 @@ bool CGameUIDragButton::adjPosition( Int32 adjAmt, bool isMouseDrag, bool callEv
 	Float adjFrac = (Float)adjAmt/(Float)(referenceRange);
 
 	m_position += adjFrac;
-	m_position = clamp(m_position, 0.0, 1.0);
+	m_position = CLAMP(m_position, 0.0, 1.0);
 
 	// Set appropriate position
 	if(m_alignment == CGameUIObject::FL_SCROLL_V)
@@ -1784,7 +1784,7 @@ void CGameUIDragButton::adjustPosition( void )
 
 		// Determine current position based on this
 		Float currentPosition = (Float)prevRelativePosition/(Float)parentLength;
-		m_position = clamp(currentPosition, 0.0, 1.0);
+		m_position = CLAMP(currentPosition, 0.0, 1.0);
 
 		// Determine my own range
 		Int32 myRange = parentLength-getLength()-m_startInset-m_endInset;

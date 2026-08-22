@@ -218,7 +218,7 @@ bool CSentencesFile::Init( const byte* pfile )
 							if(!ParseOptionToken(&ptbstr, ptbstr, pitch, time, start, end, volume))
 							{
 								CString warning;
-								warning << __FUNCTION__ " - Error on line " << lineNb << " while parsing options";
+								warning << __FUNCTION__ << " - Error on line " << lineNb << " while parsing options";
 								m_warningMessagesArray.push_back(warning);
 								hasError = true;
 								break;

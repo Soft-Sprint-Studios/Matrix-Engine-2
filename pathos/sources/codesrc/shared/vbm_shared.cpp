@@ -52,14 +52,14 @@ void VBM_CalculateBoneAdjustments( const studiohdr_t* phdr, Float dadt, const CA
 			}
 			else
 			{
-				value = clamp((pcontroller1[i]*dadt+pcontroller2[i]*(1.0-dadt))/255.0f, 0.0, 1.0);
+				value = CLAMP((pcontroller1[i]*dadt+pcontroller2[i]*(1.0-dadt))/255.0f, 0.0, 1.0);
 				value = (1.0f-value)*pbonecontroller->start + value*pbonecontroller->end;
 			}
 		}
 		else
 		{
 			value = static_cast<Float>(mouth)/64.0f;
-			clamp(value, 0.0f, 1.0f);
+			CLAMP(value, 0.0f, 1.0f);
 
 			value = (1.0-value) * pbonecontroller->start + value*pbonecontroller->end;
 		}
@@ -90,7 +90,7 @@ void VBM_InterpolateBones( const studiohdr_t* phdr, const CArray<vec4_t>& quater
 {
 	// Cap interpolant
 	Float interp = interpolant;
-	interp = clamp(interp, 0.0, 1.0);
+	interp = CLAMP(interp, 0.0, 1.0);
 	Float ninterp = 1.0 - interp;
 
 	for(Int32 i = 0; i < phdr->numbones; i++)
@@ -602,7 +602,7 @@ Float VBM_SetController( const cache_model_t* pmodel, Uint32 controllerindex, Fl
 	}
 
 	Float controllersetting = 255*(value - pbonecontrollers[i].start)/(pbonecontrollers[i].end-pbonecontrollers[i].start);
-	controllersetting = clamp(controllersetting, 0, 255);
+	controllersetting = CLAMP(controllersetting, 0, 255);
 	pcontrollers[i] = controllersetting;
 
 	return controllersetting*(1.0/255.0)*(pbonecontrollers[i].end-pbonecontrollers[i].start)+pbonecontrollers[i].start;

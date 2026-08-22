@@ -585,7 +585,7 @@ void CFuncBreakable::DieThink( void )
 	// Calculate volume
 	Float volume = Common::RandomFloat(0.85, VOL_NORM);
 	volume += SDL_fabs(m_pState->health)/100.0f;
-	volume = clamp(volume, 0.0, VOL_NORM);
+	volume = CLAMP(volume, 0.0, VOL_NORM);
 
 	// Get center of bmodel
 	Vector center = GetCenter();

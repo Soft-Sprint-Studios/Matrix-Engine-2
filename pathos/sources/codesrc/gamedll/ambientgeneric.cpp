@@ -93,13 +93,13 @@ bool CAmbientGeneric::KeyValue( const keyvalue_t& kv )
 	if(!qstrcmp(kv.keyname, "pitch"))
 	{
 		m_pitch = SDL_atoi(kv.value);
-		m_pitch = clamp(m_pitch, MIN_PITCH, MAX_PITCH);
+		m_pitch = CLAMP(m_pitch, MIN_PITCH, MAX_PITCH);
 		return true;
 	}
 	else if(!qstrcmp(kv.keyname, "pitchstart"))
 	{
 		m_startPitch = SDL_atoi(kv.value);
-		m_startPitch = clamp(m_startPitch, MIN_PITCH, MAX_PITCH);
+		m_startPitch = CLAMP(m_startPitch, MIN_PITCH, MAX_PITCH);
 		return true;
 	}
 	else if(!qstrcmp(kv.keyname, "spinup"))
@@ -164,7 +164,7 @@ bool CAmbientGeneric::Spawn( void )
 
 	// Set volume
 	m_volume = m_pState->health * 10;
-	m_volume = clamp(m_volume, 0, 100);
+	m_volume = CLAMP(m_volume, 0, 100);
 
 	// Check for errors
 	if(!m_volume)
@@ -364,7 +364,7 @@ void CAmbientGeneric::SendInitMessage( const CBaseEntity* pPlayer )
 		if(m_volumeFadeInTime && m_beginTime + m_volumeFadeInTime > g_pGameVars->time)
 		{
 			Float frac = (g_pGameVars->time - m_beginTime)/m_volumeFadeInTime;
-			frac = clamp(frac, 0.0, 1.0);
+			frac = CLAMP(frac, 0.0, 1.0);
 
 			volume = m_startVolume * (1.0 - frac) + m_volume * frac;
 		}
@@ -377,7 +377,7 @@ void CAmbientGeneric::SendInitMessage( const CBaseEntity* pPlayer )
 			}
 
 			Float frac = (g_pGameVars->time - m_turnoffBeginTime)/m_volumeFadeOutTime;
-			frac = clamp(frac, 0.0, 1.0);
+			frac = CLAMP(frac, 0.0, 1.0);
 
 			volume = m_volume * (1.0 - frac);
 		}
@@ -389,7 +389,7 @@ void CAmbientGeneric::SendInitMessage( const CBaseEntity* pPlayer )
 		if(m_pitchFadeInTime && m_beginTime + m_pitchFadeInTime > g_pGameVars->time)
 		{
 			Float frac = (g_pGameVars->time - m_beginTime)/m_pitchFadeInTime;
-			frac = clamp(frac, 0.0, 1.0);
+			frac = CLAMP(frac, 0.0, 1.0);
 
 			pitch = m_startPitch * (1.0 - frac) + m_pitch * frac;
 		}
@@ -402,7 +402,7 @@ void CAmbientGeneric::SendInitMessage( const CBaseEntity* pPlayer )
 			}
 
 			Float frac = (g_pGameVars->time - m_turnoffBeginTime)/m_pitchFadeOutTime;
-			frac = clamp(frac, 0.0, 1.0);
+			frac = CLAMP(frac, 0.0, 1.0);
 
 			pitch = m_pitch * (1.0 - frac);
 		}
@@ -443,14 +443,14 @@ void CAmbientGeneric::SendInitMessage( const CBaseEntity* pPlayer )
 			if(m_pitchFadeInTime && m_beginTime + m_pitchFadeInTime > g_pGameVars->time)
 			{
 				Float frac = (g_pGameVars->time - m_beginTime)/m_pitchFadeInTime;
-				frac = clamp(frac, 0.0, 1.0);
+				frac = CLAMP(frac, 0.0, 1.0);
 				time = m_pitchFadeInTime * (1.0 - frac);
 				target = m_pitch;
 			}
 			else if(m_pitchFadeOutTime && m_turnoffEndTime)
 			{
 				Float frac = (g_pGameVars->time - m_turnoffBeginTime)/m_pitchFadeOutTime;
-				frac = clamp(frac, 0.0, 1.0);
+				frac = CLAMP(frac, 0.0, 1.0);
 				time = m_pitchFadeOutTime * (1.0 - frac);
 				target = 0;
 			}
@@ -467,14 +467,14 @@ void CAmbientGeneric::SendInitMessage( const CBaseEntity* pPlayer )
 			if(m_volumeFadeInTime && m_beginTime + m_volumeFadeInTime > g_pGameVars->time)
 			{
 				Float frac = (g_pGameVars->time - m_beginTime)/m_volumeFadeInTime;
-				frac = clamp(frac, 0.0, 1.0);
+				frac = CLAMP(frac, 0.0, 1.0);
 				time = m_volumeFadeInTime * (1.0 - frac);
 				target = m_volume;
 			}
 			else if(m_volumeFadeOutTime && m_turnoffEndTime)
 			{
 				Float frac = (g_pGameVars->time - m_turnoffBeginTime)/m_volumeFadeOutTime;
-				frac = clamp(frac, 0.0, 1.0);
+				frac = CLAMP(frac, 0.0, 1.0);
 				time = m_volumeFadeOutTime * (1.0 - frac);
 				target = 0;
 			}

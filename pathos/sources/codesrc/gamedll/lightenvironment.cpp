@@ -71,17 +71,17 @@ bool CLightEnvironment::KeyValue( const keyvalue_t& kv )
 		Uint32 num = SDL_sscanf(kv.value, "%d %d %d %d", &colorr, &colorg, &colorb, &intensity);
 		if(num == 1)
 		{
-			m_sunlightColor.x = clamp(colorr, 0, 255);
+			m_sunlightColor.x = CLAMP(colorr, 0, 255);
 			m_sunlightColor.y = m_sunlightColor.x;
 			m_sunlightColor.z = m_sunlightColor.y;
 			m_sunlightIntensity = 0;
 		}
 		else
 		{
-			m_sunlightColor.x = clamp(colorr, 0, 255);
-			m_sunlightColor.y = clamp(colorg, 0, 255);
-			m_sunlightColor.z = clamp(colorb, 0, 255);
-			m_sunlightIntensity = clamp(intensity, 0, 255);
+			m_sunlightColor.x = CLAMP(colorr, 0, 255);
+			m_sunlightColor.y = CLAMP(colorg, 0, 255);
+			m_sunlightColor.z = CLAMP(colorb, 0, 255);
+			m_sunlightIntensity = CLAMP(intensity, 0, 255);
 		}
 		return true;
 	}

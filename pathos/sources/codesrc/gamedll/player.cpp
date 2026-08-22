@@ -1534,7 +1534,7 @@ Int32 CPlayerEntity::GetIllumination( void )
 	}
 
 	if(m_pState->effects & (EF_DIMLIGHT|EF_SHOULDERLIGHT))
-		return clamp(m_lastIllumination + 64, 0, 255);
+		return CLAMP(m_lastIllumination + 64, 0, 255);
 	else
 		return m_lastIllumination;
 }
@@ -2860,7 +2860,7 @@ void CPlayerEntity::UpdateClientData( void )
 	if(m_pState->stamina != m_clientStamina)
 	{
 		gd_engfuncs.pfnUserMessageBegin(MSG_ONE, g_usermsgs.hudstamina, nullptr, m_pEdict);
-			gd_engfuncs.pfnMsgWriteByte((Int32)clamp(m_pState->stamina*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte((Int32)CLAMP(m_pState->stamina*255, 0, 255));
 		gd_engfuncs.pfnUserMessageEnd();
 
 		m_clientStamina = m_pState->stamina;
@@ -2870,7 +2870,7 @@ void CPlayerEntity::UpdateClientData( void )
 	if(m_pState->armorvalue != m_clientKevlar)
 	{
 		gd_engfuncs.pfnUserMessageBegin(MSG_ONE, g_usermsgs.hudkevlar, nullptr, m_pEdict);
-			gd_engfuncs.pfnMsgWriteByte((Int32)clamp(m_pState->armorvalue, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte((Int32)CLAMP(m_pState->armorvalue, 0, 255));
 		gd_engfuncs.pfnUserMessageEnd();
 
 		m_clientKevlar = m_pState->armorvalue;
@@ -2881,7 +2881,7 @@ void CPlayerEntity::UpdateClientData( void )
 	{
 		gd_engfuncs.pfnUserMessageBegin(MSG_ONE, g_usermsgs.setflashlight, nullptr, m_pEdict);
 			gd_engfuncs.pfnMsgWriteByte(IsFlashlightOn());
-			gd_engfuncs.pfnMsgWriteByte((Int32)clamp(m_flashlightBattery*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte((Int32)CLAMP(m_flashlightBattery*255, 0, 255));
 		gd_engfuncs.pfnUserMessageEnd();
 
 		m_clientFlashlightBattery = m_flashlightBattery;
@@ -3998,7 +3998,7 @@ bool CPlayerEntity::TurnFlashlightOn( bool isShoulderLight )
 
 	gd_engfuncs.pfnUserMessageBegin(MSG_ONE, g_usermsgs.setflashlight, nullptr, m_pEdict);
 		gd_engfuncs.pfnMsgWriteByte(TRUE);
-		gd_engfuncs.pfnMsgWriteByte((Int32)clamp(m_flashlightBattery*255, 0, 255));
+		gd_engfuncs.pfnMsgWriteByte((Int32)CLAMP(m_flashlightBattery*255, 0, 255));
 	gd_engfuncs.pfnUserMessageEnd();
 
 	return true;
@@ -4019,7 +4019,7 @@ bool CPlayerEntity::TurnFlashlightOff( bool onlyDimLight, bool onlyShoulderLight
 
 	gd_engfuncs.pfnUserMessageBegin(MSG_ONE, g_usermsgs.setflashlight, nullptr, m_pEdict);
 		gd_engfuncs.pfnMsgWriteByte(FALSE);
-		gd_engfuncs.pfnMsgWriteByte((Int32)clamp(m_flashlightBattery*255, 0, 255));
+		gd_engfuncs.pfnMsgWriteByte((Int32)CLAMP(m_flashlightBattery*255, 0, 255));
 	gd_engfuncs.pfnUserMessageEnd();
 
 	return true;
@@ -4372,7 +4372,7 @@ void CPlayerEntity::UpdateClientAmmoCounts( void )
 
 		gd_engfuncs.pfnUserMessageBegin(MSG_ONE, g_usermsgs.hudammocount, nullptr, m_pEdict);
 			gd_engfuncs.pfnMsgWriteByte(i);
-			gd_engfuncs.pfnMsgWriteByte(clamp(m_ammoCounts[i], 0, 254)); // 255 is reserved for -1 maxammo
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(m_ammoCounts[i], 0, 254)); // 255 is reserved for -1 maxammo
 		gd_engfuncs.pfnUserMessageEnd();
 
 		m_clientAmmoCounts[i] = m_ammoCounts[i];
@@ -5790,7 +5790,7 @@ void CPlayerEntity::LeanThink( void )
 		m_idealLeanAngles[0] = leanUp*6;
 
 		// Calculate fraction
-		Double time = clamp((g_pGameVars->time - m_leanTime), 0.0, LEAN_TIME);
+		Double time = CLAMP((g_pGameVars->time - m_leanTime), 0.0, LEAN_TIME);
 		Float leanFraction = Common::SplineFraction( time, (1.0/LEAN_TIME) );
 
 		// It must be recalculated every frame
@@ -5821,7 +5821,7 @@ void CPlayerEntity::LeanThink( void )
 		if(m_leanTime)
 		{
 			// Calculate lean interpolation
-			Float time = clamp((g_pGameVars->time - m_leanTime), 0.0, LEAN_TIME);
+			Float time = CLAMP((g_pGameVars->time - m_leanTime), 0.0, LEAN_TIME);
 			Float leanFraction = Common::SplineFraction( time, (1.0/LEAN_TIME) );
 
 			if(leanFraction >= 1.0)

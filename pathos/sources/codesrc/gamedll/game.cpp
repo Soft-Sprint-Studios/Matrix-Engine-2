@@ -788,7 +788,7 @@ void SpawnTracer( const Vector& gunTracePosition, const Vector& tracerEndPos, CB
 		const Float tracerDistMin = 256;
 
 		Float fraction = (dirLength-tracerDistMin)/(tracerDistMax-tracerDistMin);
-		fraction = clamp(fraction, 0.0, 1.0);
+		fraction = CLAMP(fraction, 0.0, 1.0);
 
 		tracerSpeed = (1.0 - fraction) * tracerSpeedMin + fraction * tracerDistMax;
 	}

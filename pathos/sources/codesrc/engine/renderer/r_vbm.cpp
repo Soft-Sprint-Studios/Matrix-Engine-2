@@ -1216,7 +1216,7 @@ void CVBMRenderer::ProcessGait( void )
 
 	// Estimate gait
 	Double dt = cls.cl_time - cls.cl_oldtime;
-	dt = clamp(dt, 0, 1);
+	dt = CLAMP(dt, 0, 1);
 	EstimateGait(dt);
 
 	// Calculate the yaw value
@@ -1325,7 +1325,7 @@ void CVBMRenderer::EstimateGait( Double dt )
 		else
 		{
 			m_pCurrentEntity->curstate.gaityaw = (SDL_atan2(estimatedVelocity[1], estimatedVelocity[0]) * (180.0f / M_PI));
-			m_pCurrentEntity->curstate.gaityaw = clamp(m_pCurrentEntity->curstate.gaityaw, -180, 180);
+			m_pCurrentEntity->curstate.gaityaw = CLAMP(m_pCurrentEntity->curstate.gaityaw, -180, 180);
 		}
 
 		m_pCurrentEntity->curstate.renderframe = rns.framecount_main;
@@ -2043,7 +2043,7 @@ void CVBMRenderer::UpdateLightValues ( void )
 
 		// We're grabbing from the final colors
 		Float lightstylevalue = gLightStyles.GetLightStyleValue(m_pLightingInfo->lightstyles[i]);
-		lightstylevalue = clamp(lightstylevalue, 0, 1);
+		lightstylevalue = CLAMP(lightstylevalue, 0, 1);
 
 		Math::VectorScale(m_pLightingInfo->lightstylecolors_ambient[i], lightstylevalue, m_styleAmbientColors[i]);
 		Math::VectorScale(m_pLightingInfo->lightstylecolors_diffuse[i], lightstylevalue, m_styleDiffuseColors[i]);
@@ -2682,7 +2682,7 @@ void CVBMRenderer::GetModelLights( void )
 		Float radius = mlight->radius*mlight->radius;
 		Float dist = Math::DotProduct(vlightdir, vlightdir);
 		Float strength = (mlight->color.x + mlight->color.y + mlight->color.z)/3.0f;
-		strength *= clamp((dist/radius-1.0) * -1.0, 0.0, 1.0);
+		strength *= CLAMP((dist/radius-1.0) * -1.0, 0.0, 1.0);
 
 		if(nummodellights == MAX_ENT_ACTIVE_DLIGHTS)
 		{
@@ -3305,8 +3305,8 @@ bool CVBMRenderer::SetupRenderer( void )
 
 				for (Uint32 k = 0; k < 3; k++)
 				{
-					pblended[j].vertexlight_ambient[k] = static_cast<byte>(clamp(amb_sum[k], 0.0f, 255.0f));
-					pblended[j].vertexlight_diffuse[k] = static_cast<byte>(clamp(diff_sum[k], 0.0f, 255.0f));
+					pblended[j].vertexlight_ambient[k] = static_cast<byte>(CLAMP(amb_sum[k], 0.0f, 255.0f));
+					pblended[j].vertexlight_diffuse[k] = static_cast<byte>(CLAMP(diff_sum[k], 0.0f, 255.0f));
 					pblended[j].vertexlight_vector[k] = raw.vectors[0][k];
 				}
 			}
@@ -7373,7 +7373,7 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 				scale = 1.0;
 
 			for(Uint32 k = 0; k < 3; k++)
-				raw.ambient[i][k] = static_cast<byte>(clamp(raw.ambient[i][k] * scale, 0.0f, 255.0f));
+				raw.ambient[i][k] = static_cast<byte>(CLAMP(raw.ambient[i][k] * scale, 0.0f, 255.0f));
 		}
 
 		offsetindex++;

@@ -742,9 +742,9 @@ inline const Vector& CBaseEntity::GetRenderColor( void ) const
 //=============================================
 inline void CBaseEntity::SetRenderColor( const Vector& color )
 {
-	m_pState->rendercolor.x = clamp(color.x, 0, 255);
-	m_pState->rendercolor.y = clamp(color.y, 0, 255);
-	m_pState->rendercolor.z = clamp(color.z, 0, 255);
+	m_pState->rendercolor.x = CLAMP(color.x, 0, 255);
+	m_pState->rendercolor.y = CLAMP(color.y, 0, 255);
+	m_pState->rendercolor.z = CLAMP(color.z, 0, 255);
 }
 
 //=============================================
@@ -753,9 +753,9 @@ inline void CBaseEntity::SetRenderColor( const Vector& color )
 //=============================================
 inline void CBaseEntity::SetRenderColor( Int32 r, Int32 g, Int32 b )
 {
-	m_pState->rendercolor.x = clamp(r, 0, 255);
-	m_pState->rendercolor.y = clamp(g, 0, 255);
-	m_pState->rendercolor.z = clamp(b, 0, 255);
+	m_pState->rendercolor.x = CLAMP(r, 0, 255);
+	m_pState->rendercolor.y = CLAMP(g, 0, 255);
+	m_pState->rendercolor.z = CLAMP(b, 0, 255);
 }
 
 //=============================================
@@ -791,7 +791,7 @@ inline const Float CBaseEntity::GetRenderAmount( void ) const
 //=============================================
 inline void CBaseEntity::SetRenderAmount( Float amount )
 {
-	m_pState->renderamt = clamp(amount, 0, 255);
+	m_pState->renderamt = CLAMP(amount, 0, 255);
 }
 
 //=============================================

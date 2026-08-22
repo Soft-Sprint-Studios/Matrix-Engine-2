@@ -635,10 +635,10 @@ const flexscript_t* CFlexManager::LoadScript( const Char* pscriptname )
 void CFlexManager::SetMouth( Int32 mouthopen, flexstate_t* pstate )
 {
 	Float value = static_cast<Float>(mouthopen) / 30.0f;
-	value = clamp(value, 0.0, 1.0);
+	value = CLAMP(value, 0.0, 1.0);
 
 	Float outValue = pstate->values[FLEX_MOUTH_OPEN] += value;
-	pstate->values[FLEX_MOUTH_OPEN] = clamp(outValue, 0.0, 1.0);
+	pstate->values[FLEX_MOUTH_OPEN] = CLAMP(outValue, 0.0, 1.0);
 }
 
 //====================================
@@ -684,7 +684,7 @@ void CFlexManager::Blink( Float cur_time, Float health, flexstate_t* pstate )
 	}
 
 	Float outValue = pstate->values[FLEX_BLINK] + value;
-	pstate->values[FLEX_BLINK] = clamp(outValue, 0.0, 1.0);
+	pstate->values[FLEX_BLINK] = CLAMP(outValue, 0.0, 1.0);
 
 	// Curb eyes wide and eyes squint by blink value
 	Float eyeFlexesValue = 1.0 - pstate->values[FLEX_BLINK];

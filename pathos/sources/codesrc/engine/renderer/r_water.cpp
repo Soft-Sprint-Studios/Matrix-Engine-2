@@ -491,7 +491,7 @@ void CWaterShader::CreateLightmapTexture( cl_water_t* pwater )
  	if(!pcachemodel)
 		return;
 
-	Uint32 paddingAmount = clamp(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
+	Uint32 paddingAmount = CLAMP(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
 
 	brushmodel_t* pbrushmodel = pcachemodel->getBrushmodel();
 	msurface_t *psurfaces = pbrushmodel->psurfaces + pbrushmodel->firstmodelsurface;
@@ -1101,7 +1101,7 @@ void CWaterShader::AddEntity( cl_entity_t *pentity )
 	Uint32 *pindexes = new Uint32[indexcount];
 	Uint32 indexoffset = 0;
 
-	Uint32 paddingAmount = clamp(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
+	Uint32 paddingAmount = CLAMP(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
 
 	pwater->mins = NULL_MINS;
 	pwater->maxs = NULL_MAXS;

@@ -1443,7 +1443,7 @@ cl_particle_t *CParticleEngine::CreateParticle( particle_system_t *psystem, Floa
 			// Turn it into a parabole, where at max distance we spawn at
 			// the height of the player's origin(aka center)
 			Float fraction = (offset.Length2D()/pdefinition->systemsize);
-			fraction = clamp(fraction, 0.0, 1.0);
+			fraction = CLAMP(fraction, 0.0, 1.0);
 			
 			// The degree of parabolic shift depends on distance from center(player)
 			offset[2] = (1.0 - fraction) * (offset[2] - pplayer->curstate.origin[2]);
@@ -1981,7 +1981,7 @@ void CParticleEngine::UpdateSystems( void )
 			}
 
 			Float fraction = 1.0 - ((rns.time - psystem->softoffbegintime) / pdefinition->softofftime);
-			fraction = clamp(fraction, 0.0, 1.0);
+			fraction = CLAMP(fraction, 0.0, 1.0);
 
 			particlefreq *= fraction;
 		}

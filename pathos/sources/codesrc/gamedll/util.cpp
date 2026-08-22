@@ -1036,7 +1036,7 @@ namespace Util
 		Float dist = Math::DotProduct(lightdir, lightdir);
 
 		Float attn = (dist/rsquared-1)*-1;
-		attn = clamp(attn, 0, 1.0);
+		attn = CLAMP(attn, 0, 1.0);
 
 		return attn*((lightcolor[0]+lightcolor[1]+lightcolor[2])/3.0f);
 	}
@@ -2060,9 +2060,9 @@ namespace Util
 		for(Uint32 i = 0; i < 3; i++)
 			gd_engfuncs.pfnMsgWriteFloat(origin[i]);
 			gd_engfuncs.pfnMsgWriteSmallFloat(radius);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(life);
 			gd_engfuncs.pfnMsgWriteSmallFloat(decay);
 			gd_engfuncs.pfnMsgWriteSmallFloat(decaydelay);
@@ -2094,9 +2094,9 @@ namespace Util
 		for(Uint32 i = 0; i < 3; i++)
 			gd_engfuncs.pfnMsgWriteFloat(origin[i]);
 			gd_engfuncs.pfnMsgWriteSmallFloat(radius);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(life);
 			gd_engfuncs.pfnMsgWriteSmallFloat(decay);
 			gd_engfuncs.pfnMsgWriteSmallFloat(decaydelay);
@@ -2823,15 +2823,15 @@ namespace Util
 			for(Uint32 i = 0; i < 3; i++)
 				gd_engfuncs.pfnMsgWriteFloat(endpos[i]);
 			gd_engfuncs.pfnMsgWriteInt16(modelindex);
-			gd_engfuncs.pfnMsgWriteByte(clamp(startframe, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(startframe, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(framerate);
 			gd_engfuncs.pfnMsgWriteSmallFloat(life*10);
 			gd_engfuncs.pfnMsgWriteSmallFloat(width);
 			gd_engfuncs.pfnMsgWriteByte(amplitude);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(brightness*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(brightness*255, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(speed);
 			gd_engfuncs.pfnMsgWriteSmallFloat(noisespeed);
 			gd_engfuncs.pfnMsgWriteInt32(flags);
@@ -2879,15 +2879,15 @@ namespace Util
 			gd_engfuncs.pfnMsgWriteInt16(pendentity->GetEntityIndex());
 			gd_engfuncs.pfnMsgWriteChar(attachment2);
 			gd_engfuncs.pfnMsgWriteInt16(modelindex);
-			gd_engfuncs.pfnMsgWriteByte(clamp(startframe, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(startframe, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(framerate);
 			gd_engfuncs.pfnMsgWriteSmallFloat(life*10);
 			gd_engfuncs.pfnMsgWriteSmallFloat(width);
 			gd_engfuncs.pfnMsgWriteByte(amplitude);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(brightness*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(brightness*255, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(speed);
 			gd_engfuncs.pfnMsgWriteSmallFloat(noisespeed);
 			gd_engfuncs.pfnMsgWriteInt32(flags);
@@ -2929,15 +2929,15 @@ namespace Util
 			for(Uint32 i = 0; i < 3; i++)
 				gd_engfuncs.pfnMsgWriteFloat(endpos[i]);
 			gd_engfuncs.pfnMsgWriteInt16(modelindex);
-			gd_engfuncs.pfnMsgWriteByte(clamp(startframe, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(startframe, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(framerate);
 			gd_engfuncs.pfnMsgWriteSmallFloat(life*10);
 			gd_engfuncs.pfnMsgWriteSmallFloat(width);
 			gd_engfuncs.pfnMsgWriteByte(amplitude);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(brightness*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(brightness*255, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(speed);
 			gd_engfuncs.pfnMsgWriteSmallFloat(noisespeed);
 			gd_engfuncs.pfnMsgWriteInt32(flags);
@@ -2980,22 +2980,22 @@ namespace Util
 			for(Uint32 i = 0; i < 3; i++)
 				gd_engfuncs.pfnMsgWriteFloat(endpos[i]);
 			gd_engfuncs.pfnMsgWriteInt16(modelindex);
-			gd_engfuncs.pfnMsgWriteByte(clamp(startframe, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(startframe, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(framerate);
 			gd_engfuncs.pfnMsgWriteSmallFloat(life*10);
 			gd_engfuncs.pfnMsgWriteSmallFloat(width);
 			gd_engfuncs.pfnMsgWriteByte(amplitude);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(brightness*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(brightness*255, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(speed);
 			gd_engfuncs.pfnMsgWriteSmallFloat(noisespeed);
 			gd_engfuncs.pfnMsgWriteInt32(flags);
 			gd_engfuncs.pfnMsgWriteInt16(sprmodelindex);
 			gd_engfuncs.pfnMsgWriteSmallFloat(sprscale);
 			gd_engfuncs.pfnMsgWriteByte(sprrendermode);
-			gd_engfuncs.pfnMsgWriteSmallFloat(clamp(spralpha*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteSmallFloat(CLAMP(spralpha*255, 0, 255));
 		gd_engfuncs.pfnUserMessageEnd();
 	}
 
@@ -3107,15 +3107,15 @@ namespace Util
 			for(Uint32 i = 0; i < 3; i++)
 				gd_engfuncs.pfnMsgWriteFloat(endpos[i]);
 			gd_engfuncs.pfnMsgWriteInt16(modelindex);
-			gd_engfuncs.pfnMsgWriteByte(clamp(startframe, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(startframe, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(framerate);
 			gd_engfuncs.pfnMsgWriteSmallFloat(life);
 			gd_engfuncs.pfnMsgWriteSmallFloat(width);
 			gd_engfuncs.pfnMsgWriteByte(amplitude);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(brightness*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(brightness*255, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(speed);
 			gd_engfuncs.pfnMsgWriteSmallFloat(noisespeed);
 			gd_engfuncs.pfnMsgWriteInt32(flags);
@@ -3157,10 +3157,10 @@ namespace Util
 			gd_engfuncs.pfnMsgWriteInt16(modelindex);
 			gd_engfuncs.pfnMsgWriteSmallFloat(life*10);
 			gd_engfuncs.pfnMsgWriteSmallFloat(width);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(brightness*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(brightness*255, 0, 255));
 		gd_engfuncs.pfnUserMessageEnd();
 	}
 
@@ -3205,15 +3205,15 @@ namespace Util
 			gd_engfuncs.pfnMsgWriteInt16(pendentity->GetEntityIndex());
 			gd_engfuncs.pfnMsgWriteChar(attachment2);
 			gd_engfuncs.pfnMsgWriteInt16(modelindex);
-			gd_engfuncs.pfnMsgWriteByte(clamp(startframe, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(startframe, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(framerate);
 			gd_engfuncs.pfnMsgWriteSmallFloat(life*10);
 			gd_engfuncs.pfnMsgWriteSmallFloat(width);
 			gd_engfuncs.pfnMsgWriteByte(amplitude);
-			gd_engfuncs.pfnMsgWriteByte(clamp(r, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(g, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(b, 0, 255));
-			gd_engfuncs.pfnMsgWriteByte(clamp(brightness*255, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(r, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(g, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(b, 0, 255));
+			gd_engfuncs.pfnMsgWriteByte(CLAMP(brightness*255, 0, 255));
 			gd_engfuncs.pfnMsgWriteSmallFloat(speed);
 			gd_engfuncs.pfnMsgWriteSmallFloat(noisespeed);
 			gd_engfuncs.pfnMsgWriteInt32(flags);

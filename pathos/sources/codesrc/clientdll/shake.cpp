@@ -119,7 +119,7 @@ void CScreenShake::CalcShake ( void )
 			fadetime = shaketime * (0.25 * fadeModulator);
 			if(fadetime > 0)
 			{
-				Float startfade = clamp((time - shake.shakebegin)/fadetime, 0.0, 1.0);
+				Float startfade = CLAMP((time - shake.shakebegin)/fadetime, 0.0, 1.0);
 				fraction *= startfade;
 			}
 		}
@@ -127,7 +127,7 @@ void CScreenShake::CalcShake ( void )
 		if(fadeModulator > 0 && fadetime > 0)
 		{
 			Double fadebegintime = shake.nextshake-fadetime;
-			Float endfade = (1.0 - clamp((time-fadebegintime)/fadetime, 0.0, 1.0));
+			Float endfade = (1.0 - CLAMP((time-fadebegintime)/fadetime, 0.0, 1.0));
 			fraction *= endfade;
 		}
 

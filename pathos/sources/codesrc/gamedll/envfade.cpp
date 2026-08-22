@@ -70,7 +70,7 @@ bool CEnvFade::KeyValue( const keyvalue_t& kv )
 	else if(!qstrcmp(kv.keyname, "layer"))
 	{
 		m_layer = SDL_atoi(kv.value);
-		m_layer = clamp(m_layer, 0, (MAX_FADE_LAYERS-1));
+		m_layer = CLAMP(m_layer, 0, (MAX_FADE_LAYERS-1));
 		return true;
 	}
 	else

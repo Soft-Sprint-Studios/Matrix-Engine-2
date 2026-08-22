@@ -1055,7 +1055,7 @@ void SV_PlayEntitySound( entindex_t entindex, const Char* pstrPath, Int32 flags,
 	}
 
 	// Cap pitch between 0.5 and 5.0
-	Int32 _pitch = clamp(pitch, MIN_PITCH, MAX_PITCH);
+	Int32 _pitch = CLAMP(pitch, MIN_PITCH, MAX_PITCH);
 
 	// Account for sentences
 	Int32 svindex;
@@ -1133,7 +1133,7 @@ void SV_PlayAmbientSound( entindex_t entindex, const Char* pstrPath, const Vecto
 	}
 
 	// Cap pitch between 0.5 and 5.0
-	Int32 _pitch = clamp(pitch, MIN_PITCH, MAX_PITCH);
+	Int32 _pitch = CLAMP(pitch, MIN_PITCH, MAX_PITCH);
 
 	// Account for sentences
 	Int32 svindex;

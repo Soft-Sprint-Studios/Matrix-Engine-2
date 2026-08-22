@@ -292,10 +292,26 @@ static constexpr Uint32 BASE_LIGHTMAP_INDEX = 0;
 static constexpr Uint32 NULL_LIGHTSTYLE_INDEX = 255;
 
 // Export function macro
-#define EXPORTFN _declspec( dllexport )
+#if defined(_WIN32)
+    #if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
+        #define EXPORTFN __declspec(dllexport)
+    #else
+        #define EXPORTFN
+    #endif
+#else
+    #define EXPORTFN
+#endif
 
 // Macro for usermsg exports
-#define MSGFN extern "C" bool _declspec( dllexport )
+#if defined(_WIN32)
+    #if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
+        #define MSGFN extern "C" bool __declspec(dllexport)
+    #else
+        #define MSGFN extern "C" bool
+    #endif
+#else
+    #define MSGFN extern "C" bool
+#endif
 
 // For legacy support
 enum entitysteptypes_t

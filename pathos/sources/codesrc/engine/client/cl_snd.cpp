@@ -1635,7 +1635,7 @@ void CSoundEngine::PlaySound( const Char *sample, const Vector* pOrigin, Int32 f
 	psound->entindex = entindex;
 	psound->pentity = entity;
 	psound->flags = flags;
-	psound->pitch = clamp(pitch, MIN_PITCH, MAX_PITCH);
+	psound->pitch = CLAMP(pitch, MIN_PITCH, MAX_PITCH);
 	psound->mainpitch = pitch;
 	psound->active = true;
 	psound->psentence = psentence;
@@ -2098,7 +2098,7 @@ void CSoundEngine::Update( ref_params_t *pparams )
 
 		// This will be used later on
 		snd_cache_t *pcache = psound->pcache;
-		Float pitch = clamp((psound->pitch/(Float)PITCH_NORM) * g_pCvarTimeScale->GetValue(), 0.5, 5.0);
+		Float pitch = CLAMP((psound->pitch/(Float)PITCH_NORM) * g_pCvarTimeScale->GetValue(), 0.5, 5.0);
 		Int32 bytepersec = pcache->channels * (pcache->samplerate*pitch) * (pcache->bitspersample>>3);
 
 		Double frametime;
@@ -2432,7 +2432,7 @@ void CSoundEngine::Update( ref_params_t *pparams )
 			}
 
 			Float flgain = CalcGain(pparams->v_origin, psound, flmultval, gameVolume);
-			Float setpitch = clamp((psound->pitch/(Float)PITCH_NORM), 0.01, 5.0);
+			Float setpitch = CLAMP((psound->pitch/(Float)PITCH_NORM), 0.01, 5.0);
 
 			alSourcef(pplaying->sourceindex, AL_GAIN, flgain);
 			alSourcef(pplaying->sourceindex, AL_PITCH, setpitch);
@@ -2775,7 +2775,7 @@ void CSoundEngine::CacheMessage( const Vector* pOrigin, Int32 svindex, Int32 cha
 	Float soundduration = -1;
 	if(pcache && pcache->loopbegin == -1)
 	{
-		Float soundpitch = clamp((pitch/(Float)PITCH_NORM), 0.5, 5.0);
+		Float soundpitch = CLAMP((pitch/(Float)PITCH_NORM), 0.5, 5.0);
 		Int32 bytepersec = pcache->channels * (pcache->samplerate*soundpitch) * (pcache->bitspersample>>3);
 		soundduration = static_cast<Float>(pcache->length)/ static_cast<Float>(bytepersec);
 	}
@@ -3351,7 +3351,7 @@ void CSoundEngine::ApplySoundEffect( entindex_t entindex, const Char *sample, In
 				{
 					snd.pitchchangetime = -1;
 					snd.pitchchangeduration = duration;
-					snd.targetpitch = clamp(targetvalue, MIN_PITCH, MAX_PITCH);
+					snd.targetpitch = CLAMP(targetvalue, MIN_PITCH, MAX_PITCH);
 				}
 				break;
 			default:
@@ -3546,7 +3546,7 @@ Float Sentences_GetSoundDuration( const Char* pstrFilename, Uint32 pitch )
 			CSoundEngine::snd_cache_t* pcache = gSoundEngine.PrecacheSound(pchunk->soundname.c_str(), NO_POSITION, RS_GAME_LEVEL, false);
 			if(pcache)
 			{
-				Float soundpitch = clamp((pitch/(Float)PITCH_NORM), 0.5, 5.0);
+				Float soundpitch = CLAMP((pitch/(Float)PITCH_NORM), 0.5, 5.0);
 				Int32 bytepersec = pcache->channels * (pcache->samplerate*soundpitch) * (pcache->bitspersample>>3);
 				duration += static_cast<Float>(pcache->length)/static_cast<Float>(bytepersec);
 			}
@@ -3560,7 +3560,7 @@ Float Sentences_GetSoundDuration( const Char* pstrFilename, Uint32 pitch )
 		if(!pcache)
 			return 0;
 
-		Float soundpitch = clamp((pitch/(Float)PITCH_NORM), 0.5, 5.0);
+		Float soundpitch = CLAMP((pitch/(Float)PITCH_NORM), 0.5, 5.0);
 		Int32 bytepersec = pcache->channels * (pcache->samplerate*soundpitch) * (pcache->bitspersample>>3);
 		return static_cast<Float>(pcache->length)/ static_cast<Float>(bytepersec);
 	}

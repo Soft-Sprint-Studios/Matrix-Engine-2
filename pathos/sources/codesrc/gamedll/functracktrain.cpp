@@ -279,7 +279,7 @@ void CFuncTrackTrain::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, us
 	{
 		Float delta = value;
 		delta = ((Int32)(m_pState->speed*4)/(Int32)m_speed)*0.25 + 0.25*delta;
-		delta = clamp(delta, -1.0, 1.0);
+		delta = CLAMP(delta, -1.0, 1.0);
 
 		// Cap at zero if we can only go forward
 		if(HasSpawnFlag(FL_FORWARD_ONLY) && delta < 0)

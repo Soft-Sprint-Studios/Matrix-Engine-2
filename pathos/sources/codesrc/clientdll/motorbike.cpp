@@ -667,7 +667,7 @@ void CMotorBike::ActiveThink( void )
 					
 					// Remove acceleration and add punch
 					m_acceleration = m_acceleration * -0.01;
-					m_punchAmount[0] -= 300*clamp(impactDamage/100, 0, 1);
+					m_punchAmount[0] -= 300*CLAMP(impactDamage/100, 0, 1);
 
 					CString soundfile;
 					switch(Common::RandomLong(0, 3))
@@ -1181,7 +1181,7 @@ void CMotorBike::UpdateTurnAngles ( void )
 	// degrate the view add value
 	if((m_lastMouseMove+MOUSEMOVE_TIMEOUT) <= m_time)
 	{
-		Double time = clamp((m_time-(m_lastMouseMove+MOUSEMOVE_TIMEOUT)), 0, MOUSEMOVE_TIMEOUT_BLEND);
+		Double time = CLAMP((m_time-(m_lastMouseMove+MOUSEMOVE_TIMEOUT)), 0, MOUSEMOVE_TIMEOUT_BLEND);
 		Double flfrac = Common::SplineFraction( time, (1.0/MOUSEMOVE_TIMEOUT_BLEND) );
 
 		if(flfrac >= 1.0)
@@ -1279,7 +1279,7 @@ void CMotorBike::CalcRefDef( ref_params_t& params )
 		}
 
 		Double lerptime = (m_animState == BIKE_STATE_ENTER_LERP) ? BIKE_ENTER_TIME : BIKE_LEAVE_TIME;
-		Double time = clamp((params.time - m_lerpBeginTime), 0, lerptime);
+		Double time = CLAMP((params.time - m_lerpBeginTime), 0, lerptime);
 		Double flfrac = Common::SplineFraction( time, (1.0/lerptime) );
 
 		Vector vdiff, vangles;
@@ -1319,7 +1319,7 @@ void CMotorBike::CalcRefDef( ref_params_t& params )
 	// Add in a bit of roll from turning
 	if(m_pCvarTurnRoll->GetValue() >= 1)
 	{
-		Float roll = clamp(m_pPlayer->curstate.velocity.Length()/MOTORBIKE_MAX_SPEED, 0.2, 1.0);
+		Float roll = CLAMP(m_pPlayer->curstate.velocity.Length()/MOTORBIKE_MAX_SPEED, 0.2, 1.0);
 		params.v_angles[2] -= m_wheelAngle*MOTORBIKE_TURN_ANGLE*roll;
 	}
 
@@ -1357,13 +1357,13 @@ void CMotorBike::DropPunchAngle ( void )
 
 	// Toroidal spring
 	Float springmagnitude = VIEW_PUNCH_SPRING_CONSTANT * frametime;
-	springmagnitude = clamp(springmagnitude, 0, 2);
+	springmagnitude = CLAMP(springmagnitude, 0, 2);
 
 	Math::VectorMA(m_punchAmount, -springmagnitude, m_punchAngle, m_punchAmount);
 
-	m_punchAngle[0] = clamp(m_punchAngle[0], -89, 89);
-	m_punchAngle[1] = clamp(m_punchAngle[1], -179, 179);
-	m_punchAngle[2] = clamp(m_punchAngle[2], -89, 89);
+	m_punchAngle[0] = CLAMP(m_punchAngle[0], -89, 89);
+	m_punchAngle[1] = CLAMP(m_punchAngle[1], -179, 179);
+	m_punchAngle[2] = CLAMP(m_punchAngle[2], -89, 89);
 }
 
 //=============================================

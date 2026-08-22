@@ -164,7 +164,7 @@ void CScreenMessages::ReadjustMessage( scrmessage_t* pmsg )
 		const Char* pstr = pline->text.c_str();
 		while(*pstr)
 		{
-			Uint32 charidx = clamp(*pstr, 0, 255);
+			Uint32 charidx = CLAMP(*pstr, 0, 255);
 			pstr++;
 
 			pline->width += pmsg->pfontset->glyphs[charidx].advancex;
@@ -271,9 +271,9 @@ void CScreenMessages::ReadTitlesFile( void )
 				pnew->pfontset = m_pFontSet;
 
 			if(pnew->xposition != -1)
-				pnew->xposition = clamp(pnew->xposition, 0.0, 1.0);
+				pnew->xposition = CLAMP(pnew->xposition, 0.0, 1.0);
 			if(pnew->xposition != -1)
-				pnew->yposition = clamp(pnew->xposition, 0.0, 1.0);
+				pnew->yposition = CLAMP(pnew->xposition, 0.0, 1.0);
 
 			// Assing the message contents
 			CString msgtext;
@@ -363,7 +363,7 @@ void CScreenMessages::ReadTitlesFile( void )
 				color24_t& dest = (!qstrcmp(token, "$color1")) ? color1 : color2;
 
 				// Set R component
-				dest.r = clamp(SDL_atoi(value), 0, 255);
+				dest.r = CLAMP(SDL_atoi(value), 0, 255);
 
 				// Parse the G component
 				pchar = Common::Parse(pchar, value);
@@ -374,7 +374,7 @@ void CScreenMessages::ReadTitlesFile( void )
 				}
 
 				// Set G component
-				dest.g = clamp(SDL_atoi(value), 0, 255);
+				dest.g = CLAMP(SDL_atoi(value), 0, 255);
 
 				// Parse the B component
 				pchar = Common::Parse(pchar, value);
@@ -385,7 +385,7 @@ void CScreenMessages::ReadTitlesFile( void )
 				}
 
 				// Set G component
-				dest.b = clamp(SDL_atoi(value), 0, 255);
+				dest.b = CLAMP(SDL_atoi(value), 0, 255);
 			}
 			else if(!qstrcmp(token, "$fadein"))
 			{
@@ -531,7 +531,7 @@ void CScreenMessages::ProcessMessageText( const font_set_t* pset, scrmessage_t& 
 			if(!SDL_isspace(*ppstr))
 				nbchars++;
 
-			Uint32 charidx = clamp(*ppstr, 0, 255);
+			Uint32 charidx = CLAMP(*ppstr, 0, 255);
 			ppstr++;
 
 			newline.width += pset->glyphs[charidx].advancex;
@@ -626,9 +626,9 @@ void CScreenMessages::ShowMessage( const Char* pstrMessageText, Float fadein, Fl
 	m_customMessage.name.clear();
 
 	if(m_customMessage.xposition != -1)
-		m_customMessage.xposition = clamp(m_customMessage.xposition, 0.0, 1.0);
+		m_customMessage.xposition = CLAMP(m_customMessage.xposition, 0.0, 1.0);
 	if(m_customMessage.xposition != -1)
-		m_customMessage.yposition = clamp(m_customMessage.xposition, 0.0, 1.0);
+		m_customMessage.yposition = CLAMP(m_customMessage.xposition, 0.0, 1.0);
 
 	// Process the text
 	ProcessMessageText(m_pFontSet, m_customMessage, pstrMessageText);
@@ -720,7 +720,7 @@ void CScreenMessages::GetTextXPosition( Double time, const font_set_t* pset, dis
 				charnum++;
 			}
 
-			Uint32 charidx = clamp(*pstr, 0, 255);
+			Uint32 charidx = CLAMP(*pstr, 0, 255);
 			linewidth += pset->glyphs[charidx].advancex;
 			pstr++;
 		}
@@ -806,7 +806,7 @@ bool CScreenMessages::DrawMessage( displaymsg_t& msg )
 			else if((msg.time + pmsgdef->fadein + pmsgdef->holdtime) <= time)
 				alpha = 1.0 - (time - (msg.time + pmsgdef->fadein + pmsgdef->holdtime))/pmsgdef->fadeout;
 
-			alpha = clamp(alpha, 0.0, 1.0);
+			alpha = CLAMP(alpha, 0.0, 1.0);
 
 			switch(pmsgdef->effect)
 			{
@@ -839,7 +839,7 @@ bool CScreenMessages::DrawMessage( displaymsg_t& msg )
 				else
 					alpha = 1.0 - ((time-(msg.die-pmsgdef->fadeout))/pmsgdef->fadeout);
 
-				alpha = clamp(alpha, 0.0, 1.0);
+				alpha = CLAMP(alpha, 0.0, 1.0);
 
 				if(pmsgdef->fxtime > 0)
 				{
@@ -849,7 +849,7 @@ bool CScreenMessages::DrawMessage( displaymsg_t& msg )
 					else
 						colorblend = 1.0 - (delta*(1.0/pmsgdef->fxtime));
 
-						clamp(colorblend, 0.0, 1.0);
+						CLAMP(colorblend, 0.0, 1.0);
 					}
 					else
 						colorblend = 1.0;
@@ -867,7 +867,7 @@ bool CScreenMessages::DrawMessage( displaymsg_t& msg )
 				return false;
 			}
 
-			Uint32 charidx = clamp(*pstr, 0, 255);
+			Uint32 charidx = CLAMP(*pstr, 0, 255);
 			charXPos += pset->glyphs[charidx].advancex;
 
 			if(!SDL_isspace(*pstr))

@@ -283,7 +283,7 @@ void CEnvBlackHole::SuckThink( void )
 		Vector direction = m_pState->origin - entityOrigin;
 		Float distance = Math::DotProduct(direction, direction);
 		Float attenuation = ((distance/radiusSquared) - 1.0) * -1.0;
-		attenuation = clamp(attenuation, 0.0, 1.0);
+		attenuation = CLAMP(attenuation, 0.0, 1.0);
 
 		// Calculate strength of pull by black hole
 		Float pullStrength = attenuation*BLACK_HOLE_SUCK_SPEED*m_pullStrength;
@@ -305,7 +305,7 @@ void CEnvBlackHole::SuckThink( void )
 			Math::GetUpRight(direction, up, right);
 
 			Float orbitAtten = radiusSquared/(distance*sqrt(distance));
-			orbitAtten = clamp(orbitAtten, 0.0, 1.0);
+			orbitAtten = CLAMP(orbitAtten, 0.0, 1.0);
 
 			awayDirection = velocityDirection - right;
 			awayDirection.Normalize();

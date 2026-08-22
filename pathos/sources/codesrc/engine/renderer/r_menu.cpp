@@ -459,7 +459,7 @@ bool CMenu::DrawMenuBackground( CBasicDraw* pDraw )
 
 		// Draw the blend-from texture
 		Float alpha = 1.0 - ((ens.time - m_flBlendBeginTime) / MENU_BLEND_TIME);
-		alpha = clamp(alpha, 0.0, 1.0);
+		alpha = CLAMP(alpha, 0.0, 1.0);
 		
 		pDraw->Color4f(GL_ONE, GL_ONE, GL_ONE, alpha);
 
@@ -1527,8 +1527,8 @@ void CMenuButton::Think( void )
 		m_brightness = DISABLED_BRIGHTNESS;
 
 	// Clamp these values
-	m_alpha = clamp(m_alpha, 0, 1);
-	m_brightness = clamp(m_brightness, 0, 1);
+	m_alpha = CLAMP(m_alpha, 0, 1);
+	m_brightness = CLAMP(m_brightness, 0, 1);
 
 	// Clear this if the button was released
 	if(m_isClicked)

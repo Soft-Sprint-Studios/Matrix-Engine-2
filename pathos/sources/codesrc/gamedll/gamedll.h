@@ -10,7 +10,19 @@ All Rights Reserved.
 #ifndef GAMEDLL_H
 #define GAMEDLL_H
 
-#define DLLEXPORT __declspec( dllexport )
+#if defined(_WIN32)
+    #if defined(__GNUC__) || defined(__clang__)
+        #define DLLEXPORT __declspec(dllexport)
+    #else
+        #define DLLEXPORT
+    #endif
+#else
+    #if defined(__GNUC__) || defined(__clang__)
+        #define DLLEXPORT __attribute__((visibility("default")))
+    #else
+        #define DLLEXPORT
+    #endif
+#endif
 
 struct gdll_engfuncs_t;
 struct trace_interface_t;

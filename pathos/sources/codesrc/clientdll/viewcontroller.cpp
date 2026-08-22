@@ -286,7 +286,7 @@ void CViewController::CalcView_CameraModel( ref_params_t& params )
 	// Calculate blend-to
 	if(m_blend)
 	{
-		Float time = clamp((params.time - m_blendTime), 0, m_blendDelta);
+		Float time = CLAMP((params.time - m_blendTime), 0, m_blendDelta);
 		Float flfrac = Common::SplineFraction( time, (1.0/m_blendDelta) );
 
 		Vector diff;

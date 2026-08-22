@@ -709,7 +709,7 @@ bool CSpriteRenderer::BatchSprite( cl_entity_t *pEntity )
 			nullptr, SPR_DrawFunction);
 
 		Float dst = Math::DotProduct(rns.view.v_forward, pEntity->curstate.origin - rns.view.v_origin);
-		dst = clamp(dst, 0, 64);
+		dst = CLAMP(dst, 0, 64);
 		dst = dst / 64;
 
 		flAlpha = flAlpha * occlusionFactor * dst;
@@ -721,7 +721,7 @@ bool CSpriteRenderer::BatchSprite( cl_entity_t *pEntity )
 
 			Float length = (rns.view.v_origin - pEntity->curstate.origin).Length();
 			Float fogfactor = (rns.fog.settings.end - length)*f;
-			flAlpha *= clamp(fogfactor, 0, 1);
+			flAlpha *= CLAMP(fogfactor, 0, 1);
 		}
 
 		// Save last time this was visible

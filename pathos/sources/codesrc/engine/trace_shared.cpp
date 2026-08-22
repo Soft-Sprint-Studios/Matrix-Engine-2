@@ -350,7 +350,7 @@ bool TR_RecursiveHullCheck_ClipNode( const hull_t* phull, Int32 clipnodeidx, Dou
 	else
 		frac = (t1 - DIST_EPSILON) / (t1 - t2);
 
-	frac = clamp(frac, 0, 1);
+	frac = CLAMP(frac, 0, 1);
 	if(Common::IsNAN(frac))
 		return false;
 
@@ -539,7 +539,7 @@ void TR_ClipBoxToBrush( const Vector& p1, const Vector& p2, const Vector& mins, 
 			else
 				fraction = fraction / (dist1 - dist2); 
 
-			fraction = clamp(fraction, 0, 1);
+			fraction = CLAMP(fraction, 0, 1);
 
 			if(fraction > enterfraction)
 			{
@@ -551,7 +551,7 @@ void TR_ClipBoxToBrush( const Vector& p1, const Vector& p2, const Vector& mins, 
 		else
 		{
 			Float fraction = (dist1+HULL_EPSILON) / (dist1 - dist2); 
-			fraction = clamp(fraction, 0, 1);
+			fraction = CLAMP(fraction, 0, 1);
 
 			if(fraction < leavefraction)
 				leavefraction = fraction;
@@ -663,7 +663,7 @@ void TR_ClipPointToBrush( const Vector& p1, const Vector& p2, trace_t& tr, const
 			else
 				fraction = fraction / (dist1 - dist2); 
 
-			fraction = clamp(fraction, 0, 1);
+			fraction = CLAMP(fraction, 0, 1);
 
 			if(fraction > enterfraction)
 			{
@@ -675,7 +675,7 @@ void TR_ClipPointToBrush( const Vector& p1, const Vector& p2, trace_t& tr, const
 		else
 		{
 			Float fraction = dist1 / (dist1 - dist2); 
-			fraction = clamp(fraction, 0, 1);
+			fraction = CLAMP(fraction, 0, 1);
 
 			if(fraction < leavefraction)
 				leavefraction = fraction;
@@ -986,7 +986,7 @@ void TR_RecursiveHullCheck_BrushBox( mnode_t* pnode, Double p1f, Double p2f, con
 	}
 
 	// Move up the node
-	frac1 = clamp(frac1, 0, 1);
+	frac1 = CLAMP(frac1, 0, 1);
 
 	Vector mid;
 	Double midf = p1f + (p2f - p1f)*frac1;
@@ -996,7 +996,7 @@ void TR_RecursiveHullCheck_BrushBox( mnode_t* pnode, Double p1f, Double p2f, con
 	TR_RecursiveHullCheck_BrushBox(pnode->pchildren[side], p1f, midf, p1, mid, start, end, mins, maxs, traceextents, pbrushmodel, brushtypebits, trace);
 
 	// Go past the node
-	frac2 = clamp(frac2, 0, 1);
+	frac2 = CLAMP(frac2, 0, 1);
 
 	midf = p1f + (p2f - p1f)*frac2;
 	for (Uint32 i = 0; i < 3; i++)
@@ -1075,7 +1075,7 @@ void TR_RecursiveHullCheck_BrushPoint( mnode_t* pnode, Double p1f, Double p2f, c
 	}
 
 	// Move up the node
-	frac1 = clamp(frac1, 0, 1);
+	frac1 = CLAMP(frac1, 0, 1);
 
 	Vector mid;
 	Double midf = p1f + (p2f - p1f)*frac1;
@@ -1085,7 +1085,7 @@ void TR_RecursiveHullCheck_BrushPoint( mnode_t* pnode, Double p1f, Double p2f, c
 	TR_RecursiveHullCheck_BrushPoint(pnode->pchildren[side], p1f, midf, p1, mid, start, end, pbrushmodel, brushtypebits, trace);
 
 	// Go past the node
-	frac2 = clamp(frac2, 0, 1);
+	frac2 = CLAMP(frac2, 0, 1);
 
 	midf = p1f + (p2f - p1f)*frac2;
 	for (Uint32 i = 0; i < 3; i++)

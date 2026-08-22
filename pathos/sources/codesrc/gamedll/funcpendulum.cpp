@@ -198,7 +198,7 @@ void CFuncPendulum::SwingThink( void )
 		m_pState->speed += m_acceleration * timedelta;
 
 	// Clamp velocity
-	m_pState->speed = clamp(m_pState->speed, -m_maxSpeed, m_maxSpeed);
+	m_pState->speed = CLAMP(m_pState->speed, -m_maxSpeed, m_maxSpeed);
 	Math::VectorScale(m_pState->movedir, m_pState->speed, m_pState->avelocity);
 
 	m_pState->nextthink = m_pState->ltime + 0.1;
@@ -218,7 +218,7 @@ void CFuncPendulum::SwingThink( void )
 		else
 		{
 			// Clamp speed
-			m_pState->speed = clamp(m_pState->speed, -m_dampSpeed, m_dampSpeed);
+			m_pState->speed = CLAMP(m_pState->speed, -m_dampSpeed, m_dampSpeed);
 		}
 	}
 }

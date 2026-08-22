@@ -269,7 +269,7 @@ void CDefaultView::CalcBob( cl_entity_t* pplayer, ref_params_t& params )
 
 	// Estimate step time, we need half
 	Float steptime = EstimateStepTime(pplayer, params) * 0.5;
-	speed = clamp(speed, -steptime, steptime);
+	speed = CLAMP(speed, -steptime, steptime);
 
 	Float boboffset = Common::RemapValue(speed, 0, steptime, 0.0f, 1.0f);
 	m_bobTime += (params.time - m_lastBobTime) * boboffset;
@@ -288,7 +288,7 @@ void CDefaultView::CalcBob( cl_entity_t* pplayer, ref_params_t& params )
 
 	m_verticalBob = speed*0.005f;
 	m_verticalBob = m_verticalBob*0.3 + m_verticalBob*0.7*SDL_sin(cycle);
-	m_verticalBob = clamp(m_verticalBob, -7.0f, 4.0f);
+	m_verticalBob = CLAMP(m_verticalBob, -7.0f, 4.0f);
 	m_verticalBob *= viewBobScale;
 
 	// Calculate lateral bob
@@ -302,7 +302,7 @@ void CDefaultView::CalcBob( cl_entity_t* pplayer, ref_params_t& params )
 
 	m_lateralBob = speed*0.005f;
 	m_lateralBob = m_lateralBob*0.3f + m_lateralBob*0.7*SDL_sin(cycle);
-	m_lateralBob = clamp(m_lateralBob, -7.0f, 4.0f);
+	m_lateralBob = CLAMP(m_lateralBob, -7.0f, 4.0f);
 	m_lateralBob *= viewBobScale;
 }
 
@@ -566,7 +566,7 @@ void CDefaultView::CalcLeaning( cl_entity_t* pplayer, cl_entity_t *pviewmodel, r
 		m_idealLeanAngles[PITCH] = leanUp*6;
 
 		// Calculate fraction
-		Float time = clamp((params.time - m_leanTime), 0.0, LEAN_TIME );
+		Float time = CLAMP((params.time - m_leanTime), 0.0, LEAN_TIME );
 		Float leanFraction = Common::SplineFraction( time, (1.0/LEAN_TIME) );
 
 		// It must be recalculated every frame
@@ -597,7 +597,7 @@ void CDefaultView::CalcLeaning( cl_entity_t* pplayer, cl_entity_t *pviewmodel, r
 		if(m_leanTime)
 		{
 			// Calculate lean interpolation
-			Float time = clamp((params.time - m_leanTime), 0.0, LEAN_TIME );
+			Float time = CLAMP((params.time - m_leanTime), 0.0, LEAN_TIME );
 			Float leanFraction = Common::SplineFraction( time, (1.0/LEAN_TIME) );
 
 			if(leanFraction >= 1.0)

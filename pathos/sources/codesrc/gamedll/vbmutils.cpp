@@ -248,7 +248,7 @@ Float VBM_SetBlending( const cache_model_t* pmodel, Uint32 blendingindex, Int32 
 	}
 
 	Float controllersetting = 255*(value - pseqdesc->blendstart[blendingindex])/(pseqdesc->blendend[blendingindex]-pseqdesc->blendstart[blendingindex]);
-	controllersetting = clamp(controllersetting, 0, 255);
+	controllersetting = CLAMP(controllersetting, 0, 255);
 	pblending[blendingindex] = controllersetting;
 
 	return controllersetting*(1.0/255.0)*(pseqdesc->blendend[blendingindex]-pseqdesc->blendstart[blendingindex])+pseqdesc->blendstart[blendingindex];

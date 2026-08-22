@@ -1222,7 +1222,7 @@ bool CText::DrawString( const Char *pstrString, Int32 x, Int32 y, bool reverse, 
 
 					// Read into integer
 					int component = SDL_atoi(buffer);
-					component = clamp(component, 0, 255);
+					component = CLAMP(component, 0, 255);
 
 					// Put into final position
 					if(pcolorelement)

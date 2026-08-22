@@ -9,7 +9,19 @@ All Rights Reserved.
 
 #ifndef CLIENTDLL_H
 #define CLIENTDLL_H
-#define DLLEXPORT __declspec( dllexport )
+#if defined(_WIN32)
+    #if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
+        #define DLLEXPORT __declspec(dllexport)
+    #else
+        #define DLLEXPORT
+    #endif
+#else
+    #if defined(__GNUC__) || defined(__clang__)
+        #define DLLEXPORT __attribute__((visibility("default")))
+    #else
+        #define DLLEXPORT
+    #endif
+#endif
 
 #include "includes.h"
 #include "cldll_interface.h"

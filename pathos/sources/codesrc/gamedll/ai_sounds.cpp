@@ -152,7 +152,7 @@ void CAISounds::GetSoundList( const Vector& position, CLinkedList<ai_sound_t>& d
 	if(m_soundsList.empty())
 		return;
 
-	Float sndsensitivity = clamp(sensitivity, 0.0, 1.0);
+	Float sndsensitivity = CLAMP(sensitivity, 0.0, 1.0);
 
 	m_soundsList.begin();
 	while(!m_soundsList.end())
