@@ -15,6 +15,7 @@ sudo apt-get install -y \
     libxi-dev \
     libxcursor-dev \
     libfontconfig1-dev \
+	libopenal-dev \
     libwayland-dev \
     libegl1-mesa-dev
 
