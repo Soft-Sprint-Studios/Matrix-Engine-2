@@ -745,45 +745,31 @@ namespace Util
 	{
 		if(color == BLOOD_NONE)
 			return;
-		
-		if(g_pCvarOldSchoolBlood->GetValue() >= 1)
-		{
-			// Use same value as Half-Life
-			// Only red for now
-			Uint32 colorIndex = 70;
-			Util::CreateBloodParticles(tr.endpos, tr.plane.normal, colorIndex, Common::RandomFloat(10, 30));
 
-			// Randomly spawn streams too
-			if(Common::RandomLong(0, 2) == 2)
-				Util::CreateBloodStream(tr.endpos, tr.plane.normal, colorIndex, Common::RandomFloat(100, 150));
+		Int32 attachflags = PARTICLE_ATTACH_NONE;
+		Int32 boneindex = Util::GetBoneIndexFromTrace(tr);
+		if(boneindex != NO_POSITION)
+			attachflags |= (PARTICLE_ATTACH_TO_BONE|PARTICLE_ATTACH_TO_PARENT);
+
+		CBaseEntity* pEntity = Util::GetEntityFromTrace(tr);
+		if(!pEntity)
+			return;
+		
+		CString scriptname;
+		if(isplayer)
+		{
+			// Player has specific script
+			scriptname = "blood_effects_cluster_player.txt";
 		}
 		else
 		{
-			Int32 attachflags = PARTICLE_ATTACH_NONE;
-			Int32 boneindex = Util::GetBoneIndexFromTrace(tr);
-			if(boneindex != NO_POSITION)
-				attachflags |= (PARTICLE_ATTACH_TO_BONE|PARTICLE_ATTACH_TO_PARENT);
-
-			CBaseEntity* pEntity = Util::GetEntityFromTrace(tr);
-			if(!pEntity)
-				return;
-		
-			CString scriptname;
-			if(isplayer)
-			{
-				// Player has specific script
-				scriptname = "blood_effects_cluster_player.txt";
-			}
+			if(pEntity->IsAlive())
+				scriptname = "blood_effects_cluster_living.txt";
 			else
-			{
-				if(pEntity->IsAlive())
-					scriptname = "blood_effects_cluster_living.txt";
-				else
-					scriptname = "blood_effects_cluster.txt";
-			}
-
-			Util::CreateParticles(scriptname.c_str(), tr.endpos, tr.plane.normal, PART_SCRIPT_CLUSTER, pEntity->GetEdict(), 0, 0, boneindex, attachflags);
+				scriptname = "blood_effects_cluster.txt";
 		}
+
+		Util::CreateParticles(scriptname.c_str(), tr.endpos, tr.plane.normal, PART_SCRIPT_CLUSTER, pEntity->GetEdict(), 0, 0, boneindex, attachflags);
 	}
 
 	//=============================================
