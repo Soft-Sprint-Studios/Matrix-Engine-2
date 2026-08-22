@@ -11,17 +11,11 @@ All Rights Reserved.
 #define GAMEDLL_H
 
 #if defined(_WIN32)
-    #if defined(__GNUC__) || defined(__clang__)
-        #define DLLEXPORT __declspec(dllexport)
-    #else
-        #define DLLEXPORT
-    #endif
+    #define DLLEXPORT __declspec(dllexport)
+#elif defined(__GNUC__) || defined(__clang__)
+    #define DLLEXPORT __attribute__((visibility("default")))
 #else
-    #if defined(__GNUC__) || defined(__clang__)
-        #define DLLEXPORT __attribute__((visibility("default")))
-    #else
-        #define DLLEXPORT
-    #endif
+    #define DLLEXPORT
 #endif
 
 struct gdll_engfuncs_t;

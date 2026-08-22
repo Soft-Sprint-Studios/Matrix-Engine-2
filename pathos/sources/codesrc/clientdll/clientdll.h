@@ -10,17 +10,11 @@ All Rights Reserved.
 #ifndef CLIENTDLL_H
 #define CLIENTDLL_H
 #if defined(_WIN32)
-    #if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
-        #define DLLEXPORT __declspec(dllexport)
-    #else
-        #define DLLEXPORT
-    #endif
+    #define DLLEXPORT __declspec(dllexport)
+#elif defined(__GNUC__) || defined(__clang__)
+    #define DLLEXPORT __attribute__((visibility("default")))
 #else
-    #if defined(__GNUC__) || defined(__clang__)
-        #define DLLEXPORT __attribute__((visibility("default")))
-    #else
-        #define DLLEXPORT
-    #endif
+    #define DLLEXPORT
 #endif
 
 #include "includes.h"

@@ -891,7 +891,7 @@ namespace Math
 	inline void ConcatTransforms( const Float (*pin1)[4], const Float (*pin2)[4], Float (*pout)[4] )
 	{
 		pout[0][0] = pin1[0][0] * pin2[0][0] + pin1[0][1] * pin2[1][0] + pin1[0][2] * pin2[2][0];
-		pout[0][1] = pin1[0][0] * pin2[0][1] + pin1[0][1] * pin2[1][0] + pin1[0][2] * pin2[2][1];
+		pout[0][1] = pin1[0][0] * pin2[0][1] + pin1[0][1] * pin2[1][1] + pin1[0][2] * pin2[2][1];
 		pout[0][2] = pin1[0][0] * pin2[0][2] + pin1[0][1] * pin2[1][2] + pin1[0][2] * pin2[2][2];
 		pout[0][3] = pin1[0][0] * pin2[0][3] + pin1[0][1] * pin2[1][3] + pin1[0][2] * pin2[2][3] + pin1[0][3];
 		pout[1][0] = pin1[1][0] * pin2[0][0] + pin1[1][1] * pin2[1][0] + pin1[1][2] * pin2[2][0];
