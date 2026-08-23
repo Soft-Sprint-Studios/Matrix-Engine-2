@@ -409,6 +409,7 @@ struct vbm_attribs
 	Int32 u_d_mrao;
 	Int32 u_d_bumpmapping;
 	Int32 u_d_numdlights;
+	Int32 u_d_csm;
 
 	Int32 u_cubemap;
 	Int32 u_cubemap_prev;
@@ -425,6 +426,13 @@ struct vbm_attribs
 	Int32 u_inv_modelmatrix;
 	Int32 u_interpolant;
 	Int32 u_d_cubemaps;
+
+	Int32 u_csm_matrix;
+	Int32 u_csm_shadowmap;
+	Int32 u_csm_light_origin;
+	Int32 u_csm_light_radius;
+	Int32 u_csm_light_color;
+	Int32 u_csm_direction;
 
 	vbm_dlight_attribs_t dlights[MAX_DLIGHTS];
 };

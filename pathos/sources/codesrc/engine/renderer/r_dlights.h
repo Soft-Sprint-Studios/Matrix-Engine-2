@@ -81,6 +81,8 @@ public:
 	static const Uint32 SHADOWMAP_MIN_SIZE;
 	// Time until an unused shadowmap is freed
 	static const Float SHADOWMAP_RELEASE_DELAY;
+	// Default directional shadowmap distance / extents
+	static const Float CSM_EXTENTS;
 
 public:
 	struct vsm_shader_attribs
@@ -154,6 +156,17 @@ public:
 	// Releases any dynlights tied to an entity
 	void ReleaseEntityDynamicLights( entindex_t entindex );
 
+	// Returns directional sunlight shadowmap resolution
+	Int32 GetCSMResolution( void ) const;
+	// Returns directional sunlight shadowmap struct
+	shadowmap_t* GetCSMShadowMap( void ) { return m_pCSMShadowMap; }
+	// Returns directional sunlight matrix
+	const Float* GetCSMMatrix( void ) const { return m_csmMatrix; }
+	// Returns directional sunlight origin in world space
+	const Vector& GetCSMLightOrigin( void ) const { return m_csmWorldOrigin; }
+	// Returns directional sunlight direction
+	const Vector& GetCSMSunDir( void ) const { return m_csmSunDir; }
+
 private:
 
 
@@ -201,6 +214,8 @@ private:
 private:
 	// Draws a projective shadow pass
 	bool DrawProjectivePass( cl_dlight_t *dl, cl_entity_t** pvisents, Int32 numentities, bool isfinal );
+	// Draws single directional sunlight shadow pass
+	bool DrawCSMPass( void );
 	// Draws a cubemap shadow pass
 	bool DrawCubemapPass( cl_dlight_t *dl, Vector vangles, Int32 index, cl_entity_t** pvisents, Int32 numentities, bool isfinal );
 	// Tell if static shadows need to be redrawn
@@ -233,6 +248,13 @@ private:
 	Int32 m_shadowmapSize;
 	Int32 m_cubeShadowmapSize;
 
+	// Directional sunlight (CSM) shadowmap
+	shadowmap_t* m_pCSMShadowMap;
+	Int32 m_csmResolution;
+	Float m_csmMatrix[16];
+	Vector m_csmWorldOrigin;
+	Vector m_csmSunDir;
+
 	// Linkest list of dynamic lights
 	CLinkedList<cl_dlight_t*> m_dlightsList;
 
@@ -243,6 +265,10 @@ private:
 	CCVar* m_pCvarCubeShadowmapSize;
 	// Controls whether we use shadowmap blitting
 	CCVar* m_pCvarShadowmapBlit;
+	// Controls directional sunlight shadowmap
+	CCVar* m_pCvarCSM;
+	// Controls directional sunlight shadowmap resolution
+	CCVar* m_pCvarCSMRes;
 };
 extern CDynamicLightManager gDynamicLights;
 

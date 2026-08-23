@@ -206,6 +206,13 @@ bool CWaterShader::InitGL( void )
 		m_attribs.u_rectrefract = m_pShader->InitUniform("rectangleRefractMap", CGLSLShader::UNIFORM_SAMPLERRECT);
 		m_attribs.u_lightstyle_values = m_pShader->InitUniform("u_lightstyle_values", CGLSLShader::UNIFORM_FLOAT1, 256);
 		m_attribs.u_d_numlights = m_pShader->InitUniform("d_numlights", CGLSLShader::UNIFORM_INT1);
+		m_attribs.u_d_csm = m_pShader->InitUniform("d_csm", CGLSLShader::UNIFORM_INT1);
+		m_attribs.u_csm_matrix = m_pShader->InitUniform("csm_matrix", CGLSLShader::UNIFORM_MATRIX4);
+		m_attribs.u_csm_shadowmap = m_pShader->InitUniform("csm_shadowmap", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_csm_light_origin = m_pShader->InitUniform("csm_light_origin", CGLSLShader::UNIFORM_FLOAT3);
+		m_attribs.u_csm_light_radius = m_pShader->InitUniform("csm_light_radius", CGLSLShader::UNIFORM_FLOAT1);
+		m_attribs.u_csm_light_color = m_pShader->InitUniform("csm_light_color", CGLSLShader::UNIFORM_FLOAT4);
+		m_attribs.u_csm_direction = m_pShader->InitUniform("csm_direction", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_modelview = m_pShader->InitUniform("modelview", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_projection = m_pShader->InitUniform("projection", CGLSLShader::UNIFORM_MATRIX4);
 
@@ -1852,6 +1859,30 @@ bool CWaterShader::DrawWater( bool skybox )
 
 	m_pShader->SetUniform1i(m_attribs.u_d_numlights, num_active_dlights);
 
+	CCVar* pCvarCSM = gConsole.GetCVar("r_csm");
+	if (pCvarCSM && pCvarCSM->GetValue() >= 1.0f && gDynamicLights.GetCSMShadowMap() && !cls.skycolor.IsZero())
+	{
+		m_pShader->SetUniform1i(m_attribs.u_d_csm, 1);
+		m_pShader->SetUniformMatrix4fv(m_attribs.u_csm_matrix, gDynamicLights.GetCSMMatrix());
+
+		Vector lightOrigin = gDynamicLights.GetCSMLightOrigin();
+		Vector sunDir = gDynamicLights.GetCSMSunDir();
+		Vector eyeLightOrigin, eyeSunDir;
+		Math::MatMultPosition(rns.view.modelview.Transpose(), lightOrigin, &eyeLightOrigin);
+		Math::MatMult(rns.view.modelview.Transpose(), sunDir, &eyeSunDir);
+
+		m_pShader->SetUniform3f(m_attribs.u_csm_light_origin, eyeLightOrigin.x, eyeLightOrigin.y, eyeLightOrigin.z);
+		m_pShader->SetUniform3f(m_attribs.u_csm_direction, eyeSunDir.x, eyeSunDir.y, eyeSunDir.z);
+		m_pShader->SetUniform1f(m_attribs.u_csm_light_radius, 8000.0f);
+
+		Vector skyCol = cls.skycolor * (1.0f / 255.0f);
+		m_pShader->SetUniform4f(m_attribs.u_csm_light_color, skyCol.x, skyCol.y, skyCol.z, 1.0f);
+	}
+	else
+	{
+		m_pShader->SetUniform1i(m_attribs.u_d_csm, 0);
+	}
+
 	rtt_texture_t* pRTT = nullptr;
 	CFBOCache::cache_fbo_t* pScreenFBO = nullptr;
 
@@ -2047,6 +2078,12 @@ bool CWaterShader::DrawWater( bool skybox )
 		}
 
 		m_pShader->ResetSamplerIndex(textureUnit);
+
+		if (pCvarCSM && pCvarCSM->GetValue() >= 1.0f && gDynamicLights.GetCSMShadowMap() && !cls.skycolor.IsZero())
+		{
+			Int32 csmTexUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_csm_shadowmap);
+			R_Bind2DTexture(GL_TEXTURE0 + csmTexUnit, gDynamicLights.GetCSMShadowMap()->pfbo->ptexture1->gl_index);
+		}
 
 		for (Uint32 l = 0; l < MAX_DLIGHTS; l++)
 		{

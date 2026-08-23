@@ -401,6 +401,7 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_d_mrao = m_pShader->InitUniform("d_mrao", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_bumpmapping = m_pShader->InitUniform("d_bumpmapping", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_d_numdlights = m_pShader->InitUniform("d_numdlights", CGLSLShader::UNIFORM_INT1);
+		m_attribs.u_d_csm = m_pShader->InitUniform("d_csm", CGLSLShader::UNIFORM_INT1);
 
 		m_attribs.u_cubemap = m_pShader->InitUniform("cubemap", CGLSLShader::UNIFORM_SAMPLERCUBE);
 		m_attribs.u_cubemap_prev = m_pShader->InitUniform("cubemap_prev", CGLSLShader::UNIFORM_SAMPLERCUBE);
@@ -417,6 +418,13 @@ bool CVBMRenderer::InitGL( void )
 		m_attribs.u_inv_modelmatrix = m_pShader->InitUniform("inv_modelmatrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_interpolant = m_pShader->InitUniform("interpolant", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_d_cubemaps = m_pShader->InitUniform("d_cubemaps", CGLSLShader::UNIFORM_INT1);
+
+		m_attribs.u_csm_matrix = m_pShader->InitUniform("csm_matrix", CGLSLShader::UNIFORM_MATRIX4);
+		m_attribs.u_csm_shadowmap = m_pShader->InitUniform("csm_shadowmap", CGLSLShader::UNIFORM_SAMPLER2D);
+		m_attribs.u_csm_light_origin = m_pShader->InitUniform("csm_light_origin", CGLSLShader::UNIFORM_FLOAT3);
+		m_attribs.u_csm_light_radius = m_pShader->InitUniform("csm_light_radius", CGLSLShader::UNIFORM_FLOAT1);
+		m_attribs.u_csm_light_color = m_pShader->InitUniform("csm_light_color", CGLSLShader::UNIFORM_FLOAT4);
+		m_attribs.u_csm_direction = m_pShader->InitUniform("csm_direction", CGLSLShader::UNIFORM_FLOAT3);
 
 		if (!R_CheckShaderUniform(m_attribs.u_d_numlights, "num_lights", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_chrome, "chrome", m_pShader, Sys_ErrorPopup)
@@ -3242,6 +3250,30 @@ bool CVBMRenderer::SetupRenderer( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
 
+	CCVar* pCvarCSM = gConsole.GetCVar("r_csm");
+	if (pCvarCSM && pCvarCSM->GetValue() >= 1.0f && gDynamicLights.GetCSMShadowMap() && !cls.skycolor.IsZero())
+	{
+		m_pShader->SetUniform1i(m_attribs.u_d_csm, 1);
+		m_pShader->SetUniformMatrix4fv(m_attribs.u_csm_matrix, gDynamicLights.GetCSMMatrix());
+
+		Vector lightOrigin = gDynamicLights.GetCSMLightOrigin();
+		Vector sunDir = gDynamicLights.GetCSMSunDir();
+		Vector eyeLightOrigin, eyeSunDir;
+		Math::MatMultPosition(rns.view.modelview.Transpose(), lightOrigin, &eyeLightOrigin);
+		Math::MatMult(rns.view.modelview.Transpose(), sunDir, &eyeSunDir);
+
+		m_pShader->SetUniform3f(m_attribs.u_csm_light_origin, eyeLightOrigin.x, eyeLightOrigin.y, eyeLightOrigin.z);
+		m_pShader->SetUniform3f(m_attribs.u_csm_direction, eyeSunDir.x, eyeSunDir.y, eyeSunDir.z);
+		m_pShader->SetUniform1f(m_attribs.u_csm_light_radius, 8000.0f);
+
+		Vector skyCol = cls.skycolor * (1.0f / 255.0f);
+		m_pShader->SetUniform4f(m_attribs.u_csm_light_color, skyCol.x, skyCol.y, skyCol.z, 1.0f);
+	}
+	else
+	{
+		m_pShader->SetUniform1i(m_attribs.u_d_csm, 0);
+	}
+
 	m_pShader->EnableAttribute(m_attribs.a_normal);
 	m_pShader->EnableAttribute(m_attribs.a_tangent);
 	m_pShader->EnableAttribute(m_attribs.a_texcoord1);
@@ -3420,6 +3452,7 @@ bool CVBMRenderer::RestoreRenderer( void )
 	m_pShader->SetUniform1i(m_attribs.u_d_mrao, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, FALSE);
 	m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
+	m_pShader->SetUniform1i(m_attribs.u_d_csm, 0);
 	m_pShader->DisableSync(m_attribs.u_modelmatrix);
 	m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
 
@@ -3822,6 +3855,13 @@ bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, b
 
 	if(pmesh->numbones)
 		SetShaderBoneTransform(m_pWeightBoneTransform, pmesh->getBones(m_pVBMHeader), pmesh->numbones);
+
+	CCVar* pCvarCSM = gConsole.GetCVar("r_csm");
+	if (pCvarCSM && pCvarCSM->GetValue() >= 1.0f && gDynamicLights.GetCSMShadowMap() && !cls.skycolor.IsZero())
+	{
+		Int32 csmTexUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_csm_shadowmap);
+		R_Bind2DTexture(GL_TEXTURE0 + csmTexUnit, gDynamicLights.GetCSMShadowMap()->pfbo->ptexture1->gl_index);
+	}
 
 	// Bind dynamic lights
 	Uint32 draw_dlights = (m_numDynamicLights > MAX_DLIGHTS) ? MAX_DLIGHTS : m_numDynamicLights;
@@ -5942,7 +5982,7 @@ bool CVBMRenderer::DrawModelVSM( cl_entity_t *pEntity, cl_dlight_t *dl )
 	SetExtraInfo();
 	SetOrientation();
 
-	if (CheckBBox())
+	if ((!dl || !dl->isDontCull()) && CheckBBox())
 		return true;
 
 	if(ShouldAnimate())

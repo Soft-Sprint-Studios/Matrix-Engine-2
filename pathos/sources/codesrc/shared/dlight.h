@@ -64,6 +64,10 @@ public:
 	{
 		nomaincull = true;
 	}
+	bool isDontCull( void ) const
+	{
+		return nomaincull;
+	}
 
 public:
 	Vector	origin;

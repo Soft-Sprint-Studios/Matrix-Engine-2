@@ -37,6 +37,8 @@ All Rights Reserved.
 const Uint32 CDynamicLightManager::SHADOWMAP_MIN_SIZE = 128;
 // Time until an unused shadowmap is freed
 const Float CDynamicLightManager::SHADOWMAP_RELEASE_DELAY = 15;
+// Directional shadowmap bounding extents
+const Float CDynamicLightManager::CSM_EXTENTS = 1024.0f;
 
 // Class object
 CDynamicLightManager gDynamicLights;
@@ -49,6 +51,10 @@ CDynamicLightManager::CDynamicLightManager( void ):
 	m_pVSMVBO(nullptr),
 	m_shadowmapSize(0),
 	m_cubeShadowmapSize(0),
+	m_pCSMShadowMap(nullptr),
+	m_csmResolution(0),
+	m_pCvarCSM(nullptr),
+	m_pCvarCSMRes(nullptr),
 	m_pCvarShadowmapSize(nullptr),
 	m_pCvarCubeShadowmapSize(nullptr),
 	m_pCvarShadowmapBlit(nullptr)
@@ -72,6 +78,8 @@ bool CDynamicLightManager::Init( void )
 	m_pCvarShadowmapSize = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_shadowmap_proj_size", "512", "Controls resolution of projected light shadows.", R_CheckShadowmapSizeCvarCallBack );
 	m_pCvarCubeShadowmapSize = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_shadowmap_cube_size", "256", "Controls resolution of point light shadows.", R_CheckShadowmapSizeCvarCallBack );
 	m_pCvarShadowmapBlit = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_shadowmap_blitting", "1", "Enable or disable shadowmap blitting." );
+	m_pCvarCSM = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_csm", "0", "Enable directional sunlight shadowmap." );
+	m_pCvarCSMRes = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_csm_res", "4096", "Resolution of directional sunlight shadowmap.", R_CheckShadowmapSizeCvarCallBack );
 
 	return true;
 }
@@ -88,6 +96,7 @@ bool CDynamicLightManager::InitGL( void )
 	// Set shadowmap sizes
 	m_shadowmapSize = m_pCvarShadowmapSize->GetValue();
 	m_cubeShadowmapSize = m_pCvarCubeShadowmapSize->GetValue();
+	m_csmResolution = m_pCvarCSMRes->GetValue();
 
 	// Initialize static FBOs
 	if(!InitFBOs())
@@ -235,6 +244,21 @@ bool CDynamicLightManager::InitGame( void )
 //====================================
 bool CDynamicLightManager::CheckFBOs( void )
 {
+	if(m_csmResolution != static_cast<Int32>(m_pCvarCSMRes->GetValue()))
+	{
+		if(m_pCSMShadowMap)
+		{
+			if(m_pCSMShadowMap->pfbo)
+			{
+				glDeleteFramebuffers(1, &m_pCSMShadowMap->pfbo->fboid);
+				delete m_pCSMShadowMap->pfbo;
+			}
+			delete m_pCSMShadowMap;
+			m_pCSMShadowMap = nullptr;
+		}
+		m_csmResolution = m_pCvarCSMRes->GetValue();
+	}
+
 	if(!m_cubemapPoolList.empty())
 	{
 		m_cubemapPoolList.begin();
@@ -718,6 +742,18 @@ void CDynamicLightManager::DeleteFBOs( void )
 //====================================
 void CDynamicLightManager::ClearShadowMaps( void )
 {
+	if(m_pCSMShadowMap)
+	{
+		if(m_pCSMShadowMap->pfbo)
+		{
+			glDeleteFramebuffers(1, &m_pCSMShadowMap->pfbo->fboid);
+			delete m_pCSMShadowMap->pfbo;
+		}
+		ReleaseShadowmapBlitFBOs((*m_pCSMShadowMap));
+		delete m_pCSMShadowMap;
+		m_pCSMShadowMap = nullptr;
+	}
+
 	if(!m_cubemapPoolList.empty())
 	{
 		m_cubemapPoolList.begin();
@@ -878,6 +914,13 @@ void CDynamicLightManager::UpdateShadowingLights( void )
 //====================================
 bool CDynamicLightManager::DrawPasses( void )
 {
+	// Draw directional sunlight shadow pass first
+	if(m_pCvarCSM && m_pCvarCSM->GetValue() >= 1.0f && !cls.skycolor.IsZero())
+	{
+		if(!DrawCSMPass())
+			return false;
+	}
+
 	if(m_dlightsList.empty())
 		return true;
 
@@ -2024,6 +2067,155 @@ Int32 CDynamicLightManager::GetShadowmapSize( void ) const
 Int32 CDynamicLightManager::GetCubeShadowmapSize( void ) const
 {
 	return m_cubeShadowmapSize;
+}
+
+//====================================
+//
+//====================================
+Int32 CDynamicLightManager::GetCSMResolution( void ) const
+{
+	return m_csmResolution;
+}
+
+//====================================
+//
+//====================================
+bool CDynamicLightManager::DrawCSMPass( void )
+{
+	Uint32 csmSize = GetCSMResolution();
+
+	if(!m_pCSMShadowMap)
+	{
+		m_pCSMShadowMap = new shadowmap_t();
+		m_pCSMShadowMap->projective = true;
+		m_pCSMShadowMap->used = true;
+
+		m_pCSMShadowMap->pfbo = new fbobind_t();
+		m_pCSMShadowMap->pfbo->ptexture1 = CTextureManager::GetInstance()->GenTextureIndex(RS_GAME_LEVEL);
+
+		glBindTexture(GL_TEXTURE_2D, m_pCSMShadowMap->pfbo->ptexture1->gl_index);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16, csmSize, csmSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glGenRenderbuffers(1, &m_pCSMShadowMap->pfbo->rboid1);
+		glBindRenderbuffer(GL_RENDERBUFFER, m_pCSMShadowMap->pfbo->rboid1);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, csmSize, csmSize);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+		glGenFramebuffers(1, &m_pCSMShadowMap->pfbo->fboid);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_pCSMShadowMap->pfbo->fboid);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_pCSMShadowMap->pfbo->ptexture1->gl_index, 0);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_pCSMShadowMap->pfbo->rboid1);
+
+		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
+		{
+			Con_Printf("%s - CSM FBO creation failed.\n", __FUNCTION__);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			return false;
+		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	Vector lightRayDir = cls.skyvec;
+	if (lightRayDir.IsZero())
+		lightRayDir = Vector(0.2f, 0.2f, -0.9f);
+	if (lightRayDir.z > 0.0f)
+		lightRayDir = -lightRayDir;
+	lightRayDir.Normalize();
+
+	Vector centerPos = rns.view.params.v_origin;
+	Vector lightRight, lightUp;
+	Math::GetUpRight(lightRayDir, lightRight, lightUp);
+
+	Float worldUnitsPerTexel = (2.0f * CSM_EXTENTS) / static_cast<Float>(csmSize);
+	Float lightX = Math::DotProduct(centerPos, lightRight);
+	Float lightY = Math::DotProduct(centerPos, lightUp);
+
+	Float snappedX = SDL_floor(lightX / worldUnitsPerTexel) * worldUnitsPerTexel;
+	Float snappedY = SDL_floor(lightY / worldUnitsPerTexel) * worldUnitsPerTexel;
+
+	centerPos = centerPos + lightRight * (snappedX - lightX) + lightUp * (snappedY - lightY);
+
+	R_MarkLeaves(centerPos);
+
+	Float coneSize = 90.0f;
+	Float lightDist = 2000.0f;
+	Float radius = 8000.0f;
+
+	Vector lightOrigin = centerPos - lightRayDir * lightDist;
+	m_csmWorldOrigin = lightOrigin;
+	m_csmSunDir = lightRayDir;
+	Vector vforward = lightRayDir;
+	Vector lightAngles;
+	lightAngles = Math::VectorToAngles(vforward);
+
+	rns.view.frustum.SetFrustum(lightAngles, lightOrigin, 160.0f, 16384.0f);
+	Math::VectorCopy(lightAngles, rns.view.v_angles);
+	Math::VectorCopy(lightOrigin, rns.view.v_origin);
+
+	glViewport(0, 0, csmSize, csmSize);
+	R_BindFBO(m_pCSMShadowMap->pfbo);
+
+	glClearColor(GL_ONE, GL_ONE, GL_ONE, GL_ONE);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	Float extents = CSM_EXTENTS;
+	rns.view.projection.PushMatrix();
+	rns.view.projection.LoadIdentity();
+	rns.view.projection.Ortho(-extents, extents, -extents, extents, 1.0f, radius);
+
+	Vector vtarget;
+	Math::VectorMA(lightOrigin, radius, vforward, vtarget);
+
+	rns.view.modelview.LoadIdentity();
+	rns.view.modelview.LookAt(lightOrigin[0], lightOrigin[1], lightOrigin[2], vtarget[0], vtarget[1], vtarget[2], 0, 0, Common::IsPitchReversed(lightAngles[PITCH]) ? -1 : 1);
+
+	CMatrix texMatrix;
+	texMatrix.LoadIdentity();
+	texMatrix.Translate(0.5f, 0.5f, 0.5f);
+	texMatrix.Scale(0.5f, 0.5f, 1.0f);
+	texMatrix.Ortho(-extents, extents, -extents, extents, 1.0f, radius);
+	texMatrix.LookAt(lightOrigin[0], lightOrigin[1], lightOrigin[2], vtarget[0], vtarget[1], vtarget[2], 0, 0, Common::IsPitchReversed(lightAngles[PITCH]) ? -1 : 1);
+	memcpy(m_csmMatrix, texMatrix.Transpose(), sizeof(Float) * 16);
+
+	rns.framecount++;
+
+	cl_dlight_t dummyDLight;
+	dummyDLight.radius = radius;
+	dummyDLight.origin = lightOrigin;
+	dummyDLight.cone_size = 0.0f;
+	dummyDLight.angles = lightAngles;
+	dummyDLight.setDontCull();
+
+	cl_entity_t** pCSMEntList = (rns.objects.numvisents > 0) ? rns.objects.pvisents_unsorted : nullptr;
+	Uint32 numCSMEnts = rns.objects.numvisents;
+
+	const mleaf_t* pSavedLeaf = rns.view.pviewleaf;
+	if(ens.pworld && ens.pworld->pleafs)
+		rns.view.pviewleaf = &ens.pworld->pleafs[0];
+
+	bool result = true;
+	if(!gBSPRenderer.DrawVSM(&dummyDLight, pCSMEntList, numCSMEnts, true, true))
+		result = false;
+
+	if(result && !gVBMRenderer.DrawVSM(&dummyDLight, pCSMEntList, numCSMEnts))
+		result = false;
+
+	rns.view.pviewleaf = pSavedLeaf;
+
+	R_BindFBO(nullptr);
+	rns.view.projection.PopMatrix();
+
+	glViewport(0, 0, rns.screenwidth, rns.screenheight);
+
+	return result;
 }
 
 //====================================

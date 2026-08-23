@@ -13,6 +13,9 @@ uniform mat4 light_1_matrix;
 uniform mat4 light_2_matrix;
 uniform mat4 light_3_matrix;
 uniform highp int d_numlights;
+uniform highp int d_csm;
+
+uniform mat4 csm_matrix;
 
 uniform float texscale;
 
@@ -34,6 +37,7 @@ out vec4 ps_light_0_vertexcoord;
 out vec4 ps_light_1_vertexcoord;
 out vec4 ps_light_2_vertexcoord;
 out vec4 ps_light_3_vertexcoord;
+out vec4 ps_csm_vertexcoord;
 
 $branch flowmap == 1
 $begin
@@ -84,6 +88,8 @@ void main()
 		ps_light_2_vertexcoord = light_2_matrix * in_position;
 	if (d_numlights >= 4)
 		ps_light_3_vertexcoord = light_3_matrix * in_position;
+	if (d_csm == 1)
+		ps_csm_vertexcoord = csm_matrix * in_position;
 
 	gl_Position = eye_position;
 }
@@ -114,6 +120,7 @@ uniform highp int d_light0_shadowmap;
 uniform highp int d_light1_shadowmap;
 uniform highp int d_light2_shadowmap;
 uniform highp int d_light3_shadowmap;
+uniform highp int d_csm;
 
 uniform vec3 light_0_origin;
 uniform float light_0_radius;
@@ -151,6 +158,12 @@ uniform vec3 light_3_spotdirection;
 uniform samplerCube light_3_cubemap;
 uniform sampler2D light_3_shadowmap;
 
+uniform sampler2D csm_shadowmap;
+uniform vec3 csm_light_origin;
+uniform float csm_light_radius;
+uniform vec4 csm_light_color;
+uniform vec3 csm_direction;
+
 uniform mat4 normalmatrix;
 
 uniform vec3 fogcolor;
@@ -176,6 +189,7 @@ in vec4 ps_light_0_vertexcoord;
 in vec4 ps_light_1_vertexcoord;
 in vec4 ps_light_2_vertexcoord;
 in vec4 ps_light_3_vertexcoord;
+in vec4 ps_csm_vertexcoord;
 
 $branch flowmap == 1
 $begin
@@ -669,6 +683,44 @@ void main()
 	vec3 albedo_val = vec3(1.0);
 
 	vec3 eyeNormal = normalize((normalmatrix * vec4(norm_combine, 0.0)).xyz);
+	
+	if (d_csm == 1)
+	{
+		vec3 csmSpec = vec3(0.0);
+		vec3 eyeLightDir = normalize(csm_direction);
+		float dp = max(dot(-eyeLightDir, eyeNormal), 0.0);
+
+		if (dp > 0.0)
+		{
+			vec3 eyeVec = normalize(-ps_eyecoords);
+			vec3 halfVec = normalize(-eyeLightDir + eyeVec);
+			vec3 F0 = mix(vec3(0.04), albedo_val, mrao_val.x);
+			vec3 F = FresnelSchlick(clamp(dot(halfVec, eyeVec), 0.0, 1.0), F0);
+			vec3 kD = ((vec3(1.0) - F) * (1.0 - mrao_val.x)) / M_PI;
+
+			vec3 csmDiff = kD * csm_light_color.xyz * dp;
+			$branch mrao == 1
+			$begin
+				csmSpec = CookTorranceSpecular(ps_eyecoords, eyeNormal, eyeLightDir, mrao_val.y, F0) * dp * csm_light_color.xyz;
+			$end
+
+			float shadowFactor = 1.0;
+			if (ps_csm_vertexcoord.w > 0.0)
+			{
+				vec2 csmUV = ps_csm_vertexcoord.xy / ps_csm_vertexcoord.w;
+				if (csmUV.x >= 0.0 && csmUV.x <= 1.0 && csmUV.y >= 0.0 && csmUV.y <= 1.0)
+				{
+					shadowFactor = GetProjLightShadowing(csm_light_radius, csm_light_origin, ps_eyecoords, ps_csm_vertexcoord, eyeNormal, csm_shadowmap);
+				}
+			}
+
+			csmDiff *= shadowFactor;
+			csmSpec *= shadowFactor;
+
+			dlightDiffuse = AddDiffuseDynamicLight(dlightDiffuse, csmDiff);
+			specularColor = AddSpecularLight(specularColor, csmSpec);
+		}
+	}
 
 	if(d_numlights >= 1)
 	{

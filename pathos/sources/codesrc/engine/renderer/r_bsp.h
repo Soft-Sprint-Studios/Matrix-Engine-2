@@ -156,6 +156,7 @@ struct bsp_shader_attribs
 	Int32 u_d_mrao;
 	Int32 u_d_cubemaps;
 	Int32 u_d_numlights;
+	Int32 u_d_csm;
 	Int32 u_d_lightmap_bicubic;
 
 	// vertex attribs
@@ -225,6 +226,13 @@ struct bsp_shader_attribs
 	Int32 u_causticstex1;
 	Int32 u_causticstex2;
 	Int32 u_causticscolor;
+
+	Int32 u_csm_matrix;
+	Int32 u_csm_shadowmap;
+	Int32 u_csm_light_origin;
+	Int32 u_csm_light_radius;
+	Int32 u_csm_light_color;
+	Int32 u_csm_direction;
 
 	light_attribs_t lights[MAX_DLIGHTS];
 };
@@ -454,7 +462,7 @@ public:
 	// Draws non-transparent decals
 	bool DrawNormalDecals( void );
 	// Draws objects for VSM renderpass
-	bool DrawVSM( cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 numentities, bool drawworld );
+	bool DrawVSM( cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 numentities, bool drawworld, bool iscsm = false );
 	// Draws skybox elements
 	bool DrawSkyBox( bool inZElements );
 
@@ -524,7 +532,7 @@ private:
 	// Renders VSM faces
 	bool DrawVSMFaces( void );
 	// Batches a brushmodel for VSM
-	bool BatchBrushModelForVSM( cl_entity_t& entity, bool isstatic );
+	bool BatchBrushModelForVSM( cl_entity_t& entity, bool isstatic, bool iscsm = false );
 
 private:
 	// Draws a single decal

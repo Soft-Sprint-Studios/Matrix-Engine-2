@@ -245,6 +245,14 @@ struct water_attribs
 	Int32 u_flowspeed;
 	Int32 u_stylestrength;
 	Int32 u_d_numlights;
+	Int32 u_d_csm;
+
+	Int32 u_csm_matrix;
+	Int32 u_csm_shadowmap;
+	Int32 u_csm_light_origin;
+	Int32 u_csm_light_radius;
+	Int32 u_csm_light_color;
+	Int32 u_csm_direction;
 
 	Int32 u_modelview;
 	Int32 u_projection;
