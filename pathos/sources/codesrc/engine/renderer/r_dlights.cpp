@@ -2094,21 +2094,19 @@ bool CDynamicLightManager::DrawCSMPass( void )
 		m_pCSMShadowMap->pfbo->ptexture1 = CTextureManager::GetInstance()->GenTextureIndex(RS_GAME_LEVEL);
 
 		glBindTexture(GL_TEXTURE_2D, m_pCSMShadowMap->pfbo->ptexture1->gl_index);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16, csmSize, csmSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		glGenRenderbuffers(1, &m_pCSMShadowMap->pfbo->rboid1);
-		glBindRenderbuffer(GL_RENDERBUFFER, m_pCSMShadowMap->pfbo->rboid1);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, csmSize, csmSize);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, csmSize, csmSize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		Float borderCol[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderCol);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		glGenFramebuffers(1, &m_pCSMShadowMap->pfbo->fboid);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_pCSMShadowMap->pfbo->fboid);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_pCSMShadowMap->pfbo->ptexture1->gl_index, 0);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_pCSMShadowMap->pfbo->rboid1);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_pCSMShadowMap->pfbo->ptexture1->gl_index, 0);
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
 
 		GLenum eStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if(eStatus != GL_FRAMEBUFFER_COMPLETE)
@@ -2163,8 +2161,7 @@ bool CDynamicLightManager::DrawCSMPass( void )
 	glViewport(0, 0, csmSize, csmSize);
 	R_BindFBO(m_pCSMShadowMap->pfbo);
 
-	glClearColor(GL_ONE, GL_ONE, GL_ONE, GL_ONE);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT);
 
 	Float extents = CSM_EXTENTS;
 	rns.view.projection.PushMatrix();
@@ -2180,7 +2177,7 @@ bool CDynamicLightManager::DrawCSMPass( void )
 	CMatrix texMatrix;
 	texMatrix.LoadIdentity();
 	texMatrix.Translate(0.5f, 0.5f, 0.5f);
-	texMatrix.Scale(0.5f, 0.5f, 1.0f);
+	texMatrix.Scale(0.5f, 0.5f, 0.5f);
 	texMatrix.Ortho(-extents, extents, -extents, extents, 1.0f, radius);
 	texMatrix.LookAt(lightOrigin[0], lightOrigin[1], lightOrigin[2], vtarget[0], vtarget[1], vtarget[2], 0, 0, Common::IsPitchReversed(lightAngles[PITCH]) ? -1 : 1);
 	memcpy(m_csmMatrix, texMatrix.Transpose(), sizeof(Float) * 16);

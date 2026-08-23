@@ -51,7 +51,9 @@ enum vbm_shtype
 	vbm_scope,
 	vbm_texonly_fog,
 	vbm_texonly_holes,
-	vbm_texonly_holes_fog
+	vbm_texonly_holes_fog,
+	vbm_csm,
+	vbm_csmalpha
 };
 
 struct vbm_decal_mesh_t
@@ -316,6 +318,7 @@ struct vbm_attribs
 		u_d_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_bumpmapping(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numdlights(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_d_csm(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cubemap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_min(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_cube_max(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -327,7 +330,11 @@ struct vbm_attribs
 		u_modelmatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_inv_modelmatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_interpolant(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_d_cubemaps(CGLSLShader::PROPERTY_UNAVAILABLE)
+		u_d_cubemaps(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_matrix(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_shadowmap(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_light_color(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_direction(CGLSLShader::PROPERTY_UNAVAILABLE)
 	{
 		for (Uint32 i = 0; i < MAX_SHADER_BONES; i++)
 			boneindexes[i] = 0;
@@ -429,8 +436,6 @@ struct vbm_attribs
 
 	Int32 u_csm_matrix;
 	Int32 u_csm_shadowmap;
-	Int32 u_csm_light_origin;
-	Int32 u_csm_light_radius;
 	Int32 u_csm_light_color;
 	Int32 u_csm_direction;
 
@@ -549,7 +554,7 @@ public:
 	// Ends VSM rendering
 	void EndVSM( void );
 	// Draws model for VSM rendering
-	bool DrawModelVSM( cl_entity_t *pEntity, cl_dlight_t *dl );
+	bool DrawModelVSM( cl_entity_t *pEntity, cl_dlight_t *dl, bool iscsm = false );
 
 public:
 	// Draws decals for an entity

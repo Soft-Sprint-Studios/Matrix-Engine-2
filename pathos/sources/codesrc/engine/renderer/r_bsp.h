@@ -42,7 +42,9 @@ enum bsp_shaders_t
 	shader_main_detail,
 	shader_decal_holes,
 	shader_decal,
-	shader_texunit0_x4
+	shader_texunit0_x4,
+	shader_csm_store,
+	shader_csm_alpha
 };
 
 enum bsp_fog_settings_t
@@ -90,6 +92,7 @@ struct bsp_shader_attribs
 		u_d_mrao(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_cubemaps(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_d_csm(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_lightmap_bicubic(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_position(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_tangent(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -136,7 +139,11 @@ struct bsp_shader_attribs
 		u_fogparams(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_causticstex1(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_causticstex2(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_causticscolor(CGLSLShader::PROPERTY_UNAVAILABLE)
+		u_causticscolor(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_matrix(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_shadowmap(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_light_color(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_direction(CGLSLShader::PROPERTY_UNAVAILABLE)
 	{
 		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
 		{
@@ -229,8 +236,6 @@ struct bsp_shader_attribs
 
 	Int32 u_csm_matrix;
 	Int32 u_csm_shadowmap;
-	Int32 u_csm_light_origin;
-	Int32 u_csm_light_radius;
 	Int32 u_csm_light_color;
 	Int32 u_csm_direction;
 
@@ -530,7 +535,7 @@ private:
 	// Prepares for VSM rendering
 	void PrepareVSM( void );
 	// Renders VSM faces
-	bool DrawVSMFaces( void );
+	bool DrawVSMFaces( bool iscsm = false );
 	// Batches a brushmodel for VSM
 	bool BatchBrushModelForVSM( cl_entity_t& entity, bool isstatic, bool iscsm = false );
 

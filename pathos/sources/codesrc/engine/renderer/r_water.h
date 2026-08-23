@@ -194,6 +194,11 @@ struct water_attribs
 		u_projection(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_flowspeed(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_d_numlights(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_d_csm(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_matrix(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_shadowmap(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_light_color(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csm_direction(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_side(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_fog(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_rectrefract(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -249,8 +254,6 @@ struct water_attribs
 
 	Int32 u_csm_matrix;
 	Int32 u_csm_shadowmap;
-	Int32 u_csm_light_origin;
-	Int32 u_csm_light_radius;
 	Int32 u_csm_light_color;
 	Int32 u_csm_direction;
 

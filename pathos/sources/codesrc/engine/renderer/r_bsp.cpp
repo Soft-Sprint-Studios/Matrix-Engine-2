@@ -179,6 +179,7 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_d_bumpmapping, "d_bumpmapping", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_mrao, "d_mrao", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_numlights, "d_numlights", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_d_csm, "d_csm", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_lightmap_bicubic, "d_lightmap_bicubic", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_cubemaps, "d_cubemaps", m_pShader, Sys_ErrorPopup))
 			return false;
@@ -297,8 +298,6 @@ bool CBSPRenderer::InitGL( void )
 
 		m_attribs.u_csm_matrix = m_pShader->InitUniform("csm_matrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_csm_shadowmap = m_pShader->InitUniform("csm_shadowmap", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_csm_light_origin = m_pShader->InitUniform("csm_light_origin", CGLSLShader::UNIFORM_FLOAT3);
-		m_attribs.u_csm_light_radius = m_pShader->InitUniform("csm_light_radius", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_csm_light_color = m_pShader->InitUniform("csm_light_color", CGLSLShader::UNIFORM_FLOAT4);
 		m_attribs.u_csm_direction = m_pShader->InitUniform("csm_direction", CGLSLShader::UNIFORM_FLOAT3);
 
@@ -331,7 +330,11 @@ bool CBSPRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_fogparams, "fogparams", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_causticstex1, "causticstex1", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_causticstex2, "causticstex2", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_causticscolor, "causticscolor", m_pShader, Sys_ErrorPopup))
+			|| !R_CheckShaderUniform(m_attribs.u_causticscolor, "causticscolor", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_matrix, "csm_matrix", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_shadowmap, "csm_shadowmap", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_light_color, "csm_light_color", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_direction, "csm_direction", m_pShader, Sys_ErrorPopup))
 			return false;
 
 		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
@@ -2127,15 +2130,11 @@ bool CBSPRenderer::Draw( void )
 		m_pShader->SetUniform1i(m_attribs.u_d_csm, 1);
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_csm_matrix, gDynamicLights.GetCSMMatrix());
 
-		Vector lightOrigin = gDynamicLights.GetCSMLightOrigin();
 		Vector sunDir = gDynamicLights.GetCSMSunDir();
-		Vector eyeLightOrigin, eyeSunDir;
-		Math::MatMultPosition(rns.view.modelview.Transpose(), lightOrigin, &eyeLightOrigin);
+		Vector eyeSunDir;
 		Math::MatMult(rns.view.modelview.Transpose(), sunDir, &eyeSunDir);
 
-		m_pShader->SetUniform3f(m_attribs.u_csm_light_origin, eyeLightOrigin.x, eyeLightOrigin.y, eyeLightOrigin.z);
 		m_pShader->SetUniform3f(m_attribs.u_csm_direction, eyeSunDir.x, eyeSunDir.y, eyeSunDir.z);
-		m_pShader->SetUniform1f(m_attribs.u_csm_light_radius, 8000.0f);
 
 		Vector skyCol = cls.skycolor * (1.0f / 255.0f);
 		m_pShader->SetUniform4f(m_attribs.u_csm_light_color, skyCol.x, skyCol.y, skyCol.z, 1.0f);
@@ -3093,7 +3092,7 @@ void CBSPRenderer::PrepareVSM( void )
 // @brief
 //
 //=============================================
-bool CBSPRenderer::DrawVSMFaces( void )
+bool CBSPRenderer::DrawVSMFaces( bool iscsm )
 {
 	// Render normal ones first
 	for(Uint32 i = 0; i < m_texturesArray.size(); i++)
@@ -3129,7 +3128,7 @@ bool CBSPRenderer::DrawVSMFaces( void )
 			}
 
 			m_pShader->EnableAttribute(m_attribs.a_texcoord);
-			if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, shader_vsm_alpha))
+			if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, iscsm ? shader_csm_alpha : shader_vsm_alpha))
 				return false;
 
 			R_ValidateShader(m_pShader);
@@ -3144,7 +3143,7 @@ bool CBSPRenderer::DrawVSMFaces( void )
 		}
 		else
 		{
-			if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, shader_vsm_store))
+			if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, iscsm ? shader_csm_store : shader_vsm_store))
 				return false;
 
 			R_ValidateShader(m_pShader);
@@ -3264,7 +3263,7 @@ bool CBSPRenderer::DrawVSM( cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 nume
 
 	// Render all statics to vsm
 	if(result)
-		result = DrawVSMFaces();
+		result = DrawVSMFaces(iscsm);
 
 	if(g_pCvarDrawEntities->GetValue() >= 1 && result)
 	{
@@ -3429,7 +3428,7 @@ bool CBSPRenderer::BatchBrushModelForVSM( cl_entity_t& entity, bool isstatic, bo
 
 	if(!isstatic)
 	{
-		if(!DrawVSMFaces())
+		if(!DrawVSMFaces(iscsm))
 			return false;
 	}
 

@@ -209,8 +209,6 @@ bool CWaterShader::InitGL( void )
 		m_attribs.u_d_csm = m_pShader->InitUniform("d_csm", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_csm_matrix = m_pShader->InitUniform("csm_matrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_csm_shadowmap = m_pShader->InitUniform("csm_shadowmap", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_csm_light_origin = m_pShader->InitUniform("csm_light_origin", CGLSLShader::UNIFORM_FLOAT3);
-		m_attribs.u_csm_light_radius = m_pShader->InitUniform("csm_light_radius", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_csm_light_color = m_pShader->InitUniform("csm_light_color", CGLSLShader::UNIFORM_FLOAT4);
 		m_attribs.u_csm_direction = m_pShader->InitUniform("csm_direction", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_modelview = m_pShader->InitUniform("modelview", CGLSLShader::UNIFORM_MATRIX4);
@@ -241,6 +239,11 @@ bool CWaterShader::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_rectscale, "rectscale", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_lightstrength, "lightstrength", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_numlights, "d_numlights", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_d_csm, "d_csm", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_matrix, "csm_matrix", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_shadowmap, "csm_shadowmap", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_light_color, "csm_light_color", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_direction, "csm_direction", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_wavefresnelstrength, "wavefresnelstrength", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_flowspeed, "flowSpeed", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_normalmatrix, "normalmatrix", m_pShader, Sys_ErrorPopup)
@@ -1865,15 +1868,11 @@ bool CWaterShader::DrawWater( bool skybox )
 		m_pShader->SetUniform1i(m_attribs.u_d_csm, 1);
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_csm_matrix, gDynamicLights.GetCSMMatrix());
 
-		Vector lightOrigin = gDynamicLights.GetCSMLightOrigin();
 		Vector sunDir = gDynamicLights.GetCSMSunDir();
-		Vector eyeLightOrigin, eyeSunDir;
-		Math::MatMultPosition(rns.view.modelview.Transpose(), lightOrigin, &eyeLightOrigin);
+		Vector eyeSunDir;
 		Math::MatMult(rns.view.modelview.Transpose(), sunDir, &eyeSunDir);
 
-		m_pShader->SetUniform3f(m_attribs.u_csm_light_origin, eyeLightOrigin.x, eyeLightOrigin.y, eyeLightOrigin.z);
 		m_pShader->SetUniform3f(m_attribs.u_csm_direction, eyeSunDir.x, eyeSunDir.y, eyeSunDir.z);
-		m_pShader->SetUniform1f(m_attribs.u_csm_light_radius, 8000.0f);
 
 		Vector skyCol = cls.skycolor * (1.0f / 255.0f);
 		m_pShader->SetUniform4f(m_attribs.u_csm_light_color, skyCol.x, skyCol.y, skyCol.z, 1.0f);

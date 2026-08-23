@@ -421,8 +421,6 @@ bool CVBMRenderer::InitGL( void )
 
 		m_attribs.u_csm_matrix = m_pShader->InitUniform("csm_matrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_csm_shadowmap = m_pShader->InitUniform("csm_shadowmap", CGLSLShader::UNIFORM_SAMPLER2D);
-		m_attribs.u_csm_light_origin = m_pShader->InitUniform("csm_light_origin", CGLSLShader::UNIFORM_FLOAT3);
-		m_attribs.u_csm_light_radius = m_pShader->InitUniform("csm_light_radius", CGLSLShader::UNIFORM_FLOAT1);
 		m_attribs.u_csm_light_color = m_pShader->InitUniform("csm_light_color", CGLSLShader::UNIFORM_FLOAT4);
 		m_attribs.u_csm_direction = m_pShader->InitUniform("csm_direction", CGLSLShader::UNIFORM_FLOAT3);
 
@@ -430,6 +428,12 @@ bool CVBMRenderer::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_d_chrome, "chrome", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_mrao, "mrao", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_d_bumpmapping, "bumpmapping", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_d_numdlights, "d_numdlights", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_d_csm, "d_csm", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_matrix, "csm_matrix", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_shadowmap, "csm_shadowmap", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_light_color, "csm_light_color", m_pShader, Sys_ErrorPopup)
+			|| !R_CheckShaderUniform(m_attribs.u_csm_direction, "csm_direction", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cubemap, "cubemap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cubemap_prev, "cubemap_prev", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_cube_min, "u_cube_min", m_pShader, Sys_ErrorPopup)
@@ -3256,15 +3260,11 @@ bool CVBMRenderer::SetupRenderer( void )
 		m_pShader->SetUniform1i(m_attribs.u_d_csm, 1);
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_csm_matrix, gDynamicLights.GetCSMMatrix());
 
-		Vector lightOrigin = gDynamicLights.GetCSMLightOrigin();
 		Vector sunDir = gDynamicLights.GetCSMSunDir();
-		Vector eyeLightOrigin, eyeSunDir;
-		Math::MatMultPosition(rns.view.modelview.Transpose(), lightOrigin, &eyeLightOrigin);
+		Vector eyeSunDir;
 		Math::MatMult(rns.view.modelview.Transpose(), sunDir, &eyeSunDir);
 
-		m_pShader->SetUniform3f(m_attribs.u_csm_light_origin, eyeLightOrigin.x, eyeLightOrigin.y, eyeLightOrigin.z);
 		m_pShader->SetUniform3f(m_attribs.u_csm_direction, eyeSunDir.x, eyeSunDir.y, eyeSunDir.z);
-		m_pShader->SetUniform1f(m_attribs.u_csm_light_radius, 8000.0f);
 
 		Vector skyCol = cls.skycolor * (1.0f / 255.0f);
 		m_pShader->SetUniform4f(m_attribs.u_csm_light_color, skyCol.x, skyCol.y, skyCol.z, 1.0f);
@@ -5938,7 +5938,7 @@ bool CVBMRenderer::DrawVSM( cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 nume
 				continue;
 		}
 
-		if(!DrawModelVSM(pvisents[i], dl))
+		if(!DrawModelVSM(pvisents[i], dl, (dl && dl->isDontCull())))
 		{
 			Sys_ErrorPopup("Rendering error: %s.", m_pShader->GetError());
 			EndVSM();
@@ -5954,7 +5954,7 @@ bool CVBMRenderer::DrawVSM( cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 nume
 //
 //
 //=============================================
-bool CVBMRenderer::DrawModelVSM( cl_entity_t *pEntity, cl_dlight_t *dl )
+bool CVBMRenderer::DrawModelVSM( cl_entity_t *pEntity, cl_dlight_t *dl, bool iscsm )
 {
 	if(R_IsEntityTransparent(*pEntity, true) && pEntity->curstate.renderamt == 0)
 		return true;
@@ -6015,15 +6015,18 @@ bool CVBMRenderer::DrawModelVSM( cl_entity_t *pEntity, cl_dlight_t *dl )
 			if(pmaterial->flags & TX_FL_ADDITIVE)
 				continue;
 
+			Int32 alphaShader = iscsm ? vbm_csmalpha : vbm_vsmalpha;
+			Int32 solidShader = iscsm ? vbm_csm : vbm_vsm;
+
 			if(pmaterial->flags & TX_FL_ALPHATEST)
 			{
 				m_pShader->EnableAttribute(m_attribs.a_texcoord1);
-				if(lastBoundShader != vbm_vsmalpha)
+				if(lastBoundShader != alphaShader)
 				{
-					if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, vbm_vsmalpha))
+					if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, alphaShader))
 						return false;
 
-					lastBoundShader = vbm_vsmalpha;
+					lastBoundShader = alphaShader;
 				}
 
 				m_pShader->SetUniform1i(m_attribs.u_texture0, 0);
@@ -6031,12 +6034,12 @@ bool CVBMRenderer::DrawModelVSM( cl_entity_t *pEntity, cl_dlight_t *dl )
 			}
 			else
 			{
-				if(lastBoundShader != vbm_vsm)
+				if(lastBoundShader != solidShader)
 				{
-					if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, vbm_vsm))
+					if(!m_pShader->SetDeterminator(m_attribs.d_shadertype, solidShader))
 						return false;
 
-					lastBoundShader = vbm_vsm;
+					lastBoundShader = solidShader;
 				}
 
 				m_pShader->DisableAttribute(m_attribs.a_texcoord1);

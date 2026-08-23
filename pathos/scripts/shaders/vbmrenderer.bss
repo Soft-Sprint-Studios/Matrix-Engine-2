@@ -1,4 +1,4 @@
-$global_determinator shadertype 0 9
+$global_determinator shadertype 0 11
 $global_determinator flex 0 1
 $global_determinator vertexlight 0 1
 $shader_vertex
@@ -360,8 +360,6 @@ uniform samplerCube dlight_3_cubemap;
 uniform sampler2D dlight_3_shadowmap;
 
 uniform sampler2D csm_shadowmap;
-uniform vec3 csm_light_origin;
-uniform float csm_light_radius;
 uniform vec4 csm_light_color;
 uniform vec3 csm_direction;
 
@@ -602,6 +600,24 @@ float GetProjLightShadowing( float l_radius, vec3 l_origin, vec3 v_origin, vec4 
 	float fldistance = clamp((length(l_origin-v_origin)/l_radius), 0.0, 1.0);
 	float flresult = DepthTestProj(fldistance, l_shadowmap, texclamp);
 	return ReduceLightBleeding(flresult, 0.4);
+}
+
+float GetCSMShadowPCF( float currentDepth, vec2 csmUV, vec3 v_normal, sampler2D l_shadowmap )
+{
+	float cosTheta = clamp(dot(v_normal, -normalize(csm_direction)), 0.0, 1.0);
+	float bias = clamp(0.0005 * tan(acos(cosTheta)), 0.0001, 0.001);
+
+	vec2 texelSize = 1.0 / vec2(textureSize(l_shadowmap, 0));
+	float shadow = 0.0;
+	for (int x = -1; x <= 1; ++x)
+	{
+		for (int y = -1; y <= 1; ++y)
+		{
+			float mapDepth = texture(l_shadowmap, csmUV + vec2(float(x), float(y)) * texelSize).r;
+			shadow += (currentDepth - bias > mapDepth) ? 0.0 : 1.0;
+		}
+	}
+	return shadow / 9.0;
 }
 
 vec4 AddModelLight( vec3 l_origin, vec3 l_color, float l_radius, vec3 v_origin, vec3 v_normal, vec3 mrao, vec3 albedo, out vec3 specOut )
@@ -1045,7 +1061,7 @@ void main()
 					vec2 csmUV = ps_csm_vertexcoord.xy / ps_csm_vertexcoord.w;
 					if (csmUV.x >= 0.0 && csmUV.x <= 1.0 && csmUV.y >= 0.0 && csmUV.y <= 1.0)
 					{
-						shadowFactor = GetProjLightShadowing(csm_light_radius, csm_light_origin, ps_vertexpos, ps_csm_vertexcoord, csm_shadowmap);
+						shadowFactor = GetCSMShadowPCF(ps_csm_vertexcoord.z, csmUV, v_normal, csm_shadowmap);
 					}
 				}
 
@@ -1187,6 +1203,18 @@ void main()
 	$begin
 		float fogfactor = CalcFogFactor( ps_vertexpos.xyz, fogparams );
 		finalColor.xyz = mix(finalColor.xyz, fogcolor, fogfactor);
+	$end
+    
+    // CSM store, without and with alpha
+	$branch shadertype == 10 || shadertype == 11
+	$begin
+		finalColor = vec4(1.0);
+
+		$branch shadertype == 11
+		$begin
+			if(texture(texture0, ps_texcoord1).w < 0.5)
+				discard;
+		$end
 	$end
 
 	$branch alphatest == 1
