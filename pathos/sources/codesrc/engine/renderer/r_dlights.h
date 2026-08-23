@@ -81,8 +81,6 @@ public:
 	static const Uint32 SHADOWMAP_MIN_SIZE;
 	// Time until an unused shadowmap is freed
 	static const Float SHADOWMAP_RELEASE_DELAY;
-	// Default directional shadowmap distance / extents
-	static const Float CSM_EXTENTS;
 
 public:
 	struct vsm_shader_attribs
@@ -269,6 +267,8 @@ private:
 	CCVar* m_pCvarCSM;
 	// Controls directional sunlight shadowmap resolution
 	CCVar* m_pCvarCSMRes;
+	// Controls directional sunlight shadowmap coverage size
+	CCVar* m_pCvarCSMSize;
 };
 extern CDynamicLightManager gDynamicLights;
 

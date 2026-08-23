@@ -158,7 +158,7 @@ uniform vec3 light_3_spotdirection;
 uniform samplerCube light_3_cubemap;
 uniform sampler2D light_3_shadowmap;
 
-uniform sampler2D csm_shadowmap;
+uniform sampler2DShadow csm_shadowmap;
 uniform vec4 csm_light_color;
 uniform vec3 csm_direction;
 
@@ -476,7 +476,7 @@ float GetProjLightShadowing( float l_radius, vec3 l_origin, vec3 v_origin, vec4 
 	return ReduceLightBleeding(flresult, 0.4);
 }
 
-float GetCSMShadowPCF( float currentDepth, vec2 csmUV, vec3 v_normal, sampler2D l_shadowmap )
+float GetCSMShadowPCF( float currentDepth, vec2 csmUV, vec3 v_normal, sampler2DShadow l_shadowmap )
 {
 	float cosTheta = clamp(dot(v_normal, -normalize(csm_direction)), 0.0, 1.0);
 	float bias = clamp(0.0005 * tan(acos(cosTheta)), 0.0001, 0.001);
@@ -487,8 +487,7 @@ float GetCSMShadowPCF( float currentDepth, vec2 csmUV, vec3 v_normal, sampler2D 
 	{
 		for (int y = -1; y <= 1; ++y)
 		{
-			float mapDepth = texture(l_shadowmap, csmUV + vec2(float(x), float(y)) * texelSize).r;
-			shadow += (currentDepth - bias > mapDepth) ? 0.0 : 1.0;
+			shadow += texture(l_shadowmap, vec3(csmUV + vec2(float(x), float(y)) * texelSize, currentDepth - bias));
 		}
 	}
 	return shadow / 9.0;

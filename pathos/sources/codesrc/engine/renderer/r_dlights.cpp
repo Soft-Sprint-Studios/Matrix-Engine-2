@@ -37,8 +37,6 @@ All Rights Reserved.
 const Uint32 CDynamicLightManager::SHADOWMAP_MIN_SIZE = 128;
 // Time until an unused shadowmap is freed
 const Float CDynamicLightManager::SHADOWMAP_RELEASE_DELAY = 15;
-// Directional shadowmap bounding extents
-const Float CDynamicLightManager::CSM_EXTENTS = 1024.0f;
 
 // Class object
 CDynamicLightManager gDynamicLights;
@@ -55,6 +53,7 @@ CDynamicLightManager::CDynamicLightManager( void ):
 	m_csmResolution(0),
 	m_pCvarCSM(nullptr),
 	m_pCvarCSMRes(nullptr),
+	m_pCvarCSMSize(nullptr),
 	m_pCvarShadowmapSize(nullptr),
 	m_pCvarCubeShadowmapSize(nullptr),
 	m_pCvarShadowmapBlit(nullptr)
@@ -78,8 +77,9 @@ bool CDynamicLightManager::Init( void )
 	m_pCvarShadowmapSize = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_shadowmap_proj_size", "512", "Controls resolution of projected light shadows.", R_CheckShadowmapSizeCvarCallBack );
 	m_pCvarCubeShadowmapSize = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_shadowmap_cube_size", "256", "Controls resolution of point light shadows.", R_CheckShadowmapSizeCvarCallBack );
 	m_pCvarShadowmapBlit = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_shadowmap_blitting", "1", "Enable or disable shadowmap blitting." );
-	m_pCvarCSM = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_csm", "0", "Enable directional sunlight shadowmap." );
+	m_pCvarCSM = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_csm", "1", "Enable directional sunlight shadowmap." );
 	m_pCvarCSMRes = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_csm_res", "4096", "Resolution of directional sunlight shadowmap.", R_CheckShadowmapSizeCvarCallBack );
+	m_pCvarCSMSize = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_csm_size", "2048", "Orthographic coverage size for directional sunlight shadowmap." );
 
 	return true;
 }
@@ -2099,8 +2099,10 @@ bool CDynamicLightManager::DrawCSMPass( void )
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderCol);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 		glGenFramebuffers(1, &m_pCSMShadowMap->pfbo->fboid);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_pCSMShadowMap->pfbo->fboid);
@@ -2132,7 +2134,8 @@ bool CDynamicLightManager::DrawCSMPass( void )
 	Vector lightRight, lightUp;
 	Math::GetUpRight(lightRayDir, lightRight, lightUp);
 
-	Float worldUnitsPerTexel = (2.0f * CSM_EXTENTS) / static_cast<Float>(csmSize);
+	Float extents = (m_pCvarCSMSize && m_pCvarCSMSize->GetValue() > 0.0f) ? m_pCvarCSMSize->GetValue() : 2048.0f;
+	Float worldUnitsPerTexel = (2.0f * extents) / static_cast<Float>(csmSize);
 	Float lightX = Math::DotProduct(centerPos, lightRight);
 	Float lightY = Math::DotProduct(centerPos, lightUp);
 
@@ -2163,7 +2166,6 @@ bool CDynamicLightManager::DrawCSMPass( void )
 
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	Float extents = CSM_EXTENTS;
 	rns.view.projection.PushMatrix();
 	rns.view.projection.LoadIdentity();
 	rns.view.projection.Ortho(-extents, extents, -extents, extents, 1.0f, radius);
