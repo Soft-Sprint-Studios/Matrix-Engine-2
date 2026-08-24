@@ -1,0 +1,8 @@
+$texture
+{
+	$int_width 64
+	$int_height 64
+	$material concrete
+	$alphatest
+	$texture diffuse {3dm_struikje03
+}

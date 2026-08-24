@@ -2677,14 +2677,6 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 		}
 	}
 
-	if (pmaterial && pmaterial->ptextures[MT_TX_DIFFUSE])
-	{
-		Con_DPrintf("Binding material script: %s with texture: %s (GL ID: %u)\n",
-			pmaterial->filepath.c_str(),
-			pmaterial->ptextures[MT_TX_DIFFUSE]->filepath.c_str(),
-			pmaterial->ptextures[MT_TX_DIFFUSE]->palloc ? pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index : 0);
-	}
-
 	// Bind the main texture
 	textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_maintexture);
 	R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
