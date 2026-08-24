@@ -2436,6 +2436,7 @@
 [
 	pitch(integer) : "Pitch" : 0
 	_light(color255) : "Brightness" : "255 255 128 200"
+	volumetric_intensity(string) : "Volumetric Intensity" : "0"
 	daylightreturn(Choices) : "Daylight return only" : 0 =
 	[
 		0 : "No"

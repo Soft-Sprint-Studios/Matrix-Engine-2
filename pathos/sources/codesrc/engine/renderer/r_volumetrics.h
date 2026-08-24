@@ -71,6 +71,11 @@ struct vol_shader_attribs_t
 		u_volTexture(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_numLights(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_samples(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_hasSunLight(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_sunColorIntensity(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_sunDir(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csmMatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
+		u_csmShadowMap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_pass(CGLSLShader::PROPERTY_UNAVAILABLE)
 	{
 		for (Uint32 i = 0; i < MAX_VOLUMETRIC_LIGHTS; ++i)
@@ -95,6 +100,12 @@ struct vol_shader_attribs_t
 	Int32 u_volTexture;
 	Int32 u_numLights;
 	Int32 u_samples;
+
+	Int32 u_hasSunLight;
+	Int32 u_sunColorIntensity;
+	Int32 u_sunDir;
+	Int32 u_csmMatrix;
+	Int32 u_csmShadowMap;
 
 	Int32 u_spotProjTex[MAX_VOLUMETRIC_LIGHTS];
 	Int32 u_spotShadowMap[MAX_VOLUMETRIC_LIGHTS];

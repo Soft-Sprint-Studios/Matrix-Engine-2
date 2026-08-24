@@ -24,6 +24,7 @@ LINK_ENTITY_TO_CLASS(light_environment, CLightEnvironment);
 CLightEnvironment::CLightEnvironment( edict_t* pedict ):
 	CPointEntity(pedict),
 	m_sunlightIntensity(0),
+	m_sunlightVolIntensity(0),
 	m_lightEnvMode(MODE_NORMAL)
 {
 }
@@ -48,6 +49,7 @@ void CLightEnvironment::DeclareSaveFields(void)
 	DeclareSaveField(DEFINE_DATA_FIELD(CLightEnvironment, m_sunlightDirection, EFIELD_VECTOR));
 	DeclareSaveField(DEFINE_DATA_FIELD(CLightEnvironment, m_sunlightColor, EFIELD_VECTOR));
 	DeclareSaveField(DEFINE_DATA_FIELD(CLightEnvironment, m_sunlightIntensity, EFIELD_INT32));
+	DeclareSaveField(DEFINE_DATA_FIELD(CLightEnvironment, m_sunlightVolIntensity, EFIELD_FLOAT));
 	DeclareSaveField(DEFINE_DATA_FIELD(CLightEnvironment, m_lightEnvMode, EFIELD_INT32));
 }
 
@@ -83,6 +85,11 @@ bool CLightEnvironment::KeyValue( const keyvalue_t& kv )
 			m_sunlightColor.z = CLAMP(colorb, 0, 255);
 			m_sunlightIntensity = CLAMP(intensity, 0, 255);
 		}
+		return true;
+	}
+	else if(!qstrcmp(kv.keyname, "volumetric_intensity"))
+	{
+		m_sunlightVolIntensity = SDL_atof(kv.value);
 		return true;
 	}
 	else if (!qstrcmp(kv.keyname, "nightmode"))
@@ -209,6 +216,8 @@ bool CLightEnvironment::SetLightEnvValues( daystage_t daystage )
 	gd_engfuncs.pfnSetCVarFloat("sv_skyvec_x", forward.x);
 	gd_engfuncs.pfnSetCVarFloat("sv_skyvec_y", forward.y);
 	gd_engfuncs.pfnSetCVarFloat("sv_skyvec_z", forward.z);
+
+	gd_engfuncs.pfnSetCVarFloat("sv_skyvolumetric", m_sunlightVolIntensity);
 
 	return true;
 }

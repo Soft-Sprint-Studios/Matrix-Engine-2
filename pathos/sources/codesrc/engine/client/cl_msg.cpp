@@ -312,6 +312,7 @@ bool CL_ParseLightEnvInfo(void)
 	cls.skycolor.x = reader.ReadFloat();
 	cls.skycolor.y = reader.ReadFloat();
 	cls.skycolor.z = reader.ReadFloat();
+	cls.skyvolumetric = reader.ReadFloat();
 
 	if (reader.HasError())
 	{

@@ -906,6 +906,12 @@ bool CSaveRestore::CreateSaveFile( const Char* baseName, savefile_type_t type, c
 			return false;
 		}
 
+		if(!AddSavedCVar(g_psv_skyvolumetric))
+		{
+			Con_EPrintf("%s - Error while trying to save cvar '%s'.\n", __FUNCTION__, g_psv_skyvolumetric->GetName());
+			return false;
+		}
+
 		// Add skyname cvar
 		if(!AddSavedCVar(g_psv_skyname))
 		{

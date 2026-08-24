@@ -66,6 +66,7 @@ CCVar* g_psv_skycolor_b = nullptr;
 CCVar* g_psv_skyvec_x = nullptr;
 CCVar* g_psv_skyvec_y = nullptr;
 CCVar* g_psv_skyvec_z = nullptr;
+CCVar* g_psv_skyvolumetric = nullptr;
 CCVar* g_psv_maxplayers = nullptr;
 CCVar* g_psv_maxspeed = nullptr;
 CCVar* g_psv_accelerate = nullptr;
@@ -267,6 +268,7 @@ bool SV_Init( void )
 	g_psv_skyvec_x = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_SV_ONLY, "sv_skyvec_x", "0", "Sky vector X component");
 	g_psv_skyvec_y = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_SV_ONLY, "sv_skyvec_y", "0", "Sky vector Y component");
 	g_psv_skyvec_z = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_SV_ONLY, "sv_skyvec_z", "0", "Sky vector Z component");
+	g_psv_skyvolumetric = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_SV_ONLY, "sv_skyvolumetric", "0", "Sunlight volumetric intensity");
 	g_psv_maxplayers = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_SV_ONLY|FL_CV_NOTIFY), "sv_maxplayers", "1", "Max players", SV_MaxPlayersCvarCallBack);
 	g_psv_maxspeed = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_SV_ONLY|FL_CV_NOTIFY), "sv_maxspeed", "320", "Max player speed");
 	g_psv_accelerate = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_SV_ONLY|FL_CV_NOTIFY), "sv_accelerate", "10", "Acceleration speed");

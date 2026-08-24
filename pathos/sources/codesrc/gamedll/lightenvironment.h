@@ -48,6 +48,8 @@ public:
 	Vector m_sunlightColor;
 	// Sunlight intensity
 	Int32 m_sunlightIntensity;
+	// Sunlight volumetric intensity
+	Float m_sunlightVolIntensity;
 	// Operational mode of light_env
 	Int32 m_lightEnvMode;
 

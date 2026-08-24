@@ -94,6 +94,7 @@ bool SV_SendClientData( sv_client_t* pclient )
 			svs.netinfo.pnet->WriteFloat(g_psv_skycolor_r->GetValue());
 			svs.netinfo.pnet->WriteFloat(g_psv_skycolor_g->GetValue());
 			svs.netinfo.pnet->WriteFloat(g_psv_skycolor_b->GetValue());
+			svs.netinfo.pnet->WriteFloat(g_psv_skyvolumetric->GetValue());
 		svs.netinfo.pnet->SVC_MessageEnd();
 
 		pclient->currentskyvector = skyvector;

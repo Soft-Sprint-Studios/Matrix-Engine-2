@@ -124,5 +124,7 @@ void CGameSetDayStage::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, u
 		gd_engfuncs.pfnSetCVarFloat("sv_skyvec_x", 0);
 		gd_engfuncs.pfnSetCVarFloat("sv_skyvec_y", 0);
 		gd_engfuncs.pfnSetCVarFloat("sv_skyvec_z", 0);
+
+		gd_engfuncs.pfnSetCVarFloat("sv_skyvolumetric", 0);
 	}
 }

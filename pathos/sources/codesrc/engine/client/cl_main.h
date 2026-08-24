@@ -301,6 +301,7 @@ struct clientstate_t
 	// Sky vector and color
 	Vector skyvec;
 	Vector skycolor;
+	Float skyvolumetric;
 
 	// playermove info
 	pm_info_t pminfo;

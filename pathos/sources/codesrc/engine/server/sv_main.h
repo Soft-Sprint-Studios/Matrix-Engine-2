@@ -571,6 +571,7 @@ extern CCVar* g_psv_skycolor_b;
 extern CCVar* g_psv_skyvec_x;
 extern CCVar* g_psv_skyvec_y;
 extern CCVar* g_psv_skyvec_z;
+extern CCVar* g_psv_skyvolumetric;
 extern CCVar* g_psv_maxplayers;
 extern CCVar* g_psv_maxspeed;
 extern CCVar* g_psv_accelerate;
