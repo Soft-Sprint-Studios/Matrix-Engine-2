@@ -489,14 +489,14 @@ public:
 	Uint32 GetLightmapHeight( Uint32 index ) { if(index < MAX_SURFACE_STYLES) return m_lightmapHeights[index]; else return 0; }
 
 	// Loads a map texture
-	en_material_t* LoadMapTexture( class CWADTextureResource& wadTextures, const CArray<CString>& wadFilesList, const Char* pstrtexturename );
+	en_material_t* LoadMapTexture( const Char* pstrtexturename );
 
 	// Performs think functions
 	void Think( void );
 
 private:
 	// Loads textures
-	void InitTextures( class CWADTextureResource& wadTextures, const CArray<CString>& wadFilesList );
+	void InitTextures( void );
 	// Loads the chrome texture
 	void LoadChromeTexture( void );
 	// Loads in-memory textures

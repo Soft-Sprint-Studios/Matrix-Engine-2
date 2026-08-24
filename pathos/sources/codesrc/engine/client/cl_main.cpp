@@ -44,7 +44,6 @@ All Rights Reserved.
 #include "flexmanager.h"
 #include "cl_tempentities.h"
 #include "vbmtrace.h"
-#include "r_wadtextures.h"
 #include "enginefuncs.h"
 #include "ald.h"
 
@@ -621,43 +620,15 @@ bool CL_InitGame( void )
 	if(!cls.dllfuncs.pfnGameInit())
 		return false;
 
-	CArray<CString> wadFilesList;
-	if(!Common::GetWADList(ens.pworld->pentdata, wadFilesList))
-	{
-		Con_EPrintf("%s - Failed to get WAD list for '%s'.\n", __FUNCTION__, ens.pworld->name.c_str());
-		wadFilesList.clear();
-	}
-
-	// Manage WAD resource object - This will have already been set
-	// by server for localhost, so in that case ens.pwadresource will
-	// be already set
-	if(!ens.pwadresource)
-	{
-		// Update loading screen
-		VID_DrawLoadingScreen("Loading WAD files...");
-
-		// Legacy texture managing object
-		ens.pwadresource = new CWADTextureResource();
-		if (!ens.pwadresource->Init(
-			ens.pworld->name.c_str(),
-			wadFilesList,
-			(g_pCvarWadTextureChecks->GetValue() >= 1) ? true : false,
-			(g_pCvarBspTextureChecks->GetValue() >= 1) ? true : false))
-		{
-			// This is done for non-localhosts
-			CL_LinkMapTextureMaterials(wadFilesList);
-		}
-		else
-		{
-			// Log failure
-			Con_EPrintf("%s - Failed to initialize WAD resources.\n", __FUNCTION__);
-		}
-	}
-	else
+	if(CL_IsHostClient())
 	{
 		// Copy mappings from server for localhost
 		cls.mapmaterialfiles = svs.mapmaterialfiles;
 		cls.mapmaterialfilesnamemap = svs.mapmaterialfilesnamemap;
+	}
+	else
+	{
+		CL_LinkMapTextureMaterials();
 	}
 
 	if(CL_IsHostClient())
@@ -1242,7 +1213,7 @@ void CL_ServerCommand( const Char* pstrCommand )
 //=============================================
 //
 //=============================================
-void CL_LinkMapTextureMaterials( CArray<CString>& wadList )
+void CL_LinkMapTextureMaterials( void )
 {
 	if(!cls.mapmaterialfiles.empty())
 		cls.mapmaterialfiles.clear();
@@ -1252,31 +1223,23 @@ void CL_LinkMapTextureMaterials( CArray<CString>& wadList )
 
 	for(Uint32 i = 0; i < ens.pworld->numtextures; i++)
 	{
-		// First look in the BSP folder
+		CString texname = ens.pworld->ptextures[i].name;
+		texname.tolower();
+
 		CString filepath;
-		filepath = GetMapTexturePath(ens.pworld->name.c_str(), ens.pworld->ptextures[i].name.c_str());
-		
+		if(!qstrncmp(texname.c_str(), "world/", 6) || !qstrncmp(texname.c_str(), "textures/", 9))
+			filepath = texname;
+		else
+			filepath << WORLD_TEXTURES_PATH_BASE << texname;
+
+		if(filepath.find(0, PMF_FORMAT_EXTENSION) == CString::CSTRING_NO_POSITION)
+			filepath << PMF_FORMAT_EXTENSION;
+
 		CString fullpath;
 		fullpath << TEXTURE_BASE_DIRECTORY_PATH << filepath;
 
-		// Find the material script. Use FL_FileExists, as textures
-		// are not loaded at this point
 		if(!FL_FileExists(fullpath.c_str()))
-		{
 			filepath.clear();
-
-			for(Uint32 j = 0; j < wadList.size(); j++)
-			{
-				filepath = GetMapTexturePath(wadList[j].c_str(), ens.pworld->ptextures[i].name.c_str());
-				fullpath.clear();
-				fullpath << TEXTURE_BASE_DIRECTORY_PATH << filepath;
-
-				if(FL_FileExists(fullpath.c_str()))
-					break;
-
-				filepath.clear();
-			}
-		}
 
 		if(!filepath.empty())
 		{

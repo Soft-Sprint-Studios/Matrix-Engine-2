@@ -13,8 +13,6 @@ All Rights Reserved.
 #include "logfile.h"
 #include "trace.h"
 
-class CWADTextureResource;
-
 // Default is MAX_MAP_LEAFS/8
 static constexpr Uint32 DEFAULT_VISBUFFER_SIZE = 16384;
 // Default game directory
@@ -81,8 +79,7 @@ struct engine_state_t
 		pfileiologfile(nullptr),
 		tr_groupmask(0),
 		tr_groupop(TR_GROUPOP_NONE),
-		visbuffersize(DEFAULT_VISBUFFER_SIZE),
-		pwadresource(nullptr)
+		visbuffersize(DEFAULT_VISBUFFER_SIZE)
 	{}
 
 	// indicates the main loop can be terminated
@@ -164,9 +161,6 @@ struct engine_state_t
 
 	// List of cvars overwritten by launch args
 	CArray<CString> overwrittencvars;
-
-	// wad resource
-	CWADTextureResource* pwadresource;
 
 	// temporary file array
 	CLinkedList<tempfile_t> tempfileslist;

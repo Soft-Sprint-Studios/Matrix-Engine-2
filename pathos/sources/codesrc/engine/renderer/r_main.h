@@ -462,8 +462,6 @@ extern CCVar* g_pCvarDynamicLights;
 extern CCVar* g_pCvarGaussianBlur;
 extern CCVar* g_pCvarCubemaps;
 extern CCVar* g_pCvarAnisotropy;
-extern CCVar* g_pCvarWadTextureChecks;
-extern CCVar* g_pCvarBspTextureChecks;
 extern CCVar* g_pCvarGLSLOnDemand;
 extern CCVar* g_pCvarGLSLActiveLoad;
 extern CCVar* g_pCvarHighlightEntity;
@@ -597,9 +595,7 @@ extern void Cmd_BSPToSMD_Lightmap( void );
 extern void Cmd_BSPToSMD_Textures( void );
 
 extern void Cmd_TimeRefresh( void );
-extern void Cmd_DetailAuto( void );
 extern void Cmd_ListDefaultMaterials( void );
-extern void Cmd_SetTextureMaterialType( void );
 extern void Cmd_ShowListMaterial( void );
 
 extern void Cmd_LoadAllParticleScripts( void );

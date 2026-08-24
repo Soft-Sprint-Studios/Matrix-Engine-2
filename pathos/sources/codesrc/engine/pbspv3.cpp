@@ -198,22 +198,24 @@ bool PBSPV3_LoadTextures( const byte* pfile, brushmodel_t& model, const dpbspv3l
 		return false;
 	}
 
-	// Get texture counts
-	const dmiptexlump_t* pmiptexlump = reinterpret_cast<const dmiptexlump_t*>(pfile + lump.offset);
+	if(lump.size % sizeof(dpbspv3texture_t))
+	{
+		Con_EPrintf("%s - Inconsistent lump size in '%s'.\n", __FUNCTION__, model.name.c_str());
+		return false;
+	}
 
-	model.numtextures = pmiptexlump->nummiptex;
+	Uint32 count = lump.size / sizeof(dpbspv3texture_t);
+	const dpbspv3texture_t* pintextures = reinterpret_cast<const dpbspv3texture_t*>(pfile + lump.offset);
+
+	model.numtextures = count;
 	model.ptextures = new mtexture_t[model.numtextures];
 
 	for(Uint32 i = 0; i < model.numtextures; i++)
 	{
-		// Get pointer to miptex data
-		const dmiptex_t* pmiptex = reinterpret_cast<const dmiptex_t*>(reinterpret_cast<const byte*>(pmiptexlump) + pmiptexlump->dataoffsets[i]);
-
-		// We only get the name and width/height here
 		mtexture_t* ptexture = &model.ptextures[i];
-		ptexture->name = pmiptex->name;
-		ptexture->width = pmiptex->width;
-		ptexture->height = pmiptex->height;
+		ptexture->name = pintextures[i].name;
+		ptexture->width = 0;
+		ptexture->height = 0;
 	}
 
 	// Handle animated textures
@@ -226,11 +228,11 @@ bool PBSPV3_LoadTextures( const byte* pfile, brushmodel_t& model, const dpbspv3l
 		if(ptexture->panim_next)
 			continue;
 
-		mtexture_t* panims[MAX_TEXTURE_ANIMS];
-		memset(panims, 0, sizeof(mtexture_t*)*MAX_TEXTURE_ANIMS);
+		mtexture_t* panims[PBSPV3_MAX_TEXTURE_ANIMS];
+		memset(panims, 0, sizeof(mtexture_t*)*PBSPV3_MAX_TEXTURE_ANIMS);
 
-		mtexture_t* paltanims[MAX_TEXTURE_ANIMS];
-		memset(paltanims, 0, sizeof(mtexture_t*)*MAX_TEXTURE_ANIMS);
+		mtexture_t* paltanims[PBSPV3_MAX_TEXTURE_ANIMS];
+		memset(paltanims, 0, sizeof(mtexture_t*)*PBSPV3_MAX_TEXTURE_ANIMS);
 
 		// Check the letter
 		Int32 max = ptexture->name[1];

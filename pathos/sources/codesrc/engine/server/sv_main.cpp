@@ -40,7 +40,6 @@ All Rights Reserved.
 #include "file_interface.h"
 #include "vbm_shared.h"
 #include "vbmtrace.h"
-#include "r_wadtextures.h"
 #include "snd_shared.h"
 #include "enginefuncs.h"
 #include "r_main.h"
@@ -406,7 +405,7 @@ edict_t* SV_FindSpawnSpot( void )
 //=============================================
 //
 //=============================================
-void SV_LinkMapTextureMaterials( CArray<CString>& wadList )
+void SV_LinkMapTextureMaterials( void )
 {
 	if(!svs.mapmaterialfiles.empty())
 		svs.mapmaterialfiles.clear();
@@ -416,36 +415,23 @@ void SV_LinkMapTextureMaterials( CArray<CString>& wadList )
 
 	for(Uint32 i = 0; i < ens.pworld->numtextures; i++)
 	{
-		// First look in the BSP folder
-		CString filepath;
-		CString basename;
-		Common::Basename(ens.pworld->name.c_str(), basename);
+		CString texname = ens.pworld->ptextures[i].name;
+		texname.tolower();
 
-		filepath << WORLD_TEXTURES_PATH_BASE << basename << PATH_SLASH_CHAR << ens.pworld->ptextures[i].name << PMF_FORMAT_EXTENSION;
-		
+		CString filepath;
+		if(!qstrncmp(texname.c_str(), "world/", 6) || !qstrncmp(texname.c_str(), "textures/", 9))
+			filepath = texname;
+		else
+			filepath << WORLD_TEXTURES_PATH_BASE << texname;
+
+		if(filepath.find(0, PMF_FORMAT_EXTENSION) == CString::CSTRING_NO_POSITION)
+			filepath << PMF_FORMAT_EXTENSION;
+
 		CString fullpath;
 		fullpath << TEXTURE_BASE_DIRECTORY_PATH << filepath;
 
-		// Find the material script. Use FL_FileExists, as textures
-		// are not loaded at this point
 		if(!FL_FileExists(fullpath.c_str()))
-		{
 			filepath.clear();
-
-			for(Uint32 j = 0; j < wadList.size(); j++)
-			{
-				Common::Basename(wadList[j].c_str(), basename);
-
-				filepath << WORLD_TEXTURES_PATH_BASE << basename << PATH_SLASH_CHAR << ens.pworld->ptextures[i].name << PMF_FORMAT_EXTENSION;
-				fullpath.clear();
-				fullpath << TEXTURE_BASE_DIRECTORY_PATH << filepath;
-
-				if(FL_FileExists(fullpath.c_str()))
-					break;
-
-				filepath.clear();
-			}
-		}
 
 		// Add to the association list
 		if(!filepath.empty())
@@ -981,28 +967,8 @@ bool SV_SpawnGame( const Char* pstrLevelName, const Char* pstrSaveFile, const Ch
 	SV_AddEnforcedConsistencyFile(CLIENT_DLL_PATH);
 	SV_AddEnforcedConsistencyFile(filepath.c_str());
 
-	VID_DrawLoadingScreen("Loading WAD files");
-
-	// Initialize WAD files on server
-	CArray<CString> mapWADList;
-	Common::GetWADList(ens.pworld->pentdata, mapWADList);
-
-	// Allocate new object
-	ens.pwadresource = new CWADTextureResource();
-	if(ens.pwadresource->Init(
-		ens.pworld->name.c_str(), 
-		mapWADList,
-		(g_pCvarWadTextureChecks->GetValue() >= 1) ? true : false,
-		(g_pCvarBspTextureChecks->GetValue() >= 1) ? true : false))
-	{
-		// Link up map textures with material scripts
-		SV_LinkMapTextureMaterials(mapWADList);
-	}
-	else
-	{
-		// Log failure
-		Con_EPrintf("%s - Failed to initialize WAD resources.\n", __FUNCTION__);
-	}
+	// Link up map textures with material scripts
+	SV_LinkMapTextureMaterials();
 
 	// Link model textures also
 	SV_LinkModelTextureMaterials();

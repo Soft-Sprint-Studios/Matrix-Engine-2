@@ -68,7 +68,6 @@ All Rights Reserved.
 #include "r_blackhole.h"
 #include "r_lensflare.h"
 #include "r_glqueries.h"
-#include "r_wadtextures.h"
 #include "r_sky.h"
 #include "r_fbocache.h"
 #include "r_lightstyles.h"
@@ -96,8 +95,6 @@ CCVar* g_pCvarStats = nullptr;
 CCVar* g_pCvarCubemaps = nullptr;
 CCVar* g_pCvarDrawOrigins = nullptr;
 CCVar* g_pCvarAnisotropy = nullptr;
-CCVar* g_pCvarWadTextureChecks = nullptr;
-CCVar* g_pCvarBspTextureChecks = nullptr;
 CCVar* g_pCvarGLSLOnDemand = nullptr;
 CCVar* g_pCvarGLSLActiveLoad = nullptr;
 CCVar* g_pCvarGLSLActiveMaxShaders = nullptr;
@@ -188,8 +185,6 @@ bool R_Init( void )
 	g_pCvarCubemaps = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_cubemaps", "1", "Toggles cubemap reflections" );
 	g_pCvarDrawOrigins = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_draworigins", "0", "Toggle rendering of origin points");
 	g_pCvarAnisotropy = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_GL_DEPENDENT|FL_CV_CLIENT|FL_CV_SAVE), ANISOTROPY_CVAR_NAME, "0", "Controls texture anisotropy", R_AnisotropyCvarCallBack);
-	g_pCvarWadTextureChecks = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_wadtexturechecks", "0", "Perform checks for WAD textures without scripts." );
-	g_pCvarBspTextureChecks = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT | FL_CV_SAVE), "r_bsptexturechecks", "0", "Perform checks for BSP textures without scripts.");
 	g_pCvarGLSLOnDemand = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_glsl_ondemand", "1", "On-demand load GLSL shaders." );
 	g_pCvarGLSLActiveLoad = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_glsl_activeload", "1", "Load shaders during active runtime." );
 	g_pCvarGLSLActiveMaxShaders = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_glsl_activeload_max_shaders", "4", "Max number of shaders loaded each frame for active load.", R_ActiveLoadMaxShadersCvarCallBack);
@@ -212,9 +207,7 @@ bool R_Init( void )
 	g_pCvarFPSGraph = gConsole.CreateCVar( CVAR_FLOAT, FL_CV_CLIENT, "r_fpsgraph", "0", "Show render FPS timegraph." );
 
 	gCommands.CreateCommand("r_exportald", Cmd_ExportALD, "Exports current lightmap info as nightstage light info");
-	gCommands.CreateCommand("r_detail_auto", Cmd_DetailAuto, "Generates detail texture entries for world textures without");
 	gCommands.CreateCommand("r_list_default_materials", Cmd_ListDefaultMaterials, "List world textures with default material types");
-	gCommands.CreateCommand("r_set_texture_material", Cmd_SetTextureMaterialType, "Set material type in list of default material types");
 	gCommands.CreateCommand("r_show_list_material", Cmd_ShowListMaterial, "Show material from default list on-screen");
 
 	gCommands.CreateCommand("pastedecal", Cmd_PasteDecal, "Creates a decal in front of the view");
@@ -966,13 +959,6 @@ void R_ResetGame( void )
 
 	// Clean up the restore file if present
 	ALD_ClearGame();
-
-	// Delete WAD resource
-	if (ens.pwadresource)
-	{
-		delete ens.pwadresource;
-		ens.pwadresource = nullptr;
-	}
 
 	// Tell texloader to release all game-level resources
 	pTextureManager->DeleteTextures(RS_GAME_LEVEL, false);
@@ -5808,132 +5794,10 @@ void Cmd_TimeRefresh( void )
 //====================================
 //
 //====================================
-void Cmd_DetailAuto( void )
-{
-	CTextureManager* pTextureManager = CTextureManager::GetInstance();
-	assert(pTextureManager != nullptr);
-
-	CArray<detailtexture_t*> detailTexturesArray;
-	CArray<detail_association_t*> detailTextureAssociationArray;
-
-	if(!WAD_LoadDetailTextureAssociations(detailTexturesArray, detailTextureAssociationArray))
-	{
-		Con_EPrintf("Failed to load detail texture associations file.\n");
-		return;
-	}
-
-	// Array of textures missing detail association
-	CArray<CString> missingList;
-	missingList.reserve(ens.pworld->numtextures);
-
-	// Get WAD list
-	CArray<CString> wadList;
-	Common::GetWADList(ens.pworld->pentdata, wadList);
-
-	// Go through all world textures
-	for(Uint32 i = 0; i < ens.pworld->numtextures; i++)
-	{
-		mtexture_t* ptexture = &ens.pworld->ptextures[i];
-		CString texname = ptexture->name;
-		texname.tolower();
-		
-		// Seek it out in the textures list
-		detail_association_t* passoc = nullptr;
-		for(Uint32 j = 0; j < detailTextureAssociationArray.size(); j++)
-		{
-			if(!qstrcmp(texname, detailTextureAssociationArray[j]->maptexturename))
-			{
-				passoc = detailTextureAssociationArray[j];
-				break;
-			}
-		}
-
-		if(!passoc)
-		{
-			missingList.push_back(texname);
-			continue;
-		}
-
-		// Find original PMF file
-		en_material_t* pmaterial = nullptr;
-		for(Uint32 j = 0; j < wadList.size(); j++)
-		{
-			CString folderPath = WAD_GetWADFolderPath(wadList[j].c_str(), WORLD_TEXTURES_PATH_BASE);
-			CString materialPath = WAD_GetWADTexturePath(folderPath.c_str(), texname.c_str());
-			materialPath.tolower();
-
-			pmaterial = pTextureManager->FindMaterialScript(materialPath.c_str(), RS_GAME_LEVEL);
-			if(pmaterial)
-				break;
-		}
-
-		if(!pmaterial)
-		{
-			Con_Printf("%s - Unable to find material script for '%s'.\n", __FUNCTION__, texname.c_str());
-			continue;
-		}
-
-		// Do not override existing entries
-		if(pmaterial->ptextures[MT_TX_DETAIL] && pmaterial->dt_scalex && pmaterial->dt_scaley)
-			continue;
-
-		// Find associated detail texture
-		detailtexture_t* pdetail = detailTexturesArray[passoc->detailtextureidx];
-
-		pmaterial->dt_scalex = (static_cast<Float>(ptexture->width)/256.0) * (128.0/static_cast<Float>(pdetail->width)*12.0);
-		pmaterial->dt_scaley = (static_cast<Float>(ptexture->height)/256.0) * (128.0/static_cast<Float>(pdetail->height)*12.0);
-
-		CString dtfilepath;
-		dtfilepath << pdetail->filename;
-
-		pmaterial->ptextures[MT_TX_DETAIL] = pTextureManager->LoadTexture(dtfilepath.c_str(), RS_GAME_LEVEL);
-
-		if(!pmaterial->ptextures[MT_TX_DETAIL])
-			continue;
-
-		pTextureManager->WritePMFFile(pmaterial);
-	}
-
-	for(Uint32 i = 0; i < detailTexturesArray.size(); i++)
-		delete detailTexturesArray[i];
-
-	for(Uint32 i = 0; i < detailTextureAssociationArray.size(); i++)
-		delete detailTextureAssociationArray[i];
-
-	// Write list of textures missing detail textures
-	if(!missingList.empty())
-	{
-		CString str;
-		str << "World textures missing detail textures: " << NEWLINE;
-
-		for(Uint32 i = 0; i < missingList.size(); i++)
-			str << missingList[i] << NEWLINE;
-
-		// Write to file
-		CString mapname;
-		Common::Basename(ens.pworld->name.c_str(), mapname);
-
-		CString filepath;
-		filepath << "logs/" << mapname << "_detail_missing.log";
-
-		const byte* pwritedata = reinterpret_cast<const byte*>(str.c_str());
-		FL_WriteFile(pwritedata, str.length(), filepath.c_str());
-
-		Con_Printf("Wrote list of textures without detail texture associations to '%s'.\n", filepath.c_str());
-	}
-}
-
-//====================================
-//
-//====================================
 void Cmd_ListDefaultMaterials( void )
 {
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 	assert(pTextureManager != nullptr);
-
-	// Get WAD list
-	CArray<CString> wadList;
-	Common::GetWADList(ens.pworld->pentdata, wadList);
 
 	// List of textures with default names
 	if(!g_defaultMaterialPMFList.empty())
@@ -5946,17 +5810,16 @@ void Cmd_ListDefaultMaterials( void )
 		CString texname = ptexture->name;
 		texname.tolower();
 
-		// Find original PMF file
-		en_material_t* pmaterial = nullptr;
-		for(Uint32 j = 0; j < wadList.size(); j++)
-		{
-			CString folderPath = WAD_GetWADFolderPath(wadList[j].c_str(), WORLD_TEXTURES_PATH_BASE);
-			CString materialPath = WAD_GetWADTexturePath(folderPath.c_str(), texname.c_str());
+		CString materialPath;
+		if(!qstrncmp(texname.c_str(), "world/", 6) || !qstrncmp(texname.c_str(), "textures/", 9))
+			materialPath = texname;
+		else
+			materialPath << WORLD_TEXTURES_PATH_BASE << texname;
 
-			pmaterial = pTextureManager->FindMaterialScript(materialPath.c_str(), RS_GAME_LEVEL);
-			if(pmaterial)
-				break;
-		}
+		if(materialPath.find(0, PMF_FORMAT_EXTENSION) == CString::CSTRING_NO_POSITION)
+			materialPath << PMF_FORMAT_EXTENSION;
+
+		en_material_t* pmaterial = pTextureManager->FindMaterialScript(materialPath.c_str(), RS_GAME_LEVEL);
 
 		if(!pmaterial)
 		{
@@ -5998,103 +5861,6 @@ void Cmd_ListDefaultMaterials( void )
 	FL_WriteFile(pwritedata, str.length(), filepath.c_str());
 
 	Con_Printf("Wrote list of textures with default material type to '%s'.\n", filepath.c_str());
-}
-
-//====================================
-//
-//====================================
-void Cmd_SetTextureMaterialType( void )
-{
-	if(gCommands.Cmd_Argc() < 3)
-	{
-		Con_Printf("r_set_texture_material_type usage: r_set_texture_material_type <texture index in list generated by r_list_default_materials> <material type name>\n");
-		return;
-	}
-
-	// Get index parameter
-	Int32 index = SDL_atoi(gCommands.Cmd_Argv(1));
-	if(index < 0 || index >= g_defaultMaterialPMFList.size())
-	{
-		Con_EPrintf("r_set_texture_material_type - Invalid index %d.\n", index);
-		return;
-	}
-
-	// Get material type name
-	const Char* pstrMaterialType = gCommands.Cmd_Argv(2);
-	if(!pstrMaterialType)
-	{
-		Con_EPrintf("r_set_texture_material_type - No material type specified.\n");
-		return;
-	}
-
-	// Material types list
-	CArray<CString> materialTypesList;
-
-	// Load material script
-	Uint32 filesize = 0;
-	const byte* pfile = FL_LoadFile(MATERIAL_TYPES_FILE_PATH, &filesize);
-	if(!pfile)
-	{
-		Con_Printf("r_set_texture_material_type - Could not load '%s'.\n", MATERIAL_TYPES_FILE_PATH);
-		return;
-	}
-
-	CString line;
-	CString token;
-
-	const Char* pstr = reinterpret_cast<const Char*>(pfile);
-	while(pstr)
-	{
-		// Read the line
-		pstr = Common::ReadLine(pstr, line);
-
-		// Read first token
-		const Char* plstr = Common::Parse(line.c_str(), token);
-		if(!plstr)
-		{
-			Con_Printf("r_set_texture_material_type - Missing second token in '%s'.\n", MATERIAL_TYPES_FILE_PATH);
-			continue;
-		}
-
-		// Discard first token and parse next
-		Common::Parse(plstr, token);
-		// Add to list of materials
-		materialTypesList.push_back(token);
-	}
-
-	FL_FreeFile(pfile);
-
-	Uint32 j = 0;
-	for(; j < materialTypesList.size(); j++)
-	{
-		if(!qstrcicmp(materialTypesList[j], pstrMaterialType))
-			break;
-	}
-
-	if(j == materialTypesList.size())
-		Con_Printf("r_set_texture_material_type - Material type '%s' specified not found in '%s'.\n", pstrMaterialType, MATERIAL_TYPES_FILE_PATH);
-
-	// Look up PMF file
-	CTextureManager* pTextureManager = CTextureManager::GetInstance();
-	assert(pTextureManager != nullptr);
-
-	CString& str = g_defaultMaterialPMFList[index];
-
-	// Find original PMF file
-	en_material_t* pmaterial = pTextureManager->FindMaterialScript(str.c_str(), RS_GAME_LEVEL);
-
-	if(!pmaterial)
-	{
-		Con_Printf("r_show_list_material - Unable to find material script for '%s'.\n", str.c_str());
-		return;
-	}
-
-	// Set material type and write it out
-	pmaterial->materialname = pstrMaterialType;
-	pTextureManager->WritePMFFile(pmaterial);
-	
-	// Clear shown texture
-	g_pMaterialShown = nullptr;
 }
 
 //====================================

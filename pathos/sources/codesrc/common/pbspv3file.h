@@ -24,9 +24,7 @@
 #ifndef PBSPV3FILE_H
 #define PBSPV3FILE_H
 
-#include "miptex.h"
 #include "contents.h"
-#include "miptex.h"
 
 //
 // BSP limits
@@ -48,6 +46,7 @@ static constexpr Uint32 PBSPV3_MAX_MAP_TEXINFO			= 262144;
 static constexpr Uint32 PBSPV3_MAX_MAP_EDGES			= 524288;
 static constexpr Uint32 PBSPV3_MAX_MAP_SURFEDGES		= 1048576;
 static constexpr Uint32 PBSPV3_MAX_MAP_TEXTURES			= 16384;
+static constexpr Uint32 PBSPV3_MAX_TEXTURE_ANIMS		= 10;
 static constexpr Uint32 PBSPV3_MAX_MAP_LIGHTING			= 16777216;
 static constexpr Uint32 PBSPV3_MAX_MAP_VISIBILITY		= 16777216;
 
@@ -482,6 +481,11 @@ struct dpbspv3brush_t
     Int32 contents;
 };
 
+struct dpbspv3texture_t
+{
+	Char name[64];
+};
+
 struct dpbspv3dispheader_t
 {
 	Int32 num_disp_infos;
@@ -491,7 +495,7 @@ struct dpbspv3dispheader_t
 
 struct dpbspv3dispinfo_t
 {
-	Char texture2[32];
+	Char texture2[64];
 	Int32 face_index;
 	Int32 power;
 	Int32 vert_start;

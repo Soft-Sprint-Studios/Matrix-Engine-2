@@ -30,7 +30,6 @@ All Rights Reserved.
 #include "cl_msg.h"
 #include "cache_model.h"
 #include "r_vbm.h"
-#include "r_wadtextures.h"
 
 //
 // Thanks to BUzer for the decal cutting logic
@@ -528,11 +527,7 @@ decalgroupentry_t* CDecalManager::GetOrCreateDynamicEntry(const Char* pstrName)
 		m_dynamicEntriesList.next();
 	}
 
-	CArray<CString> wadFilesList;
-	if (ens.pworld && ens.pworld->pentdata)
-		Common::GetWADList(ens.pworld->pentdata, wadFilesList);
-
-	en_material_t* pmaterial = gBSPRenderer.LoadMapTexture(*ens.pwadresource, wadFilesList, pstrName);
+	en_material_t* pmaterial = gBSPRenderer.LoadMapTexture(pstrName);
 	en_texture_t* ptexture = pmaterial->ptextures[MT_TX_DIFFUSE];
 
 	decalgroupentry_t* pnew = new decalgroupentry_t();

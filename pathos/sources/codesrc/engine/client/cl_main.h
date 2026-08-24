@@ -29,7 +29,6 @@ struct cl_entity_t;
 class Vector;
 class CCVar;
 class CNetworking;
-class CWADTextureResource;
 
 struct trace_interface_t;
 struct pm_info_t;
@@ -358,7 +357,7 @@ extern void CL_ClientCommand( const Char* pstrCommand );
 
 extern void CL_PrecacheFlexScript( enum flextypes_t npctype, const Char* pstrscript );
 extern void CL_SetFlexScript( entindex_t entindex, const Char* pstrscript );
-extern void CL_LinkMapTextureMaterials( CArray<CString>& wadList );
+extern void CL_LinkMapTextureMaterials( void );
 extern void CL_LinkModelTextureMaterials( void );
 extern void CL_UpdateAttachments( cl_entity_t* pentity );
 

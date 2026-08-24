@@ -257,7 +257,6 @@ namespace Common
 	extern inline void ScaleByte( Uint32 *nInput );
 	extern CString FixSlashes( const Char* pstring );
 	extern bool CheckVisibility( const CArray<Uint32>& leafnums, Uint32 numleafs, const byte* pset );
-	extern bool GetWADList( const Char* pstrEntityData, CArray<CString>& outputArray );
 	extern Uint32 GetFileLineCount( const Char* pstrdata );
 
 	extern inline void ParseColor( Float* pout, const color24_t *plightmap );

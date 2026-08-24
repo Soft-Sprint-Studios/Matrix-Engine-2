@@ -713,22 +713,6 @@ bool SV_SendResourceLists( sv_client_t& cl )
 	CArray<CString> materialsArray;
 	CArray<CString> texturesArray;
 
-	// Gather WAD files
-	CArray<CString> wadFilesArray;
-	Common::GetWADList(ens.pworld->pentdata, wadFilesArray);
-
-	for(Uint32 i = 0; i < wadFilesArray.size(); i++)
-	{
-		CString basename;
-		Common::Basename(wadFilesArray[i].c_str(), basename);
-
-		CString wadfilepath;
-		wadfilepath << TEXTURE_BASE_DIRECTORY_PATH << WORLD_TEXTURES_PATH_BASE << basename << PATH_SLASH_CHAR << wadFilesArray[i];
-
-		if(FL_FileExists(wadfilepath.c_str()))
-			SV_PrecacheGeneric(wadfilepath.c_str());
-	}
-
 	for(Uint32 i = 0; i < modelsList.size(); i++)
 		gModelCache.GatherModelResources(modelsList[i].c_str(), svs.mapmaterialfiles, materialsArray, texturesArray);
 

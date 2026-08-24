@@ -41,7 +41,6 @@ All Rights Reserved.
 #include "r_cubemaps.h"
 #include "r_vbm.h"
 #include "r_common.h"
-#include "r_wadtextures.h"
 #include "vid.h"
 #include "tga.h"
 #include "r_lightstyles.h"
@@ -488,34 +487,10 @@ void CBSPRenderer::ClearGL( void )
 //=============================================
 void CBSPRenderer::LoadTextures( void ) 
 {
-	VID_DrawLoadingScreen("Loading WAD files");
-
-	// Get the list of WAD files
-	CArray<CString> wadFilesList;
-	if(!Common::GetWADList(ens.pworld->pentdata, wadFilesList))
-	{
-		Con_EPrintf("%s - Failed to get WAD list for '%s'.\n", __FUNCTION__, ens.pworld->name.c_str());
-		wadFilesList.clear();
-	}
-
-	if(!ens.pwadresource)
-	{
-		// WAD texture managing object
-		ens.pwadresource = new CWADTextureResource();
-		if(!ens.pwadresource->Init(
-			ens.pworld->name.c_str(), 
-			wadFilesList, 
-			(g_pCvarWadTextureChecks->GetValue() >= 1) ? true : false,
-			(g_pCvarBspTextureChecks->GetValue() >= 1) ? true : false))
-		{
-			Con_Printf("%s - Failed to set up wad textures.\n", __FUNCTION__);
-		}
-	}
-
 	VID_DrawLoadingScreen("Loading world textures");
 
 	// Load textures
-	InitTextures(*ens.pwadresource, wadFilesList);
+	InitTextures();
 
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 	m_pChromeTexture = pTextureManager->LoadTexture("general/chrome.DDS", RS_GAME_LEVEL);
@@ -1366,48 +1341,25 @@ void CBSPRenderer::InitDecalVBO( void )
 // @brief
 //
 //=============================================
-en_material_t* CBSPRenderer::LoadMapTexture( CWADTextureResource& wadTextures, const CArray<CString>& wadFilesList, const Char* pstrtexturename )
+en_material_t* CBSPRenderer::LoadMapTexture( const Char* pstrtexturename )
 {
-	// First try loading it under "world" as a normal material
+	CString texname = pstrtexturename;
+	texname.tolower();
+
 	CString materialPath;
-	materialPath << WORLD_TEXTURES_PATH_BASE << pstrtexturename << PMF_FORMAT_EXTENSION;
+	if(!qstrncmp(texname.c_str(), "world/", 6) || !qstrncmp(texname.c_str(), "textures/", 9))
+		materialPath = texname;
+	else
+		materialPath << WORLD_TEXTURES_PATH_BASE << texname;
+
+	if(materialPath.find(0, PMF_FORMAT_EXTENSION) == CString::CSTRING_NO_POSITION)
+		materialPath << PMF_FORMAT_EXTENSION;
 
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
-
 	en_material_t* pmaterial = pTextureManager->LoadMaterialScript(materialPath.c_str(), RS_GAME_LEVEL, false);
 	if(!pmaterial)
-	{
-		CString folderPath = WAD_GetWADFolderPath(ens.pworld->name.c_str(), WORLD_TEXTURES_PATH_BASE);
-		materialPath = WAD_GetWADTexturePath(folderPath.c_str(), pstrtexturename);
-
-		pmaterial = pTextureManager->LoadMaterialScript(materialPath.c_str(), RS_GAME_LEVEL, false);
-		if(!pmaterial)
-		{
-			// Look under WAD paths
-			for(Uint32 i = 0; i < wadFilesList.size(); i++)
-			{
-				folderPath = WAD_GetWADFolderPath(wadFilesList[i].c_str(), WORLD_TEXTURES_PATH_BASE);
-				materialPath = WAD_GetWADTexturePath(folderPath.c_str(), pstrtexturename);
-
-				pmaterial = pTextureManager->LoadMaterialScript(materialPath.c_str(), RS_GAME_LEVEL, false);
-				if(pmaterial)
-					break;
-			}
-		}
-	}
-
-	if(!pmaterial)
-	{
-		// Just get the dummy material
 		pmaterial = pTextureManager->GetDummyMaterial();
-	}
-	else if(!pmaterial->ptextures[MT_TX_DIFFUSE] && !pmaterial->containername.empty())
-	{
-		// Load the texture from the WAD
-		pmaterial->ptextures[MT_TX_DIFFUSE] = wadTextures.GetWADTexture(pmaterial, pmaterial->containername.c_str(), pmaterial->containertexturename.c_str());
-	}
 
-	// Make sure this is set
 	if(!pmaterial->ptextures[MT_TX_DIFFUSE])
 		pmaterial->ptextures[MT_TX_DIFFUSE] = pTextureManager->GetDummyTexture();
 
@@ -1418,7 +1370,7 @@ en_material_t* CBSPRenderer::LoadMapTexture( CWADTextureResource& wadTextures, c
 // @brief
 //
 //=============================================
-void CBSPRenderer::InitTextures( CWADTextureResource& wadTextures, const CArray<CString>& wadFilesList ) 
+void CBSPRenderer::InitTextures( void ) 
 {
 	if(m_texturesArray.empty())
 	{
@@ -1441,7 +1393,13 @@ void CBSPRenderer::InitTextures( CWADTextureResource& wadTextures, const CArray<
 		pbsptexture->psurfchain = nullptr;
 
 		// Load the texture
-		pbsptexture->pmaterial = LoadMapTexture(wadTextures, wadFilesList, ptexture->name.c_str());
+		pbsptexture->pmaterial = LoadMapTexture(ptexture->name.c_str());
+
+		if(ptexture->width == 0 && pbsptexture->pmaterial)
+		{
+			ptexture->width = pbsptexture->pmaterial->int_width > 0 ? pbsptexture->pmaterial->int_width : (pbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE] ? pbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE]->width : 64);
+			ptexture->height = pbsptexture->pmaterial->int_height > 0 ? pbsptexture->pmaterial->int_height : (pbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE] ? pbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE]->height : 64);
+		}
 
 		// See how many surfaces are tied to this texture
 		Uint32 numsurfaces = 0;
@@ -1474,7 +1432,7 @@ void CBSPRenderer::InitTextures( CWADTextureResource& wadTextures, const CArray<
 
 		bsp_texture_t* pbsptexture = &m_texturesArray[psurface->ptexinfo->ptexture->infoindex];
 		en_material_t* pmat1 = pbsptexture->pmaterial;
-		en_material_t* pmat2 = LoadMapTexture(wadTextures, wadFilesList, disp.texture2);
+		en_material_t* pmat2 = LoadMapTexture(disp.texture2);
 
 		if (pmat1 && pmat2)
 		{
@@ -2717,6 +2675,14 @@ bool CBSPRenderer::BindTextures( bsp_texture_t* phandle, cubemapinfo_t* pcubemap
 			textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_baselightmap[k]);
 			R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_lightmapIndexes[k] ? m_lightmapIndexes[k] : m_lightmapIndexes[0]);
 		}
+	}
+
+	if (pmaterial && pmaterial->ptextures[MT_TX_DIFFUSE])
+	{
+		Con_DPrintf("Binding material script: %s with texture: %s (GL ID: %u)\n",
+			pmaterial->filepath.c_str(),
+			pmaterial->ptextures[MT_TX_DIFFUSE]->filepath.c_str(),
+			pmaterial->ptextures[MT_TX_DIFFUSE]->palloc ? pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index : 0);
 	}
 
 	// Bind the main texture
