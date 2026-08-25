@@ -93,13 +93,11 @@ bool CGlassManager::InitGL(void)
 		}
 
 		m_attribs.a_vertex = m_pShader->InitAttribute("in_position", 4, GL_FLOAT, sizeof(glass_vertex_t), OFFSET(glass_vertex_t, origin));
-		m_attribs.a_normal = m_pShader->InitAttribute("in_normal", 3, GL_FLOAT, sizeof(glass_vertex_t), OFFSET(glass_vertex_t, normal));
 		m_attribs.a_tangent = m_pShader->InitAttribute("in_tangent", 3, GL_FLOAT, sizeof(glass_vertex_t), OFFSET(glass_vertex_t, tangent));
 		m_attribs.a_binormal = m_pShader->InitAttribute("in_binormal", 3, GL_FLOAT, sizeof(glass_vertex_t), OFFSET(glass_vertex_t, binormal));
 		m_attribs.a_texcoord = m_pShader->InitAttribute("in_texcoord", 2, GL_FLOAT, sizeof(glass_vertex_t), OFFSET(glass_vertex_t, texcoord));
 
 		if (!R_CheckShaderVertexAttribute(m_attribs.a_vertex, "in_position", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderVertexAttribute(m_attribs.a_normal, "in_normal", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_tangent, "in_tangent", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_binormal, "in_binormal", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_texcoord, "in_texcoord", m_pShader, Sys_ErrorPopup))
@@ -273,14 +271,11 @@ void CGlassManager::AllocNewGlass(cl_entity_t* pentity)
 			continue;
 
 		mtexinfo_t* ptexinfo = psurf->ptexinfo;
-		Vector tangent, binormal, normal;
+		Vector tangent, binormal;
 		Math::VectorCopy(ptexinfo->vecs[0], tangent);
 		Math::VectorNormalize(tangent);
 		Math::VectorCopy(ptexinfo->vecs[1], binormal);
 		Math::VectorNormalize(binormal);
-		Math::VectorCopy(psurf->pplane->normal, normal);
-		if (psurf->flags & SURF_PLANEBACK)
-			Math::VectorScale(normal, -1.0f, normal);
 
 		Vector vertexes[3];
 		Uint32 srcvertindex = 0;
@@ -300,7 +295,6 @@ void CGlassManager::AllocNewGlass(cl_entity_t* pentity)
 				pvertexes[dstvertindex].origin[j] = vertexes[i][j];
 
 			pvertexes[dstvertindex].origin[3] = 1.0f;
-			pvertexes[dstvertindex].normal = normal;
 			pvertexes[dstvertindex].tangent = tangent;
 			pvertexes[dstvertindex].binormal = binormal;
 
@@ -335,7 +329,6 @@ void CGlassManager::AllocNewGlass(cl_entity_t* pentity)
 					pvertexes[dstvertindex].origin[k] = vertexes[j][k];
 
 				pvertexes[dstvertindex].origin[3] = 1.0f;
-				pvertexes[dstvertindex].normal = normal;
 				pvertexes[dstvertindex].tangent = tangent;
 				pvertexes[dstvertindex].binormal = binormal;
 
@@ -377,7 +370,6 @@ bool CGlassManager::DrawGlass(void)
 	}
 
 	m_pShader->EnableAttribute(m_attribs.a_vertex);
-	m_pShader->EnableAttribute(m_attribs.a_normal);
 	m_pShader->EnableAttribute(m_attribs.a_tangent);
 	m_pShader->EnableAttribute(m_attribs.a_binormal);
 	m_pShader->EnableAttribute(m_attribs.a_texcoord);

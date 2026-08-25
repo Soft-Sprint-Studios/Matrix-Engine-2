@@ -7,7 +7,6 @@ uniform mat4 modelview;
 uniform mat4 normalmatrix;
 
 in vec4 in_position;
-in vec3 in_normal;
 in vec3 in_tangent;
 in vec3 in_binormal;
 in vec2 in_texcoord;
@@ -16,7 +15,6 @@ out vec2 ps_texcoord;
 out vec4 ps_screenpos;
 out vec3 ps_tangent;
 out vec3 ps_binormal;
-out vec3 ps_normal;
 out vec3 ps_vertexpos;
 
 void main()
@@ -26,7 +24,6 @@ void main()
 
 	ps_tangent = normalize((normalmatrix * vec4(in_tangent, 0.0)).xyz);
 	ps_binormal = normalize((normalmatrix * vec4(in_binormal, 0.0)).xyz);
-	ps_normal = normalize((normalmatrix * vec4(in_normal, 0.0)).xyz);
 
 	ps_texcoord = in_texcoord;
 
@@ -50,7 +47,6 @@ in vec2 ps_texcoord;
 in vec4 ps_screenpos;
 in vec3 ps_tangent;
 in vec3 ps_binormal;
-in vec3 ps_normal;
 in vec3 ps_vertexpos;
 
 out vec4 oColor;
@@ -72,12 +68,9 @@ void main()
 
 	vec3 tN = normalize(ps_tangent);
 	vec3 tB = normalize(ps_binormal);
-	vec3 tZ = normalize(ps_normal);
 
 	vec3 normalSample = texture(s_normalMap, ps_texcoord).rgb * 2.0 - 1.0;
-	vec3 worldNormal = normalize(tN * normalSample.x + tB * normalSample.y + tZ * normalSample.z);
-
-	vec2 offset = worldNormal.xy * u_glassParams.x;
+	vec2 offset = (tN.xy * normalSample.x + tB.xy * normalSample.y) * u_glassParams.x;
 	vec4 finalColor = texture(s_refractTex, clamp(screenUV + offset, 0.0, 1.0));
 
 	$branch fog == 1

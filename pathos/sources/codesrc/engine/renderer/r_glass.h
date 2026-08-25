@@ -61,7 +61,6 @@ struct glass_vertex_t
 	glass_vertex_t()
 	{
 		memset(origin, 0, sizeof(origin));
-		memset(normal, 0, sizeof(normal));
 		memset(tangent, 0, sizeof(tangent));
 		memset(binormal, 0, sizeof(binormal));
 		memset(texcoord, 0, sizeof(texcoord));
@@ -69,18 +68,16 @@ struct glass_vertex_t
 	}
 
 	vec4_t origin;
-	Vector normal;
 	Vector tangent;
 	Vector binormal;
 	Float texcoord[2];
-	byte padding[4];
+	byte padding[16];
 };
 
 struct glass_attribs_t
 {
 	glass_attribs_t() :
 		a_vertex(CGLSLShader::PROPERTY_UNAVAILABLE),
-		a_normal(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_tangent(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_binormal(CGLSLShader::PROPERTY_UNAVAILABLE),
 		a_texcoord(CGLSLShader::PROPERTY_UNAVAILABLE),
@@ -96,7 +93,6 @@ struct glass_attribs_t
 	{}
 
 	Int32 a_vertex;
-	Int32 a_normal;
 	Int32 a_tangent;
 	Int32 a_binormal;
 	Int32 a_texcoord;
