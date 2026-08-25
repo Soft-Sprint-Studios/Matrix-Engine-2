@@ -875,7 +875,7 @@ void CDynamicLightManager::UpdateShadowingLights( void )
 			}
 
 			// Check frustum
-			R_SetFrustum(rns.view.frustum, rns.view.v_origin, rns.view.v_angles, rns.view.fov, rns.view.viewsize_x, rns.view.viewsize_y, true);
+			R_SetFrustum(rns.view.frustum, rns.view.params.v_origin, rns.view.params.v_angles, rns.view.fov, rns.view.viewsize_x, rns.view.viewsize_y, true);
 			if (rns.view.frustum.CullBBox(mins, maxs))
 			{
 				m_dlightsList.next();
@@ -2150,6 +2150,10 @@ bool CDynamicLightManager::DrawCSMPass( void )
 	Float lightDist = 2000.0f;
 	Float radius = 8000.0f;
 
+	Vector saved_v_origin = rns.view.v_origin;
+	Vector saved_v_angles = rns.view.v_angles;
+	CFrustum saved_frustum = rns.view.frustum;
+
 	Vector lightOrigin = centerPos - lightRayDir * lightDist;
 	m_csmWorldOrigin = lightOrigin;
 	m_csmSunDir = lightRayDir;
@@ -2216,6 +2220,10 @@ bool CDynamicLightManager::DrawCSMPass( void )
 
 	R_BindFBO(nullptr);
 	rns.view.projection.PopMatrix();
+
+	rns.view.v_origin = saved_v_origin;
+	rns.view.v_angles = saved_v_angles;
+	rns.view.frustum = saved_frustum;
 
 	glViewport(0, 0, rns.screenwidth, rns.screenheight);
 
