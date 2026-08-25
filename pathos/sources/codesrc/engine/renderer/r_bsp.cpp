@@ -2272,15 +2272,15 @@ bool CBSPRenderer::Draw( void )
 			if(!BindTextures(ptexturehandle, pcubemapinfo, pprevcubemapinfo, cubemapUnit, alphaToCoverageEnabled))
 				return false;
 
+			if (pCvarCSM && pCvarCSM->GetValue() >= 1.0f && gDynamicLights.GetCSMShadowMap() && !cls.skycolor.IsZero())
+			{
+				Int32 csmTexUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_csm_shadowmap);
+				R_Bind2DTexture(GL_TEXTURE0 + csmTexUnit, gDynamicLights.GetCSMShadowMap()->pfbo->ptexture1->gl_index);
+			}
+
 			// Bind dynamic lights
 			for (Uint32 l = 0; l < MAX_DLIGHTS; l++)
 			{
-				if (pCvarCSM && pCvarCSM->GetValue() >= 1.0f && gDynamicLights.GetCSMShadowMap() && !cls.skycolor.IsZero())
-				{
-					Int32 csmTexUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_csm_shadowmap);
-					R_Bind2DTexture(GL_TEXTURE0 + csmTexUnit, gDynamicLights.GetCSMShadowMap()->pfbo->ptexture1->gl_index);
-				}
-
 				if (l < num_active_dlights)
 				{
 					cl_dlight_t* pdlight = active_dlights[l];

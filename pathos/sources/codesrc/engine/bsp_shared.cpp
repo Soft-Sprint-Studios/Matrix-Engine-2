@@ -108,7 +108,7 @@ bool BSP_CalcSurfaceExtents( msurface_t* psurf, brushmodel_t& model, Uint32 maxe
 		psurf->base_texturemins[i] = boundsmin*psurf->base_samplesize;
 		psurf->base_extents[i] = (boundsmax - boundsmin) * psurf->base_samplesize;
 
-		if(!(ptexinfo->flags & TEXFLAG_SPECIAL) && psurf->extents[i] > maxextents)
+		if(!(ptexinfo->flags & TEXFLAG_SPECIAL) && psurf->base_extents[i] > (maxextents*psurf->base_samplesize))
 		{
 			Con_EPrintf("%s: Bad surface extents.\n", __FUNCTION__);
 			return false;
