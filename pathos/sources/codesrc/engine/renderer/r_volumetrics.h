@@ -73,7 +73,6 @@ struct vol_shader_attribs_t
 		u_samples(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_hasSunLight(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_sunColorIntensity(CGLSLShader::PROPERTY_UNAVAILABLE),
-		u_sunDir(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_csmMatrix(CGLSLShader::PROPERTY_UNAVAILABLE),
 		u_csmShadowMap(CGLSLShader::PROPERTY_UNAVAILABLE),
 		d_pass(CGLSLShader::PROPERTY_UNAVAILABLE)
@@ -103,7 +102,6 @@ struct vol_shader_attribs_t
 
 	Int32 u_hasSunLight;
 	Int32 u_sunColorIntensity;
-	Int32 u_sunDir;
 	Int32 u_csmMatrix;
 	Int32 u_csmShadowMap;
 

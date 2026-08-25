@@ -166,7 +166,6 @@ bool CVolumetricsManager::InitGL( void )
 
 		m_attribs.u_hasSunLight = m_pShader->InitUniform("u_hasSunLight", CGLSLShader::UNIFORM_INT1);
 		m_attribs.u_sunColorIntensity = m_pShader->InitUniform("u_sunColorIntensity", CGLSLShader::UNIFORM_FLOAT4);
-		m_attribs.u_sunDir = m_pShader->InitUniform("u_sunDir", CGLSLShader::UNIFORM_FLOAT3);
 		m_attribs.u_csmMatrix = m_pShader->InitUniform("u_csmMatrix", CGLSLShader::UNIFORM_MATRIX4);
 		m_attribs.u_csmShadowMap = m_pShader->InitUniform("u_csmShadowMap", CGLSLShader::UNIFORM_SAMPLER2D);
 
@@ -186,7 +185,6 @@ bool CVolumetricsManager::InitGL( void )
 			|| !R_CheckShaderUniform(m_attribs.u_samples, "u_samples", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_hasSunLight, "u_hasSunLight", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_sunColorIntensity, "u_sunColorIntensity", m_pShader, Sys_ErrorPopup)
-			|| !R_CheckShaderUniform(m_attribs.u_sunDir, "u_sunDir", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_csmMatrix, "u_csmMatrix", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderUniform(m_attribs.u_csmShadowMap, "u_csmShadowMap", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderDeterminator(m_attribs.d_pass, "pass", m_pShader, Sys_ErrorPopup))
@@ -441,8 +439,6 @@ bool CVolumetricsManager::DrawVolumetrics( void )
 		m_pShader->SetUniform1i(m_attribs.u_hasSunLight, 1);
 		Vector sunCol = cls.skycolor * (1.0f / 255.0f);
 		m_pShader->SetUniform4f(m_attribs.u_sunColorIntensity, sunCol.x, sunCol.y, sunCol.z, cls.skyvolumetric * 0.005f);
-		Vector sunDir = gDynamicLights.GetCSMSunDir();
-		m_pShader->SetUniform3f(m_attribs.u_sunDir, sunDir.x, sunDir.y, sunDir.z);
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_csmMatrix, gDynamicLights.GetCSMMatrix());
 
 		Int32 csmUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_csmShadowMap);

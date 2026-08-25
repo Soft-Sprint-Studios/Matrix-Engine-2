@@ -2166,6 +2166,9 @@ bool CDynamicLightManager::DrawCSMPass( void )
 
 	glClear(GL_DEPTH_BUFFER_BIT);
 
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(2.0f, 4.0f);
+
 	rns.view.projection.PushMatrix();
 	rns.view.projection.LoadIdentity();
 	rns.view.projection.Ortho(-extents, extents, -extents, extents, 1.0f, radius);
@@ -2206,6 +2209,8 @@ bool CDynamicLightManager::DrawCSMPass( void )
 
 	if(result && !gVBMRenderer.DrawVSM(&dummyDLight, pCSMEntList, numCSMEnts))
 		result = false;
+
+	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	rns.view.pviewleaf = pSavedLeaf;
 
