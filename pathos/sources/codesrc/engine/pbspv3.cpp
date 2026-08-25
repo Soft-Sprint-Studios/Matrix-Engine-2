@@ -633,7 +633,7 @@ bool PBSPV3_LoadFaces( const byte* pfile, brushmodel_t& model, const dpbspv3lump
 		// Flag sky surfaces
 		if(!qstrncmp(pout->ptexinfo->ptexture->name.c_str(), "SKY", 3))
 			pout->flags |= SURF_DRAWSKY;
-		else if(pout->ptexinfo->ptexture->name[0] == '!')
+		else if(!qstrncmp(pout->ptexinfo->ptexture->name.c_str(), "WATER", 5))
 			pout->flags |= SURF_DRAWTURB;
 	}
 
