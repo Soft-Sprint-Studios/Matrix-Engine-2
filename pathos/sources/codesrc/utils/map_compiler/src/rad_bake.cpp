@@ -1,0 +1,582 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2025-2026 Soft Sprint Studios
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+#include "rad.h"
+#include "bsp.h"
+#include "miniz.h"
+#include <cmath>
+#include <cstring>
+#include <algorithm>
+#include <iostream>
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
+void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces, Int32 raysPerLuxel)
+{
+    struct luxel_radiance_t
+    {
+        Float direct[PBSPV3_MAX_LIGHTMAPS][3];
+        Float bounce[PBSPV3_MAX_LIGHTMAPS][3];
+        Float ambient[3];
+        Float dominantDir[PBSPV3_MAX_LIGHTMAPS][3];
+    };
+
+    std::vector<std::vector<luxel_radiance_t>> faceLuxels(faceLightmaps.size());
+
+#if defined(_OPENMP)
+    #pragma omp parallel for schedule(dynamic)
+#endif
+    for (int f = 0; f < (int)faceLightmaps.size(); f++)
+    {
+        const auto& lm = faceLightmaps[f];
+        if (g_BSP.GetTexinfo(lm.texinfoIndex).flags & 1)
+        {
+            continue;
+        }
+
+        faceLuxels[f].resize(lm.totalLuxels);
+
+        for (Int32 i = 0; i < lm.totalLuxels; i++)
+        {
+            const luxel_coord_t& coord = lm.sampleCoords[i];
+            luxel_radiance_t& lux = faceLuxels[f][i];
+
+            memset(&lux, 0, sizeof(lux));
+            lux.ambient[0] = 0.00f;
+            lux.ambient[1] = 0.00f;
+            lux.ambient[2] = 0.00f;
+
+            if (lm.bspFaceIndex >= 0 && lm.bspFaceIndex < (Int32)m_faceInfos.size())
+            {
+                lux.direct[0][0] += m_faceInfos[lm.bspFaceIndex].emissive[0];
+                lux.direct[0][1] += m_faceInfos[lm.bspFaceIndex].emissive[1];
+                lux.direct[0][2] += m_faceInfos[lm.bspFaceIndex].emissive[2];
+            }
+
+            for (const auto& lt : m_lights)
+            {
+                if (lt.type == LIGHT_SUN)
+                {
+                    Float sunTarget[3] = {
+                        coord.worldPos[0] - lt.normal[0] * 32768.0f,
+                        coord.worldPos[1] - lt.normal[1] * 32768.0f,
+                        coord.worldPos[2] - lt.normal[2] * 32768.0f
+                    };
+
+                    Float NdotL = -(coord.normal[0] * lt.normal[0] + coord.normal[1] * lt.normal[1] + coord.normal[2] * lt.normal[2]);
+                    if (NdotL <= 0.001f)
+                    {
+                        continue;
+                    }
+
+                    Float hitDist;
+                    if (!TraceOcclusion(coord.worldPos, sunTarget, hitDist))
+                    {
+                        Float r = lt.color[0] * NdotL;
+                        Float g = lt.color[1] * NdotL;
+                        Float b = lt.color[2] * NdotL;
+
+                        dpbspv3face_t& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
+                        Int32 styleSlot = -1;
+                        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                        {
+                            if (bspFace.lmstyles[s] == lt.style)
+                            {
+                                styleSlot = s;
+                                break;
+                            }
+                            if (bspFace.lmstyles[s] == 255)
+                            {
+                                bspFace.lmstyles[s] = lt.style;
+                                styleSlot = s;
+                                break;
+                            }
+                        }
+
+                        if (styleSlot != -1)
+                        {
+                            lux.direct[styleSlot][0] += r;
+                            lux.direct[styleSlot][1] += g;
+                            lux.direct[styleSlot][2] += b;
+
+                            lux.dominantDir[styleSlot][0] -= lt.normal[0] * NdotL;
+                            lux.dominantDir[styleSlot][1] -= lt.normal[1] * NdotL;
+                            lux.dominantDir[styleSlot][2] -= lt.normal[2] * NdotL;
+                        }
+                    }
+                }
+                else if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
+                {
+                    Float toLight[3] = { lt.origin[0] - coord.worldPos[0], lt.origin[1] - coord.worldPos[1], lt.origin[2] - coord.worldPos[2] };
+                    Float dist = sqrtf(toLight[0] * toLight[0] + toLight[1] * toLight[1] + toLight[2] * toLight[2]);
+                    if (dist < 0.1f)
+                    {
+                        continue;
+                    }
+
+                    Float dir[3] = { toLight[0] / dist, toLight[1] / dist, toLight[2] / dist };
+                    Float NdotL = coord.normal[0] * dir[0] + coord.normal[1] * dir[1] + coord.normal[2] * dir[2];
+                    if (NdotL <= 0.001f)
+                    {
+                        continue;
+                    }
+
+                    Float spotFactor = 1.0f;
+                    if (lt.type == 2)
+                    {
+                        Float spotDot = -(dir[0] * lt.normal[0] + dir[1] * lt.normal[1] + dir[2] * lt.normal[2]);
+                        if (spotDot < lt.stopdot2)
+                        {
+                            continue;
+                        }
+                        if (spotDot < lt.stopdot)
+                        {
+                            spotFactor = (spotDot - lt.stopdot2) / (lt.stopdot - lt.stopdot2);
+                        }
+                    }
+
+                    Float hitDist;
+                    if (!TraceOcclusion(coord.worldPos, lt.origin, hitDist))
+                    {
+                        Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
+                        Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor * NdotL;
+
+                        Float r = lt.color[0] * atten;
+                        Float g = lt.color[1] * atten;
+                        Float b = lt.color[2] * atten;
+
+                        dpbspv3face_t& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
+                        Int32 styleSlot = -1;
+                        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                        {
+                            if (bspFace.lmstyles[s] == lt.style)
+                            {
+                                styleSlot = s;
+                                break;
+                            }
+                            if (bspFace.lmstyles[s] == 255)
+                            {
+                                bspFace.lmstyles[s] = lt.style;
+                                styleSlot = s;
+                                break;
+                            }
+                        }
+
+                        if (styleSlot != -1)
+                        {
+                            lux.direct[styleSlot][0] += r;
+                            lux.direct[styleSlot][1] += g;
+                            lux.direct[styleSlot][2] += b;
+
+                            lux.dominantDir[styleSlot][0] += dir[0] * NdotL;
+                            lux.dominantDir[styleSlot][1] += dir[1] * NdotL;
+                            lux.dominantDir[styleSlot][2] += dir[2] * NdotL;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    {
+        const auto& lm = faceLightmaps[f];
+        if (!faceLuxels[f].empty() && lm.totalLuxels > 0 && lm.bspFaceIndex >= 0 && lm.bspFaceIndex < (Int32)m_faceInfos.size())
+        {
+            Float sumRad[3] = { 0.0f, 0.0f, 0.0f };
+            for (Int32 i = 0; i < lm.totalLuxels; i++)
+            {
+                sumRad[0] += faceLuxels[f][i].direct[0][0];
+                sumRad[1] += faceLuxels[f][i].direct[0][1];
+                sumRad[2] += faceLuxels[f][i].direct[0][2];
+            }
+            m_faceInfos[lm.bspFaceIndex].avgRadiance[0] = sumRad[0] / (Float)lm.totalLuxels;
+            m_faceInfos[lm.bspFaceIndex].avgRadiance[1] = sumRad[1] / (Float)lm.totalLuxels;
+            m_faceInfos[lm.bspFaceIndex].avgRadiance[2] = sumRad[2] / (Float)lm.totalLuxels;
+        }
+    }
+
+    for (Int32 bounce = 0; bounce < numBounces; bounce++)
+    {
+        std::vector<std::vector<std::array<Float, 3>>> stepBounce(faceLightmaps.size());
+
+#if defined(_OPENMP)
+        #pragma omp parallel for schedule(dynamic)
+#endif
+        for (int f = 0; f < (int)faceLightmaps.size(); f++)
+        {
+            const auto& lm = faceLightmaps[f];
+            if (g_BSP.GetTexinfo(lm.texinfoIndex).flags & 1)
+            {
+                continue;
+            }
+
+            stepBounce[f].resize(lm.totalLuxels);
+
+            for (Int32 i = 0; i < lm.totalLuxels; i++)
+            {
+                const luxel_coord_t& coord = lm.sampleCoords[i];
+                luxel_radiance_t& lux = faceLuxels[f][i];
+
+                Float bounceAccum[3] = { 0.0f, 0.0f, 0.0f };
+
+                Float tangent[3] = { 1.0f, 0.0f, 0.0f };
+                if (fabsf(coord.normal[0]) > 0.9f)
+                {
+                    tangent[0] = 0.0f;
+                    tangent[1] = 1.0f;
+                }
+                Float bitangent[3];
+                bitangent[0] = coord.normal[1] * tangent[2] - coord.normal[2] * tangent[1];
+                bitangent[1] = coord.normal[2] * tangent[0] - coord.normal[0] * tangent[2];
+                bitangent[2] = coord.normal[0] * tangent[1] - coord.normal[1] * tangent[0];
+
+                uint32_t seed = (uint32_t)(f * 199999ULL + i * 31337ULL + bounce * 7919ULL);
+
+                for (Int32 r = 0; r < raysPerLuxel; r++)
+                {
+                    seed = seed * 1664525u + 1013904223u;
+                    Float u1 = ((Float)r + ((seed >> 16) & 0xFFFF) / 65536.0f) / (Float)raysPerLuxel;
+                    seed = seed * 1664525u + 1013904223u;
+                    Float u2 = ((seed >> 16) & 0xFFFF) / 65536.0f;
+
+                    Float rSqrt = sqrtf(std::clamp(u1, 0.0f, 1.0f));
+                    Float theta = 2.0f * M_PI * u2;
+
+                    Float x = rSqrt * cosf(theta);
+                    Float y = rSqrt * sinf(theta);
+                    Float z = sqrtf(std::max(0.0f, 1.0f - u1));
+
+                    Float sampleDir[3] = {
+                        tangent[0] * x + bitangent[0] * y + coord.normal[0] * z,
+                        tangent[1] * x + bitangent[1] * y + coord.normal[1] * z,
+                        tangent[2] * x + bitangent[2] * y + coord.normal[2] * z
+                    };
+
+                    ray_hit_t hit;
+                    if (TraceRayHit(coord.worldPos, sampleDir, 4096.0f, hit))
+                    {
+                        Int32 hitFaceIdx = m_primToFaceMap[hit.primID];
+                        if (hitFaceIdx >= 0 && hitFaceIdx < (Int32)m_faceInfos.size())
+                        {
+                            const auto& hitInfo = m_faceInfos[hitFaceIdx];
+                            bounceAccum[0] += (hitInfo.avgRadiance[0] * hitInfo.reflectivity[0] + hitInfo.emissive[0]);
+                            bounceAccum[1] += (hitInfo.avgRadiance[1] * hitInfo.reflectivity[1] + hitInfo.emissive[1]);
+                            bounceAccum[2] += (hitInfo.avgRadiance[2] * hitInfo.reflectivity[2] + hitInfo.emissive[2]);
+                        }
+                    }
+                }
+
+                Float stepR = bounceAccum[0] / (Float)raysPerLuxel;
+                Float stepG = bounceAccum[1] / (Float)raysPerLuxel;
+                Float stepB = bounceAccum[2] / (Float)raysPerLuxel;
+
+                stepBounce[f][i] = { stepR, stepG, stepB };
+
+                lux.bounce[0][0] += stepR;
+                lux.bounce[0][1] += stepG;
+                lux.bounce[0][2] += stepB;
+            }
+        }
+
+        for (size_t curF = 0; curF < faceLightmaps.size(); curF++)
+        {
+            const auto& lm = faceLightmaps[curF];
+            if (!stepBounce[curF].empty() && lm.totalLuxels > 0 && lm.bspFaceIndex >= 0 && lm.bspFaceIndex < (Int32)m_faceInfos.size())
+            {
+                Float sumRad[3] = { 0.0f, 0.0f, 0.0f };
+                for (Int32 li = 0; li < lm.totalLuxels; li++)
+                {
+                    sumRad[0] += stepBounce[curF][li][0];
+                    sumRad[1] += stepBounce[curF][li][1];
+                    sumRad[2] += stepBounce[curF][li][2];
+                }
+                m_faceInfos[lm.bspFaceIndex].avgRadiance[0] = sumRad[0] / (Float)lm.totalLuxels;
+                m_faceInfos[lm.bspFaceIndex].avgRadiance[1] = sumRad[1] / (Float)lm.totalLuxels;
+                m_faceInfos[lm.bspFaceIndex].avgRadiance[2] = sumRad[2] / (Float)lm.totalLuxels;
+            }
+        }
+    }
+
+    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    {
+        const auto& lm = faceLightmaps[f];
+        if (faceLuxels[f].empty() || lm.luxelWidth <= 1 || lm.luxelHeight <= 1)
+            continue;
+
+        std::vector<luxel_radiance_t> blurred = faceLuxels[f];
+
+        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+        {
+            for (Int32 y = 0; y < lm.luxelHeight; y++)
+            {
+                for (Int32 x = 0; x < lm.luxelWidth; x++)
+                {
+                    Float totalWeight = 0.0f;
+                    Float sumDirect[3] = { 0.0f, 0.0f, 0.0f };
+                    Float sumBounce[3] = { 0.0f, 0.0f, 0.0f };
+                    Float sumDir[3] = { 0.0f, 0.0f, 0.0f };
+
+                    for (Int32 dy = -1; dy <= 1; dy++)
+                    {
+                        Int32 ny = y + dy;
+                        if (ny < 0 || ny >= lm.luxelHeight) continue;
+
+                        for (Int32 dx = -1; dx <= 1; dx++)
+                        {
+                            Int32 nx = x + dx;
+                            if (nx < 0 || nx >= lm.luxelWidth) continue;
+
+                            Float weight = (dx == 0 && dy == 0) ? 0.5f : ((dx == 0 || dy == 0) ? 0.25f : 0.125f);
+                            Int32 neighborIdx = ny * lm.luxelWidth + nx;
+
+                            sumDirect[0] += faceLuxels[f][neighborIdx].direct[s][0] * weight;
+                            sumDirect[1] += faceLuxels[f][neighborIdx].direct[s][1] * weight;
+                            sumDirect[2] += faceLuxels[f][neighborIdx].direct[s][2] * weight;
+
+                            sumBounce[0] += faceLuxels[f][neighborIdx].bounce[s][0] * weight;
+                            sumBounce[1] += faceLuxels[f][neighborIdx].bounce[s][1] * weight;
+                            sumBounce[2] += faceLuxels[f][neighborIdx].bounce[s][2] * weight;
+
+                            sumDir[0] += faceLuxels[f][neighborIdx].dominantDir[s][0] * weight;
+                            sumDir[1] += faceLuxels[f][neighborIdx].dominantDir[s][1] * weight;
+                            sumDir[2] += faceLuxels[f][neighborIdx].dominantDir[s][2] * weight;
+
+                            totalWeight += weight;
+                        }
+                    }
+
+                    Int32 curIdx = y * lm.luxelWidth + x;
+                    if (totalWeight > 0.0001f)
+                    {
+                        blurred[curIdx].direct[s][0] = sumDirect[0] / totalWeight;
+                        blurred[curIdx].direct[s][1] = sumDirect[1] / totalWeight;
+                        blurred[curIdx].direct[s][2] = sumDirect[2] / totalWeight;
+
+                        blurred[curIdx].bounce[s][0] = sumBounce[0] / totalWeight;
+                        blurred[curIdx].bounce[s][1] = sumBounce[1] / totalWeight;
+                        blurred[curIdx].bounce[s][2] = sumBounce[2] / totalWeight;
+
+                        blurred[curIdx].dominantDir[s][0] = sumDir[0] / totalWeight;
+                        blurred[curIdx].dominantDir[s][1] = sumDir[1] / totalWeight;
+                        blurred[curIdx].dominantDir[s][2] = sumDir[2] / totalWeight;
+                    }
+                }
+            }
+        }
+        faceLuxels[f] = blurred;
+    }
+
+    AllocateAllFaceLightmaps(faceLightmaps);
+
+    size_t totalBytes = 0;
+    for (const auto& lm : faceLightmaps)
+    {
+        if (lm.lightOffset >= 0)
+        {
+            Int32 numStyles = 0;
+            for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+            {
+                if (g_BSP.GetFace(lm.bspFaceIndex).lmstyles[s] != 255)
+                    numStyles++;
+            }
+            totalBytes += (size_t)lm.totalLuxels * 3 * numStyles;
+        }
+    }
+
+    std::vector<byte> defData(totalBytes, 0);
+    std::vector<byte> ambData(totalBytes, 0);
+    std::vector<byte> diffData(totalBytes, 0);
+    std::vector<byte> vecData(totalBytes, 128);
+    for (size_t vi = 2; vi < totalBytes; vi += 3)
+    {
+        vecData[vi] = 255;
+    }
+
+    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    {
+        const auto& lm = faceLightmaps[f];
+        if (lm.lightOffset < 0 || faceLuxels[f].empty())
+        {
+            continue;
+        }
+
+        const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(lm.texinfoIndex);
+        const dpbspv3plane_t& pl = g_BSP.GetPlane(lm.planeIndex);
+
+        auto Normalize = [](Float v[3])
+            {
+                Float len = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+                if (len > 0.00001f)
+                {
+                    v[0] /= len;
+                    v[1] /= len;
+                    v[2] /= len;
+                }
+            };
+
+        Float tbn[3][3];
+        for (Int32 k = 0; k < 3; k++)
+        {
+            tbn[0][k] = tx.vecs[0][k];
+            tbn[1][k] = tx.vecs[1][k];
+            tbn[2][k] = pl.normal[k];
+        }
+
+        Normalize(tbn[0]);
+        Normalize(tbn[1]);
+        Normalize(tbn[2]);
+
+        Int32 numStyles = 0;
+        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+        {
+            if (g_BSP.GetFace(lm.bspFaceIndex).lmstyles[s] != 255)
+                numStyles++;
+        }
+
+        auto Dot = [](const Float a[3], const Float b[3]) -> Float {
+            return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+            };
+
+        for (Int32 s = 0; s < numStyles; s++)
+        {
+            for (Int32 i = 0; i < lm.totalLuxels; i++)
+            {
+                const luxel_radiance_t& lux = faceLuxels[f][i];
+
+                const luxel_coord_t& coord = lm.sampleCoords[i];
+
+                Float T[3] = { tx.vecs[0][0], tx.vecs[0][1], tx.vecs[0][2] };
+                Float B[3] = { tx.vecs[1][0], tx.vecs[1][1], tx.vecs[1][2] };
+                Float N[3] = { coord.normal[0], coord.normal[1], coord.normal[2] };
+                Normalize(N);
+
+                Float dotTN = Dot(T, N);
+                T[0] -= dotTN * N[0];
+                T[1] -= dotTN * N[1];
+                T[2] -= dotTN * N[2];
+                Normalize(T);
+
+                Float dotBN = Dot(B, N);
+                B[0] -= dotBN * N[0];
+                B[1] -= dotBN * N[1];
+                B[2] -= dotBN * N[2];
+                Normalize(B);
+
+                Float finalTotal[3];
+                Float finalDiffuse[3];
+                Float finalAmbient[3];
+
+                Float wDirLen = sqrtf(lux.dominantDir[s][0] * lux.dominantDir[s][0] + lux.dominantDir[s][1] * lux.dominantDir[s][1] + lux.dominantDir[s][2] * lux.dominantDir[s][2]);
+                Float nDotL = (wDirLen > 0.001f) ? (coord.normal[0] * (lux.dominantDir[s][0] / wDirLen) + coord.normal[1] * (lux.dominantDir[s][1] / wDirLen) + coord.normal[2] * (lux.dominantDir[s][2] / wDirLen)) : 0.0f;
+                nDotL = std::clamp(nDotL, 0.0f, 1.0f);
+
+                if (s == 0)
+                {
+                    finalTotal[0] = lux.direct[0][0] * nDotL + lux.bounce[0][0] + lux.ambient[0];
+                    finalTotal[1] = lux.direct[0][1] * nDotL + lux.bounce[0][1] + lux.ambient[1];
+                    finalTotal[2] = lux.direct[0][2] * nDotL + lux.bounce[0][2] + lux.ambient[2];
+
+                    finalDiffuse[0] = lux.direct[0][0];
+                    finalDiffuse[1] = lux.direct[0][1];
+                    finalDiffuse[2] = lux.direct[0][2];
+
+                    finalAmbient[0] = lux.bounce[0][0] + lux.ambient[0];
+                    finalAmbient[1] = lux.bounce[0][1] + lux.ambient[1];
+                    finalAmbient[2] = lux.bounce[0][2] + lux.ambient[2];
+                }
+                else
+                {
+                    finalTotal[0] = lux.direct[s][0] * nDotL;
+                    finalTotal[1] = lux.direct[s][1] * nDotL;
+                    finalTotal[2] = lux.direct[s][2] * nDotL;
+
+                    finalDiffuse[0] = lux.direct[s][0];
+                    finalDiffuse[1] = lux.direct[s][1];
+                    finalDiffuse[2] = lux.direct[s][2];
+
+                    memset(finalAmbient, 0, sizeof(finalAmbient));
+                }
+
+                Float tangentDir[3] = { 0.0f, 0.0f, 1.0f };
+                if (wDirLen > 0.001f)
+                {
+                    Float normWDir[3] = { lux.dominantDir[s][0] / wDirLen, lux.dominantDir[s][1] / wDirLen, lux.dominantDir[s][2] / wDirLen };
+                    tangentDir[0] = Dot(normWDir, T);
+                    tangentDir[1] = Dot(normWDir, B);
+                    tangentDir[2] = Dot(normWDir, N);
+                    Normalize(tangentDir);
+                }
+
+                size_t baseIdx = (size_t)lm.lightOffset + (s * lm.totalLuxels + i) * 3;
+
+                auto ColorToByte = [](Float colorComponent, Float minL = 0.0f) -> byte
+                    {
+                        Float scaled = colorComponent * 2.0f;
+                        if (scaled < minL) scaled = minL;
+                        if (scaled < 0.0f) scaled = 0.0f;
+                        Float gammaAdjusted = powf(scaled / 256.0f, 0.55f) * 256.0f;
+                        Int32 ival = (Int32)floorf(gammaAdjusted + 0.5f);
+                        return (byte)std::clamp(ival, 0, 255);
+                    };
+
+                Float minL = (lm.bspFaceIndex >= 0 && lm.bspFaceIndex < (Int32)m_faceInfos.size()) ? m_faceInfos[lm.bspFaceIndex].minLight : 0.0f;
+
+                defData[baseIdx + 0] = ColorToByte(finalTotal[0], minL);
+                defData[baseIdx + 1] = ColorToByte(finalTotal[1], minL);
+                defData[baseIdx + 2] = ColorToByte(finalTotal[2], minL);
+
+                ambData[baseIdx + 0] = ColorToByte(finalAmbient[0], minL);
+                ambData[baseIdx + 1] = ColorToByte(finalAmbient[1], minL);
+                ambData[baseIdx + 2] = ColorToByte(finalAmbient[2], minL);
+
+                diffData[baseIdx + 0] = ColorToByte(finalDiffuse[0], minL);
+                diffData[baseIdx + 1] = ColorToByte(finalDiffuse[1], minL);
+                diffData[baseIdx + 2] = ColorToByte(finalDiffuse[2], minL);
+
+                vecData[baseIdx + 0] = (byte)std::clamp((Int32)((tangentDir[0] * 0.5f + 0.5f) * 255.0f), 0, 255);
+                vecData[baseIdx + 1] = (byte)std::clamp((Int32)((tangentDir[1] * 0.5f + 0.5f) * 255.0f), 0, 255);
+                vecData[baseIdx + 2] = (byte)std::clamp((Int32)((tangentDir[2] * 0.5f + 0.5f) * 255.0f), 0, 255);
+            }
+        }
+        if (lm.totalLuxels > 0)
+        {
+            Float sumRad[3] = { 0.0f, 0.0f, 0.0f };
+            for (Int32 i = 0; i < lm.totalLuxels; i++)
+            {
+                sumRad[0] += faceLuxels[f][i].direct[0][0] + faceLuxels[f][i].bounce[0][0];
+                sumRad[1] += faceLuxels[f][i].direct[0][1] + faceLuxels[f][i].bounce[0][1];
+                sumRad[2] += faceLuxels[f][i].direct[0][2] + faceLuxels[f][i].bounce[0][2];
+            }
+            m_faceInfos[lm.bspFaceIndex].avgRadiance[0] = sumRad[0] / (Float)lm.totalLuxels;
+            m_faceInfos[lm.bspFaceIndex].avgRadiance[1] = sumRad[1] / (Float)lm.totalLuxels;
+            m_faceInfos[lm.bspFaceIndex].avgRadiance[2] = sumRad[2] / (Float)lm.totalLuxels;
+        }
+    }
+
+    g_BSP.SetLightmapLayer(SURF_LIGHTMAP_DEFAULT, defData);
+    g_BSP.SetLightmapLayer(SURF_LIGHTMAP_AMBIENT, ambData);
+    g_BSP.SetLightmapLayer(SURF_LIGHTMAP_DIFFUSE, diffData);
+    g_BSP.SetLightmapLayer(SURF_LIGHTMAP_VECTORS, vecData);
+}

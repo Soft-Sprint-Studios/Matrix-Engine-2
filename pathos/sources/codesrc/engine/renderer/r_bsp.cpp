@@ -1959,9 +1959,6 @@ void CBSPRenderer::RecursiveWorldNode( mnode_t* pnode )
 		msurface_t* psurface = ens.pworld->psurfaces + pnode->firstsurface;
 		for(i = 0; i < pnode->numsurfaces; i++, psurface++)
 		{
-			if(psurface->visframe != rns.framecount)
-				continue;
-
 			if((psurface->flags & SURF_PLANEBACK) != sidebit)
 				continue;
 

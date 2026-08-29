@@ -34,3 +34,5 @@ Video rendering
 Linux support
 
 CSM
+
+Clean room map compiler under utils/map_compiler
