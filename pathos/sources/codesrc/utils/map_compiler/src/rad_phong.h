@@ -28,6 +28,6 @@
 #include "lightmap.h"
 #include <vector>
 
-void SmoothFaceNormals(std::vector<lightmap_face_t>& faceLightmaps, Float maxAngleDegrees = 150.0f);
+void SmoothFaceNormals(std::vector<lightmap_face_t>& faceLightmaps, Float maxAngleDegrees = 60.0f);
 
 #endif // RAD_PHONG_H
