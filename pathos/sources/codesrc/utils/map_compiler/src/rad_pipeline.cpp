@@ -232,6 +232,17 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
             continue;
         }
 
+        if (g_BSP.GetModelCount() > 0)
+        {
+            const dpbspv3model_t& worldModel = g_BSP.GetModel(0);
+            bool isWorldFace = ((Int32)i >= worldModel.firstface && (Int32)i < worldModel.firstface + worldModel.numfaces);
+
+            if (!isWorldFace)
+            {
+                continue;
+            }
+        }
+
         Int32 firstEdge = f.firstedge;
         Int32 numEdges = f.numedges;
         if (numEdges < 3)
