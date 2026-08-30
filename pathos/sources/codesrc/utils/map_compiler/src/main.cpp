@@ -84,6 +84,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    std::cout << "Building BSP structure & geometry...\n";
     map_disp_data_t dispData;
     ParseMapDisp(dispFile.c_str(), dispData);
 
@@ -100,13 +101,13 @@ int main(int argc, char* argv[])
         rad.BuildSceneGeometry(mapData, dispData, gamedir.c_str());
         rad.ParseLights(mapData, daystage);
 
-        std::cout << "Computing PVS Visibility...\n";
         CalculatePVS(&rad);
 
-        std::cout << "Baking lightmaps...\n";
         rad.BakeLightmaps(faceLightmaps, gamedir.c_str());
         rad.BakeVertexLights(mapData, gamedir.c_str());
+
         g_BSP.SetEntities(SerializeEntities(mapData));
+
         rad.BuildLightGrid(32);
         rad.Shutdown();
     }

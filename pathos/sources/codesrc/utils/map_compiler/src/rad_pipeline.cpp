@@ -131,6 +131,8 @@ void CRadPipeline::LoadTexlights(const Char* baseDir)
 
 void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_data_t& dispData, const Char* baseDir)
 {
+    std::cout << "Building ray tracing scene...\n";
+
     LoadTexlights(baseDir);
 
     std::vector<Float> sceneVerts;

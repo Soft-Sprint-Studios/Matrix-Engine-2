@@ -31,6 +31,7 @@
 #include <vector>
 #include <array>
 #include <algorithm>
+#include <iostream>
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
@@ -71,6 +72,8 @@ struct leaf_sample_t
 
 void CalculatePVS(const CRadPipeline* radPipeline)
 {
+    std::cout << "Computing PVS Visibility...\n";
+
     size_t totalLeafs = g_BSP.GetLeafCount();
     if (totalLeafs <= 1)
     {

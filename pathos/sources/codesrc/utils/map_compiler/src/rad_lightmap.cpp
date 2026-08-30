@@ -34,6 +34,8 @@
 
 void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces, Int32 raysPerLuxel)
 {
+    std::cout << "Baking lightmaps...\n";
+
     struct luxel_radiance_t
     {
         Float direct[PBSPV3_MAX_LIGHTMAPS][3];
