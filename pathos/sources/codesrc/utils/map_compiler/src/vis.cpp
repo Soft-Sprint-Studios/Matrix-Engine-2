@@ -85,10 +85,12 @@ void CalculatePVS(const CRadPipeline* radPipeline)
 
     size_t rowBytes = (numVisLeafs + 7) / 8;
     std::vector<std::vector<byte>> uncompressedPVS(numVisLeafs, std::vector<byte>(rowBytes, 0));
-
     std::vector<leaf_sample_t> leafSamples(totalLeafs);
 
-    for (size_t i = 1; i <= numVisLeafs; i++)
+#if defined(_OPENMP)
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 1; i <= (int)numVisLeafs; i++)
     {
         const auto& leaf = g_BSP.GetLeaf(i);
         if (leaf.contents == CONTENTS_SOLID)
@@ -107,14 +109,14 @@ void CalculatePVS(const CRadPipeline* radPipeline)
         Float spanY = (Float)(leaf.maxs[1] - leaf.mins[1]);
         Float spanZ = (Float)(leaf.maxs[2] - leaf.mins[2]);
 
-        Float offsets[12][3] = 
+        Float offsets[12][3] =
         {
-            { 0.35f, 0.0f, 0.0f },  { -0.35f, 0.0f, 0.0f },
-            { 0.0f, 0.35f, 0.0f },  { 0.0f, -0.35f, 0.0f },
-            { 0.0f, 0.0f, 0.35f },  { 0.0f, 0.0f, -0.35f },
-            { 0.25f, 0.25f, 0.0f }, { -0.25f, -0.25f, 0.0f },
-            { 0.25f, -0.25f, 0.0f },{ -0.25f, 0.25f, 0.0f },
-            { 0.0f, 0.25f, 0.25f }, { 0.0f, -0.25f, -0.25f }
+            {  0.35f,  0.00f,  0.00f }, { -0.35f,  0.00f,  0.00f },
+            {  0.00f,  0.35f,  0.00f }, {  0.00f, -0.35f,  0.00f },
+            {  0.00f,  0.00f,  0.35f }, {  0.00f,  0.00f, -0.35f },
+            {  0.25f,  0.25f,  0.00f }, { -0.25f, -0.25f,  0.00f },
+            {  0.25f, -0.25f,  0.00f }, { -0.25f,  0.25f,  0.00f },
+            {  0.00f,  0.25f,  0.25f }, {  0.00f, -0.25f, -0.25f }
         };
 
         for (int o = 0; o < 12; o++)
@@ -123,12 +125,12 @@ void CalculatePVS(const CRadPipeline* radPipeline)
                 ls.center[0] + offsets[o][0] * spanX,
                 ls.center[1] + offsets[o][1] * spanY,
                 ls.center[2] + offsets[o][2] * spanZ
-                });
+            });
         }
     }
 
 #if defined(_OPENMP)
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic, 4)
 #endif
     for (int i = 0; i < (int)numVisLeafs; i++)
     {
@@ -157,8 +159,8 @@ void CalculatePVS(const CRadPipeline* radPipeline)
             }
 
             bool adjacent = (srcLeaf.mins[0] <= dstLeaf.maxs[0] + 2 && srcLeaf.maxs[0] >= dstLeaf.mins[0] - 2) &&
-                (srcLeaf.mins[1] <= dstLeaf.maxs[1] + 2 && srcLeaf.maxs[1] >= dstLeaf.mins[1] - 2) &&
-                (srcLeaf.mins[2] <= dstLeaf.maxs[2] + 2 && srcLeaf.maxs[2] >= dstLeaf.mins[2] - 2);
+                            (srcLeaf.mins[1] <= dstLeaf.maxs[1] + 2 && srcLeaf.maxs[1] >= dstLeaf.mins[1] - 2) &&
+                            (srcLeaf.mins[2] <= dstLeaf.maxs[2] + 2 && srcLeaf.maxs[2] >= dstLeaf.mins[2] - 2);
 
             if (adjacent)
             {
@@ -197,39 +199,65 @@ void CalculatePVS(const CRadPipeline* radPipeline)
         }
     }
 
-    for (size_t a = 0; a < numVisLeafs; a++)
-    {
-        for (size_t b = a + 1; b < numVisLeafs; b++)
-        {
-            bool aSeesB = (uncompressedPVS[a][b >> 3] & (1 << (b & 7))) != 0;
-            bool bSeesA = (uncompressedPVS[b][a >> 3] & (1 << (a & 7))) != 0;
+    std::vector<std::vector<byte>> symmetricPVS(numVisLeafs, std::vector<byte>(rowBytes, 0));
 
-            if (aSeesB || bSeesA)
+#if defined(_OPENMP)
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < (int)numVisLeafs; i++)
+    {
+        for (size_t j = 0; j < numVisLeafs; j++)
+        {
+            bool iSeesJ = (uncompressedPVS[i][j >> 3] & (1 << (j & 7))) != 0;
+            bool jSeesI = (uncompressedPVS[j][i >> 3] & (1 << (i & 7))) != 0;
+
+            if (iSeesJ || jSeesI)
             {
-                uncompressedPVS[a][b >> 3] |= (1 << (b & 7));
-                uncompressedPVS[b][a >> 3] |= (1 << (a & 7));
+                symmetricPVS[i][j >> 3] |= (1 << (j & 7));
             }
         }
     }
 
-    std::vector<std::vector<byte>> expandedPVS = uncompressedPVS;
-    for (size_t i = 0; i < numVisLeafs; i++)
+    std::vector<std::vector<byte>> expandedPVS = symmetricPVS;
+
+#if defined(_OPENMP)
+    #pragma omp parallel for schedule(dynamic, 8)
+#endif
+    for (int i = 0; i < (int)numVisLeafs; i++)
     {
         for (size_t k = 0; k < numVisLeafs; k++)
         {
-            if (!(uncompressedPVS[i][k >> 3] & (1 << (k & 7))))
+            if (!(symmetricPVS[i][k >> 3] & (1 << (k & 7))))
+            {
                 continue;
+            }
 
             for (size_t b = 0; b < rowBytes; b++)
             {
-                expandedPVS[i][b] |= uncompressedPVS[k][b];
+                expandedPVS[i][b] |= symmetricPVS[k][b];
             }
         }
     }
-    uncompressedPVS = expandedPVS;
+
+    std::vector<std::vector<byte>> compressedRows(numVisLeafs);
+
+#if defined(_OPENMP)
+    #pragma omp parallel for schedule(static)
+#endif
+    for (int i = 0; i < (int)numVisLeafs; i++)
+    {
+        Int32 leafIdx = i + 1;
+        const auto& leaf = g_BSP.GetLeaf(leafIdx);
+        if (leaf.contents != CONTENTS_SOLID)
+        {
+            std::vector<byte> tempBuf(rowBytes * 2 + 16);
+            size_t compSize = CompressPVS(expandedPVS[i].data(), rowBytes, tempBuf.data());
+            tempBuf.resize(compSize);
+            compressedRows[i] = std::move(tempBuf);
+        }
+    }
 
     std::vector<byte> compressedVisibilityLump;
-    std::vector<byte> tempCompressedBuffer(rowBytes * 2 + 16);
 
     for (size_t i = 1; i < totalLeafs; i++)
     {
@@ -241,11 +269,11 @@ void CalculatePVS(const CRadPipeline* radPipeline)
         }
 
         size_t visIdx = i - 1;
-        size_t compressedSize = CompressPVS(uncompressedPVS[visIdx].data(), rowBytes, tempCompressedBuffer.data());
+        const auto& rowData = compressedRows[visIdx];
+
         Int32 currentOffset = (Int32)compressedVisibilityLump.size();
         leaf.visoffset = currentOffset;
-
-        compressedVisibilityLump.insert(compressedVisibilityLump.end(), tempCompressedBuffer.data(), tempCompressedBuffer.data() + compressedSize);
+        compressedVisibilityLump.insert(compressedVisibilityLump.end(), rowData.begin(), rowData.end());
     }
 
     g_BSP.SetVisibilityData(compressedVisibilityLump);
