@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 #include "rad.h"
+#include "rad_phong.h"
 #include "bsp.h"
 #include "miniz.h"
 #include <cmath>
@@ -35,6 +36,8 @@
 void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces, Int32 raysPerLuxel)
 {
     std::cout << "Baking lightmaps...\n";
+
+    SmoothFaceNormals(faceLightmaps);
 
     struct luxel_radiance_t
     {
