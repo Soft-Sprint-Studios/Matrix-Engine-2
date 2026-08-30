@@ -56,7 +56,6 @@ struct poly_brush_t
 
 bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly);
 bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, std::vector<lightmap_face_t>& outFaceLightmaps);
-bool SplitPolygonByPlane(const std::vector<poly_vert_t>& inVerts, const Float normal[3], Float dist, std::vector<poly_vert_t>& outFront, std::vector<poly_vert_t>& outBack);
 std::string SerializeEntities(const map_data_t& mapData);
 
 #endif // BRUSH_H
