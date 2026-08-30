@@ -60,6 +60,9 @@ state variables and functionality.
 #else
 #include <link.h>
 #include <elf.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/file.h>
 #endif
 
 extern file_interface_t ENGINE_FILE_FUNCTIONS;
@@ -1167,9 +1170,44 @@ void Sys_PollEvents( void )
 //=============================================
 Int32 Sys_Main( CArray<CString>* argsArray )
 {
+	// Avoid launching multiple instances
+#ifdef _WIN32
+	HANDLE hMutex = CreateMutex(nullptr, FALSE, "MatrixEngine2InstanceMutex");
+
+	if(nullptr != hMutex)
+		GetLastError();
+
+	DWORD mutexResult = WaitForSingleObject(hMutex, 0);
+	if(mutexResult != WAIT_OBJECT_0 && mutexResult != WAIT_ABANDONED)
+	{
+		Sys_ErrorPopup("Only one instance of this game can be running at a time.");
+		Con_EPrintf("Error during system initialization.\n");
+		ReleaseMutex(hMutex);
+		CloseHandle(hMutex);
+		return -1;
+	}
+#else
+	int lockFd = open("/tmp/MatrixEngine2Instance.lock", O_CREAT | O_RDWR, 0666);
+	if(lockFd < 0 || flock(lockFd, LOCK_EX | LOCK_NB) != 0)
+	{
+		Sys_ErrorPopup("Only one instance of this game can be running at a time.");
+		Con_EPrintf("Error during system initialization.\n");
+		if(lockFd >= 0)
+			close(lockFd);
+		return -1;
+	}
+#endif
+
 	if(!Sys_Init( argsArray ))
 	{
 		Con_EPrintf("Error during system initialization.\n");
+#ifdef _WIN32
+		ReleaseMutex(hMutex);
+		CloseHandle(hMutex);
+#else
+		if(lockFd >= 0)
+			close(lockFd);
+#endif
 		return -1;
 	}
 
@@ -1201,6 +1239,14 @@ Int32 Sys_Main( CArray<CString>* argsArray )
 	}
 
 	Sys_Shutdown();
+
+#if defined WIN32
+	ReleaseMutex(hMutex);
+	CloseHandle(hMutex);
+#else
+	if(lockFd >= 0)
+		close(lockFd);
+#endif
 
 	return 0;
 }
