@@ -2260,6 +2260,9 @@ bool CGLSLShader::EnableShader ( void )
 
 		if(m_lastIndex != NO_POSITION && attrib.indexes[m_shaderIndex] != attrib.indexes[m_lastIndex])
 		{
+			if(attrib.vboindex < 0 || static_cast<Uint32>(attrib.vboindex) >= m_pVBOArray.size())
+				continue;
+
 			CVBO* pVBO = m_pVBOArray[attrib.vboindex];
 			if(!pVBO)
 				continue;
@@ -2540,6 +2543,9 @@ void CGLSLShader::EnableAttribute( Int32 index )
 //=============================================
 void CGLSLShader::DisableAttribute( Int32 index )
 {
+	if(index < 0 || static_cast<Uint32>(index) >= m_vertexAttribsArray.size())
+		return;
+
 	glsl_attrib_t *pattrib = &m_vertexAttribsArray[index];
 	if(!pattrib->active)
 		return;
@@ -2551,12 +2557,17 @@ void CGLSLShader::DisableAttribute( Int32 index )
 	if(pattrib->indexes[m_shaderIndex] != PROPERTY_UNAVAILABLE || 
 		m_lastIndex != NO_POSITION && pattrib->indexes[m_lastIndex] != PROPERTY_UNAVAILABLE)
 	{
+		if(pattrib->vboindex < 0 || static_cast<Uint32>(pattrib->vboindex) >= m_pVBOArray.size())
+			return;
+
 		CVBO* pVBO = m_pVBOArray[pattrib->vboindex];
 		if(!pVBO)
 			return;
 
-		if(pattrib->indexes[m_shaderIndex] != PROPERTY_UNAVAILABLE || m_lastIndex != NO_POSITION && pattrib->indexes[m_lastIndex] != PROPERTY_UNAVAILABLE)
+		if(pattrib->indexes[m_shaderIndex] != PROPERTY_UNAVAILABLE)
 			pVBO->DisableAttribPointer(pattrib->indexes[m_shaderIndex]);
+		else if(m_lastIndex != NO_POSITION && pattrib->indexes[m_lastIndex] != PROPERTY_UNAVAILABLE)
+			pVBO->DisableAttribPointer(pattrib->indexes[m_lastIndex]);
 
 		m_vboAttribsChangedBits |= (1<<index);
 	}
