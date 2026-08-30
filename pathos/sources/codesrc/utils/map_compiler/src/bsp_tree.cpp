@@ -221,48 +221,19 @@ static Int32 PartitionAndEmitTree(std::vector<bsp_build_face_t>& faces, const st
             continue;
         }
 
-        std::vector<poly_vert_t> frontV, backV;
-        if (SplitPolygonByPlane(f.verts, normal, dist, frontV, backV))
+        Float sumDist = 0.0f;
+        for (const auto& v : f.verts)
         {
-            if (!frontV.empty() && !backV.empty())
-            {
-                bsp_build_face_t fFront = f; fFront.verts = frontV;
-                bsp_build_face_t fBack = f; fBack.verts = backV;
-                frontFaces.push_back(fFront);
-                backFaces.push_back(fBack);
-            }
-            else if (!frontV.empty())
-            {
-                frontFaces.push_back(f);
-            }
-            else if (!backV.empty())
-            {
-                backFaces.push_back(f);
-            }
-            else
-            {
-                Float cDist = 0.0f;
-                for (const auto& v : f.verts)
-                    cDist += (v.pos[0] * normal[0] + v.pos[1] * normal[1] + v.pos[2] * normal[2]) - dist;
-                cDist /= (Float)f.verts.size();
+            sumDist += (v.pos[0] * normal[0] + v.pos[1] * normal[1] + v.pos[2] * normal[2]) - dist;
+        }
 
-                if (cDist >= 0.0f)
-                    frontFaces.push_back(f);
-                else
-                    backFaces.push_back(f);
-            }
+        if (sumDist >= 0.0f)
+        {
+            frontFaces.push_back(f);
         }
         else
         {
-            Float cDist = 0.0f;
-            for (const auto& v : f.verts)
-                cDist += (v.pos[0] * normal[0] + v.pos[1] * normal[1] + v.pos[2] * normal[2]) - dist;
-            cDist /= (Float)f.verts.size();
-
-            if (cDist >= 0.0f)
-                frontFaces.push_back(f);
-            else
-                backFaces.push_back(f);
+            backFaces.push_back(f);
         }
     }
 
@@ -344,24 +315,19 @@ static Int32 EmitClipTreeRecursive(std::vector<bsp_build_face_t>& faces, Int32 c
             continue;
         }
 
-        std::vector<poly_vert_t> frontV, backV;
-        if (SplitPolygonByPlane(f.verts, normal, dist, frontV, backV))
+        Float sumDist = 0.0f;
+        for (const auto& v : f.verts)
         {
-            if (!frontV.empty() && !backV.empty())
-            {
-                bsp_build_face_t ff = f; ff.verts = frontV;
-                bsp_build_face_t fb = f; fb.verts = backV;
-                frontFaces.push_back(ff);
-                backFaces.push_back(fb);
-            }
-            else if (!frontV.empty())
-            {
-                frontFaces.push_back(f);
-            }
-            else if (!backV.empty())
-            {
-                backFaces.push_back(f);
-            }
+            sumDist += (v.pos[0] * normal[0] + v.pos[1] * normal[1] + v.pos[2] * normal[2]) - dist;
+        }
+
+        if (sumDist >= 0.0f)
+        {
+            frontFaces.push_back(f);
+        }
+        else
+        {
+            backFaces.push_back(f);
         }
     }
 
