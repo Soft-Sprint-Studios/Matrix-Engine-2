@@ -14,7 +14,6 @@ All Rights Reserved.
 #include "com_math.h"
 #include "trace.h"
 #include "entity_state.h"
-#include "bspv30file.h"
 #include "constants.h"
 #include "cache_model.h"
 #include "brushmodel_shared.h"

@@ -11,7 +11,6 @@ target_sources(matrix-engine
         ../common/bmp.cpp
         ../common/bmp.h
         ../common/bmpformat.h
-        ../common/bspv30file.h
         ../common/cache_model.h
         ../common/carray_inline.hpp
         ../common/carray.h
@@ -55,8 +54,6 @@ target_sources(matrix-engine
         ../common/movevars.h
         ../common/ogg_common.cpp
         ../common/ogg_common.h
-        ../common/pbspv1file.h
-        ../common/pbspv2file.h
         ../common/pbspv3file.h
         ../common/plane_inline.hpp
         ../common/plane.h
@@ -133,8 +130,6 @@ target_sources(matrix-engine
         brushmodel.cpp
         bsp_shared.cpp
         bsp_shared.h
-        bspv30.cpp
-        bspv30.h
         buildcounter.h
         client/cl_cmd.cpp
         client/cl_efx.cpp
@@ -187,10 +182,6 @@ target_sources(matrix-engine
         net_sp.h
         networking.cpp
         networking.h
-        pbspv1.cpp
-        pbspv1.h
-        pbspv2.cpp
-        pbspv2.h
         pbspv3.cpp
         pbspv3.h
         renderer/r_beams.cpp
@@ -426,7 +417,7 @@ target_compile_options(matrix-engine
 source_group("Source Files/common" FILES ../common/bmp.cpp ../common/cbitset.cpp ../common/cbuffer.cpp ../common/common.cpp ../common/crc32.cpp ../common/cstring.cpp ../common/cstringpool.cpp ../common/dds.cpp ../common/logfile.cpp ../common/matrix.cpp ../common/md5.cpp ../common/miniz.c ../common/ogg_common.cpp ../common/r_common.cpp ../common/tga.cpp)
 source_group("Source Files/libs/glad/src" FILES ../libs/glad/src/glad.c)
 source_group("Source Files/shared" FILES ../shared/collision_shared.cpp ../shared/r_basicdraw.cpp ../shared/sentencesfile.cpp ../shared/stepsound.cpp ../shared/texturemanager.cpp ../shared/uischema.cpp ../shared/cvar.cpp ../shared/decallist.cpp ../shared/flexmanager.cpp ../shared/frustum.cpp ../shared/r_glsl.cpp ../shared/r_vbo.cpp ../shared/vbm_shared.cpp)
-source_group("Source Files" FILES ald.cpp brushmodel.cpp bspv30.cpp bsp_shared.cpp console.cpp disptrace.cpp dllexports.cpp edictmanager.cpp enginefuncs.cpp file.cpp filewriterthread.cpp mcdtrace.cpp modelcache.cpp networking.cpp net_mp.cpp net_sp.cpp pbspv1.cpp pbspv2.cpp pbspv3.cpp sys_sentry.cpp sprite.cpp sv_move.cpp sys_print.cpp textschemas.cpp usermsg.cpp vbmtrace.cpp saverestore.cpp trace_shared.cpp sys_cmd.cpp sys_misc.cpp commands.cpp config.cpp input.cpp main.cpp system.cpp uimanager.cpp vid.cpp win32_delay_load.cpp window.cpp matrix-engine.manifest)
+source_group("Source Files" FILES ald.cpp brushmodel.cpp bsp_shared.cpp console.cpp disptrace.cpp dllexports.cpp edictmanager.cpp enginefuncs.cpp file.cpp filewriterthread.cpp mcdtrace.cpp modelcache.cpp networking.cpp net_mp.cpp net_sp.cpp pbspv3.cpp sys_sentry.cpp sprite.cpp sv_move.cpp sys_print.cpp textschemas.cpp usermsg.cpp vbmtrace.cpp saverestore.cpp trace_shared.cpp sys_cmd.cpp sys_misc.cpp commands.cpp config.cpp input.cpp main.cpp system.cpp uimanager.cpp vid.cpp win32_delay_load.cpp window.cpp matrix-engine.manifest)
 source_group("Source Files/client" FILES client/cl_cmd.cpp client/cl_efx.cpp client/cl_main.cpp client/cl_msg.cpp client/cl_pmove.cpp client/cl_predict.cpp client/cl_resource.cpp client/cl_snd.cpp client/cl_tempentities.cpp client/cl_utils.cpp)
 source_group("Source Files/renderer" FILES renderer/r_beams.cpp renderer/r_blackhole.cpp renderer/r_cables.cpp renderer/r_cas.cpp renderer/r_cubemaps.cpp renderer/r_decals.cpp renderer/r_dlights.cpp renderer/r_fbocache.cpp renderer/r_glass.cpp renderer/r_glowaura.cpp renderer/r_glqueries.cpp renderer/r_interfacefuncs.cpp renderer/r_lensflare.cpp renderer/r_lightstyles.cpp renderer/r_menuparticles.cpp renderer/r_nsmoothing.cpp renderer/r_portals.cpp renderer/r_sky.cpp renderer/r_ssao.cpp renderer/r_tracers.cpp renderer/r_video.cpp renderer/r_volumetrics.cpp renderer/r_mirror.cpp renderer/r_monitor.cpp renderer/r_particles.cpp renderer/r_postprocess.cpp renderer/r_legacyparticles.cpp renderer/r_rttcache.cpp renderer/r_sprites.cpp renderer/r_vbm.cpp renderer/r_water.cpp renderer/r_bsp.cpp renderer/r_menu.cpp renderer/r_main.cpp renderer/r_text.cpp)
 source_group("Source Files/rygsdxtc" FILES rygsdxtc/stb_dxt.cpp)
@@ -434,10 +425,10 @@ source_group("Source Files/server" FILES server/sv_bulletphysics.cpp server/sv_e
 source_group("Source Files/ui" FILES ui/uielements.cpp)
 source_group("Source Files/windows" FILES windows/uiconsolewindow.cpp windows/uidownloadwindow.cpp windows/uiexitwindow.cpp windows/uinewgamewindow.cpp windows/uisaveloadwindow.cpp windows/uisettingswindow.cpp)
 source_group("Resource Files" FILES matrix-engine.rc)
-source_group("Header Files/common" FILES ../common/aldformat.h ../common/bmp.h ../common/bmpformat.h ../common/bspv30file.h ../common/cache_model.h ../common/carray.h ../common/carray_inline.hpp ../common/cbitset.h ../common/cbitset_inline.hpp ../common/cbuffer.h ../common/cbuffer_inline.hpp ../common/clinkedlist.h ../common/clinkedlist_inline.hpp ../common/cl_entity.h ../common/common.h ../common/common_inline.hpp ../common/constants.h ../common/crc32.h ../common/cstring.h ../common/cstringpool.h ../common/cstringpool_inline.hpp ../common/cstring_inline.hpp ../common/com_math.h ../common/com_math_inline.hpp ../common/datatypes.h ../common/filechunk.h ../common/file_interface.h ../common/matrix.h ../common/md5.h ../common/miniz.h ../common/miptex.h ../common/movevars.h ../common/ogg_common.h ../common/pbspv1file.h ../common/pbspv2file.h ../common/pbspv3file.h ../common/plane.h ../common/plane_inline.hpp ../common/r_common.h ../common/sprformat.h ../common/tempentity.h ../common/tgaformat.h ../common/tracer.h ../common/vector.h ../common/dds.h ../common/logfile.h ../common/tga.h ../common/vector_inline.hpp)
+source_group("Header Files/common" FILES ../common/aldformat.h ../common/bmp.h ../common/bmpformat.h ../common/cache_model.h ../common/carray.h ../common/carray_inline.hpp ../common/cbitset.h ../common/cbitset_inline.hpp ../common/cbuffer.h ../common/cbuffer_inline.hpp ../common/clinkedlist.h ../common/clinkedlist_inline.hpp ../common/cl_entity.h ../common/common.h ../common/common_inline.hpp ../common/constants.h ../common/crc32.h ../common/cstring.h ../common/cstringpool.h ../common/cstringpool_inline.hpp ../common/cstring_inline.hpp ../common/com_math.h ../common/com_math_inline.hpp ../common/datatypes.h ../common/filechunk.h ../common/file_interface.h ../common/matrix.h ../common/md5.h ../common/miniz.h ../common/miptex.h ../common/movevars.h ../common/ogg_common.h ../common/pbspv1file.h ../common/pbspv2file.h ../common/pbspv3file.h ../common/plane.h ../common/plane_inline.hpp ../common/r_common.h ../common/sprformat.h ../common/tempentity.h ../common/tgaformat.h ../common/tracer.h ../common/vector.h ../common/dds.h ../common/logfile.h ../common/tga.h ../common/vector_inline.hpp)
 source_group("Header Files/shared" FILES ../shared/beam_shared.h ../shared/collision_shared.h ../shared/mcdformat.h ../shared/r_basicdraw.h ../shared/sentencesfile.h ../shared/texturemanager.h ../shared/textures_shared_inline.hpp ../shared/uischema.h ../shared/animinfo.h ../shared/flex_shared.h ../shared/fontset.h ../shared/cmd_shared.h ../shared/cvar.h ../shared/decallist.h ../shared/dlight.h ../shared/edict.h ../shared/entity_state.h ../shared/frustum.h ../shared/frustum_inline.hpp ../shared/gamevars.h ../shared/includes.h ../shared/monitor_shared.h ../shared/net_shared.h ../shared/pm_shared.h ../shared/ref_params.h ../shared/r_interface.h ../shared/r_basic_vertex.h ../shared/r_fbo.h ../shared/r_glsl.h ../shared/r_glsl_inline.hpp ../shared/r_vbo.h ../shared/save_shared.h ../shared/screenfade.h ../shared/snd_shared.h ../shared/studio.h ../shared/textures_shared.h ../shared/trace.h ../shared/usercmd.h ../shared/vbmformat.h ../shared/vbm_shared.h)
 source_group("Header Files/ui" FILES ui/ui_shared.h ui/uielements.h)
-source_group("Header Files" FILES ald.h bspv30.h bsp_shared.h buildcounter.h config.h console.h disptrace.h dllexports.h edictmanager.h enginefuncs.h enginestate.h commands.h file.h filewriterthread.h input.h mcdtrace.h modelcache.h networking.h net_mp.h net_sp.h pbspv1.h pbspv2.h pbspv3.h sys_sentry.h sprite.h sv_move.h sys_print.h textschemas.h usermsg.h vbmtrace.h saverestore.h trace_shared.h savefile.h system.h uimanager.h vid.h window.h resource.h)
+source_group("Header Files" FILES ald.h bsp_shared.h buildcounter.h config.h console.h disptrace.h dllexports.h edictmanager.h enginefuncs.h enginestate.h commands.h file.h filewriterthread.h input.h mcdtrace.h modelcache.h networking.h net_mp.h net_sp.h pbspv3.h sys_sentry.h sprite.h sv_move.h sys_print.h textschemas.h usermsg.h vbmtrace.h saverestore.h trace_shared.h savefile.h system.h uimanager.h vid.h window.h resource.h)
 source_group("Header Files/client" FILES client/cl_efx.h client/cl_main.h client/cl_msg.h client/cl_pmove.h client/cl_predict.h client/cl_resource.h client/cl_snd.h client/cl_tempentities.h client/cl_utils.h)
 source_group("Header Files/renderer" FILES renderer/r_beams.h renderer/r_blackhole.h renderer/r_cables.h renderer/r_cas.h renderer/r_cubemaps.h renderer/r_decals.h renderer/r_dlights.h renderer/r_fbocache.h renderer/r_glass.h renderer/r_glowaura.h renderer/r_glqueries.h renderer/r_interfacefuncs.h renderer/r_lensflare.h renderer/r_lightstyles.h renderer/r_menuparticles.h renderer/r_nsmoothing.h renderer/r_portals.h renderer/r_sky.h renderer/r_ssao.h renderer/r_tracers.h renderer/r_video.h renderer/r_volumetrics.h renderer/r_mirror.h renderer/r_monitor.h renderer/r_particles.h renderer/r_postprocess.h renderer/r_legacyparticles.h renderer/r_rttcache.h renderer/r_sprites.h renderer/r_vbm.h renderer/r_water.h renderer/r_bsp.h renderer/r_menu.h renderer/r_main.h renderer/r_text.h)
 source_group("Header Files/rygsdxtc" FILES rygsdxtc/stb_dxt.h)

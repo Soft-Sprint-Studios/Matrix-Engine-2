@@ -10,9 +10,9 @@ All Rights Reserved.
 #ifndef BRUSHMODEL_SHARED_H
 #define BRUSHMODEL_SHARED_H
 
-#include "bspv30file.h"
 #include "plane.h"
 #include "constants.h"
+#include "contents.h"
 
 // No lightmaps for this surface
 #define	TEXFLAG_SPECIAL		1

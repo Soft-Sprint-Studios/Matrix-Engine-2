@@ -1,0 +1,7 @@
+$texture
+{
+    $texture diffuse models/sponza/sponza_diff.dds
+    $texture normal models/sponza/sponza_normal.dds
+    $texture mrao models/sponza/sponza_mrao.dds
+    $cubemaps
+}

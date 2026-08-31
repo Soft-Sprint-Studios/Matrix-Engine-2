@@ -13,12 +13,7 @@ All Rights Reserved.
 #include "texturemanager.h"
 #include "brushmodel.h"
 #include "modelcache.h"
-#include "pbspv1file.h"
-#include "pbspv2file.h"
 #include "pbspv3file.h"
-#include "bspv30.h"
-#include "pbspv1.h"
-#include "pbspv2.h"
 #include "pbspv3.h"
 #include "system.h"
 #include "texturemanager.h"
@@ -417,12 +412,6 @@ cache_model_t* CModelCache::LoadBSPModel( const Char* pstrFilename, const byte* 
 		Int32 fileHeaderVersion = Common::ByteToInt32(pfile + sizeof(Int32));
 		switch(fileHeaderVersion)
 		{
-		case PBSPV1_VERSION:
-			pmodel = PBSPV1_Load(pfile, reinterpret_cast<const dpbspv1header_t*>(pfile), pstrFilename);
-			break;
-		case PBSPV2_VERSION:
-			pmodel = PBSPV2_Load(pfile, reinterpret_cast<const dpbspv2header_t*>(pfile), pstrFilename);
-			break;
 		case PBSPV3_VERSION:
 			pmodel = PBSPV3_Load(pfile, reinterpret_cast<const dpbspv3header_t*>(pfile), pstrFilename);
 			break;
@@ -434,18 +423,8 @@ cache_model_t* CModelCache::LoadBSPModel( const Char* pstrFilename, const byte* 
 	}
 	else
 	{
-		// Get the version from the file and determine if it's usable
-		Int32 bspVersion = Common::ByteToInt32(pfile);
-		switch(bspVersion)
-		{
-		case BSPV30_VERSION:
-			pmodel = BSPV30_Load(pfile, reinterpret_cast<const dv30header_t*>(pfile), pstrFilename);
-			break;
-		default:
-			Con_EPrintf("%s - BSP file '%s' has wrong version number '%d', which should be '%d'.\n", __FUNCTION__, pstrFilename, bspVersion, BSPV30_VERSION);
-			return nullptr;
-			break;
-		}
+		Con_EPrintf("%s - BSP file '%s' has an unknown BSP format with header ID '%d'.\n", __FUNCTION__, pstrFilename, fileHeaderId);
+		return nullptr;
 	}
 
 	// See if the load failed
