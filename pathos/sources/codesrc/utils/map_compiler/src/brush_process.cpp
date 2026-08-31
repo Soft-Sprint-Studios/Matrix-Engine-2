@@ -51,8 +51,10 @@ static void EmitModelFaces(const std::vector<map_brush_t>& brushes, Int32& outFi
 
         for (Int32 k = 0; k < 3; k++)
         {
-            if (poly.mins[k] < outMins[k]) outMins[k] = poly.mins[k];
-            if (poly.maxs[k] > outMaxs[k]) outMaxs[k] = poly.maxs[k];
+            if (poly.mins[k] < outMins[k]) 
+                outMins[k] = poly.mins[k];
+            if (poly.maxs[k] > outMaxs[k]) 
+                outMaxs[k] = poly.maxs[k];
         }
     }
 }
@@ -100,6 +102,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
             }
         }
     }
+
     BuildBSPModelTrees(worldModelIndex, worldFaces, worldBrushes, mins, maxs);
 
     g_BSP.GetModel(worldModelIndex).visleafs = (Int32)(g_BSP.GetLeafCount() - 1);
