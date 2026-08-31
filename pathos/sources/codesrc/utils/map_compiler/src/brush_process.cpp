@@ -96,7 +96,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
                     strcmp(tex.name, "CLIP") &&
                     strcmp(tex.name, "SKIP") &&
                     strcmp(tex.name, "HINT") &&
-                    strcmp(tex.name, "AAATRIGGER"))
+                    strcmp(tex.name, "TRIGGER"))
                 {
                     worldFaces.push_back(f);
                 }
@@ -135,14 +135,13 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
                         strcmp(tex.name, "CLIP") &&
                         strcmp(tex.name, "SKIP") &&
                         strcmp(tex.name, "HINT") &&
-                        strcmp(tex.name, "AAATRIGGER"))
+                        strcmp(tex.name, "TRIGGER"))
                     {
                         subFaces.push_back(f);
                     }
                 }
             }
         }
-
         bool noclip = (atoi(mapData.entities[i].GetValue("zhlt_noclip")) == 1);
         BuildBSPModelTrees(subModelIndex, subFaces, subBrushes, mins, maxs, noclip);
 

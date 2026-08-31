@@ -275,7 +275,7 @@ bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly)
         if (!strncmp(inBrush.sides[i].texture, "SKY", 3) ||
             !strncmp(inBrush.sides[i].texture, "NULL", 4) ||
             !strncmp(inBrush.sides[i].texture, "ORIGIN", 6) ||
-            !strncmp(inBrush.sides[i].texture, "AAATRIGGER", 10))
+            !strncmp(inBrush.sides[i].texture, "TRIGGER", 7))
         {
             flags |= 1;
         }
