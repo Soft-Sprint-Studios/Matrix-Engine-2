@@ -324,73 +324,120 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         }
     }
 
-    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    std::vector<std::vector<luxel_radiance_t>> filteredFaces = faceLuxels;
+    const Float filterRadius = 32.0f;
+    const Float filterRadiusSq = filterRadius * filterRadius;
+    const Float twoSigmaSq = 2.0f * (16.0f * 16.0f);
+
+#if defined(_OPENMP)
+    #pragma omp parallel for schedule(dynamic)
+#endif
+    for (int f1 = 0; f1 < (int)faceLightmaps.size(); f1++)
     {
-        const auto& lm = faceLightmaps[f];
-        if (faceLuxels[f].empty() || lm.luxelWidth <= 1 || lm.luxelHeight <= 1)
+        const auto& lm1 = faceLightmaps[f1];
+        if (faceLuxels[f1].empty() || lm1.totalLuxels == 0) 
             continue;
 
-        std::vector<luxel_radiance_t> blurred = faceLuxels[f];
-
-        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+        for (Int32 i1 = 0; i1 < lm1.totalLuxels; i1++)
         {
-            for (Int32 y = 0; y < lm.luxelHeight; y++)
+            const Float* p1 = lm1.sampleCoords[i1].worldPos;
+
+            Float totalWeight = 0.0f;
+            Float sumDirect[PBSPV3_MAX_LIGHTMAPS][3] = { 0.0f };
+            Float sumBounce[PBSPV3_MAX_LIGHTMAPS][3] = { 0.0f };
+            Float sumDir[PBSPV3_MAX_LIGHTMAPS][3] = { 0.0f };
+
+            for (size_t f2 = 0; f2 < faceLightmaps.size(); f2++)
             {
-                for (Int32 x = 0; x < lm.luxelWidth; x++)
+                if (faceLuxels[f2].empty()) 
+                    continue;
+
+                if (faceLightmaps[f2].planeIndex != lm1.planeIndex) 
+                    continue;
+
+                const auto& lm2 = faceLightmaps[f2];
+                for (Int32 i2 = 0; i2 < lm2.totalLuxels; i2++)
                 {
-                    Float totalWeight = 0.0f;
-                    Float sumDirect[3] = { 0.0f, 0.0f, 0.0f };
-                    Float sumBounce[3] = { 0.0f, 0.0f, 0.0f };
-                    Float sumDir[3] = { 0.0f, 0.0f, 0.0f };
+                    const Float* p2 = lm2.sampleCoords[i2].worldPos;
+                    Float distSq = (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]);
 
-                    for (Int32 dy = -1; dy <= 1; dy++)
+                    if (distSq <= filterRadiusSq)
                     {
-                        Int32 ny = y + dy;
-                        if (ny < 0 || ny >= lm.luxelHeight) continue;
-
-                        for (Int32 dx = -1; dx <= 1; dx++)
+                        Float w = expf(-distSq / twoSigmaSq);
+                        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
                         {
-                            Int32 nx = x + dx;
-                            if (nx < 0 || nx >= lm.luxelWidth) continue;
-
-                            Float weight = (dx == 0 && dy == 0) ? 0.5f : ((dx == 0 || dy == 0) ? 0.25f : 0.125f);
-                            Int32 neighborIdx = ny * lm.luxelWidth + nx;
-
-                            sumDirect[0] += faceLuxels[f][neighborIdx].direct[s][0] * weight;
-                            sumDirect[1] += faceLuxels[f][neighborIdx].direct[s][1] * weight;
-                            sumDirect[2] += faceLuxels[f][neighborIdx].direct[s][2] * weight;
-
-                            sumBounce[0] += faceLuxels[f][neighborIdx].bounce[s][0] * weight;
-                            sumBounce[1] += faceLuxels[f][neighborIdx].bounce[s][1] * weight;
-                            sumBounce[2] += faceLuxels[f][neighborIdx].bounce[s][2] * weight;
-
-                            sumDir[0] += faceLuxels[f][neighborIdx].dominantDir[s][0] * weight;
-                            sumDir[1] += faceLuxels[f][neighborIdx].dominantDir[s][1] * weight;
-                            sumDir[2] += faceLuxels[f][neighborIdx].dominantDir[s][2] * weight;
-
-                            totalWeight += weight;
+                            for (Int32 c = 0; c < 3; c++)
+                            {
+                                sumDirect[s][c] += faceLuxels[f2][i2].direct[s][c] * w;
+                                sumBounce[s][c] += faceLuxels[f2][i2].bounce[s][c] * w;
+                                sumDir[s][c] += faceLuxels[f2][i2].dominantDir[s][c] * w;
+                            }
                         }
+                        totalWeight += w;
                     }
+                }
+            }
 
-                    Int32 curIdx = y * lm.luxelWidth + x;
-                    if (totalWeight > 0.0001f)
+            if (totalWeight > 0.0001f)
+            {
+                for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                {
+                    for (Int32 c = 0; c < 3; c++)
                     {
-                        blurred[curIdx].direct[s][0] = sumDirect[0] / totalWeight;
-                        blurred[curIdx].direct[s][1] = sumDirect[1] / totalWeight;
-                        blurred[curIdx].direct[s][2] = sumDirect[2] / totalWeight;
-
-                        blurred[curIdx].bounce[s][0] = sumBounce[0] / totalWeight;
-                        blurred[curIdx].bounce[s][1] = sumBounce[1] / totalWeight;
-                        blurred[curIdx].bounce[s][2] = sumBounce[2] / totalWeight;
-
-                        blurred[curIdx].dominantDir[s][0] = sumDir[0] / totalWeight;
-                        blurred[curIdx].dominantDir[s][1] = sumDir[1] / totalWeight;
-                        blurred[curIdx].dominantDir[s][2] = sumDir[2] / totalWeight;
+                        filteredFaces[f1][i1].direct[s][c] = sumDirect[s][c] / totalWeight;
+                        filteredFaces[f1][i1].bounce[s][c] = sumBounce[s][c] / totalWeight;
+                        filteredFaces[f1][i1].dominantDir[s][c] = sumDir[s][c] / totalWeight;
                     }
                 }
             }
         }
-        faceLuxels[f] = blurred;
+    }
+    faceLuxels = filteredFaces;
+
+    for (size_t f1 = 0; f1 < faceLightmaps.size(); f1++)
+    {
+        const auto& lm1 = faceLightmaps[f1];
+        if (faceLuxels[f1].empty()) 
+            continue;
+
+        for (size_t f2 = f1 + 1; f2 < faceLightmaps.size(); f2++)
+        {
+            const auto& lm2 = faceLightmaps[f2];
+            if (faceLuxels[f2].empty()) 
+                continue;
+
+            if (lm1.planeIndex != lm2.planeIndex) 
+                continue;
+
+            for (Int32 i1 = 0; i1 < lm1.totalLuxels; i1++)
+            {
+                const Float* p1 = lm1.sampleCoords[i1].worldPos;
+
+                for (Int32 i2 = 0; i2 < lm2.totalLuxels; i2++)
+                {
+                    const Float* p2 = lm2.sampleCoords[i2].worldPos;
+                    Float distSq = (p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]) + (p1[2] - p2[2]) * (p1[2] - p2[2]);
+
+                    if (distSq < 1.0f)
+                    {
+                        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                        {
+                            for (Int32 c = 0; c < 3; c++)
+                            {
+                                Float avgD = (faceLuxels[f1][i1].direct[s][c] + faceLuxels[f2][i2].direct[s][c]) * 0.5f;
+                                faceLuxels[f1][i1].direct[s][c] = faceLuxels[f2][i2].direct[s][c] = avgD;
+
+                                Float avgB = (faceLuxels[f1][i1].bounce[s][c] + faceLuxels[f2][i2].bounce[s][c]) * 0.5f;
+                                faceLuxels[f1][i1].bounce[s][c] = faceLuxels[f2][i2].bounce[s][c] = avgB;
+
+                                Float avgDir = (faceLuxels[f1][i1].dominantDir[s][c] + faceLuxels[f2][i2].dominantDir[s][c]) * 0.5f;
+                                faceLuxels[f1][i1].dominantDir[s][c] = faceLuxels[f2][i2].dominantDir[s][c] = avgDir;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     AllocateAllFaceLightmaps(faceLightmaps);
@@ -499,9 +546,9 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 
                 if (s == 0)
                 {
-                    finalTotal[0] = lux.direct[0][0] * nDotL + lux.bounce[0][0] + lux.ambient[0];
-                    finalTotal[1] = lux.direct[0][1] * nDotL + lux.bounce[0][1] + lux.ambient[1];
-                    finalTotal[2] = lux.direct[0][2] * nDotL + lux.bounce[0][2] + lux.ambient[2];
+                    finalTotal[0] = lux.direct[0][0] + lux.bounce[0][0] + lux.ambient[0];
+                    finalTotal[1] = lux.direct[0][1] + lux.bounce[0][1] + lux.ambient[1];
+                    finalTotal[2] = lux.direct[0][2] + lux.bounce[0][2] + lux.ambient[2];
 
                     finalDiffuse[0] = lux.direct[0][0];
                     finalDiffuse[1] = lux.direct[0][1];
@@ -513,9 +560,9 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                 }
                 else
                 {
-                    finalTotal[0] = lux.direct[s][0] * nDotL;
-                    finalTotal[1] = lux.direct[s][1] * nDotL;
-                    finalTotal[2] = lux.direct[s][2] * nDotL;
+                    finalTotal[0] = lux.direct[s][0];
+                    finalTotal[1] = lux.direct[s][1];
+                    finalTotal[2] = lux.direct[s][2];
 
                     finalDiffuse[0] = lux.direct[s][0];
                     finalDiffuse[1] = lux.direct[s][1];
