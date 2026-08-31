@@ -360,7 +360,7 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 	for (Uint32 i = 0; i < pnode->numsurfaces; i++)
 	{
 		msurface_t* psurf = &psurfaces[i];
-		if (psurf->flags & (SURF_DRAWTURB | SURF_DRAWSKY) || !psurf->psamples)
+		if (psurf->flags & (SURF_DRAWTURB) || !psurf->psamples)
 			continue;	// no lightmaps
 
 		mtexinfo_t* ptexinfo = psurf->ptexinfo;
@@ -467,7 +467,7 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 	for (Uint32 i = 0; i < pnode->numsurfaces; i++)
 	{
 		msurface_t* psurf = &psurfaces[i];
-		if (psurf->flags & (SURF_DRAWTURB | SURF_DRAWSKY))
+		if (psurf->flags & (SURF_DRAWTURB))
 			continue;	// no lightmaps
 
 		mtexinfo_t* ptexinfo = psurf->ptexinfo;

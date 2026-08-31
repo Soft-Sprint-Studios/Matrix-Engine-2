@@ -236,7 +236,7 @@ void BSP_SetSamplingLightData( brushmodel_t& model )
 	for(Uint32 i = 0; i < model.numsurfaces; i++)
 	{
 		msurface_t* psurf = &model.psurfaces[i];
-		if(psurf->flags & (SURF_DRAWTURB|SURF_DRAWSKY))
+		if(psurf->flags & (SURF_DRAWTURB))
 			continue;
 
 		// Set lightdata ptrs to nullptr

@@ -85,11 +85,10 @@ enum lg_octree_flags_t
 enum surf_flags_t
 {
 	SURF_PLANEBACK			= 2,
-	SURF_DRAWSKY			= 4,
-	SURF_DRAWSPRITE			= 8,
-	SURF_DRAWTURB			= 16,
-	SURF_SHADERWATER		= 32,
-	SURF_LIGHT_DOWNSCALE	= 64
+	SURF_DRAWSPRITE			= 4,
+	SURF_DRAWTURB			= 8,
+	SURF_SHADERWATER		= 16,
+	SURF_LIGHT_DOWNSCALE	= 32
 };
 
 struct mvertex_t

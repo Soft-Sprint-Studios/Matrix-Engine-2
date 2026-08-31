@@ -164,19 +164,7 @@ void CSkyRenderer::ClearGL( void )
 //====================================
 bool CSkyRenderer::InitGame( void )
 {
-	// See if we have any sky brushes at all
-	for(Uint32 i = 0; i < ens.pworld->numsurfaces; i++)
-	{
-		const msurface_t* psurface = &ens.pworld->psurfaces[i];
-		if(psurface->flags & SURF_DRAWSKY)
-		{
-			rns.sky.drawsky = true;
-			break;
-		}
-	}
-
-	if(!rns.sky.drawsky)
-		return true;
+	rns.sky.drawsky = true;
 
 	// Load base sky set
 	LoadSkyTextures(cls.skyname.c_str(), m_pSkyboxTextures);
