@@ -182,9 +182,11 @@ void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& p
     lmFace.sampleCoords.resize(lmFace.totalLuxels);
 
     const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(polyFace.texinfoIndex);
+    const dpbspv3face_t& bspFace = g_BSP.GetFace(lmFace.bspFaceIndex);
     const dpbspv3plane_t& pl = g_BSP.GetPlane(polyFace.planeIndex);
 
-    Float normal[3] = { pl.normal[0], pl.normal[1], pl.normal[2] };
+    Float sideSign = (bspFace.side != 0) ? -1.0f : 1.0f;
+    Float normal[3] = { pl.normal[0] * sideSign, pl.normal[1] * sideSign, pl.normal[2] * sideSign };
 
     Float texnormal[3];
     texnormal[0] = tx.vecs[1][1] * tx.vecs[0][2] - tx.vecs[1][2] * tx.vecs[0][1];
@@ -232,7 +234,7 @@ void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& p
         texorg[i] = -tx.vecs[0][3] * textoworld[0][i] - tx.vecs[1][3] * textoworld[1][i];
     }
 
-    Float dist = (texorg[0] * normal[0] + texorg[1] * normal[1] + texorg[2] * normal[2]) - pl.dist;
+    Float dist = (texorg[0] * normal[0] + texorg[1] * normal[1] + texorg[2] * normal[2]) - (pl.dist * sideSign);
     dist *= distscale;
     texorg[0] -= dist * texnormal[0];
     texorg[1] -= dist * texnormal[1];
