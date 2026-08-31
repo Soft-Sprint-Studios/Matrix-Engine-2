@@ -28,6 +28,7 @@
 #include <cstring>
 #include <sstream>
 #include <algorithm>
+#include <omp.h>
 
 static void InitializeLeaf0()
 {
@@ -157,7 +158,10 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
     g_BSP.ImportDisplacements(dispData);
 
     size_t faceCount = g_BSP.GetFaceCount();
-    for (size_t i = 0; i < faceCount; i++)
+    outFaceLightmaps.resize(faceCount);
+
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < (int)faceCount; i++)
     {
         const dpbspv3face_t& bspFace = g_BSP.GetFace(i);
         poly_face_t dummyFace;
@@ -178,9 +182,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
             dummyFace.verts[e].pos[2] = vert.origin[2];
         }
 
-        lightmap_face_t lm;
-        CalculateFaceLightmapExtents(dummyFace, (Int32)i, lm);
-        outFaceLightmaps.push_back(lm);
+        CalculateFaceLightmapExtents(dummyFace, i, outFaceLightmaps[i]);
     }
 
     g_BSP.SetEntities(SerializeEntities(mapData));

@@ -263,10 +263,12 @@ bool CBSPBuilder::ExportALD(const Char* filename, aldlumptype_t lumpType)
         };
 
     LayerPayload lmapPayloads[NB_SURF_LIGHTMAP_LAYERS];
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < NB_SURF_LIGHTMAP_LAYERS; i++)
         CompressRaw(m_lightmaps[i], lmapPayloads[i]);
 
     LayerPayload vertPayloads[NB_BAKED_VERTEXLIGHT_LAYERS];
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < NB_BAKED_VERTEXLIGHT_LAYERS; i++)
         CompressRaw(m_vertexLight[i], vertPayloads[i]);
 

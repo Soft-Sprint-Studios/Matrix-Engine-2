@@ -28,9 +28,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
-#if defined(_OPENMP)
 #include <omp.h>
-#endif
 
 static constexpr Int32 FL_OCTREE_OCCLUDED = (1 << 31);
 static constexpr Int32 FL_OCTREE_LEAF = (1 << 30);
@@ -169,9 +167,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
     size_t totalSamples = (size_t)gridSize[0] * gridSize[1] * gridSize[2];
     std::vector<grid_sample_t> samples(totalSamples);
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(dynamic)
-#endif
     for (Int32 z = 0; z < gridSize[2]; z++)
     {
         for (Int32 y = 0; y < gridSize[1]; y++)
@@ -466,9 +462,15 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
     std::vector<byte> compAmb, compDiff, compVec;
     Int32 compAmbSize = 0, compDiffSize = 0, compVecSize = 0;
 
-    CompressLayer(rawAmbient, compAmb, compAmbSize);
-    CompressLayer(rawDiffuse, compDiff, compDiffSize);
-    CompressLayer(rawVectors, compVec, compVecSize);
+    #pragma omp parallel sections
+    {
+        #pragma omp section
+        CompressLayer(rawAmbient, compAmb, compAmbSize);
+        #pragma omp section
+        CompressLayer(rawDiffuse, compDiff, compDiffSize);
+        #pragma omp section
+        CompressLayer(rawVectors, compVec, compVecSize);
+    }
 
     dpbspv3lightgridlumpheader_t hdr;
     for (Int32 k = 0; k < 3; k++)

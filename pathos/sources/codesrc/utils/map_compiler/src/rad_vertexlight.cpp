@@ -28,9 +28,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
-#if defined(_OPENMP)
 #include <omp.h>
-#endif
 
 void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
 {
@@ -123,9 +121,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
         std::vector<vert_style_data_t> vertSamples(vertexCount);
         Float maxLightPerStyle[64] = { 0.0f };
 
-#if defined(_OPENMP)
         #pragma omp parallel for schedule(dynamic)
-#endif
         for (Int32 v = 0; v < vertexCount; v++)
         {
             Float norm[3] = { vbm.worldNormals[v * 3 + 0], vbm.worldNormals[v * 3 + 1], vbm.worldNormals[v * 3 + 2] };

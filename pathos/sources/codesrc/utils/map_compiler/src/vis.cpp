@@ -32,9 +32,7 @@
 #include <array>
 #include <algorithm>
 #include <iostream>
-#if defined(_OPENMP)
 #include <omp.h>
-#endif
 
 static size_t CompressPVS(const byte* src, size_t srcLength, byte* dest)
 {
@@ -90,9 +88,7 @@ void CalculatePVS(const CRadPipeline* radPipeline)
     std::vector<std::vector<byte>> uncompressedPVS(numVisLeafs, std::vector<byte>(rowBytes, 0));
     std::vector<leaf_sample_t> leafSamples(totalLeafs);
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(static)
-#endif
     for (int i = 1; i <= (int)numVisLeafs; i++)
     {
         const auto& leaf = g_BSP.GetLeaf(i);
@@ -132,9 +128,7 @@ void CalculatePVS(const CRadPipeline* radPipeline)
         }
     }
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(dynamic, 4)
-#endif
     for (int i = 0; i < (int)numVisLeafs; i++)
     {
         Int32 srcLeafIdx = i + 1;
@@ -204,9 +198,7 @@ void CalculatePVS(const CRadPipeline* radPipeline)
 
     std::vector<std::vector<byte>> symmetricPVS(numVisLeafs, std::vector<byte>(rowBytes, 0));
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(static)
-#endif
     for (int i = 0; i < (int)numVisLeafs; i++)
     {
         for (size_t j = 0; j < numVisLeafs; j++)
@@ -223,9 +215,7 @@ void CalculatePVS(const CRadPipeline* radPipeline)
 
     std::vector<std::vector<byte>> expandedPVS = symmetricPVS;
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(dynamic, 8)
-#endif
     for (int i = 0; i < (int)numVisLeafs; i++)
     {
         for (size_t k = 0; k < numVisLeafs; k++)
@@ -244,9 +234,7 @@ void CalculatePVS(const CRadPipeline* radPipeline)
 
     std::vector<std::vector<byte>> compressedRows(numVisLeafs);
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(static)
-#endif
     for (int i = 0; i < (int)numVisLeafs; i++)
     {
         Int32 leafIdx = i + 1;

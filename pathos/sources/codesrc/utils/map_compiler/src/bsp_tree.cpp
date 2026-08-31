@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <omp.h>
 
 static constexpr Int32 MAX_BSP_TREE_DEPTH = 64;
 
@@ -68,41 +69,57 @@ static Int32 FindBestSplitPlane(const std::vector<bsp_build_face_t>& faces)
     Int32 bestIdx = -1;
     Int32 bestScore = 99999999;
 
-    for (size_t i = 0; i < faces.size(); i++)
+    #pragma omp parallel
     {
-        const auto& candidate = faces[i];
-        Int32 frontCount = 0, backCount = 0, splitCount = 0;
+        Int32 localBestIdx = -1;
+        Int32 localBestScore = 99999999;
 
-        for (size_t j = 0; j < faces.size(); j++)
+        #pragma omp for schedule(dynamic, 16)
+        for (int i = 0; i < (int)faces.size(); i++)
         {
-            if (i == j)
-                continue;
+            const auto& candidate = faces[i];
+            Int32 frontCount = 0, backCount = 0, splitCount = 0;
 
-            const auto& f = faces[j];
-
-            Int32 onFront = 0, onBack = 0;
-            for (const auto& v : f.verts)
+            for (size_t j = 0; j < faces.size(); j++)
             {
-                Float d = (v.pos[0] * candidate.normal[0] + v.pos[1] * candidate.normal[1] + v.pos[2] * candidate.normal[2]) - candidate.dist;
-                if (d > 0.04f)
-                    onFront++;
-                else if (d < -0.04f)
-                    onBack++;
+                if ((size_t)i == j)
+                    continue;
+
+                const auto& f = faces[j];
+
+                Int32 onFront = 0, onBack = 0;
+                for (const auto& v : f.verts)
+                {
+                    Float d = (v.pos[0] * candidate.normal[0] + v.pos[1] * candidate.normal[1] + v.pos[2] * candidate.normal[2]) - candidate.dist;
+                    if (d > 0.04f)
+                        onFront++;
+                    else if (d < -0.04f)
+                        onBack++;
+                }
+
+                if (onFront && onBack)
+                    splitCount++;
+                else if (onFront)
+                    frontCount++;
+                else if (onBack)
+                    backCount++;
             }
 
-            if (onFront && onBack)
-                splitCount++;
-            else if (onFront)
-                frontCount++;
-            else if (onBack)
-                backCount++;
+            Int32 score = abs(frontCount - backCount) + splitCount * 2;
+            if (score < localBestScore)
+            {
+                localBestScore = score;
+                localBestIdx = i;
+            }
         }
 
-        Int32 score = abs(frontCount - backCount) + splitCount * 2;
-        if (score < bestScore)
+        #pragma omp critical
         {
-            bestScore = score;
-            bestIdx = (Int32)i;
+            if (localBestScore < bestScore)
+            {
+                bestScore = localBestScore;
+                bestIdx = localBestIdx;
+            }
         }
     }
 

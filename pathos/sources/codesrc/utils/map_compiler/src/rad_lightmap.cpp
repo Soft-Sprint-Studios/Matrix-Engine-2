@@ -29,9 +29,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
-#if defined(_OPENMP)
 #include <omp.h>
-#endif
 
 void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces, Int32 raysPerLuxel)
 {
@@ -49,9 +47,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 
     std::vector<std::vector<luxel_radiance_t>> faceLuxels(faceLightmaps.size());
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(dynamic)
-#endif
     for (int f = 0; f < (int)faceLightmaps.size(); f++)
     {
         const auto& lm = faceLightmaps[f];
@@ -226,9 +222,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     {
         std::vector<std::vector<std::array<Float, 3>>> stepBounce(faceLightmaps.size());
 
-#if defined(_OPENMP)
         #pragma omp parallel for schedule(dynamic)
-#endif
         for (int f = 0; f < (int)faceLightmaps.size(); f++)
         {
             const auto& lm = faceLightmaps[f];
@@ -329,9 +323,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     const Float filterRadiusSq = filterRadius * filterRadius;
     const Float twoSigmaSq = 2.0f * (16.0f * 16.0f);
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(dynamic)
-#endif
     for (int f1 = 0; f1 < (int)faceLightmaps.size(); f1++)
     {
         const auto& lm1 = faceLightmaps[f1];
@@ -466,7 +458,8 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         vecData[vi] = 255;
     }
 
-    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    #pragma omp parallel for schedule(dynamic)
+    for (int f = 0; f < (int)faceLightmaps.size(); f++)
     {
         const auto& lm = faceLightmaps[f];
         if (lm.lightOffset < 0 || faceLuxels[f].empty())

@@ -27,9 +27,7 @@
 #include <array>
 #include <vector>
 #include <algorithm>
-#if defined(_OPENMP)
 #include <omp.h>
-#endif
 
 struct phong_poly_t
 {
@@ -113,9 +111,7 @@ void SmoothFaceNormals(std::vector<lightmap_face_t>& faceLightmaps, Float maxAng
         polys[f].vertNormals.resize(polys[f].verts.size());
     }
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(dynamic)
-#endif
     for (int f = 0; f < (int)polys.size(); f++)
     {
         auto& poly = polys[f];
@@ -166,9 +162,7 @@ void SmoothFaceNormals(std::vector<lightmap_face_t>& faceLightmaps, Float maxAng
         }
     }
 
-#if defined(_OPENMP)
     #pragma omp parallel for schedule(dynamic)
-#endif
     for (int f = 0; f < (int)polys.size(); f++)
     {
         const auto& poly = polys[f];
