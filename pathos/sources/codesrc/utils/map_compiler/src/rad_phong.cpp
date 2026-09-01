@@ -62,23 +62,14 @@ static void InterpolateTriangleBarycentric(const std::array<Float, 3>& A, const 
     Float w = (d00 * d21 - d01 * d20) / denom;
     Float u = 1.0f - v - w;
 
-    Float uC = std::clamp(u, 0.0f, 1.0f);
-    Float vC = std::clamp(v, 0.0f, 1.0f);
-    Float wC = std::clamp(w, 0.0f, 1.0f);
-    Float sum = uC + vC + wC;
-    if (sum > 0.0001f)
-    {
-        uC /= sum; vC /= sum; wC /= sum;
-    }
+    Float distCenterU = u - 0.333333f;
+    Float distCenterV = v - 0.333333f;
+    Float distCenterW = w - 0.333333f;
+    outDistSq = distCenterU * distCenterU + distCenterV * distCenterV + distCenterW * distCenterW;
 
-    Float du = u - uC;
-    Float dv = v - vC;
-    Float dw = w - wC;
-    outDistSq = du * du + dv * dv + dw * dw;
-
-    outNormal[0] = uC * NA[0] + vC * NB[0] + wC * NC[0];
-    outNormal[1] = uC * NA[1] + vC * NB[1] + wC * NC[1];
-    outNormal[2] = uC * NA[2] + vC * NB[2] + wC * NC[2];
+    outNormal[0] = u * NA[0] + v * NB[0] + w * NC[0];
+    outNormal[1] = u * NA[1] + v * NB[1] + w * NC[1];
+    outNormal[2] = u * NA[2] + v * NB[2] + w * NC[2];
 }
 
 void SmoothFaceNormals(std::vector<lightmap_face_t>& faceLightmaps, Float maxAngleDegrees)
