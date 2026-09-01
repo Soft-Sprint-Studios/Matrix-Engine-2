@@ -576,6 +576,12 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                     tangentDir[2] = Dot(normWDir, N);
                     Normalize(tangentDir);
                 }
+                else
+                {
+                    tangentDir[0] = 0.0f;
+                    tangentDir[1] = 0.0f;
+                    tangentDir[2] = 1.0f;
+                }
 
                 size_t baseIdx = (size_t)lm.lightOffset + (s * lm.totalLuxels + i) * 3;
 
