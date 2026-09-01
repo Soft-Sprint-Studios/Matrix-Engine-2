@@ -27,7 +27,7 @@
 #include <cstring>
 #include <algorithm>
 
-void CRadPipeline::AddSunLight(const map_entity_t& ent)
+void CRadPipeline::AddSunLight(const map_entity_t& ent, Int32 style)
 {
     rad_light_t l;
     memset(&l, 0, sizeof(l));
@@ -41,7 +41,7 @@ void CRadPipeline::AddSunLight(const map_entity_t& ent)
         angles[0] = pitch;
     }
 
-    l.style = atoi(ent.GetValue("style"));
+    l.style = style;
 
     Float p = angles[0] * (M_PI / 180.0f);
     Float y = angles[1] * (M_PI / 180.0f);
@@ -59,8 +59,7 @@ void CRadPipeline::AddSunLight(const map_entity_t& ent)
 
     m_lights.push_back(l);
 }
-
-void CRadPipeline::AddPointLight(const map_entity_t& ent)
+void CRadPipeline::AddPointLight(const map_entity_t& ent, Int32 style)
 {
     rad_light_t l;
     memset(&l, 0, sizeof(l));
@@ -73,7 +72,7 @@ void CRadPipeline::AddPointLight(const map_entity_t& ent)
 
     Float fade = (Float)atof(ent.GetValue("_fade"));
     l.fade = (fade <= 0.0f) ? 1.0f : fade;
-    l.style = atoi(ent.GetValue("style"));
+    l.style = style;
     l.falloff = atoi(ent.GetValue("_falloff"));
 
     Float scaleR = (r / 255.0f) * brightness;
@@ -87,8 +86,7 @@ void CRadPipeline::AddPointLight(const map_entity_t& ent)
 
     m_lights.push_back(l);
 }
-
-void CRadPipeline::AddSpotLight(const map_entity_t& ent)
+void CRadPipeline::AddSpotLight(const map_entity_t& ent, Int32 style)
 {
     rad_light_t l;
     memset(&l, 0, sizeof(l));
@@ -104,7 +102,7 @@ void CRadPipeline::AddSpotLight(const map_entity_t& ent)
         angles[0] = pitch;
     }
 
-    l.style = atoi(ent.GetValue("style"));
+    l.style = style;
     l.falloff = atoi(ent.GetValue("_falloff"));
 
     Float p = angles[0] * (M_PI / 180.0f);
@@ -188,11 +186,14 @@ void CRadPipeline::AlphaTestFilterCallback(const struct RTCFilterFunctionNArgume
     }
 }
 
-void CRadPipeline::ParseLights(const map_data_t& mapData, const std::string& daystage)
+void CRadPipeline::ParseLights(map_data_t& mapData, const std::string& daystage)
 {
     m_lights.clear();
 
-    for (const auto& ent : mapData.entities)
+    std::unordered_map<std::string, Int32> targetnameStyles;
+    Int32 nextAllocatedStyle = 32;
+
+    for (auto& ent : mapData.entities)
     {
         const Char* classname = ent.GetValue("classname");
         bool isNightOnly = (atoi(ent.GetValue("nightmode")) == 1);
@@ -200,16 +201,16 @@ void CRadPipeline::ParseLights(const map_data_t& mapData, const std::string& day
 
         if (daystage == "nightmode")
         {
-            if (isDaylightReturnOnly) 
+            if (isDaylightReturnOnly)
                 continue;
-            if (!strcmp(classname, "light_environment") && !isNightOnly) 
+            if (!strcmp(classname, "light_environment") && !isNightOnly)
                 continue;
         }
         else if (daystage == "daylightreturn")
         {
             if (isNightOnly)
                 continue;
-            if (!strcmp(classname, "light_environment") && !isDaylightReturnOnly) 
+            if (!strcmp(classname, "light_environment") && !isDaylightReturnOnly)
                 continue;
         }
         else
@@ -218,17 +219,54 @@ void CRadPipeline::ParseLights(const map_data_t& mapData, const std::string& day
                 continue;
         }
 
+        Int32 style = atoi(ent.GetValue("style"));
+        const Char* targetname = ent.GetValue("targetname");
+        if (!targetname[0])
+            targetname = ent.GetValue("name");
+
+        if (targetname[0])
+        {
+            if (style == 0)
+            {
+                auto it = targetnameStyles.find(targetname);
+                if (it != targetnameStyles.end())
+                {
+                    style = it->second;
+                }
+                else
+                {
+                    style = nextAllocatedStyle++;
+                    targetnameStyles[targetname] = style;
+                }
+
+                bool foundStyleKey = false;
+                for (auto& ep : ent.epairs)
+                {
+                    if (ep.key == "style")
+                    {
+                        ep.value = std::to_string(style);
+                        foundStyleKey = true;
+                        break;
+                    }
+                }
+                if (!foundStyleKey)
+                {
+                    ent.epairs.push_back({ "style", std::to_string(style) });
+                }
+            }
+        }
+
         if (!strcmp(classname, "light_environment"))
         {
-            AddSunLight(ent);
+            AddSunLight(ent, style);
         }
         else if (!strcmp(classname, "light") || !strcmp(classname, "night_light"))
         {
-            AddPointLight(ent);
+            AddPointLight(ent, style);
         }
         else if (!strcmp(classname, "light_spot") || !strcmp(classname, "night_light_spot"))
         {
-            AddSpotLight(ent);
+            AddSpotLight(ent, style);
         }
     }
 }

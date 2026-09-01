@@ -73,7 +73,7 @@ public:
 
     bool InitializeEmbree();
     void BuildSceneGeometry(const map_data_t& mapData, const map_disp_data_t& dispData, const Char* baseDir);
-    void ParseLights(const map_data_t& mapData, const std::string& daystage = "");
+    void ParseLights(map_data_t& mapData, const std::string& daystage = "");
     void LoadTexlights(const Char* baseDir);
     bool TraceOcclusion(const Float start[3], const Float end[3], Float& outDist) const;
     bool TraceRayHit(const Float start[3], const Float dir[3], Float maxDist, ray_hit_t& outHit) const;
@@ -84,9 +84,9 @@ public:
     void Shutdown();
 
 private:
-    void AddSunLight(const map_entity_t& ent);
-    void AddPointLight(const map_entity_t& ent);
-    void AddSpotLight(const map_entity_t& ent);
+    void AddSunLight(const map_entity_t& ent, Int32 style);
+    void AddPointLight(const map_entity_t& ent, Int32 style);
+    void AddSpotLight(const map_entity_t& ent, Int32 style);
     static void AlphaTestFilterCallback(const struct RTCFilterFunctionNArguments* args);
 
     RTCDevice m_device;
