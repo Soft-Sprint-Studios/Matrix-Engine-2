@@ -146,17 +146,17 @@ static Int32 EmitFaceToBSP(const bsp_build_face_t& face, Int32 nodePlaneIndex)
         g_BSP.InsertSurfEdge(edgeIndex);
     }
 
-    const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(face.texinfoIndex);
+    const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(face.texinfoIndex);
     Float lenU = sqrtf(tx.vecs[0][0] * tx.vecs[0][0] + tx.vecs[0][1] * tx.vecs[0][1] + tx.vecs[0][2] * tx.vecs[0][2]);
     Float lenV = sqrtf(tx.vecs[1][0] * tx.vecs[1][0] + tx.vecs[1][1] * tx.vecs[1][1] + tx.vecs[1][2] * tx.vecs[1][2]);
     Float avgLen = (lenU + lenV) * 0.5f;
     Float faceScale = (avgLen > 0.0f) ? (1.0f / avgLen) : 1.0f;
 
-    byte styles[PBSPV3_MAX_LIGHTMAPS];
+    byte styles[MBSPV1_MAX_LIGHTMAPS];
     memset(styles, 255, sizeof(styles));
     styles[0] = 0;
 
-    const dpbspv3plane_t& nPlane = g_BSP.GetPlane(nodePlaneIndex);
+    const dmbspv1plane_t& nPlane = g_BSP.GetPlane(nodePlaneIndex);
     Float dotN = face.normal[0] * nPlane.normal[0] + face.normal[1] * nPlane.normal[1] + face.normal[2] * nPlane.normal[2];
     Int32 side = (dotN < 0.0f) ? 1 : 0;
 
@@ -217,7 +217,7 @@ static Int32 PartitionAndEmitTree(std::vector<bsp_build_face_t>& faces, const st
         splitPlane = faces[0].planeIndex;
     }
 
-    const dpbspv3plane_t& pl = g_BSP.GetPlane(splitPlane);
+    const dmbspv1plane_t& pl = g_BSP.GetPlane(splitPlane);
     Float normal[3] = { pl.normal[0], pl.normal[1], pl.normal[2] };
     Float dist = pl.dist;
 
@@ -227,7 +227,7 @@ static Int32 PartitionAndEmitTree(std::vector<bsp_build_face_t>& faces, const st
 
     for (const auto& f : faces)
     {
-        const dpbspv3plane_t& fPl = g_BSP.GetPlane(f.planeIndex);
+        const dmbspv1plane_t& fPl = g_BSP.GetPlane(f.planeIndex);
         Float dot = fPl.normal[0] * normal[0] + fPl.normal[1] * normal[1] + fPl.normal[2] * normal[2];
         bool isSamePlane = (fabsf(dot - 1.0f) < 0.001f && fabsf(fPl.dist - dist) < 0.04f);
         bool isOppositePlane = (fabsf(dot + 1.0f) < 0.001f && fabsf(fPl.dist + dist) < 0.04f);
@@ -277,7 +277,7 @@ static Int32 PartitionAndEmitTree(std::vector<bsp_build_face_t>& faces, const st
     Int32 child0 = frontFaces.empty() ? CreateLeaf(CONTENTS_EMPTY) : PartitionAndEmitTree(frontFaces, modelBrushIndices, modelEmittedFaces, outVisLeafCount, c0Mins, c0Maxs, currentDepth + 1);
     Int32 child1 = backFaces.empty() ? CreateLeaf(CONTENTS_EMPTY) : PartitionAndEmitTree(backFaces, modelBrushIndices, modelEmittedFaces, outVisLeafCount, c1Mins, c1Maxs, currentDepth + 1);
 
-    dpbspv3node_t& node = g_BSP.GetNode(nodeIndex);
+    dmbspv1node_t& node = g_BSP.GetNode(nodeIndex);
     node.children[0] = child0;
     node.children[1] = child1;
 
@@ -314,7 +314,7 @@ static Int32 EmitClipTreeRecursive(std::vector<bsp_build_face_t>& faces, Int32 c
         splitPlane = faces[0].planeIndex;
     }
 
-    const dpbspv3plane_t& pl = g_BSP.GetPlane(splitPlane);
+    const dmbspv1plane_t& pl = g_BSP.GetPlane(splitPlane);
     Float normal[3] = { pl.normal[0], pl.normal[1], pl.normal[2] };
     Float dist = pl.dist;
 
@@ -323,7 +323,7 @@ static Int32 EmitClipTreeRecursive(std::vector<bsp_build_face_t>& faces, Int32 c
 
     for (const auto& f : faces)
     {
-        const dpbspv3plane_t& fPl = g_BSP.GetPlane(f.planeIndex);
+        const dmbspv1plane_t& fPl = g_BSP.GetPlane(f.planeIndex);
         Float dot = fPl.normal[0] * normal[0] + fPl.normal[1] * normal[1] + fPl.normal[2] * normal[2];
         Float distDiff = fabsf(fPl.dist - dist);
 
@@ -429,7 +429,7 @@ bool BuildBSPModelTrees(Int32 modelIndex, const std::vector<poly_face_t>& modelF
 
     if (modelIndex >= 0 && modelIndex < (Int32)g_BSP.GetModelCount())
     {
-        dpbspv3model_t& mdl = g_BSP.GetModel(modelIndex);
+        dmbspv1model_t& mdl = g_BSP.GetModel(modelIndex);
         mdl.headnode[0] = rootNode;
         mdl.headnode[1] = clipHead;
         mdl.headnode[2] = clipHead;

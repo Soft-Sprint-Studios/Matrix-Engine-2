@@ -270,11 +270,11 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
             }
         }
 
-        byte assignedStyles[PBSPV3_MAX_LIGHTMAPS];
+        byte assignedStyles[MBSPV1_MAX_LIGHTMAPS];
         memset(assignedStyles, 255, sizeof(assignedStyles));
         assignedStyles[0] = 0;
 
-        for (Int32 slot = 1; slot < PBSPV3_MAX_LIGHTMAPS; slot++)
+        for (Int32 slot = 1; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
         {
             Int32 bestStyle = -1;
             Float bestIntensity = 0.1f;
@@ -296,7 +296,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
         }
 
         Int32 activeStylesCount = 0;
-        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
         {
             if (assignedStyles[s] != 255)
                 activeStylesCount++;

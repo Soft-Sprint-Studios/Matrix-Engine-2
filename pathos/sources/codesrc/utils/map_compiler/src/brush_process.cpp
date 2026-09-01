@@ -90,8 +90,8 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
             worldBrushes.push_back(pb);
             for (const auto& f : pb.faces)
             {
-                const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(f.texinfoIndex);
-                const dpbspv3texture_t& tex = g_BSP.GetTexture(tx.miptex);
+                const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(f.texinfoIndex);
+                const dmbspv1texture_t& tex = g_BSP.GetTexture(tx.miptex);
                 if (strcmp(tex.name, "NULL") &&
                     strcmp(tex.name, "CLIP") &&
                     strcmp(tex.name, "SKIP") &&
@@ -129,8 +129,8 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
                 subBrushes.push_back(pb);
                 for (const auto& f : pb.faces)
                 {
-                    const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(f.texinfoIndex);
-                    const dpbspv3texture_t& tex = g_BSP.GetTexture(tx.miptex);
+                    const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(f.texinfoIndex);
+                    const dmbspv1texture_t& tex = g_BSP.GetTexture(tx.miptex);
                     if (strcmp(tex.name, "NULL") &&
                         strcmp(tex.name, "CLIP") &&
                         strcmp(tex.name, "SKIP") &&
@@ -162,7 +162,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
     #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < (int)faceCount; i++)
     {
-        const dpbspv3face_t& bspFace = g_BSP.GetFace(i);
+        const dmbspv1face_t& bspFace = g_BSP.GetFace(i);
         poly_face_t dummyFace;
         dummyFace.planeIndex = bspFace.planenum;
         dummyFace.texinfoIndex = bspFace.texinfo;
@@ -175,7 +175,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
         {
             Int32 surfEdge = g_BSP.GetSurfEdge(firstEdge + e);
             Uint32 vIdx = (surfEdge >= 0) ? g_BSP.GetEdge(surfEdge).vertexes[0] : g_BSP.GetEdge(-surfEdge).vertexes[1];
-            const dpbspv3vertex_t& vert = g_BSP.GetVertex(vIdx);
+            const dmbspv1vertex_t& vert = g_BSP.GetVertex(vIdx);
             dummyFace.verts[e].pos[0] = vert.origin[0];
             dummyFace.verts[e].pos[1] = vert.origin[1];
             dummyFace.verts[e].pos[2] = vert.origin[2];

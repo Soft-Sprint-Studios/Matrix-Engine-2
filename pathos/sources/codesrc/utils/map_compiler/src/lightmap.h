@@ -25,7 +25,7 @@
 #define LIGHTMAP_H
 
 #include "datatypes.h"
-#include "pbspv3file.h"
+#include "mbspv1file.h"
 #include "brush.h"
 #include <vector>
 

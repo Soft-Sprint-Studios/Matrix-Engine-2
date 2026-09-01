@@ -21,8 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef PBSPV3FILE_H
-#define PBSPV3FILE_H
+#ifndef MBSPV1FILE_H
+#define MBSPV1FILE_H
 
 #include "contents.h"
 
@@ -30,75 +30,75 @@
 // BSP limits
 //
 
-static constexpr Uint32 PBSPV3_MAX_MAP_HULLS			= 4;
-static constexpr Uint32 PBSPV3_MAX_TEXTURE_ANIMS		= 10;
-static constexpr Uint32 PBSPV3_MAX_LIGHTMAPS			= 4;
-static constexpr Uint32 PBSPV3_LM_SAMPLE_SIZE			= 16;
-static constexpr Uint32 PBSPV3_NUM_AMBIENTS				= 4;
-static constexpr Uint32 PBSPV3_VERSION					= 3;
-static constexpr Uint32 PBSPV3_MAX_SURFACE_EXTENTS		= 2048;
+static constexpr Uint32 MBSPV1_MAX_MAP_HULLS			= 4;
+static constexpr Uint32 MBSPV1_MAX_TEXTURE_ANIMS		= 10;
+static constexpr Uint32 MBSPV1_MAX_LIGHTMAPS			= 4;
+static constexpr Uint32 MBSPV1_LM_SAMPLE_SIZE			= 16;
+static constexpr Uint32 MBSPV1_NUM_AMBIENTS				= 4;
+static constexpr Uint32 MBSPV1_VERSION					= 1;
+static constexpr Uint32 MBSPV1_MAX_SURFACE_EXTENTS		= 2048;
 
 //
 // BSP lumps
 //
-enum pbspv3_lumps_t
+enum mbspv1_lumps_t
 {
-	PBSPV3_LUMP_ENTITIES = 0,
-	PBSPV3_LUMP_PLANES,
-	PBSPV3_LUMP_TEXTURES,
-	PBSPV3_LUMP_VERTEXES,
-	PBSPV3_LUMP_VISIBILITY,
-	PBSPV3_LUMP_NODES,
-	PBSPV3_LUMP_TEXINFO,
-	PBSPV3_LUMP_FACES,
-	PBSPV3_LUMP_LIGHTING_DEFAULT,
-	PBSPV3_LUMP_LIGHTING_AMBIENT,
-	PBSPV3_LUMP_LIGHTING_DIFFUSE,
-	PBSPV3_LUMP_LIGHTING_VECTORS,
-	PBSPV3_LUMP_CLIPNODES,
-	PBSPV3_LUMP_LEAFS,
-	PBSPV3_LUMP_MARKSURFACES,
-	PBSPV3_LUMP_EDGES,
-	PBSPV3_LUMP_SURFEDGES,
-	PBSPV3_LUMP_MODELS,
-	PBSPV3_LUMP_VERTEX_LIGHTING_AMBIENT,
-	PBSPV3_LUMP_VERTEX_LIGHTING_DIFFUSE,
-	PBSPV3_LUMP_VERTEX_LIGHTING_VECTORS,
-	PBSPV3_LUMP_LIGHTGRID_DATA,
-    PBSPV3_LUMP_BRUSHES,
-    PBSPV3_LUMP_BRUSHSIDES,
-    PBSPV3_LUMP_LEAFBRUSHES,
-	PBSPV3_LUMP_DISPLACEMENTS,
-	PBSPV3_LUMP_CHECKSUM,
+	MBSPV1_LUMP_ENTITIES = 0,
+	MBSPV1_LUMP_PLANES,
+	MBSPV1_LUMP_TEXTURES,
+	MBSPV1_LUMP_VERTEXES,
+	MBSPV1_LUMP_VISIBILITY,
+	MBSPV1_LUMP_NODES,
+	MBSPV1_LUMP_TEXINFO,
+	MBSPV1_LUMP_FACES,
+	MBSPV1_LUMP_LIGHTING_DEFAULT,
+	MBSPV1_LUMP_LIGHTING_AMBIENT,
+	MBSPV1_LUMP_LIGHTING_DIFFUSE,
+	MBSPV1_LUMP_LIGHTING_VECTORS,
+	MBSPV1_LUMP_CLIPNODES,
+	MBSPV1_LUMP_LEAFS,
+	MBSPV1_LUMP_MARKSURFACES,
+	MBSPV1_LUMP_EDGES,
+	MBSPV1_LUMP_SURFEDGES,
+	MBSPV1_LUMP_MODELS,
+	MBSPV1_LUMP_VERTEX_LIGHTING_AMBIENT,
+	MBSPV1_LUMP_VERTEX_LIGHTING_DIFFUSE,
+	MBSPV1_LUMP_VERTEX_LIGHTING_VECTORS,
+	MBSPV1_LUMP_LIGHTGRID_DATA,
+    MBSPV1_LUMP_BRUSHES,
+    MBSPV1_LUMP_BRUSHSIDES,
+    MBSPV1_LUMP_LEAFBRUSHES,
+	MBSPV1_LUMP_DISPLACEMENTS,
+	MBSPV1_LUMP_CHECKSUM,
 
 	// MUST BE LAST
-	PBSPV3_NB_LUMPS // Don't actually use this anywhere if possible
+	MBSPV1_NB_LUMPS // Don't actually use this anywhere if possible
 };
 
 //
 // Flags for BSP file
 //
-enum pbspv3_flags_t
+enum mbspv1_flags_t
 {
-	PBSPV3_FL_NONE						= 0
+	MBSPV1_FL_NONE						= 0
 };
 
 //
 // Flags for brush side
 //
-enum pbspv3_brushside_flags_t
+enum mbspv1_brushside_flags_t
 {
-	PBSPV3_BSIDE_FL_PLANEBACK			= (1<<0),
-	PBSPV3_BSIDE_FL_BEVEL				= (1<<1)
+	MBSPV1_BSIDE_FL_PLANEBACK			= (1<<0),
+	MBSPV1_BSIDE_FL_BEVEL				= (1<<1)
 };
 
 //
-// Header for Pathos BSP V3
+// Header for Matrix BSP V1
 //
 
-struct dpbspv3lump_t
+struct dmbspv1lump_t
 {
-	dpbspv3lump_t():
+	dmbspv1lump_t():
 		offset(0),
 		size(0)
 	{}
@@ -107,9 +107,9 @@ struct dpbspv3lump_t
 	Int32 size;
 };
 
-struct dpbspv3header_t
+struct dmbspv1header_t
 {
-	dpbspv3header_t():
+	dmbspv1header_t():
 		id(0),
 		version(0),
 		flags(0)
@@ -121,15 +121,15 @@ struct dpbspv3header_t
 	Int32 version;
 	Int64 flags;
 
-	dpbspv3lump_t lumps[PBSPV3_NB_LUMPS];
+	dmbspv1lump_t lumps[1];
 };
 
 //
 // BSP file structures
 //
-struct dpbspv3model_t
+struct dmbspv1model_t
 {
-	dpbspv3model_t():
+	dmbspv1model_t():
 		visleafs(0),
 		firstface(0),
 		numfaces(0)
@@ -144,16 +144,16 @@ struct dpbspv3model_t
 	Float maxs[3];
 	Float origin[3];
 
-	Int32 headnode[PBSPV3_MAX_MAP_HULLS];
+	Int32 headnode[MBSPV1_MAX_MAP_HULLS];
 	Int32 visleafs;
 
 	Int32 firstface;
 	Int32 numfaces;
 };
 
-struct dpbspv3vertex_t
+struct dmbspv1vertex_t
 {
-	dpbspv3vertex_t()
+	dmbspv1vertex_t()
 	{
 		memset(origin, 0, sizeof(origin));
 	}
@@ -161,9 +161,9 @@ struct dpbspv3vertex_t
 	Float origin[3];
 };
 
-struct dpbspv3plane_t
+struct dmbspv1plane_t
 {
-	dpbspv3plane_t():
+	dmbspv1plane_t():
 		dist(0),
 		type(0)
 	{
@@ -176,9 +176,9 @@ struct dpbspv3plane_t
 	Int32 type;
 };
 
-struct dpbspv3node_t
+struct dmbspv1node_t
 {
-	dpbspv3node_t():
+	dmbspv1node_t():
 		planenum(0),
 		firstface(0),
 		numfaces(0)
@@ -197,9 +197,9 @@ struct dpbspv3node_t
 	Uint32 numfaces;
 };
 
-struct dpbspv3clipnode_t
+struct dmbspv1clipnode_t
 {
-	dpbspv3clipnode_t():
+	dmbspv1clipnode_t():
 		planenum(0)
 	{
 		memset(children, 0, sizeof(children));
@@ -209,9 +209,9 @@ struct dpbspv3clipnode_t
 	Int32 children[2];
 };
 
-struct dpbspv3texinfo_t
+struct dmbspv1texinfo_t
 {
-	dpbspv3texinfo_t():
+	dmbspv1texinfo_t():
 		miptex(0),
 		flags(0)
 	{
@@ -223,14 +223,14 @@ struct dpbspv3texinfo_t
 	Int32 flags;
 };
 
-struct dpbspv3edge_t
+struct dmbspv1edge_t
 {
 	Uint32 vertexes[2];
 };
 
-struct dpbspv3face_t
+struct dmbspv1face_t
 {
-	dpbspv3face_t():
+	dmbspv1face_t():
 		planenum(0),
 		side(0),
 		firstedge(0),
@@ -250,15 +250,15 @@ struct dpbspv3face_t
 	Int32 numedges;
 	Int32 texinfo;
 	Float samplescale;
-	Int32 smoothgroupbits; // This is set if pheader->flags has PBSPV3_FL_HAS_SMOOTHING_GROUPS set
+	Int32 smoothgroupbits; // This is set if pheader->flags has MBSPV1_FL_HAS_SMOOTHING_GROUPS set
 
-	byte lmstyles[PBSPV3_MAX_LIGHTMAPS];
+	byte lmstyles[MBSPV1_MAX_LIGHTMAPS];
 	Int32 lightoffset;
 };
 
-struct dpbspv3leaf_nobrush_t
+struct dmbspv1leaf_nobrush_t
 {
-	dpbspv3leaf_nobrush_t():
+	dmbspv1leaf_nobrush_t():
 		contents(0),
 		visoffset(0),
 		firstmarksurface(0),
@@ -278,12 +278,12 @@ struct dpbspv3leaf_nobrush_t
 	Uint32 firstmarksurface;
 	Uint32 nummarksurfaces;
 
-	byte ambient_level[PBSPV3_NUM_AMBIENTS];
+	byte ambient_level[MBSPV1_NUM_AMBIENTS];
 };
 
-struct dpbspv3leaf_brush_t
+struct dmbspv1leaf_brush_t
 {
-	dpbspv3leaf_brush_t():
+	dmbspv1leaf_brush_t():
 		contents(0),
 		visoffset(0),
 		firstmarksurface(0),
@@ -308,9 +308,9 @@ struct dpbspv3leaf_brush_t
 	Uint32 numleafbrushes;
 };
 
-struct dpbspv3lightingdata_t
+struct dmbspv1lightingdata_t
 {
-	dpbspv3lightingdata_t():
+	dmbspv1lightingdata_t():
 		compression(0),
 		compressionlevel(0),
 		dataoffset(0),
@@ -325,16 +325,16 @@ struct dpbspv3lightingdata_t
 	Int32 noncompressedsize;
 };
 
-struct dpbspv3lightgridlumpheader_t
+struct dmbspv1lightgridlumpheader_t
 {
-    dpbspv3lightgridlumpheader_t():
-        rootnodeindex(-1),
+    dmbspv1lightgridlumpheader_t():
+        rootnodeindex(NO_POSITION),
 		totalsize(0),
-        leafsoffset(-1),
+        leafsoffset(NO_POSITION),
         numleafs(0),
-        nodesoffset(-1),
+        nodesoffset(NO_POSITION),
         numnodes(0),
-        sampleoffset(-1),
+        sampleoffset(NO_POSITION),
         numsamples(0),
         rawsampledatasize(0),
         ambientdataoffset(-1),
@@ -359,7 +359,7 @@ struct dpbspv3lightgridlumpheader_t
 
     Int32 grid_distance[3];
     Int32 grid_size[3];
-	Float grid_mins[3];
+    Vector grid_mins;
     Int32 rootnodeindex;
     Uint32 totalsize;
 
@@ -390,9 +390,9 @@ struct dpbspv3lightgridlumpheader_t
     Int32 vectorscompressiontype;
 };
 
-struct dpbspv3lightgridnode_t
+struct dmbspv1lightgridnode_t
 {
-    dpbspv3lightgridnode_t()
+    dmbspv1lightgridnode_t()
     {
         for(Uint32 i = 0; i < 3; i++)
 			divisionpoint[i] = 0;
@@ -405,10 +405,10 @@ struct dpbspv3lightgridnode_t
     Int32 children[8];
 };
 
-struct dpbspv3lightgridleaf_t
+struct dmbspv1lightgridleaf_t
 {
-    dpbspv3lightgridleaf_t():
-        firstsample(-1),
+    dmbspv1lightgridleaf_t():
+        firstsample(NO_POSITION),
         numsamples(0)
     {
         for(Uint32 i = 0; i < 3; i++)
@@ -425,21 +425,21 @@ struct dpbspv3lightgridleaf_t
     Int32 numsamples;
 };
 
-struct dpbspv3lightgridsample_t
+struct dmbspv1lightgridsample_t
 {
-    dpbspv3lightgridsample_t():
-        rawsampleoffset(-1)
+    dmbspv1lightgridsample_t():
+        rawsampleoffset(NO_POSITION)
     {
         memset(styles, 0, sizeof(styles));
     }
 
-	byte styles[PBSPV3_MAX_LIGHTMAPS];
+	byte styles[MBSPV1_MAX_LIGHTMAPS];
     Int32 rawsampleoffset;
 };
 
-struct dpbspv3brushside_t
+struct dmbspv1brushside_t
 {
-    dpbspv3brushside_t():
+    dmbspv1brushside_t():
         planenum(0),
         texinfo(0),
 		flags(0)
@@ -450,9 +450,9 @@ struct dpbspv3brushside_t
 	Int32 flags;
 };
 
-struct dpbspv3brush_t
+struct dmbspv1brush_t
 {
-    dpbspv3brush_t():
+    dmbspv1brush_t():
         firstside(0),
         numsides(0),
         contents(0)
@@ -463,19 +463,19 @@ struct dpbspv3brush_t
     Int32 contents;
 };
 
-struct dpbspv3texture_t
+struct dmbspv1texture_t
 {
 	Char name[64];
 };
 
-struct dpbspv3dispheader_t
+struct dmbspv1dispheader_t
 {
 	Int32 num_disp_infos;
 	Int32 num_disp_verts;
 	Int32 num_faces;
 };
 
-struct dpbspv3dispinfo_t
+struct dmbspv1dispinfo_t
 {
 	Char texture2[64];
 	Int32 face_index;
@@ -484,16 +484,16 @@ struct dpbspv3dispinfo_t
 	Float corners[4][3];
 };
 
-struct dpbspv3dispvert_t
+struct dmbspv1dispvert_t
 {
 	Float vector[3];
 	Float distance;
 	Float alpha;
 };
 
-struct dpbspv3checksum_t
+struct dmbspv1checksum_t
 {
 	Uint64 checksum;
 };
 
-#endif //PBSPV3FILE_H
+#endif //MBSPV1FILE_H

@@ -643,9 +643,9 @@ void CBSPRenderer::SetLightmapCoords( void )
 			Uint32 light_s, light_t;
 			R_AllocBlock(xsize, ysize, light_s, light_t, m_lightmapWidths[i], m_lightmapHeights[i], pallocations, paddingAmount);
 
-			bsp_surface_t* pbspsurface = &m_surfacesArray[j];
-			psurface->light_s[i] = pbspsurface->light_s[i] = light_s;
-			psurface->light_t[i] = pbspsurface->light_t[i] = light_t;
+			bsp_surface_t* mbspsurface = &m_surfacesArray[j];
+			psurface->light_s[i] = mbspsurface->light_s[i] = light_s;
+			psurface->light_t[i] = mbspsurface->light_t[i] = light_t;
 		}
 
 		delete[] pallocations;
@@ -693,7 +693,7 @@ void CBSPRenderer::InitLightmaps( void )
 			if(psurface->flags & (SURF_DRAWTURB))
 				continue;
 
-			bsp_surface_t* pbspsurface = &m_surfacesArray[j];
+			bsp_surface_t* mbspsurface = &m_surfacesArray[j];
 		
 			if(psurface->lightoffset == -1)
 				continue;
@@ -705,7 +705,7 @@ void CBSPRenderer::InitLightmaps( void )
 			bool isfullbright = false;
 			if(psurface->infoindex != NO_INFO_INDEX)
 			{
-				bsp_texture_t* ptexture = pbspsurface->ptexture;
+				bsp_texture_t* ptexture = mbspsurface->ptexture;
 				if(ptexture && ptexture->pmaterial && (ptexture->pmaterial->flags & TX_FL_FULLBRIGHT))
 					isfullbright = true;
 			}
@@ -724,7 +724,7 @@ void CBSPRenderer::InitLightmaps( void )
 			else
 				psrclightdata = nullptr;
 
-			R_BuildLightmap(pbspsurface->light_s[i], pbspsurface->light_t[i], psrclightdata, psurface, plightmap, i, m_lightmapWidths[i], overdarkValue, paddingAmount, false, isfullbright);
+			R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrclightdata, psurface, plightmap, i, m_lightmapWidths[i], overdarkValue, paddingAmount, false, isfullbright);
 			lightmapdatasize += size*sizeof(color32_t);
 		}
 
@@ -823,12 +823,12 @@ void CBSPRenderer::InitLightmaps( void )
 					if(i > BASE_LIGHTMAP_INDEX && psurface->styles[i] == NULL_LIGHTSTYLE_INDEX)
 						continue;
 
-					bsp_surface_t* pbspsurface = &m_surfacesArray[j];
+					bsp_surface_t* mbspsurface = &m_surfacesArray[j];
 		
 					bool isfullbright = false;
 					if(psurface->infoindex != NO_INFO_INDEX)
 					{
-						bsp_texture_t* ptexture = pbspsurface->ptexture;
+						bsp_texture_t* ptexture = mbspsurface->ptexture;
 						if(ptexture && ptexture->pmaterial && (ptexture->pmaterial->flags & TX_FL_FULLBRIGHT))
 							isfullbright = true;
 					}
@@ -839,7 +839,7 @@ void CBSPRenderer::InitLightmaps( void )
 					Uint32 size = xsize*ysize;
 
 					color24_t* psrc = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(ens.pworld->plightdata[k]) + psurface->lightoffset);
-					R_BuildLightmap(pbspsurface->light_s[i], pbspsurface->light_t[i], psrc, psurface, plightmapdata, i, m_lightmapWidths[i], _overdarken, paddingAmount, isvectormap);
+					R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrc, psurface, plightmapdata, i, m_lightmapWidths[i], _overdarken, paddingAmount, isvectormap);
 					lightdatasize += size*sizeof(color32_t);
 				}
 
@@ -1020,17 +1020,17 @@ void CBSPRenderer::InitVBO( void )
 			if(psurface->ptexinfo->ptexture != ptexture)
 				continue;
 
-			bsp_surface_t* pbspsurface = &m_surfacesArray[j];
+			bsp_surface_t* mbspsurface = &m_surfacesArray[j];
 
 			// link with model_t surface
-			pbspsurface->pmsurface = psurface;
+			mbspsurface->pmsurface = psurface;
 			psurface->infoindex = j;
 
 			Uint32 vertexBase = curVertexIndex;
-			pbspsurface->start_index = curIndex;
+			mbspsurface->start_index = curIndex;
 
 			// Link it to the texture
-			pbspsurface->ptexture = &m_texturesArray[ptexture->infoindex];
+			mbspsurface->ptexture = &m_texturesArray[ptexture->infoindex];
 
 			// If we are displacement
 			if (psurface->displacement_id != -1)
@@ -1038,7 +1038,7 @@ void CBSPRenderer::InitVBO( void )
 				mdispinfo_t* pdisp = &ens.pworld->pdispinfo[psurface->displacement_id];
 				Uint32 side = (1 << pdisp->power) + 1;
 				Uint32 v_base = curVertexIndex;
-				pbspsurface->start_index = curIndex;
+				mbspsurface->start_index = curIndex;
 
 				// Store normal
 				Vector faceNormal;
@@ -1100,10 +1100,10 @@ void CBSPRenderer::InitVBO( void )
 						vertex.texcoord[1] = (Math::DotProduct(pos, ptexinfo->vecs[1]) + ptexinfo->vecs[1][3]) / ptexinfo->ptexture->height;
 
 						// Set detail texcoords if needed
-						if (pbspsurface->ptexture->pmaterial->ptextures[MT_TX_DETAIL])
+						if (mbspsurface->ptexture->pmaterial->ptextures[MT_TX_DETAIL])
 						{
-							vertex.dtexcoord[0] = vertex.texcoord[0] * pbspsurface->ptexture->pmaterial->dt_scalex * m_pCvarDetailScale->GetValue();
-							vertex.dtexcoord[1] = vertex.texcoord[1] * pbspsurface->ptexture->pmaterial->dt_scaley * m_pCvarDetailScale->GetValue();
+							vertex.dtexcoord[0] = vertex.texcoord[0] * mbspsurface->ptexture->pmaterial->dt_scalex * m_pCvarDetailScale->GetValue();
+							vertex.dtexcoord[1] = vertex.texcoord[1] * mbspsurface->ptexture->pmaterial->dt_scaley * m_pCvarDetailScale->GetValue();
 						}
 
 						for (Uint32 l = 0; l < MAX_SURFACE_STYLES; l++)
@@ -1111,12 +1111,12 @@ void CBSPRenderer::InitVBO( void )
 							// Set lightmap coords
 							vertex.lmapcoord[l][0] = Math::DotProduct(vertexOrigin, ptexinfo->vecs[0]) + ptexinfo->vecs[0][3];
 							vertex.lmapcoord[l][0] -= psurface->texturemins[0];
-							vertex.lmapcoord[l][0] += pbspsurface->light_s[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
+							vertex.lmapcoord[l][0] += mbspsurface->light_s[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
 							vertex.lmapcoord[l][0] /= m_lightmapWidths[l] * psurface->lightmapdivider;
 
 							vertex.lmapcoord[l][1] = Math::DotProduct(vertexOrigin, ptexinfo->vecs[1]) + ptexinfo->vecs[1][3];
 							vertex.lmapcoord[l][1] -= psurface->texturemins[1];
-							vertex.lmapcoord[l][1] += pbspsurface->light_t[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
+							vertex.lmapcoord[l][1] += mbspsurface->light_t[l] * psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
 							vertex.lmapcoord[l][1] /= m_lightmapHeights[l] * psurface->lightmapdivider;
 						}
 					}
@@ -1136,14 +1136,14 @@ void CBSPRenderer::InitVBO( void )
 					}
 				}
 
-				pbspsurface->end_index = curIndex;
-				pbspsurface->num_indexes = curIndex - pbspsurface->start_index;
+				mbspsurface->end_index = curIndex;
+				mbspsurface->num_indexes = curIndex - mbspsurface->start_index;
 
 				Vector mins = NULL_MINS;
 				Vector maxs = NULL_MAXS;
-				for (Uint32 k = 0; k < pbspsurface->num_indexes; k++)
+				for (Uint32 k = 0; k < mbspsurface->num_indexes; k++)
 				{
-					bsp_vertex_t* pvertex = &pvertexes[pindexes[pbspsurface->start_index + k]];
+					bsp_vertex_t* pvertex = &pvertexes[pindexes[mbspsurface->start_index + k]];
 					for (Int32 l = 0; l < 3; l++)
 					{
 						if (mins[l] > pvertex->origin[l])
@@ -1153,8 +1153,8 @@ void CBSPRenderer::InitVBO( void )
 					}
 				}
 
-				Math::VectorCopy(mins, pbspsurface->mins);
-				Math::VectorCopy(maxs, pbspsurface->maxs);
+				Math::VectorCopy(mins, mbspsurface->mins);
+				Math::VectorCopy(maxs, mbspsurface->maxs);
 
 				// Dont continue with normal BSP rendering
 				continue;
@@ -1213,10 +1213,10 @@ void CBSPRenderer::InitVBO( void )
 				vertex.texcoord[1] /= static_cast<Float>(psurface->ptexinfo->ptexture->height);
 
 				// Set detail texcoords if needed
-				if(pbspsurface->ptexture->pmaterial->ptextures[MT_TX_DETAIL])
+				if(mbspsurface->ptexture->pmaterial->ptextures[MT_TX_DETAIL])
 				{
-					vertex.dtexcoord[0] = vertex.texcoord[0]*pbspsurface->ptexture->pmaterial->dt_scalex*m_pCvarDetailScale->GetValue();
-					vertex.dtexcoord[1] = vertex.texcoord[1]*pbspsurface->ptexture->pmaterial->dt_scaley*m_pCvarDetailScale->GetValue();
+					vertex.dtexcoord[0] = vertex.texcoord[0]*mbspsurface->ptexture->pmaterial->dt_scalex*m_pCvarDetailScale->GetValue();
+					vertex.dtexcoord[1] = vertex.texcoord[1]*mbspsurface->ptexture->pmaterial->dt_scaley*m_pCvarDetailScale->GetValue();
 				}
 
 				for(Uint32 l = 0; l < MAX_SURFACE_STYLES; l++)
@@ -1224,12 +1224,12 @@ void CBSPRenderer::InitVBO( void )
 					// Set lightmap coords
 					vertex.lmapcoord[l][0] = Math::DotProduct(vertexOrigin, ptexinfo->vecs[0]) + ptexinfo->vecs[0][3];
 					vertex.lmapcoord[l][0] -= psurface->texturemins[0];
-					vertex.lmapcoord[l][0] += pbspsurface->light_s[l]*psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
+					vertex.lmapcoord[l][0] += mbspsurface->light_s[l]*psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
 					vertex.lmapcoord[l][0] /= m_lightmapWidths[l]*psurface->lightmapdivider;
 
 					vertex.lmapcoord[l][1] = Math::DotProduct(vertexOrigin, ptexinfo->vecs[1]) + ptexinfo->vecs[1][3];
 					vertex.lmapcoord[l][1] -= psurface->texturemins[1];
-					vertex.lmapcoord[l][1] += pbspsurface->light_t[l]*psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
+					vertex.lmapcoord[l][1] += mbspsurface->light_t[l]*psurface->lightmapdivider + (psurface->lightmapdivider / 2.0f);
 					vertex.lmapcoord[l][1] /= m_lightmapHeights[l]*psurface->lightmapdivider;
 				}
 			}
@@ -1255,15 +1255,15 @@ void CBSPRenderer::InitVBO( void )
 			}
 
 			// Set end index
-			pbspsurface->end_index = curIndex;
-			pbspsurface->num_indexes = curIndex - pbspsurface->start_index;
+			mbspsurface->end_index = curIndex;
+			mbspsurface->num_indexes = curIndex - mbspsurface->start_index;
 
 			// Calculate mins/maxs
 			Vector mins = NULL_MINS;
 			Vector maxs = NULL_MAXS;
-			for(Uint32 k = 0; k < pbspsurface->end_index-pbspsurface->start_index; k++)
+			for(Uint32 k = 0; k < mbspsurface->end_index-mbspsurface->start_index; k++)
 			{
-				bsp_vertex_t *pvertex = &pvertexes[pindexes[pbspsurface->start_index+k]];
+				bsp_vertex_t *pvertex = &pvertexes[pindexes[mbspsurface->start_index+k]];
 				for(Int32 l = 0; l < 3; l++)
 				{
 					if(mins[l] > pvertex->origin[l])
@@ -1274,8 +1274,8 @@ void CBSPRenderer::InitVBO( void )
 				}
 			}
 
-			Math::VectorCopy(mins, pbspsurface->mins);
-			Math::VectorCopy(maxs, pbspsurface->maxs);
+			Math::VectorCopy(mins, mbspsurface->mins);
+			Math::VectorCopy(maxs, mbspsurface->maxs);
 		}
 	}
 
@@ -1381,24 +1381,24 @@ void CBSPRenderer::InitTextures( void )
 	for(Uint32 i = 0; i < ens.pworld->numtextures; i++)
 	{
 		mtexture_t* ptexture = &ens.pworld->ptextures[i];
-		bsp_texture_t* pbsptexture = &m_texturesArray[i];
+		bsp_texture_t* mbsptexture = &m_texturesArray[i];
 
 		// link it up
 		ptexture->infoindex = i;
-		pbsptexture->pmodeltexture = ptexture;
+		mbsptexture->pmodeltexture = ptexture;
 
-		pbsptexture->numsinglebatches = 0;
+		mbsptexture->numsinglebatches = 0;
 		
-		pbsptexture->index = i;
-		pbsptexture->psurfchain = nullptr;
+		mbsptexture->index = i;
+		mbsptexture->psurfchain = nullptr;
 
 		// Load the texture
-		pbsptexture->pmaterial = LoadMapTexture(ptexture->name.c_str());
+		mbsptexture->pmaterial = LoadMapTexture(ptexture->name.c_str());
 
-		if(ptexture->width == 0 && pbsptexture->pmaterial)
+		if(ptexture->width == 0 && mbsptexture->pmaterial)
 		{
-			ptexture->width = pbsptexture->pmaterial->int_width > 0 ? pbsptexture->pmaterial->int_width : (pbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE] ? pbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE]->width : 64);
-			ptexture->height = pbsptexture->pmaterial->int_height > 0 ? pbsptexture->pmaterial->int_height : (pbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE] ? pbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE]->height : 64);
+			ptexture->width = mbsptexture->pmaterial->int_width > 0 ? mbsptexture->pmaterial->int_width : (mbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE] ? mbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE]->width : 64);
+			ptexture->height = mbsptexture->pmaterial->int_height > 0 ? mbsptexture->pmaterial->int_height : (mbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE] ? mbsptexture->pmaterial->ptextures[MT_TX_DIFFUSE]->height : 64);
 		}
 
 		// See how many surfaces are tied to this texture
@@ -1413,7 +1413,7 @@ void CBSPRenderer::InitTextures( void )
 		}
 
 		// Set drawbatch array sizes
-		pbsptexture->single_batches.resize(numsurfaces);
+		mbsptexture->single_batches.resize(numsurfaces);
 	}
 
 	// Get our second texture from the displacement
@@ -1430,8 +1430,8 @@ void CBSPRenderer::InitTextures( void )
 		if (!psurface->ptexinfo || !psurface->ptexinfo->ptexture)
 			continue;
 
-		bsp_texture_t* pbsptexture = &m_texturesArray[psurface->ptexinfo->ptexture->infoindex];
-		en_material_t* pmat1 = pbsptexture->pmaterial;
+		bsp_texture_t* mbsptexture = &m_texturesArray[psurface->ptexinfo->ptexture->infoindex];
+		en_material_t* pmat1 = mbsptexture->pmaterial;
 		en_material_t* pmat2 = LoadMapTexture(disp.texture2);
 
 		if (pmat1 && pmat2)
@@ -1979,13 +1979,13 @@ void CBSPRenderer::RecursiveWorldNode( mnode_t* pnode )
 //=============================================
 FORCEINLINE void CBSPRenderer::BatchSurface( msurface_t* psurface )
 {
-	bsp_surface_t* pbspsurface = nullptr;
-	pbspsurface = &m_surfacesArray[psurface->infoindex];
-	bsp_texture_t* ptexture = pbspsurface->ptexture;
+	bsp_surface_t* mbspsurface = nullptr;
+	mbspsurface = &m_surfacesArray[psurface->infoindex];
+	bsp_texture_t* ptexture = mbspsurface->ptexture;
 	if(!ptexture)
 		return;
 
-	AddBatch(ptexture->single_batches, ptexture->numsinglebatches, pbspsurface);
+	AddBatch(ptexture->single_batches, ptexture->numsinglebatches, mbspsurface);
 
 	rns.counters.brushpolies++;
 }

@@ -43,16 +43,16 @@ CBSPBuilder::~CBSPBuilder()
 void CBSPBuilder::Reset()
 {
     memset(&m_header, 0, sizeof(m_header));
-    m_header.id = PBSP_ID;
-    m_header.version = PBSPV3_VERSION;
-    m_header.flags = PBSPV3_FL_NONE;
+    m_header.id = MBSP_HEADER;
+    m_header.version = MBSPV1_VERSION;
+    m_header.flags = MBSPV1_FL_NONE;
 
     m_fileBuffer.clear();
     m_planes.clear();
     m_vertexes.clear();
     m_edges.clear();
 
-    dpbspv3edge_t dummyEdge;
+    dmbspv1edge_t dummyEdge;
     dummyEdge.vertexes[0] = 0;
     dummyEdge.vertexes[1] = 0;
     m_edges.push_back(dummyEdge);
@@ -103,7 +103,7 @@ Int32 CBSPBuilder::InsertPlane(const Float normal[3], Float distance, Int32 axis
         }
     }
 
-    dpbspv3plane_t pl;
+    dmbspv1plane_t pl;
     pl.normal[0] = normal[0];
     pl.normal[1] = normal[1];
     pl.normal[2] = normal[2];
@@ -126,7 +126,7 @@ Int32 CBSPBuilder::InsertVertex(const Float position[3])
         }
     }
 
-    dpbspv3vertex_t vert;
+    dmbspv1vertex_t vert;
     vert.origin[0] = position[0];
     vert.origin[1] = position[1];
     vert.origin[2] = position[2];
@@ -149,7 +149,7 @@ Int32 CBSPBuilder::InsertEdge(Uint32 startVertex, Uint32 endVertex)
         }
     }
 
-    dpbspv3edge_t edge;
+    dmbspv1edge_t edge;
     edge.vertexes[0] = startVertex;
     edge.vertexes[1] = endVertex;
 
@@ -173,7 +173,7 @@ Int32 CBSPBuilder::InsertTexture(const Char* name)
         }
     }
 
-    dpbspv3texture_t tex;
+    dmbspv1texture_t tex;
     strncpy(tex.name, name, sizeof(tex.name) - 1);
     tex.name[sizeof(tex.name) - 1] = '\0';
 
@@ -213,7 +213,7 @@ Int32 CBSPBuilder::InsertTexinfo(const Float vecs[2][4], Int32 textureIndex, Int
         }
     }
 
-    dpbspv3texinfo_t tx;
+    dmbspv1texinfo_t tx;
     memcpy(tx.vecs, vecs, sizeof(tx.vecs));
     tx.miptex = textureIndex;
     tx.flags = flags;
@@ -222,9 +222,9 @@ Int32 CBSPBuilder::InsertTexinfo(const Float vecs[2][4], Int32 textureIndex, Int
     return (Int32)(m_texinfos.size() - 1);
 }
 
-Int32 CBSPBuilder::InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, Int32 numEdges, Int32 texinfoIndex, Float sampleScale, Int32 smoothGroup, const byte styles[PBSPV3_MAX_LIGHTMAPS])
+Int32 CBSPBuilder::InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, Int32 numEdges, Int32 texinfoIndex, Float sampleScale, Int32 smoothGroup, const byte styles[MBSPV1_MAX_LIGHTMAPS])
 {
-    dpbspv3face_t f;
+    dmbspv1face_t f;
     f.planenum = planeIndex;
     f.side = side;
     f.firstedge = firstEdge;
@@ -250,7 +250,7 @@ Int32 CBSPBuilder::InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, In
 
 Int32 CBSPBuilder::InsertModel(const Float mins[3], const Float maxs[3], const Float origin[3], Int32 firstFace, Int32 numFaces)
 {
-    dpbspv3model_t mdl;
+    dmbspv1model_t mdl;
     for (Int32 i = 0; i < 3; i++)
     {
         mdl.mins[i] = mins[i];
@@ -266,7 +266,7 @@ Int32 CBSPBuilder::InsertModel(const Float mins[3], const Float maxs[3], const F
 
 Int32 CBSPBuilder::InsertNode(Int32 planeIndex, Int32 child0, Int32 child1, const Int32 mins[3], const Int32 maxs[3], Uint32 firstFace, Uint32 numFaces)
 {
-    dpbspv3node_t node;
+    dmbspv1node_t node;
     node.planenum = planeIndex;
     node.children[0] = child0;
     node.children[1] = child1;
@@ -284,7 +284,7 @@ Int32 CBSPBuilder::InsertNode(Int32 planeIndex, Int32 child0, Int32 child1, cons
 
 Int32 CBSPBuilder::InsertClipNode(Int32 planeIndex, Int32 child0, Int32 child1)
 {
-    dpbspv3clipnode_t cn;
+    dmbspv1clipnode_t cn;
     cn.planenum = planeIndex;
     cn.children[0] = child0;
     cn.children[1] = child1;
@@ -295,7 +295,7 @@ Int32 CBSPBuilder::InsertClipNode(Int32 planeIndex, Int32 child0, Int32 child1)
 
 Int32 CBSPBuilder::InsertLeaf(Int32 contents, Int32 visOffset, const Int32 mins[3], const Int32 maxs[3], Uint32 firstMarkSurface, Uint32 numMarkSurfaces, Uint32 firstLeafBrush, Uint32 numLeafBrushes)
 {
-    dpbspv3leaf_brush_t leaf;
+    dmbspv1leaf_brush_t leaf;
     leaf.contents = contents;
     leaf.visoffset = visOffset;
     for (Int32 i = 0; i < 3; i++)
@@ -320,7 +320,7 @@ Int32 CBSPBuilder::InsertMarkSurface(Uint32 faceIndex)
 
 Int32 CBSPBuilder::InsertBrush(Int32 firstSide, Int32 numSides, Int32 contents)
 {
-    dpbspv3brush_t brush;
+    dmbspv1brush_t brush;
     brush.firstside = firstSide;
     brush.numsides = numSides;
     brush.contents = contents;
@@ -331,7 +331,7 @@ Int32 CBSPBuilder::InsertBrush(Int32 firstSide, Int32 numSides, Int32 contents)
 
 Int32 CBSPBuilder::InsertBrushSide(Int32 planeIndex, Int32 texinfoIndex, Int32 flags)
 {
-    dpbspv3brushside_t side;
+    dmbspv1brushside_t side;
     side.planenum = planeIndex;
     side.texinfo = texinfoIndex;
     side.flags = flags;
@@ -386,7 +386,7 @@ void CBSPBuilder::ImportDisplacements(const map_disp_data_t& dispData)
             continue;
         }
 
-        dpbspv3dispinfo_t info;
+        dmbspv1dispinfo_t info;
         strncpy(info.texture2, src.texture2, sizeof(info.texture2) - 1);
         info.texture2[sizeof(info.texture2) - 1] = '\0';
         info.face_index = resolvedBspFace;
@@ -402,7 +402,7 @@ void CBSPBuilder::ImportDisplacements(const map_disp_data_t& dispData)
 
         for (size_t v = 0; v < src.verts.size(); v++)
         {
-            dpbspv3dispvert_t vert;
+            dmbspv1dispvert_t vert;
             vert.vector[0] = src.verts[v].vector[0];
             vert.vector[1] = src.verts[v].vector[1];
             vert.vector[2] = src.verts[v].vector[2];

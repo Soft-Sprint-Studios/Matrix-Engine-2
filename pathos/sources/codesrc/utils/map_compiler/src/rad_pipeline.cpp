@@ -217,7 +217,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
 
     for (size_t i = 0; i < faceCount; i++)
     {
-        const dpbspv3face_t& f = g_BSP.GetFace(i);
+        const dmbspv1face_t& f = g_BSP.GetFace(i);
         if (g_BSP.GetTexinfo(f.texinfo).flags & 1)
         {
             continue;
@@ -229,7 +229,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
 
         if (g_BSP.GetModelCount() > 0)
         {
-            const dpbspv3model_t& worldModel = g_BSP.GetModel(0);
+            const dmbspv1model_t& worldModel = g_BSP.GetModel(0);
             bool isWorldFace = ((Int32)i >= worldModel.firstface && (Int32)i < worldModel.firstface + worldModel.numfaces);
 
             if (!isWorldFace)
@@ -245,7 +245,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
             continue;
         }
 
-        const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(f.texinfo);
+        const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(f.texinfo);
         const auto& fInfo = m_faceInfos[i];
         Float texW = (fInfo.diffuseImage && fInfo.diffuseImage->width > 0) ? (Float)fInfo.diffuseImage->width : 1.0f;
         Float texH = (fInfo.diffuseImage && fInfo.diffuseImage->height > 0) ? (Float)fInfo.diffuseImage->height : 1.0f;
@@ -259,7 +259,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
             Uint32 vIdx = (surfEdge >= 0) ? g_BSP.GetEdge(surfEdge).vertexes[0] : g_BSP.GetEdge(-surfEdge).vertexes[1];
             faceVertIndices[e] = vIdx;
 
-            const dpbspv3vertex_t& v = g_BSP.GetVertex(vIdx);
+            const dmbspv1vertex_t& v = g_BSP.GetVertex(vIdx);
             Float s = v.origin[0] * tx.vecs[0][0] + v.origin[1] * tx.vecs[0][1] + v.origin[2] * tx.vecs[0][2] + tx.vecs[0][3];
             Float t = v.origin[0] * tx.vecs[1][0] + v.origin[1] * tx.vecs[1][1] + v.origin[2] * tx.vecs[1][2] + tx.vecs[1][3];
 
@@ -268,12 +268,12 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
 
         Uint32 rootVert = faceVertIndices[0];
-        const dpbspv3vertex_t& v0 = g_BSP.GetVertex(rootVert);
+        const dmbspv1vertex_t& v0 = g_BSP.GetVertex(rootVert);
 
         for (Int32 e = 1; e < numEdges - 1; e++)
         {
-            const dpbspv3vertex_t& v1 = g_BSP.GetVertex(faceVertIndices[e]);
-            const dpbspv3vertex_t& v2 = g_BSP.GetVertex(faceVertIndices[e + 1]);
+            const dmbspv1vertex_t& v1 = g_BSP.GetVertex(faceVertIndices[e]);
+            const dmbspv1vertex_t& v2 = g_BSP.GetVertex(faceVertIndices[e + 1]);
 
             Uint32 baseIdx = (Uint32)(sceneVerts.size() / 3);
 
@@ -350,8 +350,8 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
 
                 if (bspFaceIdx >= 0)
                 {
-                    const dpbspv3face_t& bspFace = g_BSP.GetFace(bspFaceIdx);
-                    const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(bspFace.texinfo);
+                    const dmbspv1face_t& bspFace = g_BSP.GetFace(bspFaceIdx);
+                    const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(bspFace.texinfo);
                     const auto& fInfo = m_faceInfos[bspFaceIdx];
                     Float texW = (fInfo.diffuseImage && fInfo.diffuseImage->width > 0) ? (Float)fInfo.diffuseImage->width : 1.0f;
                     Float texH = (fInfo.diffuseImage && fInfo.diffuseImage->height > 0) ? (Float)fInfo.diffuseImage->height : 1.0f;
@@ -395,8 +395,8 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
 
                 if (bspFaceIdx >= 0)
                 {
-                    const dpbspv3face_t& bspFace = g_BSP.GetFace(bspFaceIdx);
-                    const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(bspFace.texinfo);
+                    const dmbspv1face_t& bspFace = g_BSP.GetFace(bspFaceIdx);
+                    const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(bspFace.texinfo);
                     const auto& fInfo = m_faceInfos[bspFaceIdx];
                     Float texW = (fInfo.diffuseImage && fInfo.diffuseImage->width > 0) ? (Float)fInfo.diffuseImage->width : 1.0f;
                     Float texH = (fInfo.diffuseImage && fInfo.diffuseImage->height > 0) ? (Float)fInfo.diffuseImage->height : 1.0f;

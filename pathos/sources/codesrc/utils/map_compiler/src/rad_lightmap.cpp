@@ -39,10 +39,10 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 
     struct luxel_radiance_t
     {
-        Float direct[PBSPV3_MAX_LIGHTMAPS][3];
-        Float bounce[PBSPV3_MAX_LIGHTMAPS][3];
+        Float direct[MBSPV1_MAX_LIGHTMAPS][3];
+        Float bounce[MBSPV1_MAX_LIGHTMAPS][3];
         Float ambient[3];
-        Float dominantDir[PBSPV3_MAX_LIGHTMAPS][3];
+        Float dominantDir[MBSPV1_MAX_LIGHTMAPS][3];
     };
 
     std::vector<std::vector<luxel_radiance_t>> faceLuxels(faceLightmaps.size());
@@ -98,9 +98,9 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                         Float g = lt.color[1] * NdotL;
                         Float b = lt.color[2] * NdotL;
 
-                        dpbspv3face_t& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
+                        dmbspv1face_t& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
                         Int32 styleSlot = -1;
-                        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
                         {
                             if (bspFace.lmstyles[s] == lt.style)
                             {
@@ -167,9 +167,9 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                         Float g = lt.color[1] * atten;
                         Float b = lt.color[2] * atten;
 
-                        dpbspv3face_t& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
+                        dmbspv1face_t& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
                         Int32 styleSlot = -1;
-                        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
                         {
                             if (bspFace.lmstyles[s] == lt.style)
                             {
@@ -338,9 +338,9 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
             const Float* p1 = lm1.sampleCoords[i1].worldPos;
 
             Float totalWeight = 0.0f;
-            Float sumDirect[PBSPV3_MAX_LIGHTMAPS][3] = { 0.0f };
-            Float sumBounce[PBSPV3_MAX_LIGHTMAPS][3] = { 0.0f };
-            Float sumDir[PBSPV3_MAX_LIGHTMAPS][3] = { 0.0f };
+            Float sumDirect[MBSPV1_MAX_LIGHTMAPS][3] = { 0.0f };
+            Float sumBounce[MBSPV1_MAX_LIGHTMAPS][3] = { 0.0f };
+            Float sumDir[MBSPV1_MAX_LIGHTMAPS][3] = { 0.0f };
 
             for (size_t f2 = 0; f2 < faceLightmaps.size(); f2++)
             {
@@ -359,7 +359,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                     if (distSq <= filterRadiusSq)
                     {
                         Float w = expf(-distSq / twoSigmaSq);
-                        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
                         {
                             for (Int32 c = 0; c < 3; c++)
                             {
@@ -375,7 +375,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 
             if (totalWeight > 0.0001f)
             {
-                for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
                 {
                     for (Int32 c = 0; c < 3; c++)
                     {
@@ -415,7 +415,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 
                     if (distSq < 1.0f)
                     {
-                        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+                        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
                         {
                             for (Int32 c = 0; c < 3; c++)
                             {
@@ -443,7 +443,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         if (lm.lightOffset >= 0)
         {
             Int32 numStyles = 0;
-            for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+            for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
             {
                 if (g_BSP.GetFace(lm.bspFaceIndex).lmstyles[s] != 255)
                     numStyles++;
@@ -470,8 +470,8 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
             continue;
         }
 
-        const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(lm.texinfoIndex);
-        const dpbspv3plane_t& pl = g_BSP.GetPlane(lm.planeIndex);
+        const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(lm.texinfoIndex);
+        const dmbspv1plane_t& pl = g_BSP.GetPlane(lm.planeIndex);
 
         auto Normalize = [](Float v[3])
             {
@@ -497,7 +497,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         Normalize(tbn[2]);
 
         Int32 numStyles = 0;
-        for (Int32 s = 0; s < PBSPV3_MAX_LIGHTMAPS; s++)
+        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
         {
             if (g_BSP.GetFace(lm.bspFaceIndex).lmstyles[s] != 255)
                 numStyles++;

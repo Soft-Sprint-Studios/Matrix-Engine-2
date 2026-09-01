@@ -123,7 +123,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
 
     std::cout << "Baking Light Grid...\n";
 
-    const dpbspv3model_t& worldModel = g_BSP.GetFaceCount() > 0 ? g_BSP.GetFace(0), dpbspv3model_t() : dpbspv3model_t();
+    const dmbspv1model_t& worldModel = g_BSP.GetFaceCount() > 0 ? g_BSP.GetFace(0), dmbspv1model_t() : dmbspv1model_t();
     Float worldMins[3] = { 999999.0f, 999999.0f, 999999.0f };
     Float worldMaxs[3] = { -999999.0f, -999999.0f, -999999.0f };
 
@@ -264,7 +264,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                 }
 
                 s.styles[0] = 0;
-                for (Int32 slot = 1; slot < PBSPV3_MAX_LIGHTMAPS; slot++)
+                for (Int32 slot = 1; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
                 {
                     Int32 bestStyle = -1;
                     Float bestVal = 0.1f;
@@ -283,7 +283,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                     }
                 }
 
-                for (Int32 slot = 0; slot < PBSPV3_MAX_LIGHTMAPS; slot++)
+                for (Int32 slot = 0; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
                 {
                     if (s.styles[slot] == 255) 
                         continue;
@@ -346,7 +346,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
     Int32 rootNodeIdx = BuildGridOctree(rootMins, gridSize, 0, gridSize, samples, octreeNodes, octreeLeaves, occludedCount);
 
     Int32 rawDataSize = 0;
-    std::vector<dpbspv3lightgridsample_t> bspSamples;
+    std::vector<dmbspv1lightgridsample_t> bspSamples;
 
     for (auto& leaf : octreeLeaves)
     {
@@ -360,7 +360,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                     Int32 idx = GridSampleIndex(x, y, z, gridSize);
                     grid_sample_t& s = samples[idx];
 
-                    dpbspv3lightgridsample_t ds;
+                    dmbspv1lightgridsample_t ds;
                     memcpy(ds.styles, s.styles, sizeof(ds.styles));
 
                     if (s.occluded)
@@ -370,7 +370,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                     else
                     {
                         Int32 styleCount = 0;
-                        for (Int32 slot = 0; slot < PBSPV3_MAX_LIGHTMAPS; slot++)
+                        for (Int32 slot = 0; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
                         {
                             if (s.styles[slot] != 255) 
                                 styleCount++;
@@ -410,7 +410,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
             continue;
 
         Int32 curOffset = s.rawDataOffset;
-        for (Int32 slot = 0; slot < PBSPV3_MAX_LIGHTMAPS; slot++)
+        for (Int32 slot = 0; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
         {
             if (s.styles[slot] == 255) 
                 continue;
@@ -475,7 +475,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
         CompressLayer(rawVectors, compVec, compVecSize);
     }
 
-    dpbspv3lightgridlumpheader_t hdr;
+    dmbspv1lightgridlumpheader_t hdr;
     for (Int32 k = 0; k < 3; k++)
     {
         hdr.grid_distance[k] = gridDist[k];
@@ -486,19 +486,19 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
     hdr.rootnodeindex = rootNodeIdx;
     hdr.rawsampledatasize = rawDataSize;
 
-    Int32 dataOffset = (Int32)sizeof(dpbspv3lightgridlumpheader_t);
+    Int32 dataOffset = (Int32)sizeof(dmbspv1lightgridlumpheader_t);
 
     hdr.nodesoffset = dataOffset;
     hdr.numnodes = (Int32)octreeNodes.size();
-    dataOffset += (Int32)(octreeNodes.size() * sizeof(dpbspv3lightgridnode_t));
+    dataOffset += (Int32)(octreeNodes.size() * sizeof(dmbspv1lightgridnode_t));
 
     hdr.sampleoffset = dataOffset;
     hdr.numsamples = (Int32)bspSamples.size();
-    dataOffset += (Int32)(bspSamples.size() * sizeof(dpbspv3lightgridsample_t));
+    dataOffset += (Int32)(bspSamples.size() * sizeof(dmbspv1lightgridsample_t));
 
     hdr.leafsoffset = dataOffset;
     hdr.numleafs = (Int32)octreeLeaves.size();
-    dataOffset += (Int32)(octreeLeaves.size() * sizeof(dpbspv3lightgridleaf_t));
+    dataOffset += (Int32)(octreeLeaves.size() * sizeof(dmbspv1lightgridleaf_t));
 
     hdr.ambientdataoffset = dataOffset;
     hdr.ambientcompressedsize = compAmbSize;
@@ -525,16 +525,16 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
 
     memcpy(pOut, &hdr, sizeof(hdr));
 
-    std::vector<dpbspv3lightgridnode_t> bspNodes(octreeNodes.size());
+    std::vector<dmbspv1lightgridnode_t> bspNodes(octreeNodes.size());
     for (size_t i = 0; i < octreeNodes.size(); i++)
     {
         memcpy(bspNodes[i].divisionpoint, octreeNodes[i].divisionpoint, sizeof(bspNodes[i].divisionpoint));
         memcpy(bspNodes[i].children, octreeNodes[i].children, sizeof(bspNodes[i].children));
     }
-    memcpy(pOut + hdr.nodesoffset, bspNodes.data(), bspNodes.size() * sizeof(dpbspv3lightgridnode_t));
-    memcpy(pOut + hdr.sampleoffset, bspSamples.data(), bspSamples.size() * sizeof(dpbspv3lightgridsample_t));
+    memcpy(pOut + hdr.nodesoffset, bspNodes.data(), bspNodes.size() * sizeof(dmbspv1lightgridnode_t));
+    memcpy(pOut + hdr.sampleoffset, bspSamples.data(), bspSamples.size() * sizeof(dmbspv1lightgridsample_t));
 
-    std::vector<dpbspv3lightgridleaf_t> bspLeaves(octreeLeaves.size());
+    std::vector<dmbspv1lightgridleaf_t> bspLeaves(octreeLeaves.size());
     for (size_t i = 0; i < octreeLeaves.size(); i++)
     {
         memcpy(bspLeaves[i].mins, octreeLeaves[i].mins, sizeof(bspLeaves[i].mins));
@@ -542,7 +542,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
         bspLeaves[i].firstsample = octreeLeaves[i].firstsample;
         bspLeaves[i].numsamples = octreeLeaves[i].numsamples;
     }
-    memcpy(pOut + hdr.leafsoffset, bspLeaves.data(), bspLeaves.size() * sizeof(dpbspv3lightgridleaf_t));
+    memcpy(pOut + hdr.leafsoffset, bspLeaves.data(), bspLeaves.size() * sizeof(dmbspv1lightgridleaf_t));
 
     if (!compAmb.empty())
         memcpy(pOut + hdr.ambientdataoffset, compAmb.data(), compAmbSize);

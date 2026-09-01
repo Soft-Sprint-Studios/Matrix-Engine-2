@@ -119,10 +119,10 @@ private:
     {
         bool occluded;
         Float worldPos[3];
-        byte styles[PBSPV3_MAX_LIGHTMAPS];
-        Float ambient[PBSPV3_MAX_LIGHTMAPS][3];
-        Float diffuse[PBSPV3_MAX_LIGHTMAPS][3];
-        Float dominantDir[PBSPV3_MAX_LIGHTMAPS][3];
+        byte styles[MBSPV1_MAX_LIGHTMAPS];
+        Float ambient[MBSPV1_MAX_LIGHTMAPS][3];
+        Float diffuse[MBSPV1_MAX_LIGHTMAPS][3];
+        Float dominantDir[MBSPV1_MAX_LIGHTMAPS][3];
         Int32 rawDataOffset;
     };
 

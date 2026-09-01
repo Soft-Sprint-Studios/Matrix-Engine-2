@@ -13,8 +13,8 @@ All Rights Reserved.
 #include "texturemanager.h"
 #include "brushmodel.h"
 #include "modelcache.h"
-#include "pbspv3file.h"
-#include "pbspv3.h"
+#include "mbspv1file.h"
+#include "mbspv1.h"
 #include "system.h"
 #include "texturemanager.h"
 #include "studio.h"
@@ -165,7 +165,7 @@ cache_model_t* CModelCache::LoadModel( const Char* pstrFilename )
 	case IDSPRITEHEADER:
 		pmodel = LoadSpriteModel(pstrFilename, pfile, filesize);
 		break;
-	case PBSP_HEADER:
+	case MBSP_HEADER:
 	default:
 		// Loads BSP files by default
 		pmodel = LoadBSPModel(pstrFilename, pfile);
@@ -404,19 +404,19 @@ cache_model_t* CModelCache::LoadBSPModel( const Char* pstrFilename, const byte* 
 {
 	brushmodel_t* pmodel = nullptr;
 
-	// First, check if it's a Pathos BSP by checking the id part
+	// First, check if it's a Matrix BSP by checking the id part
 	Int32 fileHeaderId = Common::ByteToInt32(pfile);
-	if(fileHeaderId == PBSP_HEADER)
+	if(fileHeaderId == MBSP_HEADER)
 	{
 		// Now get the version
 		Int32 fileHeaderVersion = Common::ByteToInt32(pfile + sizeof(Int32));
 		switch(fileHeaderVersion)
 		{
-		case PBSPV3_VERSION:
-			pmodel = PBSPV3_Load(pfile, reinterpret_cast<const dpbspv3header_t*>(pfile), pstrFilename);
+		case MBSPV1_VERSION:
+			pmodel = MBSPV1_Load(pfile, reinterpret_cast<const dmbspv1header_t*>(pfile), pstrFilename);
 			break;
 		default:
-			Con_EPrintf("%s - PBSP file '%s' has an unknown version number '%d'.\n", __FUNCTION__, pstrFilename, fileHeaderVersion);
+			Con_EPrintf("%s - MBSP file '%s' has an unknown version number '%d'.\n", __FUNCTION__, pstrFilename, fileHeaderVersion);
 			return nullptr;
 			break;
 		}

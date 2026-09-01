@@ -54,7 +54,7 @@ target_sources(matrix-engine
         ../common/movevars.h
         ../common/ogg_common.cpp
         ../common/ogg_common.h
-        ../common/pbspv3file.h
+        ../common/mbspv1file.h
         ../common/plane_inline.hpp
         ../common/plane.h
         ../common/r_common.cpp
@@ -182,8 +182,8 @@ target_sources(matrix-engine
         net_sp.h
         networking.cpp
         networking.h
-        pbspv3.cpp
-        pbspv3.h
+        mbspv1.cpp
+        mbspv1.h
         renderer/r_beams.cpp
         renderer/r_beams.h
         renderer/r_blackhole.cpp
@@ -425,7 +425,7 @@ source_group("Source Files/server" FILES server/sv_bulletphysics.cpp server/sv_e
 source_group("Source Files/ui" FILES ui/uielements.cpp)
 source_group("Source Files/windows" FILES windows/uiconsolewindow.cpp windows/uidownloadwindow.cpp windows/uiexitwindow.cpp windows/uinewgamewindow.cpp windows/uisaveloadwindow.cpp windows/uisettingswindow.cpp)
 source_group("Resource Files" FILES matrix-engine.rc)
-source_group("Header Files/common" FILES ../common/aldformat.h ../common/bmp.h ../common/bmpformat.h ../common/cache_model.h ../common/carray.h ../common/carray_inline.hpp ../common/cbitset.h ../common/cbitset_inline.hpp ../common/cbuffer.h ../common/cbuffer_inline.hpp ../common/clinkedlist.h ../common/clinkedlist_inline.hpp ../common/cl_entity.h ../common/common.h ../common/common_inline.hpp ../common/constants.h ../common/crc32.h ../common/cstring.h ../common/cstringpool.h ../common/cstringpool_inline.hpp ../common/cstring_inline.hpp ../common/com_math.h ../common/com_math_inline.hpp ../common/datatypes.h ../common/filechunk.h ../common/file_interface.h ../common/matrix.h ../common/md5.h ../common/miniz.h ../common/miptex.h ../common/movevars.h ../common/ogg_common.h ../common/pbspv1file.h ../common/pbspv2file.h ../common/pbspv3file.h ../common/plane.h ../common/plane_inline.hpp ../common/r_common.h ../common/sprformat.h ../common/tempentity.h ../common/tgaformat.h ../common/tracer.h ../common/vector.h ../common/dds.h ../common/logfile.h ../common/tga.h ../common/vector_inline.hpp)
+source_group("Header Files/common" FILES ../common/aldformat.h ../common/bmp.h ../common/bmpformat.h ../common/cache_model.h ../common/carray.h ../common/carray_inline.hpp ../common/cbitset.h ../common/cbitset_inline.hpp ../common/cbuffer.h ../common/cbuffer_inline.hpp ../common/clinkedlist.h ../common/clinkedlist_inline.hpp ../common/cl_entity.h ../common/common.h ../common/common_inline.hpp ../common/constants.h ../common/crc32.h ../common/cstring.h ../common/cstringpool.h ../common/cstringpool_inline.hpp ../common/cstring_inline.hpp ../common/com_math.h ../common/com_math_inline.hpp ../common/datatypes.h ../common/filechunk.h ../common/file_interface.h ../common/matrix.h ../common/md5.h ../common/miniz.h ../common/miptex.h ../common/movevars.h ../common/ogg_common.h ../common/mbspv1file.h ../common/plane.h ../common/plane_inline.hpp ../common/r_common.h ../common/sprformat.h ../common/tempentity.h ../common/tgaformat.h ../common/tracer.h ../common/vector.h ../common/dds.h ../common/logfile.h ../common/tga.h ../common/vector_inline.hpp)
 source_group("Header Files/shared" FILES ../shared/beam_shared.h ../shared/collision_shared.h ../shared/mcdformat.h ../shared/r_basicdraw.h ../shared/sentencesfile.h ../shared/texturemanager.h ../shared/textures_shared_inline.hpp ../shared/uischema.h ../shared/animinfo.h ../shared/flex_shared.h ../shared/fontset.h ../shared/cmd_shared.h ../shared/cvar.h ../shared/decallist.h ../shared/dlight.h ../shared/edict.h ../shared/entity_state.h ../shared/frustum.h ../shared/frustum_inline.hpp ../shared/gamevars.h ../shared/includes.h ../shared/monitor_shared.h ../shared/net_shared.h ../shared/pm_shared.h ../shared/ref_params.h ../shared/r_interface.h ../shared/r_basic_vertex.h ../shared/r_fbo.h ../shared/r_glsl.h ../shared/r_glsl_inline.hpp ../shared/r_vbo.h ../shared/save_shared.h ../shared/screenfade.h ../shared/snd_shared.h ../shared/studio.h ../shared/textures_shared.h ../shared/trace.h ../shared/usercmd.h ../shared/vbmformat.h ../shared/vbm_shared.h)
 source_group("Header Files/ui" FILES ui/ui_shared.h ui/uielements.h)
 source_group("Header Files" FILES ald.h bsp_shared.h buildcounter.h config.h console.h disptrace.h dllexports.h edictmanager.h enginefuncs.h enginestate.h commands.h file.h filewriterthread.h input.h mcdtrace.h modelcache.h networking.h net_mp.h net_sp.h pbspv3.h sys_sentry.h sprite.h sv_move.h sys_print.h textschemas.h usermsg.h vbmtrace.h saverestore.h trace_shared.h savefile.h system.h uimanager.h vid.h window.h resource.h)

@@ -118,13 +118,13 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
         sampleScale = 2.0f;
     }
 
-    outLm.lightmapDivider = (Float)PBSPV3_LM_SAMPLE_SIZE / sampleScale;
+    outLm.lightmapDivider = (Float)MBSPV1_LM_SAMPLE_SIZE / sampleScale;
     if (outLm.lightmapDivider < 1.0f)
     {
         outLm.lightmapDivider = 1.0f;
     }
 
-    const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(polyFace.texinfoIndex);
+    const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(polyFace.texinfoIndex);
 
     outLm.exactMins[0] = outLm.exactMins[1] = 9999999.0f;
     outLm.exactMaxs[0] = outLm.exactMaxs[1] = -9999999.0f;
@@ -157,7 +157,7 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
         outLm.lightmapDivider = spanT / MAX_LUXELS_PER_DIM;
     }
 
-    g_BSP.GetFace(bspFaceIndex).samplescale = (Float)PBSPV3_LM_SAMPLE_SIZE / outLm.lightmapDivider;
+    g_BSP.GetFace(bspFaceIndex).samplescale = (Float)MBSPV1_LM_SAMPLE_SIZE / outLm.lightmapDivider;
 
     Int32 minS = (Int32)floorf(outLm.exactMins[0] / outLm.lightmapDivider);
     Int32 maxS = (Int32)ceilf(outLm.exactMaxs[0] / outLm.lightmapDivider);
@@ -181,9 +181,9 @@ void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& p
 {
     lmFace.sampleCoords.resize(lmFace.totalLuxels);
 
-    const dpbspv3texinfo_t& tx = g_BSP.GetTexinfo(polyFace.texinfoIndex);
-    const dpbspv3face_t& bspFace = g_BSP.GetFace(lmFace.bspFaceIndex);
-    const dpbspv3plane_t& pl = g_BSP.GetPlane(polyFace.planeIndex);
+    const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(polyFace.texinfoIndex);
+    const dmbspv1face_t& bspFace = g_BSP.GetFace(lmFace.bspFaceIndex);
+    const dmbspv1plane_t& pl = g_BSP.GetPlane(polyFace.planeIndex);
 
     Float sideSign = (bspFace.side != 0) ? -1.0f : 1.0f;
     Float normal[3] = { pl.normal[0] * sideSign, pl.normal[1] * sideSign, pl.normal[2] * sideSign };
@@ -398,7 +398,7 @@ void AllocateAllFaceLightmaps(std::vector<lightmap_face_t>& inOutFaceLightmaps)
         g_BSP.SetFaceLightOffset(lm.bspFaceIndex, lm.lightOffset);
 
         Int32 numStyles = 1;
-        for (Int32 i = 1; i < PBSPV3_MAX_LIGHTMAPS; i++)
+        for (Int32 i = 1; i < MBSPV1_MAX_LIGHTMAPS; i++)
         {
             if (g_BSP.GetFace(lm.bspFaceIndex).lmstyles[i] != 255)
             {

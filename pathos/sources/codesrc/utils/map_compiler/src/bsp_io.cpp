@@ -68,9 +68,9 @@ void CBSPBuilder::AppendLightingLump(Int32 lumpIndex, const std::vector<byte>& d
     int status = mz_compress2(compressedData.data(), &maxCompressedSize, data.data(), uncompressedSize, compLevel);
 
     Int32 baseOffset = (Int32)m_fileBuffer.size();
-    Int32 dataOffset = baseOffset + (Int32)sizeof(dpbspv3lightingdata_t);
+    Int32 dataOffset = baseOffset + (Int32)sizeof(dmbspv1lightingdata_t);
 
-    dpbspv3lightingdata_t lmapHdr;
+    dmbspv1lightingdata_t lmapHdr;
     lmapHdr.dataoffset = dataOffset;
     lmapHdr.noncompressedsize = (Int32)uncompressedSize;
 
@@ -88,10 +88,10 @@ void CBSPBuilder::AppendLightingLump(Int32 lumpIndex, const std::vector<byte>& d
     }
 
     m_header.lumps[lumpIndex].offset = baseOffset;
-    m_header.lumps[lumpIndex].size = (Int32)sizeof(dpbspv3lightingdata_t);
+    m_header.lumps[lumpIndex].size = (Int32)sizeof(dmbspv1lightingdata_t);
 
     const byte* hdrPtr = reinterpret_cast<const byte*>(&lmapHdr);
-    m_fileBuffer.insert(m_fileBuffer.end(), hdrPtr, hdrPtr + sizeof(dpbspv3lightingdata_t));
+    m_fileBuffer.insert(m_fileBuffer.end(), hdrPtr, hdrPtr + sizeof(dmbspv1lightingdata_t));
 
     if (lmapHdr.compression == 1)
     {
@@ -102,7 +102,7 @@ void CBSPBuilder::AppendLightingLump(Int32 lumpIndex, const std::vector<byte>& d
         m_fileBuffer.insert(m_fileBuffer.end(), data.begin(), data.end());
     }
 
-    size_t totalSize = sizeof(dpbspv3lightingdata_t) + lmapHdr.datasize;
+    size_t totalSize = sizeof(dmbspv1lightingdata_t) + lmapHdr.datasize;
     size_t padCount = (4 - (totalSize % 4)) % 4;
     for (size_t i = 0; i < padCount; i++)
     {
@@ -125,49 +125,49 @@ bool CBSPBuilder::ExportFile(const Char* filename)
 {
     m_fileBuffer.clear();
 
-    m_fileBuffer.resize(sizeof(dpbspv3header_t), 0);
+    m_fileBuffer.resize(sizeof(dmbspv1header_t), 0);
 
-    AppendLumpData(PBSPV3_LUMP_ENTITIES, m_entityData.c_str(), m_entityData.size() + 1);
-    AppendLumpData(PBSPV3_LUMP_PLANES, m_planes.data(), m_planes.size() * sizeof(dpbspv3plane_t));
-    AppendLumpData(PBSPV3_LUMP_TEXTURES, m_textures.data(), m_textures.size() * sizeof(dpbspv3texture_t));
-    AppendLumpData(PBSPV3_LUMP_VERTEXES, m_vertexes.data(), m_vertexes.size() * sizeof(dpbspv3vertex_t));
-    AppendLumpData(PBSPV3_LUMP_VISIBILITY, m_visibility.data(), m_visibility.size());
-    AppendLumpData(PBSPV3_LUMP_NODES, m_nodes.data(), m_nodes.size() * sizeof(dpbspv3node_t));
-    AppendLumpData(PBSPV3_LUMP_TEXINFO, m_texinfos.data(), m_texinfos.size() * sizeof(dpbspv3texinfo_t));
-    AppendLumpData(PBSPV3_LUMP_FACES, m_faces.data(), m_faces.size() * sizeof(dpbspv3face_t));
+    AppendLumpData(MBSPV1_LUMP_ENTITIES, m_entityData.c_str(), m_entityData.size() + 1);
+    AppendLumpData(MBSPV1_LUMP_PLANES, m_planes.data(), m_planes.size() * sizeof(dmbspv1plane_t));
+    AppendLumpData(MBSPV1_LUMP_TEXTURES, m_textures.data(), m_textures.size() * sizeof(dmbspv1texture_t));
+    AppendLumpData(MBSPV1_LUMP_VERTEXES, m_vertexes.data(), m_vertexes.size() * sizeof(dmbspv1vertex_t));
+    AppendLumpData(MBSPV1_LUMP_VISIBILITY, m_visibility.data(), m_visibility.size());
+    AppendLumpData(MBSPV1_LUMP_NODES, m_nodes.data(), m_nodes.size() * sizeof(dmbspv1node_t));
+    AppendLumpData(MBSPV1_LUMP_TEXINFO, m_texinfos.data(), m_texinfos.size() * sizeof(dmbspv1texinfo_t));
+    AppendLumpData(MBSPV1_LUMP_FACES, m_faces.data(), m_faces.size() * sizeof(dmbspv1face_t));
 
-    AppendLightingLump(PBSPV3_LUMP_LIGHTING_DEFAULT, m_lightmaps[SURF_LIGHTMAP_DEFAULT]);
-    AppendLightingLump(PBSPV3_LUMP_LIGHTING_AMBIENT, m_lightmaps[SURF_LIGHTMAP_AMBIENT]);
-    AppendLightingLump(PBSPV3_LUMP_LIGHTING_DIFFUSE, m_lightmaps[SURF_LIGHTMAP_DIFFUSE]);
-    AppendLightingLump(PBSPV3_LUMP_LIGHTING_VECTORS, m_lightmaps[SURF_LIGHTMAP_VECTORS]);
+    AppendLightingLump(MBSPV1_LUMP_LIGHTING_DEFAULT, m_lightmaps[SURF_LIGHTMAP_DEFAULT]);
+    AppendLightingLump(MBSPV1_LUMP_LIGHTING_AMBIENT, m_lightmaps[SURF_LIGHTMAP_AMBIENT]);
+    AppendLightingLump(MBSPV1_LUMP_LIGHTING_DIFFUSE, m_lightmaps[SURF_LIGHTMAP_DIFFUSE]);
+    AppendLightingLump(MBSPV1_LUMP_LIGHTING_VECTORS, m_lightmaps[SURF_LIGHTMAP_VECTORS]);
 
-    AppendLumpData(PBSPV3_LUMP_CLIPNODES, m_clipnodes.data(), m_clipnodes.size() * sizeof(dpbspv3clipnode_t));
-    AppendLumpData(PBSPV3_LUMP_LEAFS, m_leafs.data(), m_leafs.size() * sizeof(dpbspv3leaf_brush_t));
-    AppendLumpData(PBSPV3_LUMP_MARKSURFACES, m_marksurfaces.data(), m_marksurfaces.size() * sizeof(Uint32));
-    AppendLumpData(PBSPV3_LUMP_EDGES, m_edges.data(), m_edges.size() * sizeof(dpbspv3edge_t));
-    AppendLumpData(PBSPV3_LUMP_SURFEDGES, m_surfedges.data(), m_surfedges.size() * sizeof(Int32));
-    AppendLumpData(PBSPV3_LUMP_MODELS, m_models.data(), m_models.size() * sizeof(dpbspv3model_t));
+    AppendLumpData(MBSPV1_LUMP_CLIPNODES, m_clipnodes.data(), m_clipnodes.size() * sizeof(dmbspv1clipnode_t));
+    AppendLumpData(MBSPV1_LUMP_LEAFS, m_leafs.data(), m_leafs.size() * sizeof(dmbspv1leaf_brush_t));
+    AppendLumpData(MBSPV1_LUMP_MARKSURFACES, m_marksurfaces.data(), m_marksurfaces.size() * sizeof(Uint32));
+    AppendLumpData(MBSPV1_LUMP_EDGES, m_edges.data(), m_edges.size() * sizeof(dmbspv1edge_t));
+    AppendLumpData(MBSPV1_LUMP_SURFEDGES, m_surfedges.data(), m_surfedges.size() * sizeof(Int32));
+    AppendLumpData(MBSPV1_LUMP_MODELS, m_models.data(), m_models.size() * sizeof(dmbspv1model_t));
 
-    AppendLightingLump(PBSPV3_LUMP_VERTEX_LIGHTING_AMBIENT, m_vertexLight[VERTEX_LIGHTING_AMBIENT]);
-    AppendLightingLump(PBSPV3_LUMP_VERTEX_LIGHTING_DIFFUSE, m_vertexLight[VERTEX_LIGHTING_DIFFUSE]);
-    AppendLightingLump(PBSPV3_LUMP_VERTEX_LIGHTING_VECTORS, m_vertexLight[VERTEX_LIGHTING_VECTORS]);
+    AppendLightingLump(MBSPV1_LUMP_VERTEX_LIGHTING_AMBIENT, m_vertexLight[VERTEX_LIGHTING_AMBIENT]);
+    AppendLightingLump(MBSPV1_LUMP_VERTEX_LIGHTING_DIFFUSE, m_vertexLight[VERTEX_LIGHTING_DIFFUSE]);
+    AppendLightingLump(MBSPV1_LUMP_VERTEX_LIGHTING_VECTORS, m_vertexLight[VERTEX_LIGHTING_VECTORS]);
 
-    AppendLumpData(PBSPV3_LUMP_LIGHTGRID_DATA, m_lightGrid.data(), m_lightGrid.size());
-    AppendLumpData(PBSPV3_LUMP_BRUSHES, m_brushes.data(), m_brushes.size() * sizeof(dpbspv3brush_t));
-    AppendLumpData(PBSPV3_LUMP_BRUSHSIDES, m_brushsides.data(), m_brushsides.size() * sizeof(dpbspv3brushside_t));
-    AppendLumpData(PBSPV3_LUMP_LEAFBRUSHES, m_leafbrushes.data(), m_leafbrushes.size() * sizeof(Uint32));
+    AppendLumpData(MBSPV1_LUMP_LIGHTGRID_DATA, m_lightGrid.data(), m_lightGrid.size());
+    AppendLumpData(MBSPV1_LUMP_BRUSHES, m_brushes.data(), m_brushes.size() * sizeof(dmbspv1brush_t));
+    AppendLumpData(MBSPV1_LUMP_BRUSHSIDES, m_brushsides.data(), m_brushsides.size() * sizeof(dmbspv1brushside_t));
+    AppendLumpData(MBSPV1_LUMP_LEAFBRUSHES, m_leafbrushes.data(), m_leafbrushes.size() * sizeof(Uint32));
 
     if (!m_dispInfos.empty())
     {
-        dpbspv3dispheader_t dhdr;
+        dmbspv1dispheader_t dhdr;
         dhdr.num_disp_infos = (Int32)m_dispInfos.size();
         dhdr.num_disp_verts = (Int32)m_dispVerts.size();
         dhdr.num_faces = (Int32)m_dispFaceMap.size();
 
         std::vector<byte> dispBuffer;
-        size_t hSize = sizeof(dpbspv3dispheader_t);
-        size_t iSize = m_dispInfos.size() * sizeof(dpbspv3dispinfo_t);
-        size_t vSize = m_dispVerts.size() * sizeof(dpbspv3dispvert_t);
+        size_t hSize = sizeof(dmbspv1dispheader_t);
+        size_t iSize = m_dispInfos.size() * sizeof(dmbspv1dispinfo_t);
+        size_t vSize = m_dispVerts.size() * sizeof(dmbspv1dispvert_t);
         size_t mSize = m_dispFaceMap.size() * sizeof(Int32);
         dispBuffer.resize(hSize + iSize + vSize + mSize);
 
@@ -180,21 +180,21 @@ bool CBSPBuilder::ExportFile(const Char* filename)
             memcpy(ptr, m_dispFaceMap.data(), mSize);
         }
 
-        AppendLumpData(PBSPV3_LUMP_DISPLACEMENTS, dispBuffer.data(), dispBuffer.size());
+        AppendLumpData(MBSPV1_LUMP_DISPLACEMENTS, dispBuffer.data(), dispBuffer.size());
     }
 
     Int32 checksumOffset = (Int32)m_fileBuffer.size();
-    m_header.lumps[PBSPV3_LUMP_CHECKSUM].offset = checksumOffset;
-    m_header.lumps[PBSPV3_LUMP_CHECKSUM].size = (Int32)sizeof(dpbspv3checksum_t);
+    m_header.lumps[MBSPV1_LUMP_CHECKSUM].offset = checksumOffset;
+    m_header.lumps[MBSPV1_LUMP_CHECKSUM].size = (Int32)sizeof(dmbspv1checksum_t);
 
-    memcpy(m_fileBuffer.data(), &m_header, sizeof(dpbspv3header_t));
+    memcpy(m_fileBuffer.data(), &m_header, sizeof(dmbspv1header_t));
 
     Uint64 fileHash = ComputeChecksum(m_fileBuffer.data(), checksumOffset);
-    dpbspv3checksum_t checkLump;
+    dmbspv1checksum_t checkLump;
     checkLump.checksum = fileHash;
 
     const byte* checkPtr = reinterpret_cast<const byte*>(&checkLump);
-    m_fileBuffer.insert(m_fileBuffer.end(), checkPtr, checkPtr + sizeof(dpbspv3checksum_t));
+    m_fileBuffer.insert(m_fileBuffer.end(), checkPtr, checkPtr + sizeof(dmbspv1checksum_t));
 
     FILE* f = fopen(filename, "wb");
     if (!f)
@@ -274,9 +274,9 @@ bool CBSPBuilder::ExportALD(const Char* filename, aldlumptype_t lumpType)
 
     LayerPayload gridPayloads[NB_LIGHTGRID_DATA_LAYERS];
     Int32 rawGridSampleSize = 0;
-    if (!m_lightGrid.empty() && m_lightGrid.size() >= sizeof(dpbspv3lightgridlumpheader_t))
+    if (!m_lightGrid.empty() && m_lightGrid.size() >= sizeof(dmbspv1lightgridlumpheader_t))
     {
-        const auto* gHdr = reinterpret_cast<const dpbspv3lightgridlumpheader_t*>(m_lightGrid.data());
+        const auto* gHdr = reinterpret_cast<const dmbspv1lightgridlumpheader_t*>(m_lightGrid.data());
         rawGridSampleSize = gHdr->rawsampledatasize;
 
         if (gHdr->ambientcompressedsize > 0)

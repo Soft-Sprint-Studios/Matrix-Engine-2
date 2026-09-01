@@ -284,8 +284,8 @@ static const Char WORLD_TEXTURES_BASE_PATH[] = "textures/world/";
 // Common game directory
 static const Char COMMON_GAMEDIR[] = "common";
 
-// The common Id for all Pathos BSP file formats
-static const Int32 PBSP_HEADER = (('P'<<24)+('S'<<16)+('B'<<8)+'P');
+// The common Id for all Matrix BSP file formats
+static const Int32 MBSP_HEADER = (('P'<<24)+('S'<<16)+('B'<<8)+'M');
 // Base lightmap style index
 static constexpr Uint32 BASE_LIGHTMAP_INDEX = 0;
 // Null lightstyle index
@@ -992,7 +992,7 @@ enum edict_removed_t : int
 //
 // Lightmap data compression types
 //
-enum pbspv2_compressiontypes_t
+enum mbspv2_compressiontypes_t
 {
 	BSP_LMAP_COMPRESSION_NONE = 0,
 	BSP_LMAP_COMPRESSION_MINIZ
