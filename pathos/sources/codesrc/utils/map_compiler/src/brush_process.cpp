@@ -142,6 +142,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
                 }
             }
         }
+
         bool noclip = (atoi(mapData.entities[i].GetValue("zhlt_noclip")) == 1);
         BuildBSPModelTrees(subModelIndex, subFaces, subBrushes, mins, maxs, noclip);
 
