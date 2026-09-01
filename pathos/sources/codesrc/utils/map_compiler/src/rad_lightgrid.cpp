@@ -321,9 +321,12 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                         Int32 hitFace = m_primToFaceMap[hit.primID];
                         if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
                         {
-                            bounceRadiance[0] += (m_faceInfos[hitFace].avgRadiance[0] * m_faceInfos[hitFace].reflectivity[0] + m_faceInfos[hitFace].emissive[0]);
-                            bounceRadiance[1] += (m_faceInfos[hitFace].avgRadiance[1] * m_faceInfos[hitFace].reflectivity[1] + m_faceInfos[hitFace].emissive[1]);
-                            bounceRadiance[2] += (m_faceInfos[hitFace].avgRadiance[2] * m_faceInfos[hitFace].reflectivity[2] + m_faceInfos[hitFace].emissive[2]);
+                            Float albedo[3];
+                            SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+
+                            bounceRadiance[0] += (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
+                            bounceRadiance[1] += (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
+                            bounceRadiance[2] += (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
                         }
                     }
                 }

@@ -33,7 +33,6 @@ struct dds_image_t
     Int32 height;
     Int32 channels;
     std::vector<byte> rgba;
-    Float reflectivity[3];
 };
 
 bool LoadDDSFromMemory(const byte* fileBuffer, size_t fileSize, dds_image_t& outImage);

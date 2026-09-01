@@ -280,9 +280,12 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                         if (hitFaceIdx >= 0 && hitFaceIdx < (Int32)m_faceInfos.size())
                         {
                             const auto& hitInfo = m_faceInfos[hitFaceIdx];
-                            bounceAccum[0] += (hitInfo.avgRadiance[0] * hitInfo.reflectivity[0] + hitInfo.emissive[0]);
-                            bounceAccum[1] += (hitInfo.avgRadiance[1] * hitInfo.reflectivity[1] + hitInfo.emissive[1]);
-                            bounceAccum[2] += (hitInfo.avgRadiance[2] * hitInfo.reflectivity[2] + hitInfo.emissive[2]);
+                            Float albedo[3];
+                            SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+
+                            bounceAccum[0] += (hitInfo.avgRadiance[0] * albedo[0] + hitInfo.emissive[0]);
+                            bounceAccum[1] += (hitInfo.avgRadiance[1] * albedo[1] + hitInfo.emissive[1]);
+                            bounceAccum[2] += (hitInfo.avgRadiance[2] * albedo[2] + hitInfo.emissive[2]);
                         }
                     }
                 }

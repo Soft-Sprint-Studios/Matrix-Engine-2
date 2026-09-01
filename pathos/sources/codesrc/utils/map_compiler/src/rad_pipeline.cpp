@@ -161,9 +161,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                 mat.reflectScale = 1.0f;
                 mat.hasAlphaTest = false;
                 mat.hasNoShadow = false;
-                mat.diffuseImage.reflectivity[0] = 0.5f;
-                mat.diffuseImage.reflectivity[1] = 0.5f;
-                mat.diffuseImage.reflectivity[2] = 0.5f;
                 mat.diffuseImage.width = 16;
                 mat.diffuseImage.height = 16;
                 m_materials[texName] = mat;
@@ -171,9 +168,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
 
         const material_t& mat = m_materials[texName];
-        m_faceInfos[i].reflectivity[0] = mat.diffuseImage.reflectivity[0] * mat.reflectScale;
-        m_faceInfos[i].reflectivity[1] = mat.diffuseImage.reflectivity[1] * mat.reflectScale;
-        m_faceInfos[i].reflectivity[2] = mat.diffuseImage.reflectivity[2] * mat.reflectScale;
+        m_faceInfos[i].reflectScale = mat.reflectScale;
         m_faceInfos[i].hasAlphaTest = mat.hasAlphaTest;
         m_faceInfos[i].diffuseImage = &mat.diffuseImage;
         m_faceInfos[i].minLight = 0.0f;
@@ -659,4 +654,41 @@ bool CRadPipeline::TraceRayHit(const Float start[3], const Float dir[3], Float m
 
     outHit.hit = false;
     return false;
+}
+
+void CRadPipeline::SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlbedo[3]) const
+{
+    outAlbedo[0] = 0.5f;
+    outAlbedo[1] = 0.5f;
+    outAlbedo[2] = 0.5f;
+
+    if (primID >= m_scenePrims.size())
+        return;
+
+    const scene_prim_t& prim = m_scenePrims[primID];
+    if (prim.faceIndex < 0 || prim.faceIndex >= (Int32)m_faceInfos.size())
+        return;
+
+    const face_info_t& fInfo = m_faceInfos[prim.faceIndex];
+    if (!fInfo.diffuseImage || fInfo.diffuseImage->rgba.empty() || fInfo.diffuseImage->width <= 0 || fInfo.diffuseImage->height <= 0)
+        return;
+
+    Float w = 1.0f - u - v;
+    Float texU = w * prim.uv[0][0] + u * prim.uv[1][0] + v * prim.uv[2][0];
+    Float texV = w * prim.uv[0][1] + u * prim.uv[1][1] + v * prim.uv[2][1];
+
+    texU = texU - floorf(texU);
+    texV = texV - floorf(texV);
+
+    Int32 px = std::clamp((Int32)(texU * fInfo.diffuseImage->width), 0, fInfo.diffuseImage->width - 1);
+    Int32 py = std::clamp((Int32)(texV * fInfo.diffuseImage->height), 0, fInfo.diffuseImage->height - 1);
+
+    size_t pixelOffset = ((size_t)py * fInfo.diffuseImage->width + px) * 4;
+    Float r = (Float)fInfo.diffuseImage->rgba[pixelOffset + 0] / 255.0f;
+    Float g = (Float)fInfo.diffuseImage->rgba[pixelOffset + 1] / 255.0f;
+    Float b = (Float)fInfo.diffuseImage->rgba[pixelOffset + 2] / 255.0f;
+
+    outAlbedo[0] = powf(r, 2.2f) * fInfo.reflectScale;
+    outAlbedo[1] = powf(g, 2.2f) * fInfo.reflectScale;
+    outAlbedo[2] = powf(b, 2.2f) * fInfo.reflectScale;
 }

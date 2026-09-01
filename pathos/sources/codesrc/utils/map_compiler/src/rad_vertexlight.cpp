@@ -228,9 +228,12 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
                     Int32 hitFace = m_primToFaceMap[hit.primID];
                     if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
                     {
-                        Float rVal = (m_faceInfos[hitFace].avgRadiance[0] * m_faceInfos[hitFace].reflectivity[0] + m_faceInfos[hitFace].emissive[0]);
-                        Float gVal = (m_faceInfos[hitFace].avgRadiance[1] * m_faceInfos[hitFace].reflectivity[1] + m_faceInfos[hitFace].emissive[1]);
-                        Float bVal = (m_faceInfos[hitFace].avgRadiance[2] * m_faceInfos[hitFace].reflectivity[2] + m_faceInfos[hitFace].emissive[2]);
+                        Float albedo[3];
+                        SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+
+                        Float rVal = (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
+                        Float gVal = (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
+                        Float bVal = (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
 
                         bounceRad[0] += rVal;
                         bounceRad[1] += gVal;

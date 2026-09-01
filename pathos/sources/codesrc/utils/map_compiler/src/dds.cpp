@@ -168,25 +168,6 @@ static void DecodeDXT5Block(const byte* block, byte* outRgba, Int32 width, Int32
     }
 }
 
-static void CalculateReflectivity(dds_image_t& img)
-{
-    double totalR = 0.0;
-    double totalG = 0.0;
-    double totalB = 0.0;
-    size_t pixelCount = (size_t)img.width * img.height;
-
-    for (size_t i = 0; i < pixelCount; i++)
-    {
-        totalR += pow((Float)img.rgba[i * 4 + 0] / 255.0f, 2.2f);
-        totalG += pow((Float)img.rgba[i * 4 + 1] / 255.0f, 2.2f);
-        totalB += pow((Float)img.rgba[i * 4 + 2] / 255.0f, 2.2f);
-    }
-
-    img.reflectivity[0] = (Float)(totalR / (double)pixelCount);
-    img.reflectivity[1] = (Float)(totalG / (double)pixelCount);
-    img.reflectivity[2] = (Float)(totalB / (double)pixelCount);
-}
-
 bool LoadDDSFromMemory(const byte* fileBuffer, size_t fileSize, dds_image_t& outImage)
 {
     if (fileSize < sizeof(dds_header_t))
@@ -260,7 +241,6 @@ bool LoadDDSFromMemory(const byte* fileBuffer, size_t fileSize, dds_image_t& out
         return false;
     }
 
-    CalculateReflectivity(outImage);
     return true;
 }
 
