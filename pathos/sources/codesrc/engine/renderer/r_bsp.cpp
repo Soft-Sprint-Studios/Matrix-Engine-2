@@ -682,9 +682,12 @@ void CBSPRenderer::InitLightmaps( void )
 		Uint32 lightmapdatasize = 0;
 
 		Uint32 texturepixelsize = m_lightmapWidths[i]*m_lightmapHeights[i];
-		color32_t* plightmap = new color32_t[texturepixelsize];
+		vec4_t* plightmap = new vec4_t[texturepixelsize];
 		for(Uint32 j = 0; j < m_lightmapWidths[i]*m_lightmapHeights[i]; j++)
-			plightmap[j] = color32_t(0, 0, 0, 255);
+		{
+			plightmap[j][0] = 0.0f; plightmap[j][1] = 0.0f;
+			plightmap[j][2] = 0.0f; plightmap[j][3] = 1.0f;
+		}
 
 		// Process the surfaces
 		for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
@@ -718,14 +721,29 @@ void CBSPRenderer::InitLightmaps( void )
 			Float overdarkValue = (i == BASE_LIGHTMAP_INDEX) ? overdarken : 0;
 
 			// Build the base lightmap
-			color24_t* psrclightdata;
+			Vector* psrclightdata;
 			if(ens.pworld->plightdata[SURF_LIGHTMAP_DEFAULT])
-				psrclightdata = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(ens.pworld->plightdata[SURF_LIGHTMAP_DEFAULT]) + psurface->lightoffset);
+				psrclightdata = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(ens.pworld->plightdata[SURF_LIGHTMAP_DEFAULT]) + psurface->lightoffset);
 			else
 				psrclightdata = nullptr;
 
-			R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrclightdata, psurface, plightmap, i, m_lightmapWidths[i], overdarkValue, paddingAmount, false, isfullbright);
-			lightmapdatasize += size*sizeof(color32_t);
+			if(psrclightdata)
+			{
+				Vector* psrc = psrclightdata + i * size;
+				for(Uint32 y = 0; y < ysize; y++)
+				{
+					for(Uint32 x = 0; x < xsize; x++)
+					{
+						Uint32 dstIdx = (mbspsurface->light_t[i] + y) * m_lightmapWidths[i] + (mbspsurface->light_s[i] + x);
+						Uint32 srcIdx = y * xsize + x;
+						plightmap[dstIdx][0] = psrc[srcIdx].x;
+						plightmap[dstIdx][1] = psrc[srcIdx].y;
+						plightmap[dstIdx][2] = psrc[srcIdx].z;
+						plightmap[dstIdx][3] = 1.0f;
+					}
+				}
+			}
+			lightmapdatasize += size * sizeof(vec4_t);
 		}
 
 		if(i > BASE_LIGHTMAP_INDEX && lightmapdatasize <= 0)
@@ -761,10 +779,12 @@ void CBSPRenderer::InitLightmaps( void )
 		if(!m_lightmapIndexes[i])
 			m_lightmapIndexes[i] = pTextureManager->GenTextureIndex(RS_GAME_LEVEL)->gl_index;
 
-		Uint32 resultsize;
-		R_SetLightmapTexture(m_lightmapIndexes[i], m_lightmapWidths[i], m_lightmapHeights[i], false, plightmap, resultsize);
-		Con_Printf("Loaded 1 lightmaps for default layer %d: %.2f mbytes.\n", i, static_cast<Float>(resultsize)/(1024.0f*1024.0f));
-		lightmapDataTotal += resultsize;
+		glBindTexture(GL_TEXTURE_2D, m_lightmapIndexes[i]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_lightmapWidths[i], m_lightmapHeights[i], 0, GL_RGBA, GL_FLOAT, plightmap);
 
 		if(i > 0)
 			m_useLightStyles = true;
@@ -802,77 +822,8 @@ void CBSPRenderer::InitLightmaps( void )
 
 			for(Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
 			{
-				// alloc ambient lightmap's data
 				Uint32 lightdatasize = 0;
 				Uint32 texturepixelsize = m_lightmapWidths[i]*m_lightmapHeights[i];
-				color32_t* plightmapdata = new color32_t[texturepixelsize];
-				for(Uint32 j = 0; j < m_lightmapWidths[i]*m_lightmapHeights[i]; j++)
-					plightmapdata[j] = color32_t(0, 0, 0, 255);
-
-				// Process the surfaces
-				for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
-				{
-					const msurface_t* psurface = &ens.pworld->psurfaces[j];
-					if(psurface->flags & (SURF_DRAWTURB))
-						continue;
-
-					if(psurface->lightoffset == -1)
-						continue;
-
-					// Skip empty styles
-					if(i > BASE_LIGHTMAP_INDEX && psurface->styles[i] == NULL_LIGHTSTYLE_INDEX)
-						continue;
-
-					bsp_surface_t* mbspsurface = &m_surfacesArray[j];
-		
-					bool isfullbright = false;
-					if(psurface->infoindex != NO_INFO_INDEX)
-					{
-						bsp_texture_t* ptexture = mbspsurface->ptexture;
-						if(ptexture && ptexture->pmaterial && (ptexture->pmaterial->flags & TX_FL_FULLBRIGHT))
-							isfullbright = true;
-					}
-
-					// Determine sizes
-					Uint32 xsize = (psurface->extents[0] / psurface->lightmapdivider)+1;
-					Uint32 ysize = (psurface->extents[1] / psurface->lightmapdivider)+1;
-					Uint32 size = xsize*ysize;
-
-					color24_t* psrc = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(ens.pworld->plightdata[k]) + psurface->lightoffset);
-					R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrc, psurface, plightmapdata, i, m_lightmapWidths[i], _overdarken, paddingAmount, isvectormap);
-					lightdatasize += size*sizeof(color32_t);
-				}
-
-				if(i > BASE_LIGHTMAP_INDEX && lightdatasize <= 0)
-				{
-					delete[] plightmapdata;
-					continue;
-				}
-
-				if(g_pCvarDumpLightmaps->GetValue() >= 1)
-				{
-					CString basename;
-					Common::Basename(ens.pworld->name.c_str(), basename);
-
-					CString directoryPath;
-					directoryPath << "dumps" << PATH_SLASH_CHAR << "lightmaps" << PATH_SLASH_CHAR << basename << PATH_SLASH_CHAR;
-
-					if(FL_CreateDirectory(directoryPath.c_str()))
-					{
-						// Write file
-						CString filepath;
-						filepath << directoryPath << "dump_" << basename << "_lightmap_" << lmapname << "_layer_" << i << ".tga";
-
-						Uint32 compressionPercentage = 0;
-						const byte* pwritedata = reinterpret_cast<const byte*>(plightmapdata);
-						if(TGA_Write(pwritedata, 4, m_lightmapWidths[i], m_lightmapHeights[i], filepath.c_str(), FL_GetInterface(), Con_Printf, &compressionPercentage))
-							Con_Printf("Exported %s(%d percent compression).\n", filepath.c_str(), compressionPercentage);
-					}
-					else
-					{
-						Con_Printf("%s - Failed to create directory '%s'.\n", __FUNCTION__, directoryPath.c_str());
-					}
-				}
 
 				Uint32* pdestindex = nullptr;
 				switch(k)
@@ -888,14 +839,102 @@ void CBSPRenderer::InitLightmaps( void )
 					break;
 				}
 
-				// Load the ambient lightmap
 				if(!(*pdestindex))
 					(*pdestindex) = pTextureManager->GenTextureIndex(RS_GAME_LEVEL)->gl_index;
 
-				Uint32 resultsize;
-				R_SetLightmapTexture((*pdestindex), m_lightmapWidths[i], m_lightmapHeights[i], isvectormap, plightmapdata, resultsize);
-				Con_Printf("Loaded 1 lightmaps for %s layer %d: %.2f mbytes.\n", lmapname.c_str(), i, static_cast<Float>(resultsize)/(1024.0f*1024.0f));
-				lightmapDataTotal += resultsize;
+				if(k == SURF_LIGHTMAP_VECTORS)
+				{
+					color32_t* plightmapdata = new color32_t[texturepixelsize];
+					for(Uint32 j = 0; j < texturepixelsize; j++)
+						plightmapdata[j] = color32_t(0, 0, 0, 255);
+
+					for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
+					{
+						const msurface_t* psurface = &ens.pworld->psurfaces[j];
+						if(psurface->flags & (SURF_DRAWTURB))
+							continue;
+
+						if(psurface->lightoffset == -1)
+							continue;
+
+						if(i > BASE_LIGHTMAP_INDEX && psurface->styles[i] == NULL_LIGHTSTYLE_INDEX)
+							continue;
+
+						bsp_surface_t* mbspsurface = &m_surfacesArray[j];
+						Uint32 xsize = (psurface->extents[0] / psurface->lightmapdivider)+1;
+						Uint32 ysize = (psurface->extents[1] / psurface->lightmapdivider)+1;
+						Uint32 size = xsize*ysize;
+
+						color24_t* psrc = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(ens.pworld->plightdata[k]) + psurface->lightoffset);
+						R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrc, psurface, plightmapdata, i, m_lightmapWidths[i], _overdarken, paddingAmount, isvectormap);
+						lightdatasize += size*sizeof(color32_t);
+					}
+
+					if(i > BASE_LIGHTMAP_INDEX && lightdatasize <= 0)
+					{
+						delete[] plightmapdata;
+						continue;
+					}
+
+					glBindTexture(GL_TEXTURE_2D, (*pdestindex));
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_lightmapWidths[i], m_lightmapHeights[i], 0, GL_RGBA, GL_UNSIGNED_BYTE, plightmapdata);
+					delete[] plightmapdata;
+				}
+				else
+				{
+					vec4_t* plightmapdata = new vec4_t[texturepixelsize];
+
+					for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
+					{
+						const msurface_t* psurface = &ens.pworld->psurfaces[j];
+						if(psurface->flags & (SURF_DRAWTURB))
+							continue;
+
+						if(psurface->lightoffset == -1)
+							continue;
+
+						if(i > BASE_LIGHTMAP_INDEX && psurface->styles[i] == NULL_LIGHTSTYLE_INDEX)
+							continue;
+
+						bsp_surface_t* mbspsurface = &m_surfacesArray[j];
+						Uint32 xsize = (psurface->extents[0] / psurface->lightmapdivider)+1;
+						Uint32 ysize = (psurface->extents[1] / psurface->lightmapdivider)+1;
+						Uint32 size = xsize*ysize;
+
+						Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(ens.pworld->plightdata[k]) + psurface->lightoffset) + i * size;
+						for(Uint32 y = 0; y < ysize; y++)
+						{
+							for(Uint32 x = 0; x < xsize; x++)
+							{
+								Uint32 dstIdx = (mbspsurface->light_t[i] + y) * m_lightmapWidths[i] + (mbspsurface->light_s[i] + x);
+								Uint32 srcIdx = y * xsize + x;
+								plightmapdata[dstIdx][0] = psrc[srcIdx].x;
+								plightmapdata[dstIdx][1] = psrc[srcIdx].y;
+								plightmapdata[dstIdx][2] = psrc[srcIdx].z;
+								plightmapdata[dstIdx][3] = 1.0f;
+							}
+						}
+						lightdatasize += size * sizeof(vec4_t);
+					}
+
+					if(i > BASE_LIGHTMAP_INDEX && lightdatasize <= 0)
+					{
+						delete[] plightmapdata;
+						continue;
+					}
+
+					glBindTexture(GL_TEXTURE_2D, (*pdestindex));
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_lightmapWidths[i], m_lightmapHeights[i], 0, GL_RGBA, GL_FLOAT, plightmapdata);
+					delete[] plightmapdata;
+				}
 
 				if(!m_bumpMaps)
 					m_bumpMaps = true;

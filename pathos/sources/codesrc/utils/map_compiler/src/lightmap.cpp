@@ -406,7 +406,7 @@ void AllocateAllFaceLightmaps(std::vector<lightmap_face_t>& inOutFaceLightmaps)
             }
         }
 
-        size_t faceByteSize = (size_t)lm.totalLuxels * 3 * numStyles;
+        size_t faceByteSize = (size_t)lm.totalLuxels * sizeof(Float) * 3 * numStyles;
         currentLightOffset += faceByteSize;
     }
 

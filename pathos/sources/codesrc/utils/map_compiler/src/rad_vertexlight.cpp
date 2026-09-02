@@ -94,22 +94,13 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
         Int32 vertexCount = vbm.numVerts;
         Int32 bufferOffset = (Int32)totalAmbient.size();
 
-        std::vector<byte> modelAmbient(vertexCount * 3, 0);
-        std::vector<byte> modelDiffuse(vertexCount * 3, 0);
-        std::vector<byte> modelVectors(vertexCount * 3, 128);
+        std::vector<byte> modelAmbient(vertexCount * sizeof(Float) * 3, 0);
+        std::vector<byte> modelDiffuse(vertexCount * sizeof(Float) * 3, 0);
+        std::vector<byte> modelVectors(vertexCount * sizeof(Float) * 3, 128);
         for (size_t vi = 2; vi < modelVectors.size(); vi += 3)
         {
             modelVectors[vi] = 255;
         }
-
-        auto ColorToByte = [](Float colorComponent) -> byte
-        {
-            Float scaled = colorComponent * 2.0f;
-            if (scaled < 0.0f) scaled = 0.0f;
-            Float gammaAdjusted = powf(scaled / 256.0f, 0.55f) * 256.0f;
-            Int32 ival = (Int32)floorf(gammaAdjusted + 0.5f);
-            return (byte)std::clamp(ival, 0, 255);
-        };
 
         struct vert_style_data_t
         {
@@ -305,27 +296,32 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
         for (Int32 slot = 0; slot < activeStylesCount; slot++)
         {
             Int32 style = assignedStyles[slot];
-            std::vector<byte> slotAmbient(vertexCount * 3, 0);
-            std::vector<byte> slotDiffuse(vertexCount * 3, 0);
+            std::vector<byte> slotAmbient(vertexCount * sizeof(Float) * 3, 0);
+            std::vector<byte> slotDiffuse(vertexCount * sizeof(Float) * 3, 0);
             std::vector<byte> slotVectors(vertexCount * 3, 128);
-            for (size_t vi = 2; vi < slotVectors.size(); vi += 3)
-            {
-                slotVectors[vi] = 255;
-            }
+
+            Float* pSlotAmb = reinterpret_cast<Float*>(slotAmbient.data());
+            Float* pSlotDiff = reinterpret_cast<Float*>(slotDiffuse.data());
+
+            auto ColorToHDR = [](Float val) -> Float
+                {
+                    if (val <= 0.0f) return 0.0f;
+                    return powf(val / 128.0f, 0.55f);
+                };
 
             for (Int32 v = 0; v < vertexCount; v++)
             {
                 const auto& vs = vertSamples[v];
                 if (slot == 0)
                 {
-                    slotAmbient[v * 3 + 0] = ColorToByte(vs.ambient[0]);
-                    slotAmbient[v * 3 + 1] = ColorToByte(vs.ambient[1]);
-                    slotAmbient[v * 3 + 2] = ColorToByte(vs.ambient[2]);
+                    pSlotAmb[v * 3 + 0] = ColorToHDR(vs.ambient[0]);
+                    pSlotAmb[v * 3 + 1] = ColorToHDR(vs.ambient[1]);
+                    pSlotAmb[v * 3 + 2] = ColorToHDR(vs.ambient[2]);
                 }
 
-                slotDiffuse[v * 3 + 0] = ColorToByte(vs.direct[style][0]);
-                slotDiffuse[v * 3 + 1] = ColorToByte(vs.direct[style][1]);
-                slotDiffuse[v * 3 + 2] = ColorToByte(vs.direct[style][2]);
+                pSlotDiff[v * 3 + 0] = ColorToHDR(vs.direct[style][0]);
+                pSlotDiff[v * 3 + 1] = ColorToHDR(vs.direct[style][1]);
+                pSlotDiff[v * 3 + 2] = ColorToHDR(vs.direct[style][2]);
 
                 Float dLen = sqrtf(vs.dominantDir[style][0] * vs.dominantDir[style][0] + vs.dominantDir[style][1] * vs.dominantDir[style][1] + vs.dominantDir[style][2] * vs.dominantDir[style][2]);
                 Float normD[3] = { 0.0f, 0.0f, 1.0f };

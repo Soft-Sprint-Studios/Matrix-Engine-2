@@ -378,7 +378,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
 
                         ds.rawsampleoffset = rawDataSize;
                         s.rawDataOffset = rawDataSize;
-                        rawDataSize += (styleCount * 3);
+                        rawDataSize += styleCount;
                     }
 
                     bspSamples.push_back(ds);
@@ -388,40 +388,41 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
         leaf.numsamples = (Int32)bspSamples.size() - leaf.firstsample;
     }
 
-    std::vector<byte> rawAmbient(rawDataSize, 0);
-    std::vector<byte> rawDiffuse(rawDataSize, 0);
-    std::vector<byte> rawVectors(rawDataSize, 128);
-    for (size_t vi = 2; vi < (size_t)rawDataSize; vi += 3)
+    std::vector<byte> rawAmbient(rawDataSize * sizeof(Float) * 3, 0);
+    std::vector<byte> rawDiffuse(rawDataSize * sizeof(Float) * 3, 0);
+    std::vector<byte> rawVectors(rawDataSize * 3, 128);
+    for (size_t vi = 2; vi < (size_t)(rawDataSize * 3); vi += 3)
     {
         rawVectors[vi] = 255;
     }
-
-    auto ColorToByte = [](Float component) -> byte
-        {
-            Float scaled = component * 2.0f;
-            if (scaled < 0.0f) scaled = 0.0f;
-            Float gamma = powf(scaled / 256.0f, 0.55f) * 256.0f;
-            return (byte)std::clamp((Int32)floorf(gamma + 0.5f), 0, 255);
-        };
 
     for (const auto& s : samples)
     {
         if (s.occluded || s.rawDataOffset < 0)
             continue;
 
-        Int32 curOffset = s.rawDataOffset;
+        Int32 sampleIdx = s.rawDataOffset;
         for (Int32 slot = 0; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
         {
-            if (s.styles[slot] == 255) 
+            if (s.styles[slot] == 255)
                 continue;
 
-            rawAmbient[curOffset + 0] = ColorToByte(s.ambient[slot][0]);
-            rawAmbient[curOffset + 1] = ColorToByte(s.ambient[slot][1]);
-            rawAmbient[curOffset + 2] = ColorToByte(s.ambient[slot][2]);
+            Float* pAmb = reinterpret_cast<Float*>(&rawAmbient[sampleIdx * sizeof(Float) * 3]);
+            Float* pDiff = reinterpret_cast<Float*>(&rawDiffuse[sampleIdx * sizeof(Float) * 3]);
 
-            rawDiffuse[curOffset + 0] = ColorToByte(s.diffuse[slot][0]);
-            rawDiffuse[curOffset + 1] = ColorToByte(s.diffuse[slot][1]);
-            rawDiffuse[curOffset + 2] = ColorToByte(s.diffuse[slot][2]);
+            auto ColorToHDR = [](Float val) -> Float
+                {
+                    if (val <= 0.0f) return 0.0f;
+                    return powf(val / 128.0f, 0.55f);
+                };
+
+            pAmb[0] = ColorToHDR(s.ambient[slot][0]);
+            pAmb[1] = ColorToHDR(s.ambient[slot][1]);
+            pAmb[2] = ColorToHDR(s.ambient[slot][2]);
+
+            pDiff[0] = ColorToHDR(s.diffuse[slot][0]);
+            pDiff[1] = ColorToHDR(s.diffuse[slot][1]);
+            pDiff[2] = ColorToHDR(s.diffuse[slot][2]);
 
             Float dLen = sqrtf(s.dominantDir[slot][0] * s.dominantDir[slot][0] + s.dominantDir[slot][1] * s.dominantDir[slot][1] + s.dominantDir[slot][2] * s.dominantDir[slot][2]);
             Float normD[3] = { 0.0f, 0.0f, 1.0f };
@@ -432,11 +433,11 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                 normD[2] = s.dominantDir[slot][2] / dLen;
             }
 
-            rawVectors[curOffset + 0] = (byte)std::clamp((Int32)((normD[0] * 0.5f + 0.5f) * 255.0f), 0, 255);
-            rawVectors[curOffset + 1] = (byte)std::clamp((Int32)((normD[1] * 0.5f + 0.5f) * 255.0f), 0, 255);
-            rawVectors[curOffset + 2] = (byte)std::clamp((Int32)((normD[2] * 0.5f + 0.5f) * 255.0f), 0, 255);
+            rawVectors[sampleIdx * 3 + 0] = (byte)std::clamp((Int32)((normD[0] * 0.5f + 0.5f) * 255.0f), 0, 255);
+            rawVectors[sampleIdx * 3 + 1] = (byte)std::clamp((Int32)((normD[1] * 0.5f + 0.5f) * 255.0f), 0, 255);
+            rawVectors[sampleIdx * 3 + 2] = (byte)std::clamp((Int32)((normD[2] * 0.5f + 0.5f) * 255.0f), 0, 255);
 
-            curOffset += 3;
+            sampleIdx++;
         }
     }
 

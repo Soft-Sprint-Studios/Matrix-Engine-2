@@ -155,8 +155,8 @@ void main()
 	
 	$branch vertexlight == 1
 	$begin
-		ps_vlight_ambient = in_vlight_ambient / 255.0;
-		ps_vlight_diffuse = in_vlight_diffuse / 255.0;
+		ps_vlight_ambient = in_vlight_ambient;
+		ps_vlight_diffuse = in_vlight_diffuse;
 
 		vec3 worldlightdir = -normalize((in_vlight_vectors / 127.5) - 1.0);
 		ps_vlight_vectors = normalize((normalmatrix * vec4(worldlightdir, 0.0)).xyz);

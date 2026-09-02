@@ -510,17 +510,15 @@ void CWaterShader::CreateLightmapTexture( cl_water_t* pwater )
 	for(Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
 	{
 		Uint32 lightmappixelsize = pwater->lightmaptextureheights[i] * pwater->lightmaptexturewidths[i];
-		color32_t* plightmapdata = new color32_t[lightmappixelsize];
-		for(Uint32 j = 0; j < lightmappixelsize; j++)
-			plightmapdata[j] = color32_t(0, 0, 0, 255);
-
-		color32_t* pdiffusemaptexture = new color32_t[lightmappixelsize];
-		for(Uint32 j = 0; j < lightmappixelsize; j++)
-			plightmapdata[j] = color32_t(0, 0, 0, 255);
-
+		vec4_t* plightmapdata = new vec4_t[lightmappixelsize];
+		vec4_t* pdiffusemaptexture = new vec4_t[lightmappixelsize];
 		color32_t* plightvecstexture = new color32_t[lightmappixelsize];
 		for(Uint32 j = 0; j < lightmappixelsize; j++)
-			plightmapdata[j] = color32_t(0, 0, 0, 255);
+		{
+			plightmapdata[j][0] = 0.0f; plightmapdata[j][1] = 0.0f; plightmapdata[j][2] = 0.0f; plightmapdata[j][3] = 1.0f;
+			pdiffusemaptexture[j][0] = 0.0f; pdiffusemaptexture[j][1] = 0.0f; pdiffusemaptexture[j][2] = 0.0f; pdiffusemaptexture[j][3] = 1.0f;
+			plightvecstexture[j] = color32_t(0, 0, 0, 255);
+		}
 
 		Uint32 lightmapdatasize = 0;
 		Uint32 diffuselightdatasize = 0;
@@ -555,26 +553,43 @@ void CWaterShader::CreateLightmapTexture( cl_water_t* pwater )
 			Uint32 ysize = (psurf->extents[1] / psurf->lightmapdivider)+1;
 			Uint32 size = xsize*ysize;
 
-			color24_t *psrc;
 			if(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DEFAULT])
-				psrc = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DEFAULT]) + psurf->lightoffset_water);
-			else
-				psrc = nullptr;
+			{
+				Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DEFAULT]) + psurf->lightoffset_water) + i * size;
+				for(Uint32 y = 0; y < ysize; y++)
+				{
+					for(Uint32 x = 0; x < xsize; x++)
+					{
+						Uint32 dstIdx = (psurf->light_t[i] + y) * pwater->lightmaptexturewidths[i] + (psurf->light_s[i] + x);
+						Uint32 srcIdx = y * xsize + x;
+						plightmapdata[dstIdx][0] = psrc[srcIdx].x;
+						plightmapdata[dstIdx][1] = psrc[srcIdx].y;
+						plightmapdata[dstIdx][2] = psrc[srcIdx].z;
+						plightmapdata[dstIdx][3] = 1.0f;
+					}
+				}
+				lightmapdatasize += size * sizeof(vec4_t);
+			}
 
-			R_BuildLightmap(psurf->light_s[i], psurf->light_t[i], psrc, psurf, plightmapdata, i, pwater->lightmaptexturewidths[i], overdarken, paddingAmount);
-			lightmapdatasize += size * sizeof(color32_t);
-
-			// See if we have anything to bind
 			if(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DIFFUSE] && pbrushmodel->plightdata_water[SURF_LIGHTMAP_AMBIENT])
 			{
-				// Grab diffuse lightmap data
-				psrc = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DIFFUSE]) + psurf->lightoffset_water);
-				R_BuildLightmap(psurf->light_s[i], psurf->light_t[i], psrc, psurf, pdiffusemaptexture, i, pwater->lightmaptexturewidths[i], 0, paddingAmount);
-				diffuselightdatasize += size * sizeof(color32_t);
+				Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DIFFUSE]) + psurf->lightoffset_water) + i * size;
+				for(Uint32 y = 0; y < ysize; y++)
+				{
+					for(Uint32 x = 0; x < xsize; x++)
+					{
+						Uint32 dstIdx = (psurf->light_t[i] + y) * pwater->lightmaptexturewidths[i] + (psurf->light_s[i] + x);
+						Uint32 srcIdx = y * xsize + x;
+						pdiffusemaptexture[dstIdx][0] = psrc[srcIdx].x;
+						pdiffusemaptexture[dstIdx][1] = psrc[srcIdx].y;
+						pdiffusemaptexture[dstIdx][2] = psrc[srcIdx].z;
+						pdiffusemaptexture[dstIdx][3] = 1.0f;
+					}
+				}
+				diffuselightdatasize += size * sizeof(vec4_t);
 
-				// Grab vectors lightmap data
-				psrc = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_VECTORS]) + psurf->lightoffset_water);
-				R_BuildLightmap(psurf->light_s[i], psurf->light_t[i], psrc, psurf, plightvecstexture, i, pwater->lightmaptexturewidths[i], 0, paddingAmount, true);
+				color24_t* psrcvec = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_VECTORS]) + psurf->lightoffset_water);
+				R_BuildLightmap(psurf->light_s[i], psurf->light_t[i], psrcvec, psurf, plightvecstexture, i, pwater->lightmaptexturewidths[i], 0, paddingAmount, true);
 				lightvecsdatasize += size * sizeof(color32_t);
 			}
 		}
@@ -611,7 +626,9 @@ void CWaterShader::CreateLightmapTexture( cl_water_t* pwater )
 		glBindTexture(GL_TEXTURE_2D, pwater->plightmap_textures[i]->gl_index);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pwater->lightmaptexturewidths[i], pwater->lightmaptextureheights[i], 0, GL_RGBA, GL_UNSIGNED_BYTE, plightmapdata);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, pwater->lightmaptexturewidths[i], pwater->lightmaptextureheights[i], 0, GL_RGBA, GL_FLOAT, plightmapdata);
 
 		if(diffuselightdatasize > 0 && lightvecsdatasize > 0)
 		{
@@ -621,7 +638,9 @@ void CWaterShader::CreateLightmapTexture( cl_water_t* pwater )
 			glBindTexture(GL_TEXTURE_2D, pwater->plightmap_diffuse_textures[i]->gl_index);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pwater->lightmaptexturewidths[i], pwater->lightmaptextureheights[i], 0, GL_RGBA, GL_UNSIGNED_BYTE, pdiffusemaptexture);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, pwater->lightmaptexturewidths[i], pwater->lightmaptextureheights[i], 0, GL_RGBA, GL_FLOAT, pdiffusemaptexture);
 
 			// Light vectors
 			pwater->plightmap_lightvecs_textures[i] = CTextureManager::GetInstance()->GenTextureIndex(RS_GAME_LEVEL);

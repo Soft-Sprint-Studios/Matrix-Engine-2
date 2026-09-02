@@ -277,18 +277,37 @@ void BSP_SetSamplingLightData( brushmodel_t& model )
 				if(!psrclightdata[j])
 					break;
 
-				if(!psurf->psamples[j])
-					psurf->psamples[j] = new color24_t[sampledatasize];
-
-				for(Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+				if(j == SURF_LIGHTMAP_VECTORS)
 				{
-					if(psurf->styles[k] == NULL_LIGHTSTYLE_INDEX)
-						break;
+					if(!psurf->psamples[j])
+						psurf->psamples[j] = new color24_t[sampledatasize];
 
-					color24_t* psrc = psrclightdata[j] + k * srcsize;
-					color24_t* pdest = psurf->psamples[j] + k * outsize;
+					for(Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+					{
+						if(psurf->styles[k] == NULL_LIGHTSTYLE_INDEX)
+							break;
 
-					memcpy(pdest, psrc, sizeof(color24_t)*outsize);
+						color24_t* psrc = psrclightdata[j] + k * srcsize;
+						color24_t* pdest = psurf->psamples[j] + k * outsize;
+
+						memcpy(pdest, psrc, sizeof(color24_t)*outsize);
+					}
+				}
+				else
+				{
+					if(!psurf->psamples[j])
+						psurf->psamples[j] = reinterpret_cast<color24_t*>(new Vector[sampledatasize]);
+
+					for(Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+					{
+						if(psurf->styles[k] == NULL_LIGHTSTYLE_INDEX)
+							break;
+
+						Vector* psrc = reinterpret_cast<Vector*>(psrclightdata[j]) + k * srcsize;
+						Vector* pdest = reinterpret_cast<Vector*>(psurf->psamples[j]) + k * outsize;
+
+						memcpy(pdest, psrc, sizeof(Vector)*outsize);
+					}
 				}
 			}
 		}
@@ -300,18 +319,47 @@ void BSP_SetSamplingLightData( brushmodel_t& model )
 				if(!psrclightdata[j])
 					break;
 
-				if(!psurf->psamples[j])
-					psurf->psamples[j] = new color24_t[sampledatasize];
-
-				for(Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+				if(j == SURF_LIGHTMAP_VECTORS)
 				{
-					if(psurf->styles[k] == NULL_LIGHTSTYLE_INDEX)
-						break;
+					if(!psurf->psamples[j])
+						psurf->psamples[j] = new color24_t[sampledatasize];
 
-					color24_t* psrc = psrclightdata[j] + k * srcsize;
-					color24_t* pdest = psurf->psamples[j] + k * outsize;
+					for(Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+					{
+						if(psurf->styles[k] == NULL_LIGHTSTYLE_INDEX)
+							break;
 
-					Common::ResizeTexture24(xsize, ysize, xsize_samp, ysize_samp, psrc, pdest);
+						color24_t* psrc = psrclightdata[j] + k * srcsize;
+						color24_t* pdest = psurf->psamples[j] + k * outsize;
+
+						Common::ResizeTexture24(xsize, ysize, xsize_samp, ysize_samp, psrc, pdest);
+					}
+				}
+				else
+				{
+					if(!psurf->psamples[j])
+						psurf->psamples[j] = reinterpret_cast<color24_t*>(new Vector[sampledatasize]);
+
+					for(Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)
+					{
+						if(psurf->styles[k] == NULL_LIGHTSTYLE_INDEX)
+							break;
+
+						Vector* psrc = reinterpret_cast<Vector*>(psrclightdata[j]) + k * srcsize;
+						Vector* pdest = reinterpret_cast<Vector*>(psurf->psamples[j]) + k * outsize;
+
+						for(Uint32 y_out = 0; y_out < ysize_samp; y_out++)
+						{
+							Float srcY = (static_cast<Float>(y_out) / (ysize_samp > 1 ? ysize_samp - 1 : 1)) * (ysize - 1);
+							Uint32 y_in = static_cast<Uint32>(srcY);
+							for(Uint32 x_out = 0; x_out < xsize_samp; x_out++)
+							{
+								Float srcX = (static_cast<Float>(x_out) / (xsize_samp > 1 ? xsize_samp - 1 : 1)) * (xsize - 1);
+								Uint32 x_in = static_cast<Uint32>(srcX);
+								pdest[y_out * xsize_samp + x_out] = psrc[y_in * xsize + x_in];
+							}
+						}
+					}
 				}
 			}
 		}
@@ -361,7 +409,7 @@ void BSP_Model_ReserveWaterLighting( brushmodel_t& model, color24_t* psrclightda
 		}
 	}
 
-	Uint32 lightdatasize = 0;
+	Uint32 totalPixels = 0;
 	for(Uint32 i = 0; i < model.nummodelsurfaces; i++)
 	{
 		msurface_t* psurf = &model.psurfaces[model.firstmodelsurface+i];
@@ -377,45 +425,31 @@ void BSP_Model_ReserveWaterLighting( brushmodel_t& model, color24_t* psrclightda
 			if(j > 0 && psurf->styles[j] == NULL_LIGHTSTYLE_INDEX)
 				break;
 
-			lightdatasize += srcsize;
+			totalPixels += srcsize;
 		}
 	}
 
-	if(!lightdatasize)
+	if(!totalPixels)
 		return;
-
-	Uint32 lightoffset = 0;
-	color24_t* plightdataptrs[NB_SURF_LIGHTMAP_LAYERS] = { nullptr };
 
 	for(Uint32 i = 0; i < NB_SURF_LIGHTMAP_LAYERS; i++)
 	{
 		if(!model.plightdata[i])
 			break;
 
-		plightdataptrs[i] = new color24_t[lightdatasize];
-		memset(plightdataptrs[i], 0, sizeof(color24_t)*lightdatasize);
+		Uint32 elemSize = (i == SURF_LIGHTMAP_VECTORS) ? sizeof(color24_t) : sizeof(Vector);
+		model.plightdata_water[i] = reinterpret_cast<color24_t*>(new byte[totalPixels * elemSize]);
+		memset(model.plightdata_water[i], 0, totalPixels * elemSize);
 	}
 
+	Uint32 pixelOffset = 0;
 	for(Uint32 i = 0; i < model.nummodelsurfaces; i++)
 	{
 		msurface_t* psurf = &model.psurfaces[model.firstmodelsurface+i];
 		if(!(psurf->flags & SURF_DRAWTURB))
 			continue;
 
-		// Set offset
-		psurf->lightoffset_water = lightoffset * sizeof(color24_t);
-
-		// Set lightdata ptrs to nullptr
-		color24_t* psrclightdata[NB_SURF_LIGHTMAP_LAYERS] = { nullptr };
-		color24_t* pdestlightdata[NB_SURF_LIGHTMAP_LAYERS] = { nullptr };
-		for(Uint32 j = 0; j < NB_SURF_LIGHTMAP_LAYERS; j++)
-		{
-			if(!model.plightdata[j])
-				break;
-
-			psrclightdata[j] = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(psrclightdataptrs[j]) + psurf->lightoffset);
-			pdestlightdata[j] = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(plightdataptrs[j]) + psurf->lightoffset_water);
-		}
+		psurf->lightoffset_water = pixelOffset * sizeof(Vector);
 
 		Uint32 xsize = (psurf->extents[0] / psurf->lightmapdivider)+1;
 		Uint32 ysize = (psurf->extents[1] / psurf->lightmapdivider)+1;
@@ -431,20 +465,16 @@ void BSP_Model_ReserveWaterLighting( brushmodel_t& model, color24_t* psrclightda
 				if(!model.plightdata[k])
 					break;
 
-				color24_t* psrc = psrclightdata[k] + j * size;
-				color24_t* pdest = pdestlightdata[k] + j * size;
+				Uint32 elemSize = (k == SURF_LIGHTMAP_VECTORS) ? sizeof(color24_t) : sizeof(Vector);
+				byte* psrc = reinterpret_cast<byte*>(psrclightdataptrs[k]) + psurf->lightoffset + (j * size * elemSize);
+				byte* pdest = reinterpret_cast<byte*>(model.plightdata_water[k]) + (pixelOffset + j * size) * elemSize;
 
-				memcpy(pdest, psrc, sizeof(color24_t)*size);
+				memcpy(pdest, psrc, elemSize * size);
 			}
 
-			// Increment offset
-			lightoffset += size;
+			pixelOffset += size;
 		}
 	}
-
-	// Modify pointers
-	for(Uint32 i = 0; i < NB_SURF_LIGHTMAP_LAYERS; i++)
-		model.plightdata_water[i] = plightdataptrs[i];
 }
 
 //=============================================
@@ -469,7 +499,10 @@ void BSP_SetLightGridSampleData( brushmodel_t& model, byte* psrclightdataptrs[] 
 		lightgridsample_t& sample = model.plightgrid->samples[i];
 		
 		for(Uint32 j = 0; j < NB_LIGHTGRID_DATA_LAYERS; j++)
-			sample.plightdata[j] = reinterpret_cast<byte*>(model.plightgrid->prawsampledata[j]) + sample.rawsampleoffset;
+		{
+			Uint32 elemSize = (j == LIGHTGRID_LAYER_VECTORS) ? sizeof(color24_t) : sizeof(Vector);
+			sample.plightdata[j] = reinterpret_cast<byte*>(model.plightgrid->prawsampledata[j]) + sample.rawsampleoffset * elemSize;
+		}
 	}
 }
 

@@ -379,26 +379,13 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 		ds = ds / psurf->base_samplesize;
 		dt = dt / psurf->base_samplesize;
 
-		color24_t* plightmap = psurf->psamples[SURF_LIGHTMAP_DEFAULT];
+		Vector* plightmap = reinterpret_cast<Vector*>(psurf->psamples[SURF_LIGHTMAP_DEFAULT]);
 		if (!plightmap)
 			continue;
 
 		plightmap += dt * ((psurf->base_extents[0] / psurf->base_samplesize)+1) + ds;
 
-		Float scale;
-		if(overdarkenFactor > 0)
-		{
-			Float intensity = (plightmap->r + plightmap->g + plightmap->b)/3;
-			scale = intensity/overdarkenFactor;
-			if(scale > 1.0)
-				scale = 1.0;
-		}
-		else
-			scale = 1.0;
-
-		Vector color;
-		Common::ParseColor(color, plightmap);
-		Math::VectorScale(color, scale, poutcolors[BASE_LIGHTMAP_INDEX]);
+		poutcolors[BASE_LIGHTMAP_INDEX] = *plightmap;
 
 		// Check styles
 		if(poutstyles)
@@ -416,7 +403,7 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 				plightmap += size;
 
 				// Parse it into the approrpiate position
-				Common::ParseColor(poutcolors[k], plightmap);
+				poutcolors[k] = *plightmap;
 			}
 		}
 
@@ -499,39 +486,17 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 		Uint32 ysize = (psurf->base_extents[1] / psurf->base_samplesize)+1;
 		Uint32 size = xsize*ysize;
 
-		// Use base lighting as reference for overdarkening
-		color24_t* pbaselightmap = psurf->psamples[SURF_LIGHTMAP_DEFAULT];
-		pbaselightmap += dt * xsize + ds;
-
-		Float flIntensity = (pbaselightmap->r + pbaselightmap->g + pbaselightmap->b)/3;
-		Float flScale = flIntensity/35;
-		if(flScale > 1.0)
-			flScale = 1.0;
-
 		// Now process along with styles
 		for(Uint32 j = 0; j < MAX_SURFACE_STYLES; j++)
 		{
 			if(psurf->styles[j] == NULL_LIGHTSTYLE_INDEX)
 				break;
 
-			Float styleScale;
-			if(j == BASE_LIGHTMAP_INDEX)
-			{
-				// Only overdarkening is applied to base lightmap
-				styleScale = flScale;
-			}
-			else
-			{
-				// If not checking styles, skip additional style layers
-				if(!poutstyles)
-					break;
+			Float styleScale = 1.0f;
+			if(j != BASE_LIGHTMAP_INDEX && !poutstyles)
+				break;
 
-				// Only apply lightstyle value scaling to other styles,
-				// no ovedarkening
-				styleScale = 1.0;
-			}
-
-			// Get light direction
+			// Get light direction (8-bit directional vector)
 			color24_t* plightdirdata = psurf->psamples[SURF_LIGHTMAP_VECTORS] + size * j;
 			plightdirdata += dt * xsize + ds;
 
@@ -552,54 +517,22 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 			Vector tmp;
 			Common::ParseVectorColor(tmp, plightdirdata);
 
-			// Note: Trying to get this to work right, I ended up doing what Paranoia does here
 			Math::VectorScale(tangent, (tmp[0]*2-1), poutlightdirs[j]);
 			Math::VectorMA(poutlightdirs[j], (tmp[1]*2-1), binormal, poutlightdirs[j]);
 			Math::VectorMA(poutlightdirs[j], (tmp[2]*2-1), normal, poutlightdirs[j]);
 
-			// Get ambient light
-			color24_t* pambientlightmap = psurf->psamples[SURF_LIGHTMAP_AMBIENT] + size * j;
+			// Get HDR ambient light
+			Vector* pambientlightmap = reinterpret_cast<Vector*>(psurf->psamples[SURF_LIGHTMAP_AMBIENT]) + size * j;
 			pambientlightmap += dt * xsize + ds;
+			Vector ambientcolor = *pambientlightmap * styleScale;
 
-			Vector ambientcolor;
-			Common::ParseColor(ambientcolor, pambientlightmap);
-			Math::VectorScale(ambientcolor, styleScale, ambientcolor);
-
-			Float darkenScale;
-			if(overdarkenFactor > 0)
-			{
-				Float intensity = (pambientlightmap->r + pambientlightmap->g + pambientlightmap->b)/3;
-				darkenScale = intensity/overdarkenFactor;
-				if(darkenScale > 1.0)
-					darkenScale = 1.0;
-			}
-			else
-				darkenScale = 1.0;
-
-			// Scale by overdarken factor
-			Math::VectorScale(ambientcolor, darkenScale, ambientcolor);
-
-			// Get diffuse light
-			color24_t* pdiffuselightmap = psurf->psamples[SURF_LIGHTMAP_DIFFUSE] + size * j;
+			// Get HDR diffuse light
+			Vector* pdiffuselightmap = reinterpret_cast<Vector*>(psurf->psamples[SURF_LIGHTMAP_DIFFUSE]) + size * j;
 			pdiffuselightmap += dt * xsize + ds;
+			Vector diffusecolor = *pdiffuselightmap * styleScale;
 
-			Vector diffusecolor;
-			Common::ParseColor(diffusecolor, pdiffuselightmap);
-			Math::VectorScale(diffusecolor, styleScale, diffusecolor);
-
-			// Note: Trying to get this to work right, I ended up doing what Paranoia does here
-			// Still looks like shit though in 60% of cases
-			Vector scale;
-			Float dp = tmp[2] * 2 - 1;
-			Math::VectorScale(diffusecolor, dp, scale);
-			Math::VectorAdd(scale, ambientcolor, scale);
-			Math::VectorScale(scale, 2.0, scale);// ???
-
-			for(Uint32 k = 0; k < 3; k++)
-				poutdiffusecolors[j][k] = diffusecolor[k] * scale[k];
-
-			for(Uint32 k = 0; k < 3; k++)
-				poutambientcolors[j][k] = ambientcolor[k] * scale[k];
+			poutdiffusecolors[j] = diffusecolor;
+			poutambientcolors[j] = ambientcolor;
 		}
 
 		// See if we need to set destination styles
@@ -767,31 +700,18 @@ bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector&
 				used[style] = true;
 			}
 
-			// Get raw colors and turn them into vectors
-			const color24_t* pambientcolor = reinterpret_cast<const color24_t*>(psample->plightdata[LIGHTGRID_LAYER_AMBIENT]) + j * sizeof(color24_t);
-			for(Uint32 k = 0; k < 3; k++)
-				ambientcolor[k] = ((*pambientcolor)[k] / 255.0f);
+			// Get raw colors and turn them into vectors (HDR ambient/diffuse, 8-bit direction vectors)
+			const Vector* pambientcolor = reinterpret_cast<const Vector*>(psample->plightdata[LIGHTGRID_LAYER_AMBIENT]) + j;
+			ambientcolor = *pambientcolor;
 
-			const color24_t* pdiffusecolor = reinterpret_cast<const color24_t*>(psample->plightdata[LIGHTGRID_LAYER_DIFFUSE]) + j * sizeof(color24_t);
-			for(Uint32 k = 0; k < 3; k++)
-				diffusecolor[k] = (*pdiffusecolor)[k] / 255.0f;
+			const Vector* pdiffusecolor = reinterpret_cast<const Vector*>(psample->plightdata[LIGHTGRID_LAYER_DIFFUSE]) + j;
+			diffusecolor = *pdiffusecolor;
 
-			const color24_t* plightvectors = reinterpret_cast<const color24_t*>(psample->plightdata[LIGHTGRID_LAYER_VECTORS]) + j * sizeof(color24_t);
+			const color24_t* plightvectors = reinterpret_cast<const color24_t*>(psample->plightdata[LIGHTGRID_LAYER_VECTORS]) + j;
 			for(Uint32 k = 0; k < 3; k++)
 				lighdirection[k] = (((*plightvectors)[k] / 127.5) - 1.0);
 
-			Float scale;
-			if(overdarkenFactor > 0)
-			{
-				Float intensity = (pambientcolor->r + pambientcolor->g + pambientcolor->b)/3;
-				scale = intensity/overdarkenFactor;
-				if(scale > 1.0)
-					scale = 1.0;
-			}
-			else
-				scale = 1.0;
-
-			Math::VectorMA(amblights[style], weight * scale, ambientcolor, amblights[style]);
+			Math::VectorMA(amblights[style], weight, ambientcolor, amblights[style]);
 			Math::VectorMA(difflights[style], weight, diffusecolor, difflights[style]);
 			Math::VectorMA(lightvecs[style], weight, lighdirection, lightvecs[style]);
 

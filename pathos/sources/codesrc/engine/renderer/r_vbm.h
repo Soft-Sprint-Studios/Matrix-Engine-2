@@ -152,24 +152,24 @@ struct vbm_vlight_glvertex_t
 {
 	vbm_vlight_glvertex_t() 
 	{
-		memset(vertexlight_vector, 0, sizeof(vertexlight_vector));
 		memset(vertexlight_ambient, 0, sizeof(vertexlight_ambient));
 		memset(vertexlight_diffuse, 0, sizeof(vertexlight_diffuse));
+		memset(vertexlight_vector, 0, sizeof(vertexlight_vector));
 		memset(pad, 0, sizeof(pad));
 	}
 		
+	Float vertexlight_ambient[3];
+	Float vertexlight_diffuse[3];
 	byte vertexlight_vector[3];
-	byte vertexlight_ambient[3];
-	byte vertexlight_diffuse[3];
 
-	byte pad[23];
+	byte pad[5];
 };
 
 struct vbm_raw_vlight_data_t
 {
 	byte vectors[MAX_ENTITY_STYLES][3];
-	byte ambient[MAX_ENTITY_STYLES][3];
-	byte diffuse[MAX_ENTITY_STYLES][3];
+	Float ambient[MAX_ENTITY_STYLES][3];
+	Float diffuse[MAX_ENTITY_STYLES][3];
 };
 
 struct attrib_light

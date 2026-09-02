@@ -413,7 +413,7 @@ bool MBSPV1_LoadDefaultLighting( const byte* pfile, brushmodel_t& model, const d
 
 	// Get raw data and check that the sizes are correct
 	const dmbspv1lightingdata_t* plightdata = reinterpret_cast<const dmbspv1lightingdata_t*>(pfile + lump.offset);
-	if(plightdata->noncompressedsize % sizeof(color24_t))
+	if(plightdata->noncompressedsize % sizeof(Vector))
 	{
 		Con_EPrintf("%s - Inconsistent decompressed data size in '%s'.\n", __FUNCTION__, model.name.c_str());
 		return false;
@@ -442,7 +442,8 @@ bool MBSPV1_LoadLightingDataLayer( const byte* pfile, brushmodel_t& model, const
 
 	// Get raw data and check that the sizes are correct
 	const dmbspv1lightingdata_t* plightdata = reinterpret_cast<const dmbspv1lightingdata_t*>(pfile + lump.offset);
-	if(plightdata->noncompressedsize % sizeof(color24_t))
+	Uint32 elemSize = (layer == SURF_LIGHTMAP_VECTORS) ? sizeof(color24_t) : sizeof(Vector);
+	if(plightdata->noncompressedsize % elemSize)
 	{
 		Con_EPrintf("%s - Inconsistent decompressed data size in '%s'.\n", __FUNCTION__, model.name.c_str());
 		return false;
@@ -1040,7 +1041,8 @@ bool MBSPV1_LoadVertexLighting(const byte* pfile, brushmodel_t& model, const dmb
 
 	// Get raw data and check that the sizes are correct
 	const dmbspv1lightingdata_t* plightdata = reinterpret_cast<const dmbspv1lightingdata_t*>(pfile + lump.offset);
-	if(plightdata->noncompressedsize % sizeof(color24_t))
+	Uint32 elemSize = (layer == VERTEX_LIGHTING_VECTORS) ? sizeof(color24_t) : sizeof(Vector);
+	if(plightdata->noncompressedsize % elemSize)
 	{
 		Con_EPrintf("%s - Inconsistent decompressed data size in '%s'.\n", __FUNCTION__, model.name.c_str());
 		return false;
@@ -1051,14 +1053,16 @@ bool MBSPV1_LoadVertexLighting(const byte* pfile, brushmodel_t& model, const dmb
 		model.pvertexlightdata_original[layer], model.original_vertexlightdatasizes[layer],
 		model.original_vertexlightcompressiontype[layer], model.original_vertexlightcompressionlevel[layer]);
 
+	Uint32 numVertices = datasize / elemSize;
+	Uint32 expectedVertices = model.vertexlightdatasize / sizeof(Vector);
+
 	if(!model.vertexlightdatasize)
 	{
-		// First lump loaded defines the expected size
-		model.vertexlightdatasize = datasize;
+		model.vertexlightdatasize = numVertices * sizeof(Vector);
 	}
-	else if(result && datasize != model.vertexlightdatasize)
+	else if(result && numVertices != expectedVertices)
 	{
-		Con_EPrintf("%s - Inconsistent lump size %d in '%s' for baked vertex light data layer %d, expected size was %d.\n", __FUNCTION__, datasize, model.name.c_str(), layer, model.lightdatasize);
+		Con_EPrintf("%s - Inconsistent vertex count %d in '%s' for baked vertex light layer %d, expected was %d.\n", __FUNCTION__, numVertices, model.name.c_str(), layer, expectedVertices);
 		return false;
 	}
 
@@ -1099,26 +1103,27 @@ bool MBSPV1_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dmb
 	for(Uint32 i = 0; i < NB_LIGHTGRID_DATA_LAYERS; i++)
 	{
 		dmbspv1lightingdata_t tmp;
+		Uint32 elemSize = (i == LIGHTGRID_LAYER_VECTORS) ? sizeof(color24_t) : sizeof(Vector);
 		switch(i)
 		{
 		case LIGHTGRID_LAYER_VECTORS:
 			tmp.compression = psrcgrid->vectorscompressiontype;
 			tmp.compressionlevel = psrcgrid->vectorscompressionlevel;
-			tmp.noncompressedsize = psrcgrid->rawsampledatasize;
+			tmp.noncompressedsize = psrcgrid->rawsampledatasize * elemSize;
 			tmp.datasize = psrcgrid->vectorscompressedsize;
 			tmp.dataoffset = psrcgrid->vectorsdataoffset;
 			break;
 		case LIGHTGRID_LAYER_AMBIENT:
 			tmp.compression = psrcgrid->ambientcompressiontype;
 			tmp.compressionlevel = psrcgrid->ambientcompressionlevel;
-			tmp.noncompressedsize = psrcgrid->rawsampledatasize;
+			tmp.noncompressedsize = psrcgrid->rawsampledatasize * elemSize;
 			tmp.datasize = psrcgrid->ambientcompressedsize;
 			tmp.dataoffset = psrcgrid->ambientdataoffset;
 			break;
 		case LIGHTGRID_LAYER_DIFFUSE:
 			tmp.compression = psrcgrid->diffusecompressiontype;
 			tmp.compressionlevel = psrcgrid->diffusecompressionlevel;
-			tmp.noncompressedsize = psrcgrid->rawsampledatasize;
+			tmp.noncompressedsize = psrcgrid->rawsampledatasize * elemSize;
 			tmp.datasize = psrcgrid->diffusecompressedsize;
 			tmp.dataoffset = psrcgrid->diffusedataoffset;
 			break;
@@ -1184,9 +1189,17 @@ bool MBSPV1_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dmb
 
 		// We need this for ALD
 		destsample.rawsampleoffset = psrcsample->rawsampleoffset;
-		if(destsample.rawsampleoffset != NO_POSITION && (destsample.rawsampleoffset+3) > pdestgrid->rawsampledatasize)
+
+		Uint32 activeStyles = 0;
+		for(Uint32 j = 0; j < MBSPV1_MAX_LIGHTMAPS; j++)
 		{
-			Con_EPrintf("%s - Raw sample offset %d in sample %d is out of bounds for raw sample data size(%d bytes).\n", __FUNCTION__, destsample.rawsampleoffset, i, pdestgrid->rawsampledatasize);
+			if(destsample.styles[j] != 255)
+				activeStyles++;
+		}
+
+		if(destsample.rawsampleoffset != -1 && (destsample.rawsampleoffset + static_cast<Int32>(activeStyles)) > pdestgrid->rawsampledatasize)
+		{
+			Con_EPrintf("%s - Raw sample offset %d in sample %d is out of bounds for raw sample data size(%d samples).\n", __FUNCTION__, destsample.rawsampleoffset, i, pdestgrid->rawsampledatasize);
 			delete pdestgrid;
 			return false;
 		}
@@ -1195,7 +1208,10 @@ bool MBSPV1_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dmb
 		if(destsample.rawsampleoffset != -1)
 		{
 			for(Uint32 j = 0; j < NB_LIGHTGRID_DATA_LAYERS; j++)
-				destsample.plightdata[j] = reinterpret_cast<byte*>(pdestgrid->prawsampledata[j]) + destsample.rawsampleoffset;
+			{
+				Uint32 elemSize = (j == LIGHTGRID_LAYER_VECTORS) ? sizeof(color24_t) : sizeof(Vector);
+				destsample.plightdata[j] = reinterpret_cast<byte*>(pdestgrid->prawsampledata[j]) + destsample.rawsampleoffset * elemSize;
+			}
 		}
 	}
 	

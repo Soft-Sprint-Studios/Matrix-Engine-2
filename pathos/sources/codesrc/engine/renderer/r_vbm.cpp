@@ -283,8 +283,8 @@ bool CVBMRenderer::InitGL( void )
 			return false;
 
 		m_attribs.a_vertexlight_vectors = m_pShader->InitAttribute("in_vlight_vectors", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_vector));
-		m_attribs.a_vertexlight_diffuse = m_pShader->InitAttribute("in_vlight_diffuse", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_diffuse));
-		m_attribs.a_vertexlight_ambient = m_pShader->InitAttribute("in_vlight_ambient", 3, GL_UNSIGNED_BYTE, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_ambient));
+		m_attribs.a_vertexlight_diffuse = m_pShader->InitAttribute("in_vlight_diffuse", 3, GL_FLOAT, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_diffuse));
+		m_attribs.a_vertexlight_ambient = m_pShader->InitAttribute("in_vlight_ambient", 3, GL_FLOAT, sizeof(vbm_vlight_glvertex_t), OFFSET(vbm_vlight_glvertex_t, vertexlight_ambient));
 
 		if(!R_CheckShaderVertexAttribute(m_attribs.a_vertexlight_vectors, "in_vlight_vectors", m_pShader, Sys_ErrorPopup)
 			|| !R_CheckShaderVertexAttribute(m_attribs.a_vertexlight_diffuse, "in_vlight_diffuse", m_pShader, Sys_ErrorPopup)
@@ -3337,8 +3337,8 @@ bool CVBMRenderer::SetupRenderer( void )
 
 				for (Uint32 k = 0; k < 3; k++)
 				{
-					pblended[j].vertexlight_ambient[k] = static_cast<byte>(CLAMP(amb_sum[k], 0.0f, 255.0f));
-					pblended[j].vertexlight_diffuse[k] = static_cast<byte>(CLAMP(diff_sum[k], 0.0f, 255.0f));
+					pblended[j].vertexlight_ambient[k] = amb_sum[k];
+					pblended[j].vertexlight_diffuse[k] = diff_sum[k];
 					pblended[j].vertexlight_vector[k] = raw.vectors[0][k];
 				}
 			}
@@ -7377,8 +7377,8 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 
 	// Create vertex data
 	const byte* pvlight_vector = reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_VECTORS]) + offsetdatastart;
-	const byte* pvlight_ambient = reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_AMBIENT]) + offsetdatastart;
-	const byte* pvlight_diffuse = reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_DIFFUSE]) + offsetdatastart;
+	const Vector* pvlight_ambient = reinterpret_cast<const Vector*>(reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_AMBIENT]) + offsetdatastart);
+	const Vector* pvlight_diffuse = reinterpret_cast<const Vector*>(reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_DIFFUSE]) + offsetdatastart);
 
 	Uint32 offsetindex = 0;
 	vbm_vlight_glvertex_t* pvertexbuffer = new vbm_vlight_glvertex_t[pvbmheader->numverts];
@@ -7394,29 +7394,16 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 		{
 			vbm_raw_vlight_data_t& raw = pvlightvbo->raw_vlight_data[j];
 
+			Uint32 vertOffset = offsetindex * pvbmheader->numverts + j;
+
 			for(Uint32 k = 0; k < 3; k++)
 				raw.vectors[i][k] = pvlight_vector[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
 
 			for(Uint32 k = 0; k < 3; k++)
-				raw.ambient[i][k] = pvlight_ambient[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
-
-			for(Uint32 k = 0; k < 3; k++)
-				raw.diffuse[i][k] = pvlight_diffuse[offsetindex * pvbmheader->numverts * 3 + j * 3 + k];
-
-			// Overdarken ambient component
-			Float scale;
-			if(overdarken > 0)
 			{
-				Float intensity = (raw.ambient[i][0] + raw.ambient[i][1] + raw.ambient[i][2])/3.0f;
-				scale = intensity/overdarken;
-				if(scale > 1.0)
-					scale = 1.0;
+				raw.ambient[i][k] = pvlight_ambient[vertOffset][k];
+				raw.diffuse[i][k] = pvlight_diffuse[vertOffset][k];
 			}
-			else
-				scale = 1.0;
-
-			for(Uint32 k = 0; k < 3; k++)
-				raw.ambient[i][k] = static_cast<byte>(CLAMP(raw.ambient[i][k] * scale, 0.0f, 255.0f));
 		}
 
 		offsetindex++;

@@ -448,7 +448,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                 if (g_BSP.GetFace(lm.bspFaceIndex).lmstyles[s] != 255)
                     numStyles++;
             }
-            totalBytes += (size_t)lm.totalLuxels * 3 * numStyles;
+            totalBytes += (size_t)lm.totalLuxels * sizeof(Float) * 3 * numStyles;
         }
     }
 
@@ -583,35 +583,32 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                     tangentDir[2] = 1.0f;
                 }
 
-                size_t baseIdx = (size_t)lm.lightOffset + (s * lm.totalLuxels + i) * 3;
-
-                auto ColorToByte = [](Float colorComponent, Float minL = 0.0f) -> byte
-                    {
-                        Float scaled = colorComponent * 2.0f;
-                        if (scaled < minL) scaled = minL;
-                        if (scaled < 0.0f) scaled = 0.0f;
-                        Float gammaAdjusted = powf(scaled / 256.0f, 0.55f) * 256.0f;
-                        Int32 ival = (Int32)floorf(gammaAdjusted + 0.5f);
-                        return (byte)std::clamp(ival, 0, 255);
-                    };
+                size_t colorByteIdx = (size_t)lm.lightOffset + (s * lm.totalLuxels + i) * sizeof(Float) * 3;
+                size_t vecByteIdx = (size_t)lm.lightOffset + (s * lm.totalLuxels + i) * 3;
 
                 Float minL = (lm.bspFaceIndex >= 0 && lm.bspFaceIndex < (Int32)m_faceInfos.size()) ? m_faceInfos[lm.bspFaceIndex].minLight : 0.0f;
 
-                defData[baseIdx + 0] = ColorToByte(finalTotal[0], minL);
-                defData[baseIdx + 1] = ColorToByte(finalTotal[1], minL);
-                defData[baseIdx + 2] = ColorToByte(finalTotal[2], minL);
+                auto ColorToHDR = [](Float val, Float minVal) -> Float
+                    {
+                        Float v = std::max(val, minVal);
+                        if (v <= 0.0f) return 0.0f;
+                        return powf(v / 128.0f, 0.55f) * 2.0f;
+                    };
 
-                ambData[baseIdx + 0] = ColorToByte(finalAmbient[0], minL);
-                ambData[baseIdx + 1] = ColorToByte(finalAmbient[1], minL);
-                ambData[baseIdx + 2] = ColorToByte(finalAmbient[2], minL);
+                Float* pDef = reinterpret_cast<Float*>(&defData[colorByteIdx]);
+                Float* pAmb = reinterpret_cast<Float*>(&ambData[colorByteIdx]);
+                Float* pDiff = reinterpret_cast<Float*>(&diffData[colorByteIdx]);
 
-                diffData[baseIdx + 0] = ColorToByte(finalDiffuse[0], minL);
-                diffData[baseIdx + 1] = ColorToByte(finalDiffuse[1], minL);
-                diffData[baseIdx + 2] = ColorToByte(finalDiffuse[2], minL);
+                for (Int32 c = 0; c < 3; c++)
+                {
+                    pDef[c] = ColorToHDR(finalTotal[c], minL);
+                    pAmb[c] = ColorToHDR(finalAmbient[c], minL);
+                    pDiff[c] = ColorToHDR(finalDiffuse[c], minL);
+                }
 
-                vecData[baseIdx + 0] = (byte)std::clamp((Int32)((tangentDir[0] * 0.5f + 0.5f) * 255.0f), 0, 255);
-                vecData[baseIdx + 1] = (byte)std::clamp((Int32)((tangentDir[1] * 0.5f + 0.5f) * 255.0f), 0, 255);
-                vecData[baseIdx + 2] = (byte)std::clamp((Int32)((tangentDir[2] * 0.5f + 0.5f) * 255.0f), 0, 255);
+                vecData[vecByteIdx + 0] = (byte)std::clamp((Int32)((tangentDir[0] * 0.5f + 0.5f) * 255.0f), 0, 255);
+                vecData[vecByteIdx + 1] = (byte)std::clamp((Int32)((tangentDir[1] * 0.5f + 0.5f) * 255.0f), 0, 255);
+                vecData[vecByteIdx + 2] = (byte)std::clamp((Int32)((tangentDir[2] * 0.5f + 0.5f) * 255.0f), 0, 255);
             }
         }
         if (lm.totalLuxels > 0)

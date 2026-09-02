@@ -923,14 +923,12 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao, float mraoAl
 		vec4 texColor = GetMainTexture(uv);
 		vec4 detailTexColor = texture(detailtex, ps_dtexcoord);
 		
-		finalColor = finalColor*texColor*detailTexColor;
-		finalColor.xyz = finalColor.xyz*4;
+		finalColor = finalColor * texColor * detailTexColor;
 	$end
 	$branch shadertype == 1
 	$begin
 		vec4 texColor = GetMainTexture(uv);
-		finalColor = finalColor*texColor;
-		finalColor.xyz = finalColor.xyz*2;
+		finalColor = finalColor * texColor;
 	$end
 	$branch shadertype == 2
 	$begin
@@ -938,8 +936,7 @@ vec4 CombineTextureLayers( vec3 v_origin, vec3 v_normal, vec3 mrao, float mraoAl
 		vec4 lightColor = finalColor;
 	
 		vec4 texColor = GetMainTexture(uv);
-		finalColor = lightColor*texColor;
-		finalColor.xyz = finalColor.xyz*2;
+		finalColor = lightColor * texColor;
 
 		vec4 chromeTex = texture(chrometex, ps_chromecoord);
 		finalColor.xyz += chromeTex.xyz*lightColor.xyz*2*color.w;
