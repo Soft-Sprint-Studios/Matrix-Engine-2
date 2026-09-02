@@ -89,7 +89,7 @@ void main()
 	if (d_numlights >= 4)
 		ps_light_3_vertexcoord = light_3_matrix * in_position;
 	if (d_csm == 1)
-		ps_csm_vertexcoord = csm_matrix * vec4(in_position.xyz + in_normal * 1.5, 1.0);
+		ps_csm_vertexcoord = csm_matrix * in_position;
 
 	gl_Position = eye_position;
 }
@@ -476,9 +476,10 @@ float GetProjLightShadowing( float l_radius, vec3 l_origin, vec3 v_origin, vec4 
 	return ReduceLightBleeding(flresult, 0.4);
 }
 
-float GetCSMShadowPCF( float currentDepth, vec2 csmUV, vec3 v_normal, sampler2DShadow l_shadowmap )
+float GetCSMShadowPCF( float currentDepth, vec2 csmUV, float dp, sampler2DShadow l_shadowmap )
 {
-	return texture(l_shadowmap, vec3(csmUV, currentDepth - 0.00002));
+	float bias = max(0.0008 * (1.0 - dp), 0.0001);
+	return texture(l_shadowmap, vec3(csmUV, currentDepth - bias));
 }
 
 vec3 AddDiffuseDynamicLight ( vec3 colorIn1, vec3 colorIn2 )
@@ -713,7 +714,7 @@ void main()
 				vec2 csmUV = ps_csm_vertexcoord.xy / ps_csm_vertexcoord.w;
 				if (csmUV.x >= 0.0 && csmUV.x <= 1.0 && csmUV.y >= 0.0 && csmUV.y <= 1.0)
 				{
-					shadowFactor = GetCSMShadowPCF(ps_csm_vertexcoord.z, csmUV, eyeNormal, csm_shadowmap);
+					shadowFactor = GetCSMShadowPCF(ps_csm_vertexcoord.z / ps_csm_vertexcoord.w, csmUV, dp, csm_shadowmap);
 				}
 			}
 

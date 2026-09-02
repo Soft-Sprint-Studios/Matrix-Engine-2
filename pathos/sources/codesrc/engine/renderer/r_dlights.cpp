@@ -2145,7 +2145,6 @@ bool CDynamicLightManager::DrawCSMPass( void )
 
 	R_MarkLeaves(centerPos);
 
-	Float coneSize = 90.0f;
 	Float lightDist = 2000.0f;
 	Float radius = 8000.0f;
 
@@ -2170,7 +2169,7 @@ bool CDynamicLightManager::DrawCSMPass( void )
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(2.0f, 4.0f);
+	glPolygonOffset(1.1f, 4.0f);
 
 	rns.view.projection.PushMatrix();
 	rns.view.projection.LoadIdentity();
