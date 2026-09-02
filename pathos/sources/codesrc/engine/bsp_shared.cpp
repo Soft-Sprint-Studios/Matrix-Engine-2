@@ -467,7 +467,7 @@ void BSP_Model_ReserveWaterLighting( brushmodel_t& model, color24_t* psrclightda
 
 				Uint32 elemSize = (k == SURF_LIGHTMAP_VECTORS) ? sizeof(color24_t) : sizeof(Vector);
 				byte* psrc = reinterpret_cast<byte*>(psrclightdataptrs[k]) + psurf->lightoffset + (j * size * elemSize);
-				byte* pdest = reinterpret_cast<byte*>(model.plightdata_water[k]) + (pixelOffset + j * size) * elemSize;
+				byte* pdest = reinterpret_cast<byte*>(model.plightdata_water[k]) + pixelOffset * elemSize;
 
 				memcpy(pdest, psrc, elemSize * size);
 			}

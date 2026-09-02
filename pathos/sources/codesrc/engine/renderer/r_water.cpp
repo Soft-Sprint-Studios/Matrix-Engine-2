@@ -574,8 +574,9 @@ void CWaterShader::CreateLightmapTexture( cl_water_t* pwater )
 				}
 				diffuselightdatasize += size * sizeof(vec4_t);
 
-				color24_t* psrcvec = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_VECTORS]) + psurf->lightoffset_water);
-				R_BuildLightmap(psurf->light_s[i], psurf->light_t[i], psrcvec, psurf, plightvecstexture, i, pwater->lightmaptexturewidths[i], 0, paddingAmount, true);
+				Uint32 pixelIdx = psurf->lightoffset_water / sizeof(Vector);
+				color24_t* psrcvec = reinterpret_cast<color24_t*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_VECTORS]) + pixelIdx;
+				R_BuildLightmap(psurf->light_s[i], psurf->light_t[i], psrcvec, psurf, plightvecstexture, i, pwater->lightmaptexturewidths[i], paddingAmount, true);
 				lightvecsdatasize += size * sizeof(color32_t);
 			}
 		}
