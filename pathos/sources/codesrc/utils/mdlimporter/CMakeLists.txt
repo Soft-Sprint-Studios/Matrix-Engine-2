@@ -28,10 +28,12 @@ target_compile_definitions(mdlimporter
 )
 
 target_compile_options(mdlimporter
-        PRIVATE
-            "/MP"
-            "/W3"
-    )
+    PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/MP>
+        $<$<CXX_COMPILER_ID:MSVC>:/W3>
+        $<$<CXX_COMPILER_ID:Clang>:-Wall>
+        $<$<CXX_COMPILER_ID:GNU>:-Wall>
+)
 
 if (MSVC)
     set_target_properties(mdlimporter PROPERTIES
