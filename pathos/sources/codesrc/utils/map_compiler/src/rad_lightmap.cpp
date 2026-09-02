@@ -43,6 +43,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         Float bounce[MBSPV1_MAX_LIGHTMAPS][3];
         Float ambient[3];
         Float dominantDir[MBSPV1_MAX_LIGHTMAPS][3];
+        Float sunDirect[3];
     };
 
     std::vector<std::vector<luxel_radiance_t>> faceLuxels(faceLightmaps.size());
@@ -98,33 +99,9 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                         Float g = lt.color[1] * NdotL;
                         Float b = lt.color[2] * NdotL;
 
-                        dmbspv1face_t& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
-                        Int32 styleSlot = -1;
-                        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
-                        {
-                            if (bspFace.lmstyles[s] == lt.style)
-                            {
-                                styleSlot = s;
-                                break;
-                            }
-                            if (bspFace.lmstyles[s] == 255)
-                            {
-                                bspFace.lmstyles[s] = lt.style;
-                                styleSlot = s;
-                                break;
-                            }
-                        }
-
-                        if (styleSlot != -1)
-                        {
-                            lux.direct[styleSlot][0] += r;
-                            lux.direct[styleSlot][1] += g;
-                            lux.direct[styleSlot][2] += b;
-
-                            lux.dominantDir[styleSlot][0] -= lt.normal[0] * NdotL;
-                            lux.dominantDir[styleSlot][1] -= lt.normal[1] * NdotL;
-                            lux.dominantDir[styleSlot][2] -= lt.normal[2] * NdotL;
-                        }
+                        lux.sunDirect[0] += r;
+                        lux.sunDirect[1] += g;
+                        lux.sunDirect[2] += b;
                     }
                 }
                 else if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
@@ -208,9 +185,9 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
             Float sumRad[3] = { 0.0f, 0.0f, 0.0f };
             for (Int32 i = 0; i < lm.totalLuxels; i++)
             {
-                sumRad[0] += faceLuxels[f][i].direct[0][0];
-                sumRad[1] += faceLuxels[f][i].direct[0][1];
-                sumRad[2] += faceLuxels[f][i].direct[0][2];
+                sumRad[0] += faceLuxels[f][i].direct[0][0] + faceLuxels[f][i].sunDirect[0];
+                sumRad[1] += faceLuxels[f][i].direct[0][1] + faceLuxels[f][i].sunDirect[1];
+                sumRad[2] += faceLuxels[f][i].direct[0][2] + faceLuxels[f][i].sunDirect[2];
             }
             m_faceInfos[lm.bspFaceIndex].avgRadiance[0] = sumRad[0] / (Float)lm.totalLuxels;
             m_faceInfos[lm.bspFaceIndex].avgRadiance[1] = sumRad[1] / (Float)lm.totalLuxels;

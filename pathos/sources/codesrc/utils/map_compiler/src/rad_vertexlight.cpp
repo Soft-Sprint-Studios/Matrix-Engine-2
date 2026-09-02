@@ -128,28 +128,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
             {
                 Int32 style = (lt.style >= 0 && lt.style < 64) ? lt.style : 0;
 
-                if (lt.type == LIGHT_SUN)
-                {
-                    Float sunTarget[3] = {
-                        pos[0] - lt.normal[0] * 32768.0f,
-                        pos[1] - lt.normal[1] * 32768.0f,
-                        pos[2] - lt.normal[2] * 32768.0f
-                    };
-
-                    Float hitDist;
-                    if (!TraceOcclusion(pos, sunTarget, hitDist))
-                    {
-                        vs.direct[style][0] += lt.color[0];
-                        vs.direct[style][1] += lt.color[1];
-                        vs.direct[style][2] += lt.color[2];
-
-                        Float maxC = std::max({ lt.color[0], lt.color[1], lt.color[2] });
-                        vs.dominantDir[style][0] -= lt.normal[0] * maxC;
-                        vs.dominantDir[style][1] -= lt.normal[1] * maxC;
-                        vs.dominantDir[style][2] -= lt.normal[2] * maxC;
-                    }
-                }
-                else if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
+                if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
                 {
                     Float toLight[3] = { lt.origin[0] - pos[0], lt.origin[1] - pos[1], lt.origin[2] - pos[2] };
                     Float dist = sqrtf(toLight[0] * toLight[0] + toLight[1] * toLight[1] + toLight[2] * toLight[2]);

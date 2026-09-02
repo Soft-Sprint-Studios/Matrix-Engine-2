@@ -204,26 +204,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                 {
                     Int32 style = (lt.style >= 0 && lt.style < 64) ? lt.style : 0;
 
-                    if (lt.type == LIGHT_SUN)
-                    {
-                        Float sunTarget[3] = {
-                            s.worldPos[0] - lt.normal[0] * 32768.0f,
-                            s.worldPos[1] - lt.normal[1] * 32768.0f,
-                            s.worldPos[2] - lt.normal[2] * 32768.0f
-                        };
-
-                        if (!TraceOcclusion(s.worldPos, sunTarget, hitDist))
-                        {
-                            styleDirect[style][0] += lt.color[0];
-                            styleDirect[style][1] += lt.color[1];
-                            styleDirect[style][2] += lt.color[2];
-
-                            styleDir[style][0] -= lt.normal[0];
-                            styleDir[style][1] -= lt.normal[1];
-                            styleDir[style][2] -= lt.normal[2];
-                        }
-                    }
-                    else if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
+                    if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
                     {
                         Float toLight[3] = { lt.origin[0] - s.worldPos[0], lt.origin[1] - s.worldPos[1], lt.origin[2] - s.worldPos[2] };
                         Float dist = sqrtf(toLight[0] * toLight[0] + toLight[1] * toLight[1] + toLight[2] * toLight[2]);

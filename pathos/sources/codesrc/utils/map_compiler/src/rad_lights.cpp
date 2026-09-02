@@ -40,6 +40,10 @@ void CRadPipeline::AddSunLight(const map_entity_t& ent, Int32 style)
     {
         angles[0] = pitch;
     }
+    if (angles[0] > 0.0f)
+    {
+        angles[0] = -angles[0];
+    }
 
     l.style = style;
 
@@ -59,6 +63,7 @@ void CRadPipeline::AddSunLight(const map_entity_t& ent, Int32 style)
 
     m_lights.push_back(l);
 }
+
 void CRadPipeline::AddPointLight(const map_entity_t& ent, Int32 style)
 {
     rad_light_t l;
