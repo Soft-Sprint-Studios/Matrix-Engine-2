@@ -21,13 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#define _CRT_SECURE_NO_WARNINGS
 #define CGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
 #include "cgltf.h"
-
-#include <windows.h>
-#include <commdlg.h>
-#include <gdiplus.h>
+#include "stb_image.h"
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -36,8 +33,10 @@
 #include <cstdlib>
 #include <map>
 #include <iomanip>
-
-#pragma comment(lib, "gdiplus.lib")
+#include <cmath>
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
 
 namespace fs = std::filesystem;
 
@@ -49,13 +48,18 @@ enum class ExportMode
 
 struct AppConfig
 {
-    std::string nvcompress = "C:\\Program Files\\NVIDIA Corporation\\NVIDIA Texture Tools\\nvcompress.exe";
-    std::string target = "D:\\VS2022PROJECTS\\Matrix-Engine-2\\pathos\\sources\\progs";
-    std::string game = "D:\\VS2022PROJECTS\\Matrix-Engine-2\\pathos";
+#ifdef _WIN32
+    std::string nvcompress = "nvcompress.exe";
+    std::string target = "sources\\progs";
+    std::string game = "pathos";
+#else
+    std::string nvcompress = "nvcompress";
+    std::string target = "sources/progs";
+    std::string game = "pathos";
+#endif
 };
 
 AppConfig g_Config;
-ULONG_PTR gdiToken;
 
 void LoadConfig()
 {
@@ -95,74 +99,271 @@ void LoadConfig()
     }
 }
 
-void InitGDIPlus()
+#pragma pack(push, 1)
+struct BMPFileHeader
 {
-    Gdiplus::GdiplusStartupInput gdiplusStartupInput;
-    Gdiplus::GdiplusStartup(&gdiToken, &gdiplusStartupInput, nullptr);
-}
+    uint16_t bfType{ 0x4D42 };
+    uint32_t bfSize{ 0 };
+    uint16_t bfReserved1{ 0 };
+    uint16_t bfReserved2{ 0 };
+    uint32_t bfOffBits{ 0 };
+};
 
-void ShutdownGDIPlus()
+struct BMPInfoHeader
 {
-    Gdiplus::GdiplusShutdown(gdiToken);
-}
+    uint32_t biSize{ 40 };
+    int32_t  biWidth{ 0 };
+    int32_t  biHeight{ 0 };
+    uint16_t biPlanes{ 1 };
+    uint16_t biBitCount{ 0 };
+    uint32_t biCompression{ 0 };
+    uint32_t biSizeImage{ 0 };
+    int32_t  biXPelsPerMeter{ 2835 };
+    int32_t  biYPelsPerMeter{ 2835 };
+    uint32_t biClrUsed{ 0 };
+    uint32_t biClrImportant{ 0 };
+};
+#pragma pack(pop)
 
-bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filename, Gdiplus::PixelFormat format, int targetW = 0, int targetH = 0)
+struct DecodedImage
 {
+    int width = 0;
+    int height = 0;
+    std::vector<uint8_t> pixels;
+};
+
+DecodedImage LoadGLTFImageRGBA(const cgltf_image* image)
+{
+    DecodedImage result;
     if (!image || !image->buffer_view || !image->buffer_view->buffer)
     {
-        return false;
+        return result;
     }
 
-    const uint8_t* data = (const uint8_t*)image->buffer_view->buffer->data + image->buffer_view->offset;
+    const uint8_t* data = static_cast<const uint8_t*>(image->buffer_view->buffer->data) + image->buffer_view->offset;
     size_t size = image->buffer_view->size;
-
-    IStream* stream = nullptr;
-    if (CreateStreamOnHGlobal(nullptr, TRUE, &stream) != S_OK)
+    if (!data || size == 0)
     {
-        return false;
+        return result;
     }
 
-    ULONG written;
-    stream->Write(data, (ULONG)size, &written);
-    stream->Seek({ 0 }, STREAM_SEEK_SET, nullptr);
-
-    Gdiplus::Bitmap* source = Gdiplus::Bitmap::FromStream(stream);
-    if (!source || source->GetLastStatus() != Gdiplus::Ok)
+    int w = 0, h = 0, comp = 0;
+    unsigned char* raw = stbi_load_from_memory(data, static_cast<int>(size), &w, &h, &comp, 4);
+    if (!raw)
     {
-        stream->Release();
-        return false;
+        return result;
     }
 
-    int finalW = (targetW > 0) ? targetW : source->GetWidth();
-    int finalH = (targetH > 0) ? targetH : source->GetHeight();
+    result.width = w;
+    result.height = h;
+    result.pixels.assign(raw, raw + (w * h * 4));
+    stbi_image_free(raw);
+    return result;
+}
 
-    Gdiplus::Bitmap target(finalW, finalH, format);
-    Gdiplus::Graphics g(&target);
-    g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-    g.DrawImage(source, 0, 0, finalW, finalH);
-
-    CLSID clsid;
-    UINT num = 0, size_needed = 0;
-    Gdiplus::GetImageEncodersSize(&num, &size_needed);
-    std::vector<BYTE> encoders(size_needed);
-    Gdiplus::ImageCodecInfo* codecInfo = (Gdiplus::ImageCodecInfo*)encoders.data();
-    Gdiplus::GetImageEncoders(num, size_needed, codecInfo);
-
-    for (UINT i = 0; i < num; ++i)
+std::vector<uint8_t> ResizeRGBA(const uint8_t* src, int srcW, int srcH, int dstW, int dstH)
+{
+    std::vector<uint8_t> dst(dstW * dstH * 4);
+    if (srcW <= 0 || srcH <= 0 || dstW <= 0 || dstH <= 0)
     {
-        if (wcscmp(codecInfo[i].MimeType, L"image/bmp") == 0)
+        return dst;
+    }
+
+    for (int y = 0; y < dstH; ++y)
+    {
+        float v = (static_cast<float>(y) + 0.5f) * (static_cast<float>(srcH) / static_cast<float>(dstH)) - 0.5f;
+        int y0 = std::clamp(static_cast<int>(std::floor(v)), 0, srcH - 1);
+        int y1 = std::clamp(y0 + 1, 0, srcH - 1);
+        float fy = v - std::floor(v);
+
+        for (int x = 0; x < dstW; ++x)
         {
-            clsid = codecInfo[i].Clsid;
-            break;
+            float u = (static_cast<float>(x) + 0.5f) * (static_cast<float>(srcW) / static_cast<float>(dstW)) - 0.5f;
+            int x0 = std::clamp(static_cast<int>(std::floor(u)), 0, srcW - 1);
+            int x1 = std::clamp(x0 + 1, 0, srcW - 1);
+            float fx = u - std::floor(u);
+
+            for (int c = 0; c < 4; ++c)
+            {
+                float c00 = src[(y0 * srcW + x0) * 4 + c];
+                float c10 = src[(y0 * srcW + x1) * 4 + c];
+                float c01 = src[(y1 * srcW + x0) * 4 + c];
+                float c11 = src[(y1 * srcW + x1) * 4 + c];
+
+                float val = (1.0f - fx) * (1.0f - fy) * c00 +
+                            fx * (1.0f - fy) * c10 +
+                            (1.0f - fx) * fy * c01 +
+                            fx * fy * c11;
+
+                dst[(y * dstW + x) * 4 + c] = static_cast<uint8_t>(std::clamp(val, 0.0f, 255.0f));
+            }
         }
     }
+    return dst;
+}
 
-    std::wstring wfilename(out_filename.begin(), out_filename.end());
-    target.Save(wfilename.c_str(), &clsid, nullptr);
+bool WriteBMP(const std::string& filename, int w, int h, const uint8_t* rgba, int bpp)
+{
+    std::ofstream out(filename, std::ios::binary);
+    if (!out.is_open())
+    {
+        return false;
+    }
 
-    delete source;
-    stream->Release();
+    int bytesPerPixel = bpp / 8;
+    int rowStride = w * bytesPerPixel;
+    int paddedRowSize = (rowStride + 3) & ~3;
+    uint32_t imageSize = paddedRowSize * h;
+
+    BMPFileHeader bfh;
+    bfh.bfOffBits = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
+    bfh.bfSize = bfh.bfOffBits + imageSize;
+
+    BMPInfoHeader bih;
+    bih.biWidth = w;
+    bih.biHeight = h;
+    bih.biBitCount = static_cast<uint16_t>(bpp);
+    bih.biSizeImage = imageSize;
+
+    out.write(reinterpret_cast<const char*>(&bfh), sizeof(bfh));
+    out.write(reinterpret_cast<const char*>(&bih), sizeof(bih));
+
+    std::vector<uint8_t> rowBuffer(paddedRowSize, 0);
+
+    for (int y = h - 1; y >= 0; --y)
+    {
+        const uint8_t* srcRow = rgba + (y * w * 4);
+        for (int x = 0; x < w; ++x)
+        {
+            uint8_t r = srcRow[x * 4 + 0];
+            uint8_t g = srcRow[x * 4 + 1];
+            uint8_t b = srcRow[x * 4 + 2];
+            uint8_t a = srcRow[x * 4 + 3];
+
+            if (bpp == 24)
+            {
+                rowBuffer[x * 3 + 0] = b;
+                rowBuffer[x * 3 + 1] = g;
+                rowBuffer[x * 3 + 2] = r;
+            }
+            else
+            {
+                rowBuffer[x * 4 + 0] = b;
+                rowBuffer[x * 4 + 1] = g;
+                rowBuffer[x * 4 + 2] = r;
+                rowBuffer[x * 4 + 3] = a;
+            }
+        }
+        out.write(reinterpret_cast<const char*>(rowBuffer.data()), paddedRowSize);
+    }
     return true;
+}
+
+bool WriteBMP8Indexed(const std::string& filename, int w, int h, const uint8_t* rgba)
+{
+    std::ofstream out(filename, std::ios::binary);
+    if (!out.is_open())
+    {
+        return false;
+    }
+
+    int rowStride = w;
+    int paddedRowSize = (rowStride + 3) & ~3;
+    uint32_t imageSize = paddedRowSize * h;
+
+    BMPFileHeader bfh;
+    bfh.bfOffBits = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader) + (256 * 4);
+    bfh.bfSize = bfh.bfOffBits + imageSize;
+
+    BMPInfoHeader bih;
+    bih.biWidth = w;
+    bih.biHeight = h;
+    bih.biBitCount = 8;
+    bih.biSizeImage = imageSize;
+    bih.biClrUsed = 256;
+    bih.biClrImportant = 256;
+
+    out.write(reinterpret_cast<const char*>(&bfh), sizeof(bfh));
+    out.write(reinterpret_cast<const char*>(&bih), sizeof(bih));
+
+    uint8_t palette[256 * 4];
+    for (int r = 0; r < 6; ++r)
+    {
+        for (int g = 0; g < 6; ++g)
+        {
+            for (int b = 0; b < 6; ++b)
+            {
+                int idx = r * 36 + g * 6 + b;
+                palette[idx * 4 + 0] = static_cast<uint8_t>(b * 51);
+                palette[idx * 4 + 1] = static_cast<uint8_t>(g * 51);
+                palette[idx * 4 + 2] = static_cast<uint8_t>(r * 51);
+                palette[idx * 4 + 3] = 0;
+            }
+        }
+    }
+    for (int i = 0; i < 40; ++i)
+    {
+        int idx = 216 + i;
+        uint8_t gray = static_cast<uint8_t>((i * 255) / 39);
+        palette[idx * 4 + 0] = gray;
+        palette[idx * 4 + 1] = gray;
+        palette[idx * 4 + 2] = gray;
+        palette[idx * 4 + 3] = 0;
+    }
+    out.write(reinterpret_cast<const char*>(palette), sizeof(palette));
+
+    std::vector<uint8_t> rowBuffer(paddedRowSize, 0);
+
+    for (int y = h - 1; y >= 0; --y)
+    {
+        const uint8_t* srcRow = rgba + (y * w * 4);
+        for (int x = 0; x < w; ++x)
+        {
+            int r = srcRow[x * 4 + 0];
+            int g = srcRow[x * 4 + 1];
+            int b = srcRow[x * 4 + 2];
+
+            int r_idx = (r * 5 + 127) / 255;
+            int g_idx = (g * 5 + 127) / 255;
+            int b_idx = (b * 5 + 127) / 255;
+            uint8_t palIdx = static_cast<uint8_t>(r_idx * 36 + g_idx * 6 + b_idx);
+
+            rowBuffer[x] = palIdx;
+        }
+        out.write(reinterpret_cast<const char*>(rowBuffer.data()), paddedRowSize);
+    }
+    return true;
+}
+
+bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filename, bool is8bppIndexed, int targetW = 0, int targetH = 0)
+{
+    DecodedImage img = LoadGLTFImageRGBA(image);
+    if (img.pixels.empty())
+    {
+        return false;
+    }
+
+    int finalW = (targetW > 0) ? targetW : img.width;
+    int finalH = (targetH > 0) ? targetH : img.height;
+
+    std::vector<uint8_t> finalPixels;
+    if (finalW != img.width || finalH != img.height)
+    {
+        finalPixels = ResizeRGBA(img.pixels.data(), img.width, img.height, finalW, finalH);
+    }
+    else
+    {
+        finalPixels = std::move(img.pixels);
+    }
+
+    if (is8bppIndexed)
+    {
+        return WriteBMP8Indexed(out_filename, finalW, finalH, finalPixels.data());
+    }
+    else
+    {
+        return WriteBMP(out_filename, finalW, finalH, finalPixels.data(), 24);
+    }
 }
 
 bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
@@ -176,138 +377,112 @@ bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
         return false;
     }
 
-    auto LoadBitmapFromImage = [](const cgltf_image* img) -> Gdiplus::Bitmap*
-        {
-            if (!img || !img->buffer_view || !img->buffer_view->buffer)
-            {
-                return nullptr;
-            }
-            const uint8_t* data = (const uint8_t*)img->buffer_view->buffer->data + img->buffer_view->offset;
-            size_t size = img->buffer_view->size;
-            IStream* stream = nullptr;
-            if (CreateStreamOnHGlobal(nullptr, TRUE, &stream) != S_OK)
-            {
-                return nullptr;
-            }
-            ULONG written;
-            stream->Write(data, (ULONG)size, &written);
-            stream->Seek({ 0 }, STREAM_SEEK_SET, nullptr);
-            Gdiplus::Bitmap* bmp = Gdiplus::Bitmap::FromStream(stream);
-            stream->Release();
-            if (!bmp || bmp->GetLastStatus() != Gdiplus::Ok)
-            {
-                delete bmp;
-                return nullptr;
-            }
-            return bmp;
-        };
+    DecodedImage mr_img = LoadGLTFImageRGBA(mr_image);
+    DecodedImage occ_img = LoadGLTFImageRGBA(occ_image);
+    DecodedImage em_img = LoadGLTFImageRGBA(em_image);
 
-    Gdiplus::Bitmap* mr_source = LoadBitmapFromImage(mr_image);
-    Gdiplus::Bitmap* occ_source = LoadBitmapFromImage(occ_image);
-    Gdiplus::Bitmap* em_source = LoadBitmapFromImage(em_image);
-
-    if (!mr_source && !occ_source && !em_source)
+    if (mr_img.pixels.empty() && occ_img.pixels.empty() && em_img.pixels.empty())
     {
         return false;
     }
 
-    UINT width = mr_source ? mr_source->GetWidth() : (occ_source ? occ_source->GetWidth() : em_source->GetWidth());
-    UINT height = mr_source ? mr_source->GetHeight() : (occ_source ? occ_source->GetHeight() : em_source->GetHeight());
+    int width = !mr_img.pixels.empty() ? mr_img.width : (!occ_img.pixels.empty() ? occ_img.width : em_img.width);
+    int height = !mr_img.pixels.empty() ? mr_img.height : (!occ_img.pixels.empty() ? occ_img.height : em_img.height);
 
-    Gdiplus::Bitmap target(width, height, PixelFormat32bppARGB);
+    std::vector<uint8_t> target(width * height * 4);
 
-    for (UINT y = 0; y < height; ++y)
+    for (int y = 0; y < height; ++y)
     {
-        for (UINT x = 0; x < width; ++x)
+        for (int x = 0; x < width; ++x)
         {
-            BYTE ao = 255;
-            BYTE roughness = 128;
-            BYTE metallic = 0;
-            BYTE alpha = 255;
+            uint8_t ao = 255;
+            uint8_t roughness = 128;
+            uint8_t metallic = 0;
+            uint8_t alpha = 255;
 
-            if (mr_source)
+            if (!mr_img.pixels.empty())
             {
-                UINT mr_x = (x * mr_source->GetWidth()) / width;
-                UINT mr_y = (y * mr_source->GetHeight()) / height;
-                Gdiplus::Color c_mr;
-                mr_source->GetPixel(mr_x, mr_y, &c_mr);
+                int mr_x = (x * mr_img.width) / width;
+                int mr_y = (y * mr_img.height) / height;
+                int idx = (mr_y * mr_img.width + mr_x) * 4;
 
-                roughness = c_mr.GetG();
-                metallic = c_mr.GetB();
-                ao = c_mr.GetR();
+                ao = mr_img.pixels[idx + 0];
+                roughness = mr_img.pixels[idx + 1];
+                metallic = mr_img.pixels[idx + 2];
             }
 
-            if (occ_source)
+            if (!occ_img.pixels.empty())
             {
-                UINT occ_x = (x * occ_source->GetWidth()) / width;
-                UINT occ_y = (y * occ_source->GetHeight()) / height;
-                Gdiplus::Color c_occ;
-                occ_source->GetPixel(occ_x, occ_y, &c_occ);
+                int occ_x = (x * occ_img.width) / width;
+                int occ_y = (y * occ_img.height) / height;
+                int idx = (occ_y * occ_img.width + occ_x) * 4;
 
-                ao = c_occ.GetR();
+                ao = occ_img.pixels[idx + 0];
             }
 
-            if (em_source)
+            if (!em_img.pixels.empty())
             {
-                UINT em_x = (x * em_source->GetWidth()) / width;
-                UINT em_y = (y * em_source->GetHeight()) / height;
-                Gdiplus::Color c_em;
-                em_source->GetPixel(em_x, em_y, &c_em);
+                int em_x = (x * em_img.width) / width;
+                int em_y = (y * em_img.height) / height;
+                int idx = (em_y * em_img.width + em_x) * 4;
 
-                BYTE emission = static_cast<BYTE>((c_em.GetR() + c_em.GetG() + c_em.GetB()) / 3);
+                uint8_t r = em_img.pixels[idx + 0];
+                uint8_t g = em_img.pixels[idx + 1];
+                uint8_t b = em_img.pixels[idx + 2];
+                uint8_t emission = static_cast<uint8_t>((r + g + b) / 3);
                 alpha = 255 - emission;
             }
 
-            target.SetPixel(x, y, Gdiplus::Color(alpha, ao, roughness, metallic));
+            int targetIdx = (y * width + x) * 4;
+            target[targetIdx + 0] = ao;
+            target[targetIdx + 1] = roughness;
+            target[targetIdx + 2] = metallic;
+            target[targetIdx + 3] = alpha;
         }
     }
 
-    CLSID clsid;
-    UINT num = 0, size_needed = 0;
-    Gdiplus::GetImageEncodersSize(&num, &size_needed);
-    std::vector<BYTE> encoders(size_needed);
-    Gdiplus::ImageCodecInfo* codecInfo = (Gdiplus::ImageCodecInfo*)encoders.data();
-    Gdiplus::GetImageEncoders(num, size_needed, codecInfo);
-
-    for (UINT i = 0; i < num; ++i)
-    {
-        if (wcscmp(codecInfo[i].MimeType, L"image/bmp") == 0)
-        {
-            clsid = codecInfo[i].Clsid;
-            break;
-        }
-    }
-
-    std::wstring wfilename(out_filename.begin(), out_filename.end());
-    target.Save(wfilename.c_str(), &clsid, nullptr);
-
-    delete mr_source;
-    delete occ_source;
-    delete em_source;
-    return true;
+    return WriteBMP(out_filename, width, height, target.data(), 32);
 }
 
 void ConvertBMPToDDS(const std::string& inputBmp, const std::string& outputDds, const std::string& format = "-bc1 -alpha")
 {
-    std::string command = "\"" + g_Config.nvcompress + "\" " + format + " \"" + inputBmp + "\" \"" + outputDds + "\"";
-
-    STARTUPINFOA si = { sizeof(si) };
-    PROCESS_INFORMATION pi;
-
-    if (CreateProcessA(NULL, const_cast<char*>(command.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+    fs::path inPath = fs::path(inputBmp).make_preferred();
+    fs::path outPath = fs::path(outputDds).make_preferred();
+    std::string command = "\"" + g_Config.nvcompress + "\" " + format + " \"" + inPath.string() + "\" \"" + outPath.string() + "\"";
+#ifdef _WIN32
+    command = "\"" + command + "\"";
+#endif
+    int ret = std::system(command.c_str());
+    if (ret != 0)
     {
-        WaitForSingleObject(pi.hProcess, INFINITE);
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        std::cerr << "Warning: nvcompress returned code " << ret << " for " << inputBmp << "\n";
     }
 }
 
 void RunCompiler(const std::string& modelName)
 {
+#ifdef _WIN32
     fs::path binPath = fs::path(g_Config.target) / "vbmcompiler.exe";
+    if (!fs::exists(binPath))
+        binPath = "vbmcompiler.exe";
+#else
+    fs::path binPath = fs::path(g_Config.target) / "vbmcompiler";
+    if (!fs::exists(binPath))
+        binPath = "vbmcompiler";
+#endif
+
     fs::path qcPath = fs::path(g_Config.target) / modelName / (modelName + ".qc");
-    std::string cmd = "\"\"" + binPath.string() + "\" -l \"" + qcPath.string() + "\"\"";
-    system(cmd.c_str());
+    binPath.make_preferred();
+    qcPath.make_preferred();
+    std::string cmd = "\"" + binPath.string() + "\" -l \"" + qcPath.string() + "\"";
+#ifdef _WIN32
+    cmd = "\"" + cmd + "\"";
+#endif
+    int ret = std::system(cmd.c_str());
+    if (ret != 0)
+    {
+        std::cerr << "Warning: vbmcompiler returned code " << ret << "\n";
+    }
 }
 
 void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::string& texture_name)
@@ -432,15 +607,15 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
         const cgltf_material& mat = data->materials[0];
         if (mat.pbr_metallic_roughness.base_color_texture.texture)
         {
-            if (SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, PixelFormat24bppRGB, 0, 0))
+            if (SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, false, 0, 0))
             {
                 ConvertBMPToDDS(bmpPath, workDir + "/" + assetName + "_diff.dds");
-                SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, PixelFormat8bppIndexed, 512, 512);
+                SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, true, 512, 512);
             }
         }
         if (mat.normal_texture.texture)
         {
-            if (SaveGLTFImageAsBMP(mat.normal_texture.texture->image, workDir + "/temp_n.bmp", PixelFormat24bppRGB))
+            if (SaveGLTFImageAsBMP(mat.normal_texture.texture->image, workDir + "/temp_n.bmp", false))
             {
                 ConvertBMPToDDS(workDir + "/temp_n.bmp", workDir + "/" + assetName + "_normal.dds");
             }
@@ -521,18 +696,20 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
 
 void PrintUsage()
 {
-    std::cout << "Usage:\n" << "  importer -model <file.glb>\n" << "  importer -texture <file.glb>\n" << "  importer -batch <folder> -model\n" << "  importer -batch <folder> -texture\n";
+    std::cout << "Usage:\n"
+              << "  mdlimporter -model <file.glb>\n"
+              << "  mdlimporter -texture <file.glb>\n"
+              << "  mdlimporter -batch <folder> -model\n"
+              << "  mdlimporter -batch <folder> -texture\n";
 }
 
 int main(int argc, char* argv[])
 {
     LoadConfig();
-    InitGDIPlus();
 
     if (argc < 3)
     {
         PrintUsage();
-        ShutdownGDIPlus();
         return 0;
     }
 
@@ -543,7 +720,6 @@ int main(int argc, char* argv[])
         if (argc < 4)
         {
             PrintUsage();
-            ShutdownGDIPlus();
             return 1;
         }
 
@@ -558,14 +734,12 @@ int main(int argc, char* argv[])
         else if (modeArg != "-model")
         {
             PrintUsage();
-            ShutdownGDIPlus();
             return 1;
         }
 
         if (!fs::exists(searchDir))
         {
             std::cout << "Error: Folder " << searchDir << " does not exist.\n";
-            ShutdownGDIPlus();
             return 1;
         }
 
@@ -595,6 +769,5 @@ int main(int argc, char* argv[])
         PrintUsage();
     }
 
-    ShutdownGDIPlus();
     return 0;
 }
