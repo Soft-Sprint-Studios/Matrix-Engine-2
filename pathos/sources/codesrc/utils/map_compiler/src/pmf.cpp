@@ -175,17 +175,9 @@ static bool ParsePMFScript(const Char* scriptBuffer, material_t& outMat, std::st
         {
             outMat.hasAlphaTest = true;
         }
-        else if (keyword == "$noradshadows" || keyword == "$noshadow")
+        else if (keyword == "$noradshadows")
         {
             outMat.hasNoShadow = true;
-        }
-        else if (keyword == "$texreflectscale")
-        {
-            ptr = LexToken(ptr, token, sizeof(token));
-            if (ptr && token[0])
-            {
-                outMat.reflectScale = (Float)atof(token);
-            }
         }
     }
 
@@ -196,7 +188,6 @@ bool LoadMaterial(const Char* baseDir, const Char* materialName, material_t& out
 {
     outMat.hasAlphaTest = false;
     outMat.hasNoShadow = false;
-    outMat.reflectScale = 1.0f;
     outMat.scriptPath = materialName;
 
     Char pmfPath[512];

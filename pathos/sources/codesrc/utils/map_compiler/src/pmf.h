@@ -35,7 +35,6 @@ struct material_t
     dds_image_t diffuseImage;
     bool hasAlphaTest;
     bool hasNoShadow;
-    Float reflectScale;
 };
 
 bool LoadMaterial(const Char* baseDir, const Char* materialName, material_t& outMat);

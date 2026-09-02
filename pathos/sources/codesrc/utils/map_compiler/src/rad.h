@@ -95,7 +95,6 @@ private:
 
     struct face_info_t
     {
-        Float reflectScale;
         Float avgRadiance[3];
         Float emissive[3];
         Float minLight;

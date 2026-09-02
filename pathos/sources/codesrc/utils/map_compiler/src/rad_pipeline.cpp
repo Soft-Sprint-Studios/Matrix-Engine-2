@@ -158,7 +158,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                 m_materials[texName] = mat;
             else
             {
-                mat.reflectScale = 1.0f;
                 mat.hasAlphaTest = false;
                 mat.hasNoShadow = false;
                 mat.diffuseImage.width = 16;
@@ -168,7 +167,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
 
         const material_t& mat = m_materials[texName];
-        m_faceInfos[i].reflectScale = mat.reflectScale;
         m_faceInfos[i].hasAlphaTest = mat.hasAlphaTest;
         m_faceInfos[i].diffuseImage = &mat.diffuseImage;
         m_faceInfos[i].minLight = 0.0f;
@@ -688,7 +686,7 @@ void CRadPipeline::SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlb
     Float g = (Float)fInfo.diffuseImage->rgba[pixelOffset + 1] / 255.0f;
     Float b = (Float)fInfo.diffuseImage->rgba[pixelOffset + 2] / 255.0f;
 
-    outAlbedo[0] = powf(r, 2.2f) * fInfo.reflectScale;
-    outAlbedo[1] = powf(g, 2.2f) * fInfo.reflectScale;
-    outAlbedo[2] = powf(b, 2.2f) * fInfo.reflectScale;
+    outAlbedo[0] = powf(r, 2.2f);
+    outAlbedo[1] = powf(g, 2.2f);
+    outAlbedo[2] = powf(b, 2.2f);
 }
