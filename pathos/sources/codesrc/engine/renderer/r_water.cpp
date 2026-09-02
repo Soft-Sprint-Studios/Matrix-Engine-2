@@ -524,20 +524,6 @@ void CWaterShader::CreateLightmapTexture( cl_water_t* pwater )
 		Uint32 diffuselightdatasize = 0;
 		Uint32 lightvecsdatasize = 0;
 
-		// Get overdarken treshold
-		Float overdarken;
-		if(i <= 0)
-		{
-			overdarken = g_pCvarOverdarkenTreshold->GetValue();
-			if(overdarken < 0)
-				overdarken = 0;
-		}
-		else
-		{
-			// No overdarkening on other styles
-			overdarken = 0;
-		}
-
 		for(Uint32 j = 0; j < pbrushmodel->nummodelsurfaces; j++)
 		{
 			msurface_t* psurf = &psurfaces[j];

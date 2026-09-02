@@ -107,7 +107,7 @@ void R_AllocBlock ( Uint32 w, Uint32 h, Uint32 &x, Uint32 &y, Uint32& width, Uin
 // @brief
 //
 //=============================================
-void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples, const msurface_t *psurface, color32_t *pout, Int32 index, Uint32 sizex, Float overdarken, Uint32 padamount, bool isvectormap, bool fullbright )
+void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples, const msurface_t *psurface, color32_t *pout, Int32 index, Uint32 sizex, Uint32 padamount, bool isvectormap, bool fullbright )
 {
 	const Uint32 smax = (psurface->extents[0] / psurface->lightmapdivider) + 1;
 	const Uint32 tmax = (psurface->extents[1] / psurface->lightmapdivider) + 1;
@@ -151,25 +151,6 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 			pblock[j].r = _max(lightcolor.r, 255);
 			pblock[j].g = _max(lightcolor.g, 255);
 			pblock[j].b = _max(lightcolor.b, 255);
-		}
-
-		// Do not perform this on lightvecs
-		if(overdarken > 0 && !isvectormap && index == 0)
-		{
-			const color24_t* prefsrc = psamples;
-			for (Uint32 i = 0; i < size; i++)
-			{
-				Vector color = Vector(prefsrc[i].r, prefsrc[i].g, prefsrc[i].b);
-				Math::VectorScale(color, 1.0f / 255.0f, color);
-
-				// Darken pixels with low values, helps make maps darker despite overbright
-				Float dot = Math::DotProduct(color, Vector(0.2126, 0.7152, 0.0722));
-				Float flintensity = _max((dot * 255)/overdarken, 1);
-
-				pblock[i].r = pblock[i].r*flintensity;
-				pblock[i].g = pblock[i].g*flintensity;
-				pblock[i].b = pblock[i].b*flintensity;
-			}
 		}
 	}
 

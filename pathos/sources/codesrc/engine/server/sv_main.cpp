@@ -3157,7 +3157,7 @@ edict_t* SV_FindClientInPVS( const edict_t* pedict )
 //=============================================
 bool SV_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles )
 {
-	return Mod_RecursiveLightPoint(pworld, pnode, start, end, poutcolors, poutstyles, 0);
+	return Mod_RecursiveLightPoint(pworld, pnode, start, end, poutcolors, poutstyles);
 }
 
 //=============================================
@@ -3165,5 +3165,5 @@ bool SV_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const V
 //=============================================
 bool SV_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles )
 {
-	return Mod_RecursiveLightPoint_BumpData(pworld, pnode, start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, 0);
+	return Mod_RecursiveLightPoint_BumpData(pworld, pnode, start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles);
 }

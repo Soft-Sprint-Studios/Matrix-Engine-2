@@ -2145,15 +2145,10 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 	Vector lightcolors[MAX_SURFACE_STYLES];
 	Vector lmapdiffusecolors[MAX_SURFACE_STYLES];
 
-	// Get overdarken treshold
-	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
-	if(overdarken < 0)
-		overdarken = 0;
-
 	// Try and get lighting from the light grid
 	if(ens.pworld->plightgrid)
 	{
-		if(Mod_GetLightGridLighting(ens.pworld->plightgrid, lightorigin, lightcolors, lmapdiffusecolors, lightdirs, lightstyles, overdarken))
+		if(Mod_GetLightGridLighting(ens.pworld->plightgrid, lightorigin, lightcolors, lmapdiffusecolors, lightdirs, lightstyles))
 		{
 			gotLighting = true;
 			gotBumpLighting = true;
@@ -2228,7 +2223,7 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 					&& ens.pworld->plightdata[SURF_LIGHTMAP_DIFFUSE]
 					&& ens.pworld->plightdata[SURF_LIGHTMAP_VECTORS])
 				{
-					gotLightmapLighting = Mod_RecursiveLightPoint_BumpData(pentbrushmodel, &pentbrushmodel->pnodes[pentbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lmapdiffusecolors, lightdirs, &surfnormal, lightstyles, overdarken);
+					gotLightmapLighting = Mod_RecursiveLightPoint_BumpData(pentbrushmodel, &pentbrushmodel->pnodes[pentbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lmapdiffusecolors, lightdirs, &surfnormal, lightstyles);
 					if(gotLightmapLighting)
 					{
 						gotBumpLighting = true;
@@ -2238,7 +2233,7 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 
 				// If we didn't get bump data, use normal light data
 				if(!gotLightmapLighting)
-					gotLightmapLighting = Mod_RecursiveLightPoint(pentbrushmodel, &pentbrushmodel->pnodes[pentbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lightstyles, overdarken);
+					gotLightmapLighting = Mod_RecursiveLightPoint(pentbrushmodel, &pentbrushmodel->pnodes[pentbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lightstyles);
 
 				if(gotLightmapLighting)
 				{
@@ -2265,7 +2260,7 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 			// Try and get bump data if possible
 			if(m_pCvarUseBumpData->GetValue() >= 1.0)
 			{
-				gotLightmapLighting = Mod_RecursiveLightPoint_BumpData(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lmapdiffusecolors, lightdirs, &surfnormal, lightstyles, overdarken);
+				gotLightmapLighting = Mod_RecursiveLightPoint_BumpData(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lmapdiffusecolors, lightdirs, &surfnormal, lightstyles);
 				if(gotLightmapLighting)
 				{
 					gotBumpLighting = true;
@@ -2275,7 +2270,7 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 
 			// If we didn't get bump data, use normal light data
 			if(!gotLightmapLighting)
-				gotLightmapLighting = Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lightstyles, overdarken);
+				gotLightmapLighting = Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lightstyles);
 		}
 
 		// Only do this thing if we don't have bump data
@@ -2293,13 +2288,13 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 				Vector offsetd = lightbottom + Vector(-offset, -offset, 0);
 
 				Vector samplecolor;
-				if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken)
+				if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr)
 					&& offset != DEFAULT_LIGHTMAP_SAMPLE_OFFSET)
 				{
 					offsetu = lightorigin + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 					offsetd = lightbottom + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 
-					Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken);
+					Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr);
 				}
 
 				strengths[0] = (samplecolor.x + samplecolor.y + samplecolor.z) / 3.0f;
@@ -2308,13 +2303,13 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 				offsetu = lighttop + Vector(offset, -offset, 0);
 				offsetd = lightbottom + Vector(offset, -offset, 0);
 
-				if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken)
+				if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr)
 					&& offset != DEFAULT_LIGHTMAP_SAMPLE_OFFSET)
 				{
 					offsetu = lightorigin + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 					offsetd = lightbottom + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 
-					Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken);
+					Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr);
 				}
 
 				strengths[1] = (samplecolor.x + samplecolor.y + samplecolor.z) / 3.0f;
@@ -2323,13 +2318,13 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 				offsetu = lighttop + Vector(offset, offset, 0);
 				offsetd = lightbottom + Vector(offset, offset, 0);
 
-				if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken)
+				if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr)
 					&& offset != DEFAULT_LIGHTMAP_SAMPLE_OFFSET)
 				{
 					offsetu = lightorigin + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 					offsetd = lightbottom + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 
-					Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken);
+					Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr);
 				}
 
 				strengths[2] = (samplecolor.x + samplecolor.y + samplecolor.z) / 3.0f;
@@ -2338,13 +2333,13 @@ void CVBMRenderer::SetupLighting ( Int32 flags )
 				offsetu = lighttop + Vector(-offset, offset, 0);
 				offsetd = lightbottom + Vector(-offset, offset, 0);
 
-				if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken)
+				if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr)
 					&& offset != DEFAULT_LIGHTMAP_SAMPLE_OFFSET)
 				{
 					offsetu = lightorigin + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 					offsetd = lightbottom + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 
-					Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken);
+					Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr);
 				}
 
 				strengths[3] = (samplecolor.x + samplecolor.y + samplecolor.z) / 3.0f;
@@ -6640,11 +6635,6 @@ bool CVBMRenderer::DrawLightVectors( void )
 	Vector lightcolors[MAX_SURFACE_STYLES];
 	Vector lmapdiffusecolors[MAX_SURFACE_STYLES];
 
-	// Get overdarken treshold
-	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
-	if(overdarken < 0)
-		overdarken = 0;
-
 	// Try and get lighting from the light grid
 	if(ens.pworld->plightgrid)
 	{
@@ -6652,7 +6642,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 		Math::VectorScale(m_mins, 0.5, grid_lightorigin);
 		Math::VectorMA(grid_lightorigin, 0.5, m_maxs, grid_lightorigin);
 
-		if(Mod_GetLightGridLighting(ens.pworld->plightgrid, grid_lightorigin, lightcolors, lmapdiffusecolors, lightdirs, lightstyles, overdarken))
+		if(Mod_GetLightGridLighting(ens.pworld->plightgrid, grid_lightorigin, lightcolors, lmapdiffusecolors, lightdirs, lightstyles))
 		{
 			gotLighting = true;
 			gotBumpLighting = true;
@@ -6724,7 +6714,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 						&& ens.pworld->plightdata[SURF_LIGHTMAP_DIFFUSE]
 						&& ens.pworld->plightdata[SURF_LIGHTMAP_VECTORS])
 					{
-						gotLightmapLighting = Mod_RecursiveLightPoint_BumpData(pentbrushmodel, &pentbrushmodel->pnodes[pentbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lmapdiffusecolors, lightdirs, nullptr, lightstyles, overdarken);
+						gotLightmapLighting = Mod_RecursiveLightPoint_BumpData(pentbrushmodel, &pentbrushmodel->pnodes[pentbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lmapdiffusecolors, lightdirs, nullptr, lightstyles);
 						if(gotLightmapLighting)
 						{
 							if(lightcolors[BASE_LIGHTMAP_INDEX].Length() < lmapdiffusecolors[BASE_LIGHTMAP_INDEX].Length())
@@ -6743,7 +6733,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 
 					// If we didn't get bump data, use normal light data
 					if(!gotLightmapLighting)
-						gotLightmapLighting = Mod_RecursiveLightPoint(pentbrushmodel, &pentbrushmodel->pnodes[pentbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, nullptr, overdarken);
+						gotLightmapLighting = Mod_RecursiveLightPoint(pentbrushmodel, &pentbrushmodel->pnodes[pentbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, nullptr);
 
 					if(gotLightmapLighting)
 					{
@@ -6774,7 +6764,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 				// Try and get bump data if possible
 				if(m_pCvarUseBumpData->GetValue() >= 1.0)
 				{
-					gotLightmapLighting = Mod_RecursiveLightPoint_BumpData(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lmapdiffusecolors, lightdirs, nullptr, lightstyles, overdarken);
+					gotLightmapLighting = Mod_RecursiveLightPoint_BumpData(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, lmapdiffusecolors, lightdirs, nullptr, lightstyles);
 					if(gotLightmapLighting)
 					{
 						if(lightcolors[BASE_LIGHTMAP_INDEX].Length() < lmapdiffusecolors[BASE_LIGHTMAP_INDEX].Length())
@@ -6793,7 +6783,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 
 				// If we didn't get bump data, use normal light data
 				if(!gotLightmapLighting)
-					gotLightmapLighting = Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, nullptr, overdarken);
+					gotLightmapLighting = Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], lighttop, lightbottom, lightcolors, nullptr);
 			}
 
 			if(gotlighting)
@@ -6817,7 +6807,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 					drawbottom = lightorigin - Vector(0, 0, 8192) + Vector(-offset, -offset, 0);
 				
 					Vector samplecolor;
-					if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken)
+					if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr)
 						&& offset != DEFAULT_LIGHTMAP_SAMPLE_OFFSET)
 					{
 						offsetu = lightorigin + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
@@ -6825,7 +6815,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 						drawtop = lightorigin + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 						drawbottom = lightorigin - Vector(0, 0, 8192) + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 					
-						Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken);
+						Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr);
 					}
 
 					strengths[0] = (samplecolor.x + samplecolor.y + samplecolor.z) / 3.0f;
@@ -6839,7 +6829,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 					drawtop = lightorigin + Vector(offset, -offset, 0);
 					drawbottom = lightorigin - Vector(0, 0, 8192) + Vector(offset, -offset, 0);
 				
-					if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken)
+					if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr)
 						&& offset != DEFAULT_LIGHTMAP_SAMPLE_OFFSET)
 					{
 						offsetu = lightorigin + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
@@ -6847,7 +6837,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 						drawtop = lightorigin + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 						drawbottom = lightorigin - Vector(0, 0, 8192) + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, -DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 					
-						Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken);
+						Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr);
 					}
 
 					strengths[1] = (samplecolor.x + samplecolor.y + samplecolor.z) / 3.0f;
@@ -6861,7 +6851,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 					drawtop = lightorigin + Vector(offset, offset, 0);
 					drawbottom = lightorigin - Vector(0, 0, 8192) + Vector(offset, offset, 0);
 				
-					if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken)
+					if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr)
 						&& offset != DEFAULT_LIGHTMAP_SAMPLE_OFFSET)
 					{
 						offsetu = lightorigin + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
@@ -6869,7 +6859,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 						drawtop = lightorigin + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 						drawbottom = lightorigin - Vector(0, 0, 8192) + Vector(DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 					
-						Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken);
+						Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr);
 					}
 
 					strengths[2] = (samplecolor.x + samplecolor.y + samplecolor.z) / 3.0f;
@@ -6883,7 +6873,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 					drawtop = lightorigin + Vector(-offset, offset, 0);
 					drawbottom = lightorigin - Vector(0, 0, 8192) + Vector(-offset, offset, 0);
 				
-					if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken)
+					if(!Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr)
 						&& offset != DEFAULT_LIGHTMAP_SAMPLE_OFFSET)
 					{
 						offsetu = lightorigin + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
@@ -6891,7 +6881,7 @@ bool CVBMRenderer::DrawLightVectors( void )
 						drawtop = lightorigin + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 						drawbottom = lightorigin - Vector(0, 0, 8192) + Vector(-DEFAULT_LIGHTMAP_SAMPLE_OFFSET, DEFAULT_LIGHTMAP_SAMPLE_OFFSET, 0);
 
-						Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr, overdarken);
+						Mod_RecursiveLightPoint(pbrushmodel, &pbrushmodel->pnodes[pbrushmodel->headnodeindex], offsetu, offsetd, &samplecolor, nullptr);
 					}
 
 					strengths[3] = (samplecolor.x + samplecolor.y + samplecolor.z) / 3.0f;
@@ -7369,11 +7359,6 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 		Con_Printf("%s - Vertex data pointer out of bounds.\n", __FUNCTION__);
 		return false;
 	}
-
-	// Get overdarken treshold
-	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
-	if(overdarken < 0)
-		overdarken = 0;
 
 	// Create vertex data
 	const byte* pvlight_vector = reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_VECTORS]) + offsetdatastart;

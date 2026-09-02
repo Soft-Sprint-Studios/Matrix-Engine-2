@@ -660,11 +660,6 @@ void CBSPRenderer::InitLightmaps( void )
 {
 	CTextureManager* pTextureManager = CTextureManager::GetInstance();
 	
-	// Get overdarken treshold
-	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
-	if(overdarken < 0)
-		overdarken = 0;
-
 	Uint32 paddingAmount = CLAMP(g_pCvarLightmapPadding->GetValue(), 0, MAX_LIGHTMAP_PADDING);
 
 	// Reset this
@@ -717,8 +712,6 @@ void CBSPRenderer::InitLightmaps( void )
 			Uint32 xsize = (psurface->extents[0] / psurface->lightmapdivider)+1;
 			Uint32 ysize = (psurface->extents[1] / psurface->lightmapdivider)+1;
 			Uint32 size = xsize*ysize;
-
-			Float overdarkValue = (i == BASE_LIGHTMAP_INDEX) ? overdarken : 0;
 
 			// Build the base lightmap
 			Vector* psrclightdata;
@@ -803,7 +796,6 @@ void CBSPRenderer::InitLightmaps( void )
 		for(Uint32 k = 1; k < NB_SURF_LIGHTMAP_LAYERS; k++)
 		{
 			// Determine specifics
-			Float _overdarken = (k == SURF_LIGHTMAP_AMBIENT) ? overdarken : 0;
 			bool isvectormap = (k == SURF_LIGHTMAP_VECTORS) ? true : false;
 
 			CString lmapname;
@@ -866,7 +858,7 @@ void CBSPRenderer::InitLightmaps( void )
 						Uint32 size = xsize*ysize;
 
 						color24_t* psrc = reinterpret_cast<color24_t*>(reinterpret_cast<byte*>(ens.pworld->plightdata[k]) + psurface->lightoffset);
-						R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrc, psurface, plightmapdata, i, m_lightmapWidths[i], _overdarken, paddingAmount, isvectormap);
+						R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrc, psurface, plightmapdata, i, m_lightmapWidths[i], paddingAmount, isvectormap);
 						lightdatasize += size*sizeof(color32_t);
 					}
 

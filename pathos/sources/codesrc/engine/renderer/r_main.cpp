@@ -106,7 +106,6 @@ CCVar* g_pCvarGraphHeight = nullptr;
 CCVar* g_pCvarTimeGraph = nullptr;
 CCVar* g_pCvarOcclusionQueries = nullptr;
 CCVar* g_pCvarTraceGlow = nullptr;
-CCVar* g_pCvarOverdarkenTreshold = nullptr;
 CCVar* g_pCvarDumpLightmaps = nullptr;
 CCVar* g_pCvarLightmapCompression = nullptr;
 CCVar* g_pCvarFPSGraphHeight = nullptr;
@@ -196,7 +195,6 @@ bool R_Init( void )
 	g_pCvarTimeGraph = gConsole.CreateCVar( CVAR_FLOAT, FL_CV_CLIENT, "r_timegraph", "0", "Show render performance timegraph." );
 	g_pCvarOcclusionQueries = gConsole.CreateCVar(CVAR_FLOAT, FL_CV_CLIENT, "r_glowocclusion", "1", "Toggles the use of occlusion queries for glows." );
 	g_pCvarTraceGlow = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_traceglow", "0", "Enable/disable performance intensive trace tests." );
-	g_pCvarOverdarkenTreshold = gConsole.CreateCVar(CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_overdarken_treshold", "35", "Overdarkening treshold setting, default is 35." );
 	g_pCvarDumpLightmaps = gConsole.CreateCVar( CVAR_FLOAT, FL_CV_CLIENT, "r_lightmap_dumping", "0", "Toggle whether lightmap data should be exported to TGAs on level load." );
 	g_pCvarLightmapCompression = gConsole.CreateCVar( CVAR_FLOAT, FL_CV_CLIENT, "r_lightmap_compression", "0", "Controls whether lightmap data is compressed to the DXT1 format(Experimental)." );
 	g_pCvarFPSGraphHeight = gConsole.CreateCVar( CVAR_FLOAT, (FL_CV_CLIENT|FL_CV_SAVE), "r_fpsgraphheight", "60", "Height of the FPS graph." );
@@ -3782,15 +3780,10 @@ Vector R_GetLightingForPosition( const Vector& position, const Vector& defaultco
 
 	Vector end = position - Vector(0, 0, 8192);
 
-	// Get overdarken treshold
-	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
-	if(overdarken < 0)
-		overdarken = 0;
-
 	// Get lightstyle values array
 	CArray<Float>* pStyleValuesArray = nullptr;
 
-	if(ens.pworld->plightgrid && Mod_GetLightGridLighting(ens.pworld->plightgrid, position, lightcolors, difflightcolors, nullptr, lightstyles, overdarken))
+	if(ens.pworld->plightgrid && Mod_GetLightGridLighting(ens.pworld->plightgrid, position, lightcolors, difflightcolors, nullptr, lightstyles))
 	{
 		Vector lcolor = lightcolors[BASE_LIGHTMAP_INDEX] + difflightcolors[BASE_LIGHTMAP_INDEX];
 		for(Uint32 j = 1; j < MAX_SURFACE_STYLES; j++)
@@ -3810,7 +3803,7 @@ Vector R_GetLightingForPosition( const Vector& position, const Vector& defaultco
 		// Return final combined color
 		return lcolor;
 	}
-	else if(Mod_RecursiveLightPoint(ens.pworld, ens.pworld->pnodes, position, end, lightcolors, lightstyles, overdarken))
+	else if(Mod_RecursiveLightPoint(ens.pworld, ens.pworld->pnodes, position, end, lightcolors, lightstyles))
 	{
 		Vector lcolor = lightcolors[BASE_LIGHTMAP_INDEX];
 		for(Uint32 j = 1; j < MAX_SURFACE_STYLES; j++)
@@ -5665,24 +5658,24 @@ void Cmd_BSPToSMD_Lightmap( void )
 
 		// Build the base lightmap
 		color24_t* psrc = reinterpret_cast<color24_t*>(plmapdatapointers[SURF_LIGHTMAP_DEFAULT] + psurface->lightoffset);
-		R_BuildLightmap(psurface->light_s[styleIndex], psurface->light_t[styleIndex], psrc, psurface, plightmap, styleIndex, lightmapWidth, 0, paddingAmount, false, false);
+		R_BuildLightmap(psurface->light_s[styleIndex], psurface->light_t[styleIndex], psrc, psurface, plightmap, styleIndex, lightmapWidth, paddingAmount, false, false);
 		lightmapdatasize += size*sizeof(color32_t);
 
 		if(plmapdatapointers[SURF_LIGHTMAP_AMBIENT] && plmapdatapointers[SURF_LIGHTMAP_DIFFUSE] && plmapdatapointers[SURF_LIGHTMAP_VECTORS])
 		{
 			// Ambient lightmap
 			psrc = reinterpret_cast<color24_t*>(plmapdatapointers[SURF_LIGHTMAP_AMBIENT] + psurface->lightoffset);
-			R_BuildLightmap(psurface->light_s[styleIndex], psurface->light_t[styleIndex], psrc, psurface, pambientlightmap, styleIndex, lightmapWidth, 0, paddingAmount);
+			R_BuildLightmap(psurface->light_s[styleIndex], psurface->light_t[styleIndex], psrc, psurface, pambientlightmap, styleIndex, lightmapWidth, paddingAmount);
 			amblightdatasize += size*sizeof(color32_t);
 
 			// Diffuse lightmap
 			psrc = reinterpret_cast<color24_t*>(plmapdatapointers[SURF_LIGHTMAP_DIFFUSE] + psurface->lightoffset);
-			R_BuildLightmap(psurface->light_s[styleIndex], psurface->light_t[styleIndex], psrc, psurface, pdiffuselightmap, styleIndex, lightmapWidth, 0, paddingAmount);
+			R_BuildLightmap(psurface->light_s[styleIndex], psurface->light_t[styleIndex], psrc, psurface, pdiffuselightmap, styleIndex, lightmapWidth, paddingAmount);
 			diffuselightdatasize += size*sizeof(color32_t);
 
 			// Light vectors lightmap
 			psrc = reinterpret_cast<color24_t*>(plmapdatapointers[SURF_LIGHTMAP_VECTORS] + psurface->lightoffset);
-			R_BuildLightmap(psurface->light_s[styleIndex], psurface->light_t[styleIndex], psrc, psurface, plightvecslightmap, styleIndex, lightmapWidth, 0, paddingAmount, true);
+			R_BuildLightmap(psurface->light_s[styleIndex], psurface->light_t[styleIndex], psrc, psurface, plightvecslightmap, styleIndex, lightmapWidth, paddingAmount, true);
 			lightvecsdatasize += size*sizeof(color32_t);
 		}
 	}

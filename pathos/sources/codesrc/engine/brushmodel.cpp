@@ -330,7 +330,7 @@ void Mod_FindTouchedLeafs( const brushmodel_t* pworld, CArray<Uint32>& leafnumsa
 //=============================================
 //
 //=============================================
-bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles, Float overdarkenFactor )
+bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutcolors, byte* poutstyles )
 {
 	if (pnode->contents < 0)
 		return false;
@@ -341,7 +341,7 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 	Int32 side = front < 0;
 	
 	if ( (back < 0) == side )
-		return Mod_RecursiveLightPoint(pworld, pnode->pchildren[side], start, end, poutcolors, poutstyles, overdarkenFactor);
+		return Mod_RecursiveLightPoint(pworld, pnode->pchildren[side], start, end, poutcolors, poutstyles);
 	
 	Vector mid;
 	Float frac = front / (front-back);
@@ -350,7 +350,7 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 	mid[2] = start[2] + (end[2] - start[2])*frac;
 	
 	// go down front side	
-	if (Mod_RecursiveLightPoint(pworld, pnode->pchildren[side], start, mid, poutcolors, poutstyles, overdarkenFactor)) 
+	if (Mod_RecursiveLightPoint(pworld, pnode->pchildren[side], start, mid, poutcolors, poutstyles))
 		return true;
 		
 	if ((back < 0) == side)
@@ -418,13 +418,13 @@ bool Mod_RecursiveLightPoint( const brushmodel_t* pworld, mnode_t *pnode, const 
 	}
 
 	// go down back side
-	return Mod_RecursiveLightPoint(pworld, pnode->pchildren[!side], mid, end, poutcolors, poutstyles, overdarkenFactor);
+	return Mod_RecursiveLightPoint(pworld, pnode->pchildren[!side], mid, end, poutcolors, poutstyles);
 }
 
 //=============================================
 //
 //=============================================
-bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles, Float overdarkenFactor )
+bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnode, const Vector &start, const Vector &end, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, Vector* poutsurfnormal, byte* poutstyles )
 {
 	if (pnode->contents < 0)
 		return false;
@@ -435,7 +435,7 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 	Int32 side = front < 0;
 	
 	if ( (back < 0) == side )
-		return Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[side], start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, overdarkenFactor);
+		return Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[side], start, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles);
 	
 	Vector mid;
 	Float frac = front / (front-back);
@@ -444,7 +444,7 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 	mid[2] = start[2] + (end[2] - start[2])*frac;
 	
 	// go down front side	
-	if (Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[side], start, mid, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, overdarkenFactor)) 
+	if (Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[side], start, mid, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles))
 		return true;
 		
 	if ((back < 0) == side)
@@ -554,7 +554,7 @@ bool Mod_RecursiveLightPoint_BumpData( const brushmodel_t* pworld, mnode_t *pnod
 	}
 
 	// go down back side
-	return Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[!side], mid, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles, overdarkenFactor);
+	return Mod_RecursiveLightPoint_BumpData(pworld, pnode->pchildren[!side], mid, end, poutambientcolors, poutdiffusecolors, poutlightdirs, poutsurfnormal, poutstyles);
 }
 
 //=============================================
@@ -612,7 +612,7 @@ const lightgridsample_t* Mod_GetLightGridSample ( const lightgriddata_t* plightg
 //=============================================
 //
 //=============================================
-bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector& position, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, byte* poutstyles, Float overdarkenFactor )
+bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector& position, Vector* poutambientcolors, Vector* poutdiffusecolors, Vector* poutlightdirs, byte* poutstyles )
 {
 	if(!plightgrid)
 		return false;
