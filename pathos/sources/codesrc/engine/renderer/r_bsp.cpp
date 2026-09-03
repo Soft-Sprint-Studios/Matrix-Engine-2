@@ -188,7 +188,6 @@ bool CBSPRenderer::InitGL( void )
 		m_attribs.a_tangent = m_pShader->InitAttribute("in_tangent", 3, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, tangent));
 		m_attribs.a_binormal = m_pShader->InitAttribute("in_binormal", 3, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, binormal));
 		m_attribs.a_normal = m_pShader->InitAttribute("in_normal", 3, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, normal));
-		m_attribs.a_normal = m_pShader->InitAttribute("in_normal", 3, GL_FLOAT, sizeof(bsp_vertex_t), OFFSET(bsp_vertex_t, normal));
 		
 		for (Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
 		{
@@ -2080,8 +2079,6 @@ bool CBSPRenderer::Draw( void )
 	
 	m_pShader->EnableAttribute(m_attribs.a_styles);
 	m_pShader->EnableAttribute(m_attribs.a_texcoord);
-
-	m_pShader->SetUniform2f(m_attribs.u_uvoffset, 0, 0);
 	
 	m_pShader->SetUniform2f(m_attribs.u_uvoffset, 0, 0);
 	if (m_pLightStyleValuesArray && !m_pLightStyleValuesArray->empty())
