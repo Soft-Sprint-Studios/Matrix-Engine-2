@@ -47,7 +47,7 @@ public:
     Int32 InsertSurfEdge(Int32 edgeIndex);
     Int32 InsertTexture(const Char* name);
     Int32 InsertTexinfo(const Float vecs[2][4], Int32 textureIndex, Int32 flags);
-    Int32 InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, Int32 numEdges, Int32 texinfoIndex, Float sampleScale, Int32 smoothGroup, const byte styles[MBSPV1_MAX_LIGHTMAPS]);
+    Int32 InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, Int32 numEdges, Int32 texinfoIndex, Float sampleScale, const byte styles[MBSPV1_MAX_LIGHTMAPS]);
     Int32 InsertModel(const Float mins[3], const Float maxs[3], const Float origin[3], Int32 firstFace, Int32 numFaces);
     Int32 InsertNode(Int32 planeIndex, Int32 child0, Int32 child1, const Int32 mins[3], const Int32 maxs[3], Uint32 firstFace, Uint32 numFaces);
     Int32 InsertClipNode(Int32 planeIndex, Int32 child0, Int32 child1);

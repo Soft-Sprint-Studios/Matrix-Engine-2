@@ -222,7 +222,7 @@ Int32 CBSPBuilder::InsertTexinfo(const Float vecs[2][4], Int32 textureIndex, Int
     return (Int32)(m_texinfos.size() - 1);
 }
 
-Int32 CBSPBuilder::InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, Int32 numEdges, Int32 texinfoIndex, Float sampleScale, Int32 smoothGroup, const byte styles[MBSPV1_MAX_LIGHTMAPS])
+Int32 CBSPBuilder::InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, Int32 numEdges, Int32 texinfoIndex, Float sampleScale, const byte styles[MBSPV1_MAX_LIGHTMAPS])
 {
     dmbspv1face_t f;
     f.planenum = planeIndex;
@@ -231,7 +231,6 @@ Int32 CBSPBuilder::InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, In
     f.numedges = numEdges;
     f.texinfo = texinfoIndex;
     f.samplescale = (sampleScale <= 0.0f) ? 1.0f : sampleScale;
-    f.smoothgroupbits = smoothGroup;
     f.lightoffset = -1;
 
     if (styles)

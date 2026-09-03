@@ -160,7 +160,7 @@ static Int32 EmitFaceToBSP(const bsp_build_face_t& face, Int32 nodePlaneIndex)
     Float dotN = face.normal[0] * nPlane.normal[0] + face.normal[1] * nPlane.normal[1] + face.normal[2] * nPlane.normal[2];
     Int32 side = (dotN < 0.0f) ? 1 : 0;
 
-    Int32 bspFaceIndex = g_BSP.InsertFace(nodePlaneIndex, side, firstSurfEdge, (Int32)vertCount, face.texinfoIndex, faceScale, 0, styles);
+    Int32 bspFaceIndex = g_BSP.InsertFace(nodePlaneIndex, side, firstSurfEdge, (Int32)vertCount, face.texinfoIndex, faceScale, styles);
     if (face.face_id >= 0)
     {
         g_BSP.BindFaceId(face.face_id, bspFaceIndex);

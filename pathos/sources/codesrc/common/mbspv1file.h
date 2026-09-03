@@ -237,7 +237,6 @@ struct dmbspv1face_t
 		numedges(0),
 		texinfo(0),
 		samplescale(0),
-		smoothgroupbits(0),
 		lightoffset(0)
 	{
 		memset(lmstyles, 0, sizeof(lmstyles));
@@ -250,7 +249,6 @@ struct dmbspv1face_t
 	Int32 numedges;
 	Int32 texinfo;
 	Float samplescale;
-	Int32 smoothgroupbits; // This is set if pheader->flags has MBSPV1_FL_HAS_SMOOTHING_GROUPS set
 
 	byte lmstyles[MBSPV1_MAX_LIGHTMAPS];
 	Int32 lightoffset;
