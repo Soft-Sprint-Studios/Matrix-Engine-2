@@ -80,9 +80,9 @@ const byte* ALD_LoadALDFile( const Char* pstrFilepath, cache_model_t* pworldcach
 		return nullptr;
 	}
 
-	if(pworldmodel->plightgrid && pworldmodel->plightgrid->rawsampledatasize != pworldmodel->plightgrid->rawsampledatasize)
+	if(pworldmodel->plightgrid && static_cast<Uint32>(ploadheader->lightgridsampledatasize) != pworldmodel->plightgrid->rawsampledatasize)
 	{
-		Con_EPrintf("%s - ALD inconsistent with BSP light grid sample data size(%d vs 0).\n", __FUNCTION__, ploadheader->lightgridsampledatasize, pworldmodel->plightgrid->rawsampledatasize);
+		Con_EPrintf("%s - ALD inconsistent with BSP light grid sample data size(%d vs %d).\n", __FUNCTION__, ploadheader->lightgridsampledatasize, pworldmodel->plightgrid->rawsampledatasize);
 		FL_FreeFile(pFile);
 		return nullptr;
 	}
