@@ -408,6 +408,14 @@ bool BuildBSPModelTrees(Int32 modelIndex, const std::vector<poly_face_t>& modelF
     Int32 modelRootMaxs[3] = { (Int32)ceilf(maxs[0]) + 64,  (Int32)ceilf(maxs[1]) + 64,  (Int32)ceilf(maxs[2]) + 64 };
 
     Int32 rootNode = PartitionAndEmitTree(buildFaces, brushIndices, modelEmittedFaces, visLeafCount, modelRootMins, modelRootMaxs, 0);
+
+    if (rootNode < 0)
+    {
+        Float dummyNormal[3] = { 0, 0, 1 };
+        Int32 dummyPlane = g_BSP.InsertPlane(dummyNormal, 0, 2);
+        rootNode = g_BSP.InsertNode(dummyPlane, rootNode, rootNode, modelRootMins, modelRootMaxs, 0, 0);
+    }
+
     Int32 endFaceCount = (Int32)g_BSP.GetFaceCount();
     Int32 totalEmittedFaces = endFaceCount - startFaceCount;
 
