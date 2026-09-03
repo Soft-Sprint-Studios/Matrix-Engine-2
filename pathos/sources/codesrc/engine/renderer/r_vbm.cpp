@@ -1645,10 +1645,14 @@ bool CVBMRenderer::DrawModel( Int32 flags, cl_entity_t* pentity )
 //=============================================
 void CVBMRenderer::CalculateAttachments( void )
 {
+	if (!m_pBoneTransform || m_pBoneTransform->empty())
+		return;
+
 	for(Int32 i = 0; i < m_pStudioHeader->numattachments; i++)
 	{
 		const mstudioattachment_t* pattachment = m_pStudioHeader->getAttachment(static_cast<Uint32>(i));
-		Math::VectorTransform(pattachment->org, (*m_pBoneTransform)[pattachment->bone].matrix, m_pCurrentEntity->attachments[i]);
+		if (pattachment->bone < static_cast<Int32>(m_pBoneTransform->size()))
+			Math::VectorTransform(pattachment->org, (*m_pBoneTransform)[pattachment->bone].matrix, m_pCurrentEntity->attachments[i]);
 	}
 }
 
