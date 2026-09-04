@@ -37,7 +37,7 @@ static void InitializeLeaf0()
     g_BSP.InsertLeaf(CONTENTS_SOLID, -1, solidMins, solidMaxs, 0, 0, 0, 0);
 }
 
-static void EmitModelFaces(const std::vector<map_brush_t>& brushes, Int32& outFirstFace, Int32& outNumFaces, Float outMins[3], Float outMaxs[3])
+static void EmitModelFaces(const std::vector<map_brush_t>& brushes, Int32& outFirstFace, Int32& outNumFaces, Float outMins[3], Float outMaxs[3], const map_disp_data_t* dispData = nullptr)
 {
     outFirstFace = (Int32)g_BSP.GetFaceCount();
     outNumFaces = 0;
@@ -47,7 +47,7 @@ static void EmitModelFaces(const std::vector<map_brush_t>& brushes, Int32& outFi
     for (const auto& brush : brushes)
     {
         poly_brush_t poly;
-        if (!BuildBrushPolygons(brush, poly))
+        if (!BuildBrushPolygons(brush, poly, dispData))
             continue;
 
         for (Int32 k = 0; k < 3; k++)
@@ -77,7 +77,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
     Float mins[3], maxs[3];
     Float origin[3] = { 0.0f, 0.0f, 0.0f };
 
-    EmitModelFaces(mapData.entities[0].brushes, firstFace, numFaces, mins, maxs);
+    EmitModelFaces(mapData.entities[0].brushes, firstFace, numFaces, mins, maxs, &dispData);
     Int32 worldModelIndex = g_BSP.InsertModel(mins, maxs, origin, firstFace, numFaces);
 
     std::vector<poly_face_t> worldFaces;
@@ -85,7 +85,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
     for (const auto& brush : mapData.entities[0].brushes)
     {
         poly_brush_t pb;
-        if (BuildBrushPolygons(brush, pb))
+        if (BuildBrushPolygons(brush, pb, &dispData))
         {
             worldBrushes.push_back(pb);
             for (const auto& f : pb.faces)
@@ -116,7 +116,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
             continue;
         }
 
-        EmitModelFaces(mapData.entities[i].brushes, firstFace, numFaces, mins, maxs);
+        EmitModelFaces(mapData.entities[i].brushes, firstFace, numFaces, mins, maxs, &dispData);
         Int32 subModelIndex = g_BSP.InsertModel(mins, maxs, origin, firstFace, numFaces);
 
         std::vector<poly_face_t> subFaces;
@@ -124,7 +124,7 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
         for (const auto& brush : mapData.entities[i].brushes)
         {
             poly_brush_t pb;
-            if (BuildBrushPolygons(brush, pb))
+            if (BuildBrushPolygons(brush, pb, &dispData))
             {
                 subBrushes.push_back(pb);
                 for (const auto& f : pb.faces)

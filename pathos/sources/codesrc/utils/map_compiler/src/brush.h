@@ -54,7 +54,7 @@ struct poly_brush_t
     Float maxs[3];
 };
 
-bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly);
+bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly, const map_disp_data_t* dispData = nullptr);
 bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, std::vector<lightmap_face_t>& outFaceLightmaps);
 std::string SerializeEntities(const map_data_t& mapData);
 

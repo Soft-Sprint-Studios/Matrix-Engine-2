@@ -34,7 +34,6 @@ static constexpr Uint32 MBSPV1_MAX_MAP_HULLS			= 4;
 static constexpr Uint32 MBSPV1_MAX_TEXTURE_ANIMS		= 10;
 static constexpr Uint32 MBSPV1_MAX_LIGHTMAPS			= 4;
 static constexpr Uint32 MBSPV1_LM_SAMPLE_SIZE			= 16;
-static constexpr Uint32 MBSPV1_NUM_AMBIENTS				= 4;
 static constexpr Uint32 MBSPV1_VERSION					= 1;
 static constexpr Uint32 MBSPV1_MAX_SURFACE_EXTENTS		= 2048;
 
@@ -252,31 +251,6 @@ struct dmbspv1face_t
 
 	byte lmstyles[MBSPV1_MAX_LIGHTMAPS];
 	Int32 lightoffset;
-};
-
-struct dmbspv1leaf_nobrush_t
-{
-	dmbspv1leaf_nobrush_t():
-		contents(0),
-		visoffset(0),
-		firstmarksurface(0),
-		nummarksurfaces(0)
-	{
-		memset(mins, 0, sizeof(mins));
-		memset(maxs, 0, sizeof(maxs));
-		memset(ambient_level, 0, sizeof(ambient_level));
-	}
-
-	Int32 contents;
-	Int32 visoffset;
-
-	Int32 mins[3];
-	Int32 maxs[3];
-
-	Uint32 firstmarksurface;
-	Uint32 nummarksurfaces;
-
-	byte ambient_level[MBSPV1_NUM_AMBIENTS];
 };
 
 struct dmbspv1leaf_brush_t

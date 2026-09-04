@@ -26,6 +26,8 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
+#include <iostream>
+#include <unordered_set>
 
 static constexpr Float EPSILON_PLANE = 0.001f;
 
@@ -182,7 +184,7 @@ static bool ClipPolygonByPlane(std::vector<poly_vert_t>& inOutVerts, const Float
     return inOutVerts.size() >= 3;
 }
 
-static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_face_t>& outFaces)
+static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_face_t>& outFaces, const map_disp_data_t* dispData = nullptr)
 {
     const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(inFace.texinfoIndex);
     if ((tx.flags & 1) || inFace.verts.size() < 3)
@@ -246,6 +248,37 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
         return;
     }
 
+    if (dispData && inFace.face_id >= 0)
+    {
+        for (const auto& disp : dispData->displacements)
+        {
+            if (disp.face_id == inFace.face_id)
+            {
+                static std::unordered_set<Int32> warnedFaces;
+                if (warnedFaces.insert(inFace.face_id).second)
+                {
+                    Float center[3] = { 0.0f, 0.0f, 0.0f };
+                    for (const auto& v : inFace.verts)
+                    {
+                        center[0] += v.pos[0];
+                        center[1] += v.pos[1];
+                        center[2] += v.pos[2];
+                    }
+                    if (!inFace.verts.empty())
+                    {
+                        center[0] /= (Float)inFace.verts.size();
+                        center[1] /= (Float)inFace.verts.size();
+                        center[2] /= (Float)inFace.verts.size();
+                    }
+                    std::cerr << "WARNING: Displacement at (" << center[0] << ", " << center[1] << ", " << center[2]
+                        << ") cannot be subdivided to avoid lightmap extent limit. Please subdivide it manually\n";
+                }
+                outFaces.push_back(inFace);
+                return;
+            }
+        }
+    }
+
     Float splitCoord = (minCoord[splitAxis] + maxCoord[splitAxis]) * 0.5f;
     Float splitNormal[3] = { tx.vecs[splitAxis][0], tx.vecs[splitAxis][1], tx.vecs[splitAxis][2] };
     Float normLen = sqrtf(splitNormal[0] * splitNormal[0] + splitNormal[1] * splitNormal[1] + splitNormal[2] * splitNormal[2]);
@@ -281,11 +314,11 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
     poly_face_t backFace = inFace;
     backFace.verts = backVerts;
 
-    SubdivideFaceIfNeeded(frontFace, outFaces);
-    SubdivideFaceIfNeeded(backFace, outFaces);
+    SubdivideFaceIfNeeded(frontFace, outFaces, dispData);
+    SubdivideFaceIfNeeded(backFace, outFaces, dispData);
 }
 
-bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly)
+bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly, const map_disp_data_t* dispData)
 {
     size_t numSides = inBrush.sides.size();
     if (numSides < 4)
@@ -397,7 +430,7 @@ bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly)
             }
         }
 
-        SubdivideFaceIfNeeded(face, outPoly.faces);
+        SubdivideFaceIfNeeded(face, outPoly.faces, dispData);
     }
 
     return !outPoly.faces.empty();

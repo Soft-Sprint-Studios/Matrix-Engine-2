@@ -700,7 +700,7 @@ bool Mod_GetLightGridLighting ( const lightgriddata_t* plightgrid, const Vector&
 				used[style] = true;
 			}
 
-			// Get raw colors and turn them into vectors (HDR ambient/diffuse, 8-bit direction vectors)
+			// Get raw colors and turn them into vectors
 			const Vector* pambientcolor = reinterpret_cast<const Vector*>(psample->plightdata[LIGHTGRID_LAYER_AMBIENT]) + j;
 			ambientcolor = *pambientcolor;
 

@@ -63,8 +63,10 @@ brushmodel_t* MBSPV1_Load( const byte* pfile, const dmbspv1header_t* pheader, co
 		|| !MBSPV1_LoadFaces(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_FACES])
 		|| !MBSPV1_LoadMarksurfaces(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_MARKSURFACES])
 		|| !MBSPV1_LoadVisibility(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_VISIBILITY])
-		|| !MBSPV1_LoadBrushData(pfile, (*pmodel), pheader)
-		|| !MBSPV1_LoadLeafs(pfile, (*pmodel), pheader)
+		|| !MBSPV1_LoadBrushSides(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_BRUSHSIDES])
+		|| !MBSPV1_LoadBrushes(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_BRUSHES])
+		|| !MBSPV1_LoadLeafBrushes(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_LEAFBRUSHES])
+		|| !MBSPV1_LoadLeafs(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_LEAFS])
 		|| !MBSPV1_LoadNodes(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_NODES])
 		|| !MBSPV1_LoadClipnodes(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_CLIPNODES])
 		|| !MBSPV1_LoadEntities(pfile, (*pmodel), pheader->lumps[MBSPV1_LUMP_ENTITIES])
@@ -704,67 +706,7 @@ bool MBSPV1_LoadVisibility( const byte* pfile, brushmodel_t& model, const dmbspv
 // @brief
 //
 //=============================================
-bool MBSPV1_LoadLeafs( const byte* pfile, brushmodel_t& model, const dmbspv1header_t* pheader )
-{
-	return MBSPV1_LoadLeafs_BrushData(pfile, model, pheader->lumps[MBSPV1_LUMP_LEAFS]);
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-bool MBSPV1_LoadLeafs_NoBrushData( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump )
-{
-	// Safeguard against incorrectly compiled BSP
-	if(!lump.size)
-	{
-		Con_EPrintf("%s - Empty lump in '%s'.\n", __FUNCTION__, model.name.c_str());
-		return false;
-	}
-
-	// Check if sizes are correct
-	if(lump.size % sizeof(dmbspv1leaf_nobrush_t))
-	{
-		Con_EPrintf("%s - Inconsistent lump size in '%s'.\n", __FUNCTION__, model.name.c_str());
-		return false;
-	}
-
-	// Load the data in
-	Uint32 count = lump.size/sizeof(dmbspv1leaf_nobrush_t);
-	const dmbspv1leaf_nobrush_t* pinleafs = reinterpret_cast<const dmbspv1leaf_nobrush_t*>(pfile + lump.offset);
-	mleaf_t* poutleafs = new mleaf_t[count];
-
-	model.pleafs = poutleafs;
-	model.numleafs = count;
-
-	for(Uint32 i = 0; i < count; i++)
-	{
-		mleaf_t* pout = &poutleafs[i];
-
-		for(Uint32 j = 0; j < 3; j++)
-		{
-			pout->mins[j] = Common::ByteToInt32(reinterpret_cast<const byte*>(&pinleafs[i].mins[j]));
-			pout->maxs[j] = Common::ByteToInt32(reinterpret_cast<const byte*>(&pinleafs[i].maxs[j]));
-		}
-
-		pout->contents = pinleafs[i].contents;
-
-		Uint32 marksurfindex = pinleafs[i].firstmarksurface;
-		pout->pfirstmarksurface = &model.pmarksurfaces[marksurfindex];
-		pout->nummarksurfaces = pinleafs[i].nummarksurfaces;
-
-		if(pinleafs[i].visoffset != -1)
-			pout->pcompressedvis = model.pvisdata + pinleafs[i].visoffset;
-	}
-
-	return true;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-bool MBSPV1_LoadLeafs_BrushData( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump )
+bool MBSPV1_LoadLeafs( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump )
 {
 	// Safeguard against incorrectly compiled BSP
 	if(!lump.size)
@@ -1217,20 +1159,6 @@ bool MBSPV1_LoadLightGridData( const byte* pfile, brushmodel_t& model, const dmb
 	
 	model.plightgrid = pdestgrid;
 	return true;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-bool MBSPV1_LoadBrushData( const byte* pfile, brushmodel_t& model, const dmbspv1header_t* pheader )
-{
-	if(!MBSPV1_LoadBrushSides(pfile, model, pheader->lumps[MBSPV1_LUMP_BRUSHSIDES])
-		|| !MBSPV1_LoadBrushes(pfile, model, pheader->lumps[MBSPV1_LUMP_BRUSHES])
-		|| !MBSPV1_LoadLeafBrushes(pfile, model, pheader->lumps[MBSPV1_LUMP_LEAFBRUSHES]))
-		return false;
-	else
-		return true;
 }
 
 //=============================================

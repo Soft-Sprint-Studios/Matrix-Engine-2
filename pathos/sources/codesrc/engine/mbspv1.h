@@ -43,10 +43,7 @@ extern bool MBSPV1_LoadTexinfo( const byte* pfile, brushmodel_t& model, const dm
 extern bool MBSPV1_LoadFaces( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
 extern bool MBSPV1_LoadMarksurfaces( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
 extern bool MBSPV1_LoadVisibility( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
-extern bool MBSPV1_LoadBrushData( const byte* pfile, brushmodel_t& model, const dmbspv1header_t* pheader );
-extern bool MBSPV1_LoadLeafs( const byte* pfile, brushmodel_t& model, const dmbspv1header_t* pheader );
-extern bool MBSPV1_LoadLeafs_NoBrushData( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
-extern bool MBSPV1_LoadLeafs_BrushData( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
+extern bool MBSPV1_LoadLeafs( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
 extern bool MBSPV1_LoadNodes( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
 extern bool MBSPV1_LoadClipnodes( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
 extern bool MBSPV1_LoadEntities( const byte* pfile, brushmodel_t& model, const dmbspv1lump_t& lump );
