@@ -182,6 +182,109 @@ static bool ClipPolygonByPlane(std::vector<poly_vert_t>& inOutVerts, const Float
     return inOutVerts.size() >= 3;
 }
 
+static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_face_t>& outFaces)
+{
+    const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(inFace.texinfoIndex);
+    if ((tx.flags & 1) || inFace.verts.size() < 3)
+    {
+        outFaces.push_back(inFace);
+        return;
+    }
+
+    Float lenU = sqrtf(tx.vecs[0][0] * tx.vecs[0][0] + tx.vecs[0][1] * tx.vecs[0][1] + tx.vecs[0][2] * tx.vecs[0][2]);
+    Float lenV = sqrtf(tx.vecs[1][0] * tx.vecs[1][0] + tx.vecs[1][1] * tx.vecs[1][1] + tx.vecs[1][2] * tx.vecs[1][2]);
+    Float avgLen = (lenU + lenV) * 0.5f;
+    Float sampleScale = (avgLen > 0.0f) ? (1.0f / avgLen) : 1.0f;
+    Float lightmapDivider = (sampleScale <= 0.0f) ? (Float)MBSPV1_LM_SAMPLE_SIZE : ((Float)MBSPV1_LM_SAMPLE_SIZE / sampleScale);
+    if (lightmapDivider < 1.0f)
+        lightmapDivider = 1.0f;
+
+    Float baseSampleSize = (Float)MBSPV1_LM_SAMPLE_SIZE;
+
+    Float minCoord[2] = { 9999999.0f, 9999999.0f };
+    Float maxCoord[2] = { -9999999.0f, -9999999.0f };
+
+    for (const auto& v : inFace.verts)
+    {
+        for (Int32 a = 0; a < 2; a++)
+        {
+            Float val = v.pos[0] * tx.vecs[a][0] + v.pos[1] * tx.vecs[a][1] + v.pos[2] * tx.vecs[a][2] + tx.vecs[a][3];
+            if (val < minCoord[a]) 
+                minCoord[a] = val;
+            if (val > maxCoord[a])
+                maxCoord[a] = val;
+        }
+    }
+
+    Int32 splitAxis = -1;
+    Float maxExcess = 0.0f;
+
+    for (Int32 a = 0; a < 2; a++)
+    {
+        Int32 bmin_lm = (Int32)floorf(minCoord[a] / lightmapDivider);
+        Int32 bmax_lm = (Int32)ceilf(maxCoord[a] / lightmapDivider);
+        Int32 ext_lm = bmax_lm - bmin_lm;
+
+        Int32 bmin_base = (Int32)floorf(minCoord[a] / baseSampleSize);
+        Int32 bmax_base = (Int32)ceilf(maxCoord[a] / baseSampleSize);
+        Int32 ext_base = bmax_base - bmin_base;
+
+        Float excess_lm = (Float)(ext_lm - (Int32)MBSPV1_MAX_SURFACE_EXTENTS);
+        Float excess_base = (Float)(ext_base - (Int32)MBSPV1_MAX_SURFACE_EXTENTS);
+        Float excess = std::max(excess_lm, excess_base);
+
+        if (excess > 0.0f && excess > maxExcess)
+        {
+            maxExcess = excess;
+            splitAxis = a;
+        }
+    }
+
+    if (splitAxis == -1)
+    {
+        outFaces.push_back(inFace);
+        return;
+    }
+
+    Float splitCoord = (minCoord[splitAxis] + maxCoord[splitAxis]) * 0.5f;
+    Float splitNormal[3] = { tx.vecs[splitAxis][0], tx.vecs[splitAxis][1], tx.vecs[splitAxis][2] };
+    Float normLen = sqrtf(splitNormal[0] * splitNormal[0] + splitNormal[1] * splitNormal[1] + splitNormal[2] * splitNormal[2]);
+    if (normLen < 1e-6f)
+    {
+        outFaces.push_back(inFace);
+        return;
+    }
+
+    splitNormal[0] /= normLen;
+    splitNormal[1] /= normLen;
+    splitNormal[2] /= normLen;
+    Float splitDist = (splitCoord - tx.vecs[splitAxis][3]) / normLen;
+
+    std::vector<poly_vert_t> frontVerts = inFace.verts;
+    std::vector<poly_vert_t> backVerts = inFace.verts;
+
+    Float backNormal[3] = { -splitNormal[0], -splitNormal[1], -splitNormal[2] };
+    Float backDist = -splitDist;
+
+    bool hasFront = ClipPolygonByPlane(frontVerts, splitNormal, splitDist);
+    bool hasBack = ClipPolygonByPlane(backVerts, backNormal, backDist);
+
+    if (!hasFront || !hasBack || frontVerts.size() < 3 || backVerts.size() < 3)
+    {
+        outFaces.push_back(inFace);
+        return;
+    }
+
+    poly_face_t frontFace = inFace;
+    frontFace.verts = frontVerts;
+
+    poly_face_t backFace = inFace;
+    backFace.verts = backVerts;
+
+    SubdivideFaceIfNeeded(frontFace, outFaces);
+    SubdivideFaceIfNeeded(backFace, outFaces);
+}
+
 bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly)
 {
     size_t numSides = inBrush.sides.size();
@@ -294,7 +397,7 @@ bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly)
             }
         }
 
-        outPoly.faces.push_back(face);
+        SubdivideFaceIfNeeded(face, outPoly.faces);
     }
 
     return !outPoly.faces.empty();

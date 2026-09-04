@@ -363,10 +363,16 @@ bool BuildBSPModelTrees(Int32 modelIndex, const std::vector<poly_face_t>& modelF
             continue;
 
         Int32 firstSide = -1;
+        std::vector<Int32> addedPlanes;
         for (const auto& f : b.faces)
         {
             if (f.planeIndex < 0 || f.texinfoIndex < 0)
                 continue;
+
+            if (std::find(addedPlanes.begin(), addedPlanes.end(), f.planeIndex) != addedPlanes.end())
+                continue;
+
+            addedPlanes.push_back(f.planeIndex);
 
             Int32 sideIdx = g_BSP.InsertBrushSide(f.planeIndex, f.texinfoIndex, 0);
             if (firstSide < 0)
