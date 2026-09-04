@@ -115,7 +115,7 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
     Float sampleScale = g_BSP.GetFace(bspFaceIndex).samplescale;
     if (sampleScale <= 0.0f)
     {
-        sampleScale = 2.0f;
+        sampleScale = 1.0f;
     }
 
     outLm.lightmapDivider = (Float)MBSPV1_LM_SAMPLE_SIZE / sampleScale;

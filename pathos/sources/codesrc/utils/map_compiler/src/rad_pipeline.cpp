@@ -635,14 +635,6 @@ bool CRadPipeline::TraceRayHit(const Float start[3], const Float dir[3], Float m
         outHit.normal[1] = rayhit.hit.Ng_y;
         outHit.normal[2] = rayhit.hit.Ng_z;
 
-        Float nLen = sqrtf(outHit.normal[0] * outHit.normal[0] + outHit.normal[1] * outHit.normal[1] + outHit.normal[2] * outHit.normal[2]);
-        if (nLen > 0.0001f)
-        {
-            outHit.normal[0] /= nLen;
-            outHit.normal[1] /= nLen;
-            outHit.normal[2] /= nLen;
-        }
-
         outHit.geomID = rayhit.hit.geomID;
         outHit.primID = rayhit.hit.primID;
         outHit.u = rayhit.hit.u;

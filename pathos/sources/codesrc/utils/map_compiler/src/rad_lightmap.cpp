@@ -298,6 +298,126 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         }
     }
 
+    OIDNDevice oidnDevice = oidnNewDevice(OIDN_DEVICE_TYPE_DEFAULT);
+    oidnCommitDevice(oidnDevice);
+
+    size_t maxPadW = 0;
+    size_t maxPadH = 0;
+
+    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    {
+        const auto& lm = faceLightmaps[f];
+        if (lm.totalLuxels <= 0 || faceLuxels[f].empty())
+        {
+            continue;
+        }
+
+        size_t padW = std::max(32, ((lm.luxelWidth + 15) / 16) * 16);
+        size_t padH = std::max(32, ((lm.luxelHeight + 15) / 16) * 16);
+
+        if (padW > maxPadW)
+        {
+            maxPadW = padW;
+        }
+        if (padH > maxPadH)
+        {
+            maxPadH = padH;
+        }
+    }
+
+    if (maxPadW == 0 || maxPadH == 0)
+    {
+        oidnReleaseDevice(oidnDevice);
+        return;
+    }
+
+    size_t maxFloats = maxPadW * maxPadH * 3;
+
+    OIDNBuffer devBuf = oidnNewBuffer(oidnDevice, maxFloats * sizeof(float));
+    std::vector<float> hostImg(maxFloats, 0.0f);
+
+    int cachedFilterW = -1;
+    int cachedFilterH = -1;
+    OIDNFilter filter = nullptr;
+
+    auto EnsureFilter = [&](int padW, int padH)
+    {
+        if (filter && cachedFilterW == padW && cachedFilterH == padH)
+        {
+            return;
+        }
+
+        if (filter)
+        {
+            oidnReleaseFilter(filter);
+            filter = nullptr;
+        }
+
+        filter = oidnNewFilter(oidnDevice, "RT");
+        oidnSetFilterImage(filter, "color", devBuf, OIDN_FORMAT_FLOAT3, padW, padH, 0, 0, 0);
+        oidnSetFilterImage(filter, "output", devBuf, OIDN_FORMAT_FLOAT3, padW, padH, 0, 0, 0);
+        oidnSetFilterBool(filter, "hdr", true);
+        oidnCommitFilter(filter);
+
+        cachedFilterW = padW;
+        cachedFilterH = padH;
+    };
+
+    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    {
+        const auto& lm = faceLightmaps[f];
+        if (lm.totalLuxels <= 0 || faceLuxels[f].empty())
+        {
+            continue;
+        }
+
+        int W = lm.luxelWidth;
+        int H = lm.luxelHeight;
+        int padW = std::max(32, ((W + 15) / 16) * 16);
+        int padH = std::max(32, ((H + 15) / 16) * 16);
+        size_t numFloats = (size_t)padW * padH * 3;
+
+        for (int y = 0; y < padH; y++)
+        {
+            for (int x = 0; x < padW; x++)
+            {
+                int srcIdx = std::clamp(y, 0, H - 1) * W + std::clamp(x, 0, W - 1);
+
+                for (int c = 0; c < 3; c++)
+                {
+                    hostImg[(y * padW + x) * 3 + c] = faceLuxels[f][srcIdx].bounce[0][c];
+                }
+            }
+        }
+
+        oidnWriteBuffer(devBuf, 0, numFloats * sizeof(float), hostImg.data());
+
+        EnsureFilter(padW, padH);
+
+        oidnExecuteFilter(filter);
+
+        oidnReadBuffer(devBuf, 0, numFloats * sizeof(float), hostImg.data());
+
+        for (int y = 0; y < H; y++)
+        {
+            for (int x = 0; x < W; x++)
+            {
+                for (int c = 0; c < 3; c++)
+                {
+                    faceLuxels[f][y * W + x].bounce[0][c] = std::max(0.0f, hostImg[(y * padW + x) * 3 + c]);
+                }
+            }
+        }
+    }
+
+    if (filter)
+    {
+        oidnReleaseFilter(filter);
+    }
+
+    oidnReleaseBuffer(devBuf);
+    oidnReleaseDevice(oidnDevice)   ;
+
     std::vector<std::vector<luxel_radiance_t>> filteredFaces = faceLuxels;
     const Float filterRadius = 32.0f;
     const Float filterRadiusSq = filterRadius * filterRadius;

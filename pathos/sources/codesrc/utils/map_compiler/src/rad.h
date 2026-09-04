@@ -32,6 +32,7 @@
 #include <array>
 #include <unordered_map>
 #include <embree4/rtcore.h>
+#include <OpenImageDenoise/oidn.h>
 
 enum rad_lighttype_t
 {
@@ -78,7 +79,7 @@ public:
     bool TraceOcclusion(const Float start[3], const Float end[3], Float& outDist) const;
     bool TraceRayHit(const Float start[3], const Float dir[3], Float maxDist, ray_hit_t& outHit) const;
     void SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlbedo[3]) const;
-    void BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces = 8, Int32 raysPerLuxel = 32);
+    void BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces = 2, Int32 raysPerLuxel = 32);
     void BakeVertexLights(map_data_t& mapData, const Char* baseDir);
     void BuildLightGrid(Int32 gridDistance = 32);
     void Shutdown();
