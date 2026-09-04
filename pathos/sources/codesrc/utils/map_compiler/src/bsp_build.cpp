@@ -27,8 +27,6 @@
 #include <cstring>
 #include <cmath>
 
-#include <cmath>
-
 CBSPBuilder g_BSP;
 
 CBSPBuilder::CBSPBuilder()

@@ -146,18 +146,6 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
 
     Float spanS = outLm.exactMaxs[0] - outLm.exactMins[0];
     Float spanT = outLm.exactMaxs[1] - outLm.exactMins[1];
-    const Float MAX_LUXELS_PER_DIM = 128.0f;
-
-    if (spanS / outLm.lightmapDivider > MAX_LUXELS_PER_DIM)
-    {
-        outLm.lightmapDivider = spanS / MAX_LUXELS_PER_DIM;
-    }
-    if (spanT / outLm.lightmapDivider > MAX_LUXELS_PER_DIM)
-    {
-        outLm.lightmapDivider = spanT / MAX_LUXELS_PER_DIM;
-    }
-
-    g_BSP.GetFace(bspFaceIndex).samplescale = (Float)MBSPV1_LM_SAMPLE_SIZE / outLm.lightmapDivider;
 
     Int32 minS = (Int32)floorf(outLm.exactMins[0] / outLm.lightmapDivider);
     Int32 maxS = (Int32)ceilf(outLm.exactMaxs[0] / outLm.lightmapDivider);

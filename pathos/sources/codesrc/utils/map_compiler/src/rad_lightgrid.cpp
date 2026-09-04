@@ -148,15 +148,6 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
     }
 
     Int32 gridDist[3] = { gridDistance, gridDistance, gridDistance };
-    const Float MAX_GRID_POINTS_PER_DIM = 128.0f;
-    for (Int32 k = 0; k < 3; k++)
-    {
-        Float extent = worldMaxs[k] - worldMins[k];
-        if (extent / (Float)gridDist[k] > MAX_GRID_POINTS_PER_DIM)
-        {
-            gridDist[k] = (Int32)ceilf(extent / MAX_GRID_POINTS_PER_DIM);
-        }
-    }
 
     Int32 gridSize[3] = {
         std::max(1, (Int32)ceilf((worldMaxs[0] - worldMins[0]) / (Float)gridDist[0])),
