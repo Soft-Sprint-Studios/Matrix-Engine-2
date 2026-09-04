@@ -5362,6 +5362,9 @@ void Cmd_BSPToSMD_Textures( void )
 			if(!psurf->numedges)
 				continue;
 
+			if(psurf->flags & SURF_DRAWSKY)
+				continue;
+
 			if(psurf->flags & SURF_DRAWTURB)
 				continue;
 
@@ -5524,6 +5527,9 @@ void Cmd_BSPToSMD_Lightmap( void )
 			if(!psurf->numedges)
 				continue;
 
+			if(psurf->flags & SURF_DRAWSKY)
+				continue;
+
 			if(psurf->flags & SURF_DRAWTURB)
 				continue;
 
@@ -5643,7 +5649,7 @@ void Cmd_BSPToSMD_Lightmap( void )
 	for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
 	{
 		const msurface_t* psurface = &ens.pworld->psurfaces[j];
-		if(psurface->flags & (SURF_DRAWTURB))
+		if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 			continue;
 		
 		if(styleIndex > 0 && psurface->styles[styleIndex] == NULL_LIGHTSTYLE_INDEX)

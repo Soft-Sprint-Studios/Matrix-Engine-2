@@ -624,7 +624,7 @@ void CBSPRenderer::SetLightmapCoords( void )
 		for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
 		{
 			msurface_t* psurface = &ens.pworld->psurfaces[j];
-			if(psurface->flags & (SURF_DRAWTURB))
+			if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 				continue;
 
 			if(psurface->lightoffset == -1)
@@ -687,7 +687,7 @@ void CBSPRenderer::InitLightmaps( void )
 		for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
 		{
 			const msurface_t* psurface = &ens.pworld->psurfaces[j];
-			if(psurface->flags & (SURF_DRAWTURB))
+			if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 				continue;
 
 			bsp_surface_t* mbspsurface = &m_surfacesArray[j];
@@ -842,7 +842,7 @@ void CBSPRenderer::InitLightmaps( void )
 					for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
 					{
 						const msurface_t* psurface = &ens.pworld->psurfaces[j];
-						if(psurface->flags & (SURF_DRAWTURB))
+						if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 							continue;
 
 						if(psurface->lightoffset == -1)
@@ -970,7 +970,7 @@ void CBSPRenderer::InitVBO( void )
 	for(Uint32 i = 0; i < ens.pworld->numsurfaces; i++)
 	{
 		const msurface_t* psurface = &ens.pworld->psurfaces[i];
-		if(psurface->flags & (SURF_DRAWTURB))
+		if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 			continue;
 
 		if (psurface->displacement_id != -1)
@@ -1043,7 +1043,7 @@ void CBSPRenderer::InitVBO( void )
 		for(Uint32 j = 0; j < ens.pworld->numsurfaces; j++)
 		{
 			msurface_t* psurface = &ens.pworld->psurfaces[j];
-			if(psurface->flags & (SURF_DRAWTURB))
+			if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 				continue;
 
 			// Do not add yet if it isn't tied to the current texture
@@ -1992,7 +1992,7 @@ void CBSPRenderer::RecursiveWorldNode( mnode_t* pnode )
 			if((psurface->flags & SURF_PLANEBACK) != sidebit)
 				continue;
 
-			if(psurface->flags & (SURF_DRAWTURB))
+			if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 				continue;
 
 			BatchSurface(psurface);
@@ -3020,7 +3020,7 @@ bool CBSPRenderer::DrawBrushModel( cl_entity_t& entity, bool isstatic )
 		if(((psurface->flags & SURF_PLANEBACK) && (dp < -BACKFACE_EPSILON))
 			|| (!(psurface->flags & SURF_PLANEBACK) && (dp > BACKFACE_EPSILON)))
 		{
-			if(psurface->flags & (SURF_DRAWTURB))
+			if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 				continue;
 
 			BatchSurface(psurface);
@@ -3190,7 +3190,7 @@ bool CBSPRenderer::DrawVSM( cl_dlight_t *dl, cl_entity_t** pvisents, Uint32 nume
 			for(Uint32 i = 0; i < ens.pworld->numsurfaces; i++)
 			{
 				msurface_t* psurface = &ens.pworld->psurfaces[i];
-				if(psurface->flags & (SURF_DRAWTURB))
+				if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 					continue;
 
 				BatchSurface(psurface);
@@ -3388,7 +3388,7 @@ bool CBSPRenderer::BatchBrushModelForVSM( cl_entity_t& entity, bool isstatic, bo
 	{
 		if(iscsm)
 		{
-			if(psurface->flags & (SURF_DRAWTURB))
+			if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 				continue;
 
 			BatchSurface(psurface);
@@ -3401,7 +3401,7 @@ bool CBSPRenderer::BatchBrushModelForVSM( cl_entity_t& entity, bool isstatic, bo
 			if(((psurface->flags & SURF_PLANEBACK) && (dp < -BACKFACE_EPSILON))
 				|| (!(psurface->flags & SURF_PLANEBACK) && (dp > BACKFACE_EPSILON)))
 			{
-				if(psurface->flags & (SURF_DRAWTURB))
+				if(psurface->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
 					continue;
 
 				BatchSurface(psurface);
@@ -3833,8 +3833,8 @@ void CBSPRenderer::DecalSurface( const msurface_t *surf, bsp_decal_t *pdecal, co
 	static Vector dverts1[64];
 	static Vector dverts2[64];
 
-	// Disregard water
-	if(surf->flags & SURF_DRAWTURB)
+	// Disregard water and sky
+	if(surf->flags & SURF_DRAWTURB || surf->flags & SURF_DRAWSKY)
 		return;
 
 	// Extract vertexes

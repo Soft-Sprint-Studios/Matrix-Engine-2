@@ -634,7 +634,9 @@ bool MBSPV1_LoadFaces( const byte* pfile, brushmodel_t& model, const dmbspv1lump
 		}
 
 		// Flag sky surfaces
-		if(!qstrncmp(pout->ptexinfo->ptexture->name.c_str(), "WATER", 5))
+		if(!qstrncmp(pout->ptexinfo->ptexture->name.c_str(), "SKY", 3))
+			pout->flags |= SURF_DRAWSKY;
+		else if(!qstrncmp(pout->ptexinfo->ptexture->name.c_str(), "WATER", 5))
 			pout->flags |= SURF_DRAWTURB;
 	}
 
