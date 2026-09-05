@@ -177,7 +177,7 @@ void TR_BuildDisplacementMCD( const brushmodel_t& model )
 				for (Uint32 tri = 0; tri < 2; tri++)
 				{
 					mcdtrimeshtriangle_t& t = pTriangles[curTriangle];
-					t.skinref = NO_POSITION;
+					t.skinref = info.face_index;
 					if (tri == 0)
 					{
 						t.trivertexes[0] = v_base + (y * side + x);

@@ -56,6 +56,8 @@ public:
 	bool TraceLineAABB( const Vector& start, const Vector& end, const Vector& clipHullMins, const Vector& clipHullMaxs, const mcdheader_t* pmcdheader, Uint64 bodyvalue, trace_t& tr );
 	// Return the hit texture name
 	const Char* GetHitTextureName( void ) const { return m_traceHitTextureName.c_str(); }
+	// Return the hit skin ref (face index)
+	Int32 GetHitSkinRef( void ) const { return m_hitSkinRef; }
 
 private:
 	// Set up submodel

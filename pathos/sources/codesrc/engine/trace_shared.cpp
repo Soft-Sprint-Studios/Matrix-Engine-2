@@ -222,6 +222,17 @@ const Char* TR_TraceTexture( const entity_state_t& entity, const Vector& start, 
 			Math::VectorCopy(end, end_l);
 		}
 
+		if (entity.entindex == WORLDSPAWN_ENTITY_INDEX && g_pWorldDisplacementMCD)
+		{
+			trace_t tr;
+			if (g_mcdTrace.TraceLinePoint(start_l, end_l, g_pWorldDisplacementMCD, 0, tr))
+			{
+				Int32 faceIndex = g_mcdTrace.GetHitSkinRef();
+				if (faceIndex != NO_POSITION)
+					return pbrushmodel->psurfaces[faceIndex].ptexinfo->ptexture->name.c_str();
+			}
+		}
+
 		const msurface_t* psurface = Mod_SurfaceAtPoint(pbrushmodel, &pbrushmodel->pnodes[firstnode], start_l, end_l);
 		if(psurface)
 			return psurface->ptexinfo->ptexture->name.c_str();
