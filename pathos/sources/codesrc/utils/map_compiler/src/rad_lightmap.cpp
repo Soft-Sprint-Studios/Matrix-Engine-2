@@ -416,75 +416,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     }
 
     oidnReleaseBuffer(devBuf);
-    oidnReleaseDevice(oidnDevice)   ;
-
-    std::vector<std::vector<luxel_radiance_t>> filteredFaces = faceLuxels;
-    const Float filterRadius = 32.0f;
-    const Float filterRadiusSq = filterRadius * filterRadius;
-    const Float twoSigmaSq = 2.0f * (16.0f * 16.0f);
-
-    #pragma omp parallel for schedule(dynamic)
-    for (int f1 = 0; f1 < (int)faceLightmaps.size(); f1++)
-    {
-        const auto& lm1 = faceLightmaps[f1];
-        if (faceLuxels[f1].empty() || lm1.totalLuxels == 0) 
-            continue;
-
-        for (Int32 i1 = 0; i1 < lm1.totalLuxels; i1++)
-        {
-            const Float* p1 = lm1.sampleCoords[i1].worldPos;
-
-            Float totalWeight = 0.0f;
-            Float sumDirect[MBSPV1_MAX_LIGHTMAPS][3] = { 0.0f };
-            Float sumBounce[MBSPV1_MAX_LIGHTMAPS][3] = { 0.0f };
-            Float sumDir[MBSPV1_MAX_LIGHTMAPS][3] = { 0.0f };
-
-            for (size_t f2 = 0; f2 < faceLightmaps.size(); f2++)
-            {
-                if (faceLuxels[f2].empty()) 
-                    continue;
-
-                if (faceLightmaps[f2].planeIndex != lm1.planeIndex) 
-                    continue;
-
-                const auto& lm2 = faceLightmaps[f2];
-                for (Int32 i2 = 0; i2 < lm2.totalLuxels; i2++)
-                {
-                    const Float* p2 = lm2.sampleCoords[i2].worldPos;
-                    Float distSq = (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]);
-
-                    if (distSq <= filterRadiusSq)
-                    {
-                        Float w = expf(-distSq / twoSigmaSq);
-                        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
-                        {
-                            for (Int32 c = 0; c < 3; c++)
-                            {
-                                sumDirect[s][c] += faceLuxels[f2][i2].direct[s][c] * w;
-                                sumBounce[s][c] += faceLuxels[f2][i2].bounce[s][c] * w;
-                                sumDir[s][c] += faceLuxels[f2][i2].dominantDir[s][c] * w;
-                            }
-                        }
-                        totalWeight += w;
-                    }
-                }
-            }
-
-            if (totalWeight > 0.0001f)
-            {
-                for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
-                {
-                    for (Int32 c = 0; c < 3; c++)
-                    {
-                        filteredFaces[f1][i1].direct[s][c] = sumDirect[s][c] / totalWeight;
-                        filteredFaces[f1][i1].bounce[s][c] = sumBounce[s][c] / totalWeight;
-                        filteredFaces[f1][i1].dominantDir[s][c] = sumDir[s][c] / totalWeight;
-                    }
-                }
-            }
-        }
-    }
-    faceLuxels = filteredFaces;
+    oidnReleaseDevice(oidnDevice);
 
     for (size_t f1 = 0; f1 < faceLightmaps.size(); f1++)
     {
