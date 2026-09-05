@@ -35,7 +35,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 {
     std::cout << "Baking lightmaps...\n";
 
-    SmoothFaceNormals(faceLightmaps);
+    //SmoothFaceNormals(faceLightmaps);
 
     struct luxel_radiance_t
     {
@@ -418,44 +418,142 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     oidnReleaseBuffer(devBuf);
     oidnReleaseDevice(oidnDevice);
 
-    for (size_t f1 = 0; f1 < faceLightmaps.size(); f1++)
+    struct face_bbox_t
     {
-        const auto& lm1 = faceLightmaps[f1];
-        if (faceLuxels[f1].empty()) 
-            continue;
+        Float mins[3];
+        Float maxs[3];
+    };
+    std::vector<face_bbox_t> faceBBox(faceLightmaps.size());
 
-        for (size_t f2 = f1 + 1; f2 < faceLightmaps.size(); f2++)
+    #pragma omp parallel for schedule(static)
+    for (int f = 0; f < (int)faceLightmaps.size(); f++)
+    {
+        const auto& lm = faceLightmaps[f];
+        auto& box = faceBBox[f];
+        box.mins[0] = box.mins[1] = box.mins[2] = 1e9f;
+        box.maxs[0] = box.maxs[1] = box.maxs[2] = -1e9f;
+
+        for (Int32 i = 0; i < lm.totalLuxels; i++)
         {
-            const auto& lm2 = faceLightmaps[f2];
-            if (faceLuxels[f2].empty()) 
-                continue;
-
-            if (lm1.planeIndex != lm2.planeIndex) 
-                continue;
-
-            for (Int32 i1 = 0; i1 < lm1.totalLuxels; i1++)
+            const Float* p = lm.sampleCoords[i].worldPos;
+            for (int k = 0; k < 3; k++)
             {
-                const Float* p1 = lm1.sampleCoords[i1].worldPos;
+                if (p[k] < box.mins[k]) box.mins[k] = p[k];
+                if (p[k] > box.maxs[k]) box.maxs[k] = p[k];
+            }
+        }
+    }
 
+    std::unordered_map<Int32, std::vector<size_t>> planeFaceGroups;
+    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    {
+        if (!faceLuxels[f].empty() && faceLightmaps[f].totalLuxels > 0)
+        {
+            planeFaceGroups[faceLightmaps[f].planeIndex].push_back(f);
+        }
+    }
+
+    std::vector<std::vector<size_t>> planeFaceLists;
+    planeFaceLists.reserve(planeFaceGroups.size());
+    for (auto& pair : planeFaceGroups)
+    {
+        if (pair.second.size() > 1)
+        {
+            planeFaceLists.push_back(std::move(pair.second));
+        }
+    }
+
+    #pragma omp parallel for schedule(dynamic)
+    for (int p = 0; p < (int)planeFaceLists.size(); p++)
+    {
+        const auto& group = planeFaceLists[p];
+        size_t groupSize = group.size();
+        std::vector<Int32> cand1, cand2;
+
+        for (size_t idx1 = 0; idx1 < groupSize; idx1++)
+        {
+            size_t f1 = group[idx1];
+            const auto& lm1 = faceLightmaps[f1];
+            const auto& b1 = faceBBox[f1];
+
+            for (size_t idx2 = idx1 + 1; idx2 < groupSize; idx2++)
+            {
+                size_t f2 = group[idx2];
+                const auto& lm2 = faceLightmaps[f2];
+                const auto& b2 = faceBBox[f2];
+
+                if (b1.mins[0] > b2.maxs[0] + 1.0f || b1.maxs[0] < b2.mins[0] - 1.0f ||
+                    b1.mins[1] > b2.maxs[1] + 1.0f || b1.maxs[1] < b2.mins[1] - 1.0f ||
+                    b1.mins[2] > b2.maxs[2] + 1.0f || b1.maxs[2] < b2.mins[2] - 1.0f)
+                {
+                    continue;
+                }
+
+                Float overlapMins[3] = {
+                    std::max(b1.mins[0], b2.mins[0]) - 1.0f,
+                    std::max(b1.mins[1], b2.mins[1]) - 1.0f,
+                    std::max(b1.mins[2], b2.mins[2]) - 1.0f
+                };
+                Float overlapMaxs[3] = {
+                    std::min(b1.maxs[0], b2.maxs[0]) + 1.0f,
+                    std::min(b1.maxs[1], b2.maxs[1]) + 1.0f,
+                    std::min(b1.maxs[2], b2.maxs[2]) + 1.0f
+                };
+
+                cand1.clear();
+                for (Int32 i1 = 0; i1 < lm1.totalLuxels; i1++)
+                {
+                    const Float* p1 = lm1.sampleCoords[i1].worldPos;
+                    if (p1[0] >= overlapMins[0] && p1[0] <= overlapMaxs[0] &&
+                        p1[1] >= overlapMins[1] && p1[1] <= overlapMaxs[1] &&
+                        p1[2] >= overlapMins[2] && p1[2] <= overlapMaxs[2])
+                    {
+                        cand1.push_back(i1);
+                    }
+                }
+                if (cand1.empty())
+                    continue;
+
+                cand2.clear();
                 for (Int32 i2 = 0; i2 < lm2.totalLuxels; i2++)
                 {
                     const Float* p2 = lm2.sampleCoords[i2].worldPos;
-                    Float distSq = (p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]) + (p1[2] - p2[2]) * (p1[2] - p2[2]);
-
-                    if (distSq < 1.0f)
+                    if (p2[0] >= overlapMins[0] && p2[0] <= overlapMaxs[0] &&
+                        p2[1] >= overlapMins[1] && p2[1] <= overlapMaxs[1] &&
+                        p2[2] >= overlapMins[2] && p2[2] <= overlapMaxs[2])
                     {
-                        for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
+                        cand2.push_back(i2);
+                    }
+                }
+                if (cand2.empty())
+                    continue;
+
+                for (Int32 i1 : cand1)
+                {
+                    const Float* p1 = lm1.sampleCoords[i1].worldPos;
+
+                    for (Int32 i2 : cand2)
+                    {
+                        const Float* p2 = lm2.sampleCoords[i2].worldPos;
+                        Float distSq = (p1[0] - p2[0]) * (p1[0] - p2[0]) +
+                                       (p1[1] - p2[1]) * (p1[1] - p2[1]) +
+                                       (p1[2] - p2[2]) * (p1[2] - p2[2]);
+
+                        if (distSq < 1.0f)
                         {
-                            for (Int32 c = 0; c < 3; c++)
+                            for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
                             {
-                                Float avgD = (faceLuxels[f1][i1].direct[s][c] + faceLuxels[f2][i2].direct[s][c]) * 0.5f;
-                                faceLuxels[f1][i1].direct[s][c] = faceLuxels[f2][i2].direct[s][c] = avgD;
+                                for (Int32 c = 0; c < 3; c++)
+                                {
+                                    Float avgD = (faceLuxels[f1][i1].direct[s][c] + faceLuxels[f2][i2].direct[s][c]) * 0.5f;
+                                    faceLuxels[f1][i1].direct[s][c] = faceLuxels[f2][i2].direct[s][c] = avgD;
 
-                                Float avgB = (faceLuxels[f1][i1].bounce[s][c] + faceLuxels[f2][i2].bounce[s][c]) * 0.5f;
-                                faceLuxels[f1][i1].bounce[s][c] = faceLuxels[f2][i2].bounce[s][c] = avgB;
+                                    Float avgB = (faceLuxels[f1][i1].bounce[s][c] + faceLuxels[f2][i2].bounce[s][c]) * 0.5f;
+                                    faceLuxels[f1][i1].bounce[s][c] = faceLuxels[f2][i2].bounce[s][c] = avgB;
 
-                                Float avgDir = (faceLuxels[f1][i1].dominantDir[s][c] + faceLuxels[f2][i2].dominantDir[s][c]) * 0.5f;
-                                faceLuxels[f1][i1].dominantDir[s][c] = faceLuxels[f2][i2].dominantDir[s][c] = avgDir;
+                                    Float avgDir = (faceLuxels[f1][i1].dominantDir[s][c] + faceLuxels[f2][i2].dominantDir[s][c]) * 0.5f;
+                                    faceLuxels[f1][i1].dominantDir[s][c] = faceLuxels[f2][i2].dominantDir[s][c] = avgDir;
+                                }
                             }
                         }
                     }
@@ -659,4 +757,49 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     g_BSP.SetLightmapLayer(SURF_LIGHTMAP_AMBIENT, ambData);
     g_BSP.SetLightmapLayer(SURF_LIGHTMAP_DIFFUSE, diffData);
     g_BSP.SetLightmapLayer(SURF_LIGHTMAP_VECTORS, vecData);
+
+    FILE* dbg = fopen("C:\\Users\\roxan\\Downloads\\lightmap_debug.txt", "w");
+    if (dbg)
+    {
+        fprintf(dbg, "=== LIGHTMAP DEBUG DUMP ===\n");
+        fprintf(dbg, "Total Faces: %zu\n\n", faceLightmaps.size());
+
+        for (size_t f = 0; f < faceLightmaps.size(); f++)
+        {
+            const auto& lm = faceLightmaps[f];
+            const auto& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
+            const auto& tx = g_BSP.GetTexinfo(lm.texinfoIndex);
+            const auto& pl = g_BSP.GetPlane(lm.planeIndex);
+
+            fprintf(dbg, "Face #%zu (BSP Face %d):\n", f, lm.bspFaceIndex);
+            fprintf(dbg, "  Plane: index=%d, norm=(%.4f, %.4f, %.4f), dist=%.2f, side=%d\n",
+                lm.planeIndex, pl.normal[0], pl.normal[1], pl.normal[2], pl.dist, bspFace.side);
+            fprintf(dbg, "  Texinfo: index=%d, flags=%d, samplescale=%.4f, divider=%.4f\n",
+                lm.texinfoIndex, tx.flags, bspFace.samplescale, lm.lightmapDivider);
+            fprintf(dbg, "  TexVecs S: [%.4f, %.4f, %.4f, %.4f]\n",
+                tx.vecs[0][0], tx.vecs[0][1], tx.vecs[0][2], tx.vecs[0][3]);
+            fprintf(dbg, "  TexVecs T: [%.4f, %.4f, %.4f, %.4f]\n",
+                tx.vecs[1][0], tx.vecs[1][1], tx.vecs[1][2], tx.vecs[1][3]);
+            fprintf(dbg, "  Exact ST Bounds: S[%.2f to %.2f] (span %.2f), T[%.2f to %.2f] (span %.2f)\n",
+                lm.exactMins[0], lm.exactMaxs[0], lm.exactMaxs[0] - lm.exactMins[0],
+                lm.exactMins[1], lm.exactMaxs[1], lm.exactMaxs[1] - lm.exactMins[1]);
+            fprintf(dbg, "  TextureMins: [%d, %d], Extents: [%d, %d]\n",
+                lm.textureMins[0], lm.textureMins[1], lm.extents[0], lm.extents[1]);
+            fprintf(dbg, "  Luxel Size: %dx%d (Total: %d luxels)\n",
+                lm.luxelWidth, lm.luxelHeight, lm.totalLuxels);
+            fprintf(dbg, "  LightOffset: %d bytes\n", lm.lightOffset);
+
+            if (!lm.sampleCoords.empty())
+            {
+                const auto& c0 = lm.sampleCoords.front();
+                const auto& cLast = lm.sampleCoords.back();
+                fprintf(dbg, "  First Luxel Pos: (%.2f, %.2f, %.2f) Norm: (%.2f, %.2f, %.2f)\n",
+                    c0.worldPos[0], c0.worldPos[1], c0.worldPos[2], c0.normal[0], c0.normal[1], c0.normal[2]);
+                fprintf(dbg, "  Last  Luxel Pos: (%.2f, %.2f, %.2f) Norm: (%.2f, %.2f, %.2f)\n",
+                    cLast.worldPos[0], cLast.worldPos[1], cLast.worldPos[2], cLast.normal[0], cLast.normal[1], cLast.normal[2]);
+            }
+            fprintf(dbg, "\n");
+        }
+        fclose(dbg);
+    }
 }

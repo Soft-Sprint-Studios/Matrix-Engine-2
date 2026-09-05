@@ -150,7 +150,9 @@ static Int32 EmitFaceToBSP(const bsp_build_face_t& face, Int32 nodePlaneIndex)
     Float lenU = sqrtf(tx.vecs[0][0] * tx.vecs[0][0] + tx.vecs[0][1] * tx.vecs[0][1] + tx.vecs[0][2] * tx.vecs[0][2]);
     Float lenV = sqrtf(tx.vecs[1][0] * tx.vecs[1][0] + tx.vecs[1][1] * tx.vecs[1][1] + tx.vecs[1][2] * tx.vecs[1][2]);
     Float avgLen = (lenU + lenV) * 0.5f;
-    Float faceScale = (avgLen > 0.0f) ? (1.0f / avgLen) : 1.0f;
+    Float rawDivider = (avgLen > 0.0f) ? (16.0f * avgLen) : 16.0f;
+    Float intDivider = std::max(1.0f, roundf(rawDivider));
+    Float faceScale = 16.0f / intDivider;
 
     byte styles[MBSPV1_MAX_LIGHTMAPS];
     memset(styles, 255, sizeof(styles));

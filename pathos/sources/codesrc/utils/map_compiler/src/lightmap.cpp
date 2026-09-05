@@ -118,7 +118,7 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
         sampleScale = 1.0f;
     }
 
-    outLm.lightmapDivider = (Float)MBSPV1_LM_SAMPLE_SIZE / sampleScale;
+    outLm.lightmapDivider = roundf((Float)MBSPV1_LM_SAMPLE_SIZE / sampleScale);
     if (outLm.lightmapDivider < 1.0f)
     {
         outLm.lightmapDivider = 1.0f;
@@ -147,10 +147,10 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
     Float spanS = outLm.exactMaxs[0] - outLm.exactMins[0];
     Float spanT = outLm.exactMaxs[1] - outLm.exactMins[1];
 
-    Int32 minS = (Int32)floorf(outLm.exactMins[0] / outLm.lightmapDivider);
-    Int32 maxS = (Int32)ceilf(outLm.exactMaxs[0] / outLm.lightmapDivider);
-    Int32 minT = (Int32)floorf(outLm.exactMins[1] / outLm.lightmapDivider);
-    Int32 maxT = (Int32)ceilf(outLm.exactMaxs[1] / outLm.lightmapDivider);
+    Int32 minS = (Int32)floorf(outLm.exactMins[0] / outLm.lightmapDivider + 0.001f);
+    Int32 maxS = (Int32)ceilf(outLm.exactMaxs[0] / outLm.lightmapDivider - 0.001f);
+    Int32 minT = (Int32)floorf(outLm.exactMins[1] / outLm.lightmapDivider + 0.001f);
+    Int32 maxT = (Int32)ceilf(outLm.exactMaxs[1] / outLm.lightmapDivider - 0.001f);
 
     outLm.textureMins[0] = (Int32)(minS * outLm.lightmapDivider);
     outLm.textureMins[1] = (Int32)(minT * outLm.lightmapDivider);
@@ -229,14 +229,49 @@ void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& p
     texorg[2] -= dist * texnormal[2];
     Int32 dispIdx = g_BSP.GetFaceDispIndex(lmFace.bspFaceIndex);
 
+    std::vector<Float> grid;
+    Int32 N = 0;
+    Int32 K = 0;
+    if (dispIdx >= 0)
+    {
+        const auto& di = g_BSP.GetDispInfo(dispIdx);
+        N = 1 << di.power;
+        K = N + 1;
+        grid.resize(K * K * 3);
+        for (Int32 gy = 0; gy < K; gy++)
+        {
+            Float gv = (Float)gy / (Float)N;
+            for (Int32 gx = 0; gx < K; gx++)
+            {
+                Float gu = (Float)gx / (Float)N;
+                Float baseCorner[3];
+                for (Int32 c = 0; c < 3; c++)
+                {
+                    baseCorner[c] = (1.0f - gu) * (1.0f - gv) * di.corners[0][c] +
+                        gu * (1.0f - gv) * di.corners[1][c] +
+                        gu * gv * di.corners[2][c] +
+                        (1.0f - gu) * gv * di.corners[3][c];
+                }
+                Int32 vIdx = di.vert_start + gy * K + gx;
+                const auto& dv = g_BSP.GetDispVert(vIdx);
+                Int32 gOffset = (gy * K + gx) * 3;
+                grid[gOffset + 0] = baseCorner[0] + dv.vector[0] * dv.distance;
+                grid[gOffset + 1] = baseCorner[1] + dv.vector[1] * dv.distance;
+                grid[gOffset + 2] = baseCorner[2] + dv.vector[2] * dv.distance;
+            }
+        }
+    }
+
     for (Int32 y = 0; y < lmFace.luxelHeight; y++)
     {
         for (Int32 x = 0; x < lmFace.luxelWidth; x++)
         {
             Int32 idx = y * lmFace.luxelWidth + x;
 
-            Float sampleS = lmFace.textureMins[0] + x * lmFace.lightmapDivider;
-            Float sampleT = lmFace.textureMins[1] + y * lmFace.lightmapDivider;
+            Int32 minS = (Int32)floorf(lmFace.exactMins[0] / lmFace.lightmapDivider + 0.001f);
+            Int32 minT = (Int32)floorf(lmFace.exactMins[1] / lmFace.lightmapDivider + 0.001f);
+            Float sampleS = (minS + x + 0.5f) * lmFace.lightmapDivider;
+            Float sampleT = (minT + y + 0.5f) * lmFace.lightmapDivider;
 
             luxel_coord_t& coord = lmFace.sampleCoords[idx];
             Float flatPos[3] = {
@@ -247,34 +282,6 @@ void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& p
 
             if (dispIdx >= 0)
             {
-                const auto& di = g_BSP.GetDispInfo(dispIdx);
-                Int32 N = 1 << di.power;
-                Int32 K = N + 1;
-
-                std::vector<Float> grid(K * K * 3);
-                for (Int32 gy = 0; gy < K; gy++)
-                {
-                    Float gv = (Float)gy / (Float)N;
-                    for (Int32 gx = 0; gx < K; gx++)
-                    {
-                        Float gu = (Float)gx / (Float)N;
-                        Float baseCorner[3];
-                        for (Int32 c = 0; c < 3; c++)
-                        {
-                            baseCorner[c] = (1.0f - gu) * (1.0f - gv) * di.corners[0][c] +
-                                gu * (1.0f - gv) * di.corners[1][c] +
-                                gu * gv * di.corners[2][c] +
-                                (1.0f - gu) * gv * di.corners[3][c];
-                        }
-                        Int32 vIdx = di.vert_start + gy * K + gx;
-                        const auto& dv = g_BSP.GetDispVert(vIdx);
-                        Int32 gOffset = (gy * K + gx) * 3;
-                        grid[gOffset + 0] = baseCorner[0] + dv.vector[0] * dv.distance;
-                        grid[gOffset + 1] = baseCorner[1] + dv.vector[1] * dv.distance;
-                        grid[gOffset + 2] = baseCorner[2] + dv.vector[2] * dv.distance;
-                    }
-                }
-
                 Float rayStart[3] = { flatPos[0] + normal[0] * 2048.0f, flatPos[1] + normal[1] * 2048.0f, flatPos[2] + normal[2] * 2048.0f };
                 Float rayDir[3] = { -normal[0], -normal[1], -normal[2] };
 

@@ -196,8 +196,8 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
     Float lenU = sqrtf(tx.vecs[0][0] * tx.vecs[0][0] + tx.vecs[0][1] * tx.vecs[0][1] + tx.vecs[0][2] * tx.vecs[0][2]);
     Float lenV = sqrtf(tx.vecs[1][0] * tx.vecs[1][0] + tx.vecs[1][1] * tx.vecs[1][1] + tx.vecs[1][2] * tx.vecs[1][2]);
     Float avgLen = (lenU + lenV) * 0.5f;
-    Float sampleScale = (avgLen > 0.0f) ? (1.0f / avgLen) : 1.0f;
-    Float lightmapDivider = (sampleScale <= 0.0f) ? (Float)MBSPV1_LM_SAMPLE_SIZE : ((Float)MBSPV1_LM_SAMPLE_SIZE / sampleScale);
+    Float rawDivider = (avgLen > 0.0f) ? (16.0f * avgLen) : 16.0f;
+    Float lightmapDivider = std::max(1.0f, roundf(rawDivider));
     if (lightmapDivider < 1.0f)
         lightmapDivider = 1.0f;
 
@@ -223,8 +223,8 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
 
     for (Int32 a = 0; a < 2; a++)
     {
-        Int32 bmin_lm = (Int32)floorf(minCoord[a] / lightmapDivider);
-        Int32 bmax_lm = (Int32)ceilf(maxCoord[a] / lightmapDivider);
+        Int32 bmin_lm = (Int32)floorf(minCoord[a] / lightmapDivider + 0.001f);
+        Int32 bmax_lm = (Int32)ceilf(maxCoord[a] / lightmapDivider - 0.001f);
         Int32 ext_lm = bmax_lm - bmin_lm;
 
         Int32 bmin_base = (Int32)floorf(minCoord[a] / baseSampleSize);
@@ -281,6 +281,13 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
 
     Float splitCoord = (minCoord[splitAxis] + maxCoord[splitAxis]) * 0.5f;
     Float splitNormal[3] = { tx.vecs[splitAxis][0], tx.vecs[splitAxis][1], tx.vecs[splitAxis][2] };
+
+    Float snappedCoord = floorf((splitCoord / lightmapDivider) + 0.5f) * lightmapDivider;
+    if (snappedCoord > minCoord[splitAxis] + 0.1f && snappedCoord < maxCoord[splitAxis] - 0.1f)
+    {
+        splitCoord = snappedCoord;
+    }
+
     Float normLen = sqrtf(splitNormal[0] * splitNormal[0] + splitNormal[1] * splitNormal[1] + splitNormal[2] * splitNormal[2]);
     if (normLen < 1e-6f)
     {
