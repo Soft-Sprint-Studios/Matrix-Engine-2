@@ -385,7 +385,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
             auto ColorToHDR = [](Float val) -> Float
                 {
                     if (val <= 0.0f) return 0.0f;
-                    return powf(val / 128.0f, 0.55f);
+                    return powf(val / 128.0f, 0.55f) * 2.0f;
                 };
 
             pAmb[0] = ColorToHDR(s.ambient[slot][0]);
