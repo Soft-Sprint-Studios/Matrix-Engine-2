@@ -137,6 +137,10 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
 
                     Float dir[3] = { toLight[0] / dist, toLight[1] / dist, toLight[2] / dist };
 
+                    Float NdotL = norm[0] * dir[0] + norm[1] * dir[1] + norm[2] * dir[2];
+                    if (NdotL <= 0.001f)
+                        continue;
+
                     Float spotFactor = 1.0f;
                     if (lt.type == LIGHT_SPOT)
                     {
@@ -149,7 +153,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
                     }
 
                     Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
-                    Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor;
+                    Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor * NdotL;
                     Float maxColor = std::max({ lt.color[0], lt.color[1], lt.color[2] });
                     if (maxColor * atten < 0.05f)
                         continue;
