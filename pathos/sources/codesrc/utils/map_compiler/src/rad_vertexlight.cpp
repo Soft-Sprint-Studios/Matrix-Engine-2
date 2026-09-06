@@ -128,19 +128,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
             {
                 Int32 style = (lt.style >= 0 && lt.style < 64) ? lt.style : 0;
 
-                if (lt.type == LIGHT_SUN)
-                {
-                    Float sunTarget[3] = { pos[0] - lt.normal[0] * 32768.0f, pos[1] - lt.normal[1] * 32768.0f, pos[2] - lt.normal[2] * 32768.0f };
-                    Float NdotL = -(norm[0] * lt.normal[0] + norm[1] * lt.normal[1] + norm[2] * lt.normal[2]);
-                    Float hitDist;
-                    if (NdotL > 0.001f && !TraceOcclusion(pos, sunTarget, hitDist))
-                    {
-                        vs.direct[style][0] += lt.color[0] * NdotL;
-                        vs.direct[style][1] += lt.color[1] * NdotL;
-                        vs.direct[style][2] += lt.color[2] * NdotL;
-                    }
-                }
-                else if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
+                if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
                 {
                     Float toLight[3] = { lt.origin[0] - pos[0], lt.origin[1] - pos[1], lt.origin[2] - pos[2] };
                     Float dist = sqrtf(toLight[0] * toLight[0] + toLight[1] * toLight[1] + toLight[2] * toLight[2]);
@@ -166,16 +154,8 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
                     if (maxColor * atten < 0.05f)
                         continue;
 
-                    ray_hit_t hit;
-                    bool blocked = false;
-                    if (TraceRayHit(pos, dir, dist - 0.1f, hit))
-                    {
-                        Int32 hitFace = (hit.primID < m_primToFaceMap.size()) ? m_primToFaceMap[hit.primID] : -1;
-                        if (hitFace >= 0 && hit.dist > 4.0f)
-                            blocked = true;
-                    }
-
-                    if (!blocked)
+                    Float hitDist;
+                    if (!TraceOcclusion(pos, lt.origin, hitDist))
                     {
                         Float r = lt.color[0] * atten;
                         Float g = lt.color[1] * atten;
