@@ -165,6 +165,121 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
     GenerateLuxelWorldCoordinates(outLm, polyFace);
 }
 
+static void GenerateDisplacementLuxels(lightmap_face_t& lmFace, Int32 dispIdx, const Float texorg[3], const Float textoworld[2][3], const Float normal[3], Int32 minS, Int32 minT)
+{
+    const auto& di = g_BSP.GetDispInfo(dispIdx);
+    Int32 N = 1 << di.power;
+    Int32 K = N + 1;
+    std::vector<Float> grid(K * K * 3);
+
+    for (Int32 gy = 0; gy < K; gy++)
+    {
+        Float gv = (Float)gy / (Float)N;
+        for (Int32 gx = 0; gx < K; gx++)
+        {
+            Float gu = (Float)gx / (Float)N;
+            Float base[3];
+            for (Int32 c = 0; c < 3; c++)
+            {
+                base[c] = (1.0f - gu) * (1.0f - gv) * di.corners[0][c] +
+                           gu * (1.0f - gv) * di.corners[1][c] +
+                           gu * gv * di.corners[2][c] +
+                           (1.0f - gu) * gv * di.corners[3][c];
+            }
+            Int32 vIdx = di.vert_start + gy * K + gx;
+            const auto& dv = g_BSP.GetDispVert(vIdx);
+            Int32 gOff = (gy * K + gx) * 3;
+            grid[gOff + 0] = base[0] + dv.vector[0] * dv.distance;
+            grid[gOff + 1] = base[1] + dv.vector[1] * dv.distance;
+            grid[gOff + 2] = base[2] + dv.vector[2] * dv.distance;
+        }
+    }
+
+    Float rayDir[3] = { -normal[0], -normal[1], -normal[2] };
+
+    for (Int32 y = 0; y < lmFace.luxelHeight; y++)
+    {
+        Float sampleT = (minT + y + 0.5f) * lmFace.lightmapDivider;
+        Float rowPos[3] = {
+            texorg[0] + sampleT * textoworld[1][0],
+            texorg[1] + sampleT * textoworld[1][1],
+            texorg[2] + sampleT * textoworld[1][2]
+        };
+
+        for (Int32 x = 0; x < lmFace.luxelWidth; x++)
+        {
+            Int32 idx = y * lmFace.luxelWidth + x;
+            Float sampleS = (minS + x + 0.5f) * lmFace.lightmapDivider;
+
+            Float flatPos[3] = {
+                rowPos[0] + sampleS * textoworld[0][0],
+                rowPos[1] + sampleS * textoworld[0][0],
+                rowPos[2] + sampleS * textoworld[0][2]
+            };
+
+            Float rayStart[3] = { flatPos[0] + normal[0] * 2048.0f, flatPos[1] + normal[1] * 2048.0f, flatPos[2] + normal[2] * 2048.0f };
+            Float bestT = 999999.0f;
+            Float hitPos[3] = { flatPos[0], flatPos[1], flatPos[2] };
+            Float hitNormal[3] = { normal[0], normal[1], normal[2] };
+
+            for (Int32 gy = 0; gy < N; gy++)
+            {
+                for (Int32 gx = 0; gx < N; gx++)
+                {
+                    Int32 i00 = (gy * K + gx) * 3, i10 = (gy * K + (gx + 1)) * 3;
+                    Int32 i01 = ((gy + 1) * K + gx) * 3, i11 = ((gy + 1) * K + (gx + 1)) * 3;
+                    const Float* tris[2][3] = { { &grid[i00], &grid[i01], &grid[i11] }, { &grid[i00], &grid[i11], &grid[i10] } };
+
+                    for (int t = 0; t < 2; t++)
+                    {
+                        Float e1[3] = { tris[t][1][0] - tris[t][0][0], tris[t][1][1] - tris[t][0][1], tris[t][1][2] - tris[t][0][2] };
+                        Float e2[3] = { tris[t][2][0] - tris[t][0][0], tris[t][2][1] - tris[t][0][1], tris[t][2][2] - tris[t][0][2] };
+                        Float h[3] = { rayDir[1] * e2[2] - rayDir[2] * e2[1], rayDir[2] * e2[0] - rayDir[0] * e2[2], rayDir[0] * e2[1] - rayDir[1] * e2[0] };
+                        Float a = e1[0] * h[0] + e1[1] * h[1] + e1[2] * h[2];
+                        if (fabsf(a) < 1e-6f) 
+                            continue;
+
+                        Float f = 1.0f / a;
+                        Float s[3] = { rayStart[0] - tris[t][0][0], rayStart[1] - tris[t][0][1], rayStart[2] - tris[t][0][2] };
+                        Float u = f * (s[0] * h[0] + s[1] * h[1] + s[2] * h[2]);
+                        if (u < 0.0f || u > 1.0f) 
+                            continue;
+
+                        Float q[3] = { s[1] * e1[2] - s[2] * e1[1], s[2] * e1[0] - s[0] * e1[2], s[0] * e1[1] - s[1] * e1[0] };
+                        Float v = f * (rayDir[0] * q[0] + rayDir[1] * q[1] + rayDir[2] * q[2]);
+                        if (v < 0.0f || u + v > 1.0f)
+                            continue;
+
+                        Float hitT = f * (e2[0] * q[0] + e2[1] * q[1] + e2[2] * q[2]);
+                        if (hitT > 0.001f && hitT < bestT)
+                        {
+                            bestT = hitT;
+                            hitPos[0] = rayStart[0] + rayDir[0] * hitT;
+                            hitPos[1] = rayStart[1] + rayDir[1] * hitT;
+                            hitPos[2] = rayStart[2] + rayDir[2] * hitT;
+
+                            Float tn[3] = { e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0] };
+                            Float tlen = sqrtf(tn[0] * tn[0] + tn[1] * tn[1] + tn[2] * tn[2]);
+                            if (tlen > 1e-5f)
+                            {
+                                hitNormal[0] = tn[0] / tlen;
+                                hitNormal[1] = tn[1] / tlen;
+                                hitNormal[2] = tn[2] / tlen;
+                            }
+                        }
+                    }
+                }
+            }
+
+            luxel_coord_t& coord = lmFace.sampleCoords[idx];
+            coord.normal[0] = hitNormal[0]; coord.normal[1] = hitNormal[1]; coord.normal[2] = hitNormal[2];
+            coord.worldPos[0] = hitPos[0] + hitNormal[0] * 0.5f;
+            coord.worldPos[1] = hitPos[1] + hitNormal[1] * 0.5f;
+            coord.worldPos[2] = hitPos[2] + hitNormal[2] * 0.5f;
+        }
+    }
+}
+
 void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& polyFace)
 {
     lmFace.sampleCoords.resize(lmFace.totalLuxels);
@@ -227,148 +342,39 @@ void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& p
     texorg[0] -= dist * texnormal[0];
     texorg[1] -= dist * texnormal[1];
     texorg[2] -= dist * texnormal[2];
-    Int32 dispIdx = g_BSP.GetFaceDispIndex(lmFace.bspFaceIndex);
+    Int32 minS = (Int32)floorf(lmFace.exactMins[0] / lmFace.lightmapDivider + 0.001f);
+    Int32 minT = (Int32)floorf(lmFace.exactMins[1] / lmFace.lightmapDivider + 0.001f);
 
-    std::vector<Float> grid;
-    Int32 N = 0;
-    Int32 K = 0;
+    Int32 dispIdx = g_BSP.GetFaceDispIndex(lmFace.bspFaceIndex);
     if (dispIdx >= 0)
     {
-        const auto& di = g_BSP.GetDispInfo(dispIdx);
-        N = 1 << di.power;
-        K = N + 1;
-        grid.resize(K * K * 3);
-        for (Int32 gy = 0; gy < K; gy++)
-        {
-            Float gv = (Float)gy / (Float)N;
-            for (Int32 gx = 0; gx < K; gx++)
-            {
-                Float gu = (Float)gx / (Float)N;
-                Float baseCorner[3];
-                for (Int32 c = 0; c < 3; c++)
-                {
-                    baseCorner[c] = (1.0f - gu) * (1.0f - gv) * di.corners[0][c] +
-                        gu * (1.0f - gv) * di.corners[1][c] +
-                        gu * gv * di.corners[2][c] +
-                        (1.0f - gu) * gv * di.corners[3][c];
-                }
-                Int32 vIdx = di.vert_start + gy * K + gx;
-                const auto& dv = g_BSP.GetDispVert(vIdx);
-                Int32 gOffset = (gy * K + gx) * 3;
-                grid[gOffset + 0] = baseCorner[0] + dv.vector[0] * dv.distance;
-                grid[gOffset + 1] = baseCorner[1] + dv.vector[1] * dv.distance;
-                grid[gOffset + 2] = baseCorner[2] + dv.vector[2] * dv.distance;
-            }
-        }
+        GenerateDisplacementLuxels(lmFace, dispIdx, texorg, textoworld, normal, minS, minT);
+        return;
     }
+
+    Float normOffset[3] = { normal[0] * 0.5f, normal[1] * 0.5f, normal[2] * 0.5f };
 
     for (Int32 y = 0; y < lmFace.luxelHeight; y++)
     {
+        Float sampleT = (minT + y + 0.5f) * lmFace.lightmapDivider;
+        Float rowPos[3] = {
+            texorg[0] + sampleT * textoworld[1][0] + normOffset[0],
+            texorg[1] + sampleT * textoworld[1][1] + normOffset[1],
+            texorg[2] + sampleT * textoworld[1][2] + normOffset[2]
+        };
+
         for (Int32 x = 0; x < lmFace.luxelWidth; x++)
         {
             Int32 idx = y * lmFace.luxelWidth + x;
-
-            Int32 minS = (Int32)floorf(lmFace.exactMins[0] / lmFace.lightmapDivider + 0.001f);
-            Int32 minT = (Int32)floorf(lmFace.exactMins[1] / lmFace.lightmapDivider + 0.001f);
             Float sampleS = (minS + x + 0.5f) * lmFace.lightmapDivider;
-            Float sampleT = (minT + y + 0.5f) * lmFace.lightmapDivider;
 
             luxel_coord_t& coord = lmFace.sampleCoords[idx];
-            Float flatPos[3] = {
-                  texorg[0] + sampleS * textoworld[0][0] + sampleT * textoworld[1][0],
-                  texorg[1] + sampleS * textoworld[0][1] + sampleT * textoworld[1][1],
-                  texorg[2] + sampleS * textoworld[0][2] + sampleT * textoworld[1][2]
-            };
-
-            if (dispIdx >= 0)
-            {
-                Float rayStart[3] = { flatPos[0] + normal[0] * 2048.0f, flatPos[1] + normal[1] * 2048.0f, flatPos[2] + normal[2] * 2048.0f };
-                Float rayDir[3] = { -normal[0], -normal[1], -normal[2] };
-
-                Float bestT = 999999.0f;
-                Float hitPos[3] = { flatPos[0], flatPos[1], flatPos[2] };
-                Float hitNormal[3] = { normal[0], normal[1], normal[2] };
-                bool hitFound = false;
-
-                for (Int32 gy = 0; gy < N; gy++)
-                {
-                    for (Int32 gx = 0; gx < N; gx++)
-                    {
-                        Int32 idx00 = (gy * K + gx) * 3;
-                        Int32 idx10 = (gy * K + (gx + 1)) * 3;
-                        Int32 idx01 = ((gy + 1) * K + gx) * 3;
-                        Int32 idx11 = ((gy + 1) * K + (gx + 1)) * 3;
-
-                        const Float* triVerts[2][3] = {{ &grid[idx00], &grid[idx01], &grid[idx11] }, { &grid[idx00], &grid[idx11], &grid[idx10] }};
-
-                        for (Int32 t = 0; t < 2; t++)
-                        {
-                            Float e1[3] = { triVerts[t][1][0] - triVerts[t][0][0], triVerts[t][1][1] - triVerts[t][0][1], triVerts[t][1][2] - triVerts[t][0][2] };
-                            Float e2[3] = { triVerts[t][2][0] - triVerts[t][0][0], triVerts[t][2][1] - triVerts[t][0][1], triVerts[t][2][2] - triVerts[t][0][2] };
-                            Float h[3] = { rayDir[1] * e2[2] - rayDir[2] * e2[1], rayDir[2] * e2[0] - rayDir[0] * e2[2], rayDir[0] * e2[1] - rayDir[1] * e2[0]};
-                            Float a = e1[0] * h[0] + e1[1] * h[1] + e1[2] * h[2];
-                            if (fabsf(a) < 0.000001f) 
-                                continue;
-
-                            Float f = 1.0f / a;
-                            Float sVec[3] = { rayStart[0] - triVerts[t][0][0], rayStart[1] - triVerts[t][0][1], rayStart[2] - triVerts[t][0][2] };
-                            Float u = f * (sVec[0] * h[0] + sVec[1] * h[1] + sVec[2] * h[2]);
-                            if (u < 0.0f || u > 1.0f) 
-                                continue;
-
-                            Float q[3] = {
-                                sVec[1] * e1[2] - sVec[2] * e1[1],
-                                sVec[2] * e1[0] - sVec[0] * e1[2],
-                                sVec[0] * e1[1] - sVec[1] * e1[0]
-                            };
-                            Float v = f * (rayDir[0] * q[0] + rayDir[1] * q[1] + rayDir[2] * q[2]);
-                            if (v < 0.0f || u + v > 1.0f) 
-                                continue;
-
-                            Float hitT = f * (e2[0] * q[0] + e2[1] * q[1] + e2[2] * q[2]);
-                            if (hitT > 0.001f && hitT < bestT)
-                            {
-                                bestT = hitT;
-                                hitPos[0] = rayStart[0] + rayDir[0] * hitT;
-                                hitPos[1] = rayStart[1] + rayDir[1] * hitT;
-                                hitPos[2] = rayStart[2] + rayDir[2] * hitT;
-
-                                Float triNorm[3] = {
-                                    e1[1] * e2[2] - e1[2] * e2[1],
-                                    e1[2] * e2[0] - e1[0] * e2[2],
-                                    e1[0] * e2[1] - e1[1] * e2[0]
-                                };
-                                Float nLen = sqrtf(triNorm[0] * triNorm[0] + triNorm[1] * triNorm[1] + triNorm[2] * triNorm[2]);
-                                if (nLen > 0.00001f)
-                                {
-                                    hitNormal[0] = triNorm[0] / nLen;
-                                    hitNormal[1] = triNorm[1] / nLen;
-                                    hitNormal[2] = triNorm[2] / nLen;
-                                }
-                                hitFound = true;
-                            }
-                        }
-                    }
-                }
-
-                coord.normal[0] = hitNormal[0];
-                coord.normal[1] = hitNormal[1];
-                coord.normal[2] = hitNormal[2];
-
-                coord.worldPos[0] = hitPos[0] + coord.normal[0] * 0.5f;
-                coord.worldPos[1] = hitPos[1] + coord.normal[1] * 0.5f;
-                coord.worldPos[2] = hitPos[2] + coord.normal[2] * 0.5f;
-            }
-            else
-            {
-                coord.worldPos[0] = flatPos[0] + normal[0] * 0.5f;
-                coord.worldPos[1] = flatPos[1] + normal[1] * 0.5f;
-                coord.worldPos[2] = flatPos[2] + normal[2] * 0.5f;
-
-                coord.normal[0] = normal[0];
-                coord.normal[1] = normal[1];
-                coord.normal[2] = normal[2];
-            }
+            coord.worldPos[0] = rowPos[0] + sampleS * textoworld[0][0];
+            coord.worldPos[1] = rowPos[1] + sampleS * textoworld[0][1];
+            coord.worldPos[2] = rowPos[2] + sampleS * textoworld[0][2];
+            coord.normal[0] = normal[0];
+            coord.normal[1] = normal[1];
+            coord.normal[2] = normal[2];
         }
     }
 }

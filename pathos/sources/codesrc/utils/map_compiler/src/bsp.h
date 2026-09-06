@@ -29,6 +29,7 @@
 #include "aldformat.h"
 #include "mapparser.h"
 #include <vector>
+#include <unordered_map>
 #include <string>
 
 static const Int32 MBSP_HEADER = (('P'<<24)+('S'<<16)+('B'<<8)+'M');
@@ -132,6 +133,8 @@ private:
     std::vector<dmbspv1dispvert_t> m_dispVerts;
     std::vector<Int32> m_dispFaceMap;
     std::vector<std::pair<Int32, Int32>> m_faceIdToBspIndex;
+    std::unordered_map<Int64, Int32> m_vertexMap;
+    std::unordered_map<Uint64, Int32> m_edgeMap;
 };
 
 extern CBSPBuilder g_BSP;

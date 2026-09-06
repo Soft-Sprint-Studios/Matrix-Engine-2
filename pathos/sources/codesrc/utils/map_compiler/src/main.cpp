@@ -35,6 +35,12 @@
 
 int main(int argc, char* argv[])
 {
+#ifdef _WIN32
+    _putenv("OMP_WAIT_POLICY=ACTIVE");
+#else
+    setenv("OMP_WAIT_POLICY", "ACTIVE", 1);
+#endif
+
     std::cout << "=========================================\n";
     std::cout << "Matrix Engine 2 Map Compiler\n";
     std::cout << "=========================================\n\n";

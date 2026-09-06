@@ -156,7 +156,7 @@ void CRadPipeline::AlphaTestFilterCallback(const struct RTCFilterFunctionNArgume
         if (args->valid[i] == 0)
             continue;
 
-        unsigned int primID = RTCHitN_primID(args->hit, args->N, i);
+        unsigned int primID = RTCHitN_primID(args->hit, args->N, i) + (unsigned int)pipeline->m_opaquePrimCount;
         if (primID >= pipeline->m_scenePrims.size())
             continue;
 

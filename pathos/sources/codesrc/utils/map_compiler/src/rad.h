@@ -115,6 +115,9 @@ private:
     std::unordered_map<std::string, material_t> m_materials;
     std::unordered_map<std::string, std::array<Float, 3>> m_texlights;
 
+    Uint32 m_alphaGeomID = (Uint32)-1;
+    size_t m_opaquePrimCount = 0;
+
     struct grid_sample_t
     {
         bool occluded;
@@ -141,7 +144,6 @@ private:
     };
 
     Int32 BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves, Int32& outOccludedCount);
-
 };
 
 #endif // RAD_H

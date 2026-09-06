@@ -134,12 +134,17 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                         }
                     }
 
+                    Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
+                    Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor * NdotL;
+                    Float maxColor = std::max({ lt.color[0], lt.color[1], lt.color[2] });
+                    if (maxColor * atten < 0.05f)
+                    {
+                        continue;
+                    }
+
                     Float hitDist;
                     if (!TraceOcclusion(coord.worldPos, lt.origin, hitDist))
                     {
-                        Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
-                        Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor * NdotL;
-
                         Float r = lt.color[0] * atten;
                         Float g = lt.color[1] * atten;
                         Float b = lt.color[2] * atten;

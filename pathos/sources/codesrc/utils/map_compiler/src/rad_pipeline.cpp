@@ -53,7 +53,6 @@ bool CRadPipeline::InitializeEmbree()
     }
 
     m_scene = rtcNewScene(m_device);
-    rtcSetSceneFlags(m_scene, RTC_SCENE_FLAG_ROBUST);
     rtcSetSceneBuildQuality(m_scene, RTC_BUILD_QUALITY_HIGH);
     return true;
 }
@@ -137,6 +136,12 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
 
     std::vector<Float> sceneVerts;
     std::vector<Uint32> sceneIndices;
+    std::vector<Float> alphaVerts;
+    std::vector<Uint32> alphaIndices;
+    std::vector<Int32> alphaFaceMap;
+    std::vector<scene_prim_t> alphaPrims;
+    m_alphaGeomID = (Uint32)-1;
+    m_opaquePrimCount = 0;
     m_primToFaceMap.clear();
     m_scenePrims.clear();
     m_materials.clear();
@@ -268,28 +273,34 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         Uint32 rootVert = faceVertIndices[0];
         const dmbspv1vertex_t& v0 = g_BSP.GetVertex(rootVert);
 
+        bool isAlpha = fInfo.hasAlphaTest;
+        std::vector<Float>& curVerts = isAlpha ? alphaVerts : sceneVerts;
+        std::vector<Uint32>& curIndices = isAlpha ? alphaIndices : sceneIndices;
+        std::vector<Int32>& curFaceMap = isAlpha ? alphaFaceMap : m_primToFaceMap;
+        std::vector<scene_prim_t>& curPrims = isAlpha ? alphaPrims : m_scenePrims;
+
         for (Int32 e = 1; e < numEdges - 1; e++)
         {
             const dmbspv1vertex_t& v1 = g_BSP.GetVertex(faceVertIndices[e]);
             const dmbspv1vertex_t& v2 = g_BSP.GetVertex(faceVertIndices[e + 1]);
 
-            Uint32 baseIdx = (Uint32)(sceneVerts.size() / 3);
+            Uint32 baseIdx = (Uint32)(curVerts.size() / 3);
 
-            sceneVerts.push_back(v0.origin[0]); sceneVerts.push_back(v0.origin[1]); sceneVerts.push_back(v0.origin[2]);
-            sceneVerts.push_back(v1.origin[0]); sceneVerts.push_back(v1.origin[1]); sceneVerts.push_back(v1.origin[2]);
-            sceneVerts.push_back(v2.origin[0]); sceneVerts.push_back(v2.origin[1]); sceneVerts.push_back(v2.origin[2]);
+            curVerts.push_back(v0.origin[0]); curVerts.push_back(v0.origin[1]); curVerts.push_back(v0.origin[2]);
+            curVerts.push_back(v1.origin[0]); curVerts.push_back(v1.origin[1]); curVerts.push_back(v1.origin[2]);
+            curVerts.push_back(v2.origin[0]); curVerts.push_back(v2.origin[1]); curVerts.push_back(v2.origin[2]);
 
-            sceneIndices.push_back(baseIdx + 0);
-            sceneIndices.push_back(baseIdx + 1);
-            sceneIndices.push_back(baseIdx + 2);
-            m_primToFaceMap.push_back((Int32)i);
+            curIndices.push_back(baseIdx + 0);
+            curIndices.push_back(baseIdx + 1);
+            curIndices.push_back(baseIdx + 2);
+            curFaceMap.push_back((Int32)i);
 
             scene_prim_t prim;
             prim.faceIndex = (Int32)i;
             prim.uv[0][0] = faceVertUVs[0][0]; prim.uv[0][1] = faceVertUVs[0][1];
             prim.uv[1][0] = faceVertUVs[e][0]; prim.uv[1][1] = faceVertUVs[e][1];
             prim.uv[2][0] = faceVertUVs[e + 1][0]; prim.uv[2][1] = faceVertUVs[e + 1][1];
-            m_scenePrims.push_back(prim);
+            curPrims.push_back(prim);
         }
     }
 
@@ -545,25 +556,41 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
     }
 
-    if (sceneVerts.empty() || sceneIndices.empty())
+    m_opaquePrimCount = m_primToFaceMap.size();
+    m_primToFaceMap.insert(m_primToFaceMap.end(), alphaFaceMap.begin(), alphaFaceMap.end());
+    m_scenePrims.insert(m_scenePrims.end(), alphaPrims.begin(), alphaPrims.end());
+
+    if (!sceneVerts.empty() && !sceneIndices.empty())
     {
-        return;
+        RTCGeometry geomOpaque = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+        Float* vb = (Float*)rtcSetNewGeometryBuffer(geomOpaque, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Float) * 3, sceneVerts.size() / 3);
+        memcpy(vb, sceneVerts.data(), sceneVerts.size() * sizeof(Float));
+
+        Uint32* ib = (Uint32*)rtcSetNewGeometryBuffer(geomOpaque, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Uint32) * 3, sceneIndices.size() / 3);
+        memcpy(ib, sceneIndices.data(), sceneIndices.size() * sizeof(Uint32));
+
+        rtcCommitGeometry(geomOpaque);
+        rtcAttachGeometry(m_scene, geomOpaque);
+        rtcReleaseGeometry(geomOpaque);
     }
 
-    RTCGeometry geom = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+    if (!alphaVerts.empty() && !alphaIndices.empty())
+    {
+        RTCGeometry geomAlpha = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+        Float* vb = (Float*)rtcSetNewGeometryBuffer(geomAlpha, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Float) * 3, alphaVerts.size() / 3);
+        memcpy(vb, alphaVerts.data(), alphaVerts.size() * sizeof(Float));
 
-    Float* vb = (Float*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Float) * 3, sceneVerts.size() / 3);
-    memcpy(vb, sceneVerts.data(), sceneVerts.size() * sizeof(Float));
+        Uint32* ib = (Uint32*)rtcSetNewGeometryBuffer(geomAlpha, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Uint32) * 3, alphaIndices.size() / 3);
+        memcpy(ib, alphaIndices.data(), alphaIndices.size() * sizeof(Uint32));
 
-    Uint32* ib = (Uint32*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Uint32) * 3, sceneIndices.size() / 3);
-    memcpy(ib, sceneIndices.data(), sceneIndices.size() * sizeof(Uint32));
+        rtcSetGeometryUserData(geomAlpha, this);
+        rtcSetGeometryIntersectFilterFunction(geomAlpha, AlphaTestFilterCallback);
+        rtcSetGeometryOccludedFilterFunction(geomAlpha, AlphaTestFilterCallback);
+        rtcCommitGeometry(geomAlpha);
+        m_alphaGeomID = rtcAttachGeometry(m_scene, geomAlpha);
+        rtcReleaseGeometry(geomAlpha);
+    }
 
-    rtcSetGeometryUserData(geom, this);
-    rtcSetGeometryIntersectFilterFunction(geom, AlphaTestFilterCallback);
-    rtcSetGeometryOccludedFilterFunction(geom, AlphaTestFilterCallback);
-    rtcCommitGeometry(geom);
-    rtcAttachGeometry(m_scene, geom);
-    rtcReleaseGeometry(geom);
     rtcCommitScene(m_scene);
 }
 
@@ -636,7 +663,7 @@ bool CRadPipeline::TraceRayHit(const Float start[3], const Float dir[3], Float m
         outHit.normal[2] = rayhit.hit.Ng_z;
 
         outHit.geomID = rayhit.hit.geomID;
-        outHit.primID = rayhit.hit.primID;
+        outHit.primID = (rayhit.hit.geomID == m_alphaGeomID) ? (rayhit.hit.primID + (Uint32)m_opaquePrimCount) : rayhit.hit.primID;
         outHit.u = rayhit.hit.u;
         outHit.v = rayhit.hit.v;
         return true;
@@ -646,22 +673,45 @@ bool CRadPipeline::TraceRayHit(const Float start[3], const Float dir[3], Float m
     return false;
 }
 
+struct gamma_lut_t
+{
+    Float table[256];
+    gamma_lut_t()
+    {
+        for (int i = 0; i < 256; i++)
+        {
+            table[i] = powf((Float)i / 255.0f, 2.2f);
+        }
+    }
+};
+
+static const gamma_lut_t g_gammaLUT;
+
 void CRadPipeline::SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlbedo[3]) const
 {
-    outAlbedo[0] = 0.5f;
-    outAlbedo[1] = 0.5f;
-    outAlbedo[2] = 0.5f;
-
     if (primID >= m_scenePrims.size())
+    {
+        outAlbedo[0] = outAlbedo[1] = outAlbedo[2] = 0.5f;
         return;
+    }
 
     const scene_prim_t& prim = m_scenePrims[primID];
     if (prim.faceIndex < 0 || prim.faceIndex >= (Int32)m_faceInfos.size())
+    {
+        outAlbedo[0] = outAlbedo[1] = outAlbedo[2] = 0.5f;
         return;
+    }
 
     const face_info_t& fInfo = m_faceInfos[prim.faceIndex];
-    if (!fInfo.diffuseImage || fInfo.diffuseImage->rgba.empty() || fInfo.diffuseImage->width <= 0 || fInfo.diffuseImage->height <= 0)
+    const dds_image_t* img = fInfo.diffuseImage;
+    if (!img || img->rgba.empty() || img->width <= 0 || img->height <= 0)
+    {
+        outAlbedo[0] = outAlbedo[1] = outAlbedo[2] = 0.5f;
         return;
+    }
+
+    Int32 imgW = img->width;
+    Int32 imgH = img->height;
 
     Float w = 1.0f - u - v;
     Float texU = w * prim.uv[0][0] + u * prim.uv[1][0] + v * prim.uv[2][0];
@@ -670,15 +720,11 @@ void CRadPipeline::SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlb
     texU = texU - floorf(texU);
     texV = texV - floorf(texV);
 
-    Int32 px = std::clamp((Int32)(texU * fInfo.diffuseImage->width), 0, fInfo.diffuseImage->width - 1);
-    Int32 py = std::clamp((Int32)(texV * fInfo.diffuseImage->height), 0, fInfo.diffuseImage->height - 1);
+    Int32 px = std::clamp((Int32)(texU * imgW), 0, imgW - 1);
+    Int32 py = std::clamp((Int32)(texV * imgH), 0, imgH - 1);
 
-    size_t pixelOffset = ((size_t)py * fInfo.diffuseImage->width + px) * 4;
-    Float r = (Float)fInfo.diffuseImage->rgba[pixelOffset + 0] / 255.0f;
-    Float g = (Float)fInfo.diffuseImage->rgba[pixelOffset + 1] / 255.0f;
-    Float b = (Float)fInfo.diffuseImage->rgba[pixelOffset + 2] / 255.0f;
-
-    outAlbedo[0] = powf(r, 2.2f);
-    outAlbedo[1] = powf(g, 2.2f);
-    outAlbedo[2] = powf(b, 2.2f);
+    const byte* pixel = &img->rgba[((size_t)py * imgW + px) * 4];
+    outAlbedo[0] = g_gammaLUT.table[pixel[0]];
+    outAlbedo[1] = g_gammaLUT.table[pixel[1]];
+    outAlbedo[2] = g_gammaLUT.table[pixel[2]];
 }

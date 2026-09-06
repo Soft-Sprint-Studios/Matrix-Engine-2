@@ -214,10 +214,14 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                                 spotFactor = (spotDot - lt.stopdot2) / (lt.stopdot - lt.stopdot2);
                         }
 
+                        Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
+                        Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor;
+                        Float maxColor = std::max({ lt.color[0], lt.color[1], lt.color[2] });
+                        if (maxColor * atten < 0.05f)
+                            continue;
+
                         if (!TraceOcclusion(s.worldPos, lt.origin, hitDist))
                         {
-                            Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
-                            Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor;
                             styleDirect[style][0] += lt.color[0] * atten;
                             styleDirect[style][1] += lt.color[1] * atten;
                             styleDirect[style][2] += lt.color[2] * atten;

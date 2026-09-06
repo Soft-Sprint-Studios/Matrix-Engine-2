@@ -160,6 +160,12 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
                             spotFactor = (spotDot - lt.stopdot2) / (lt.stopdot - lt.stopdot2);
                     }
 
+                    Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
+                    Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor;
+                    Float maxColor = std::max({ lt.color[0], lt.color[1], lt.color[2] });
+                    if (maxColor * atten < 0.05f)
+                        continue;
+
                     ray_hit_t hit;
                     bool blocked = false;
                     if (TraceRayHit(pos, dir, dist - 0.1f, hit))
@@ -171,9 +177,6 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
 
                     if (!blocked)
                     {
-                        Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
-                        Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor;
-
                         Float r = lt.color[0] * atten;
                         Float g = lt.color[1] * atten;
                         Float b = lt.color[2] * atten;

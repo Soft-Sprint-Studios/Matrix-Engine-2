@@ -49,6 +49,8 @@ void CBSPBuilder::Reset()
     m_planes.clear();
     m_vertexes.clear();
     m_edges.clear();
+    m_vertexMap.clear();
+    m_edgeMap.clear();
 
     dmbspv1edge_t dummyEdge;
     dummyEdge.vertexes[0] = 0;
@@ -114,14 +116,15 @@ Int32 CBSPBuilder::InsertPlane(const Float normal[3], Float distance, Int32 axis
 
 Int32 CBSPBuilder::InsertVertex(const Float position[3])
 {
-    for (size_t i = 0; i < m_vertexes.size(); i++)
+    Int64 qx = (Int64)roundf(position[0] * 200.0f);
+    Int64 qy = (Int64)roundf(position[1] * 200.0f);
+    Int64 qz = (Int64)roundf(position[2] * 200.0f);
+    Int64 key = (qx * 73856093) ^ (qy * 19349663) ^ (qz * 83492791);
+
+    auto it = m_vertexMap.find(key);
+    if (it != m_vertexMap.end())
     {
-        if (fabs(m_vertexes[i].origin[0] - position[0]) < 0.005f &&
-            fabs(m_vertexes[i].origin[1] - position[1]) < 0.005f &&
-            fabs(m_vertexes[i].origin[2] - position[2]) < 0.005f)
-        {
-            return (Int32)i;
-        }
+        return it->second;
     }
 
     dmbspv1vertex_t vert;
@@ -129,30 +132,36 @@ Int32 CBSPBuilder::InsertVertex(const Float position[3])
     vert.origin[1] = position[1];
     vert.origin[2] = position[2];
 
+    Int32 newIndex = (Int32)m_vertexes.size();
     m_vertexes.push_back(vert);
-    return (Int32)(m_vertexes.size() - 1);
+    m_vertexMap[key] = newIndex;
+    return newIndex;
 }
 
 Int32 CBSPBuilder::InsertEdge(Uint32 startVertex, Uint32 endVertex)
 {
-    for (size_t i = 1; i < m_edges.size(); i++)
+    Uint64 fwdKey = ((Uint64)startVertex << 32) | (Uint64)endVertex;
+    auto itFwd = m_edgeMap.find(fwdKey);
+    if (itFwd != m_edgeMap.end())
     {
-        if (m_edges[i].vertexes[0] == startVertex && m_edges[i].vertexes[1] == endVertex)
-        {
-            return (Int32)i;
-        }
-        if (m_edges[i].vertexes[0] == endVertex && m_edges[i].vertexes[1] == startVertex)
-        {
-            return -(Int32)i;
-        }
+        return itFwd->second;
+    }
+
+    Uint64 revKey = ((Uint64)endVertex << 32) | (Uint64)startVertex;
+    auto itRev = m_edgeMap.find(revKey);
+    if (itRev != m_edgeMap.end())
+    {
+        return -itRev->second;
     }
 
     dmbspv1edge_t edge;
     edge.vertexes[0] = startVertex;
     edge.vertexes[1] = endVertex;
 
+    Int32 newIndex = (Int32)m_edges.size();
     m_edges.push_back(edge);
-    return (Int32)(m_edges.size() - 1);
+    m_edgeMap[fwdKey] = newIndex;
+    return newIndex;
 }
 
 Int32 CBSPBuilder::InsertSurfEdge(Int32 edgeIndex)
