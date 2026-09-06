@@ -35,7 +35,7 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 {
     std::cout << "Baking lightmaps...\n";
 
-    //SmoothFaceNormals(faceLightmaps);
+    SmoothFaceNormals(faceLightmaps);
 
     struct luxel_radiance_t
     {
