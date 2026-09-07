@@ -762,49 +762,4 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     g_BSP.SetLightmapLayer(SURF_LIGHTMAP_AMBIENT, ambData);
     g_BSP.SetLightmapLayer(SURF_LIGHTMAP_DIFFUSE, diffData);
     g_BSP.SetLightmapLayer(SURF_LIGHTMAP_VECTORS, vecData);
-
-    FILE* dbg = fopen("C:\\Users\\roxan\\Downloads\\lightmap_debug.txt", "w");
-    if (dbg)
-    {
-        fprintf(dbg, "=== LIGHTMAP DEBUG DUMP ===\n");
-        fprintf(dbg, "Total Faces: %zu\n\n", faceLightmaps.size());
-
-        for (size_t f = 0; f < faceLightmaps.size(); f++)
-        {
-            const auto& lm = faceLightmaps[f];
-            const auto& bspFace = g_BSP.GetFace(lm.bspFaceIndex);
-            const auto& tx = g_BSP.GetTexinfo(lm.texinfoIndex);
-            const auto& pl = g_BSP.GetPlane(lm.planeIndex);
-
-            fprintf(dbg, "Face #%zu (BSP Face %d):\n", f, lm.bspFaceIndex);
-            fprintf(dbg, "  Plane: index=%d, norm=(%.4f, %.4f, %.4f), dist=%.2f, side=%d\n",
-                lm.planeIndex, pl.normal[0], pl.normal[1], pl.normal[2], pl.dist, bspFace.side);
-            fprintf(dbg, "  Texinfo: index=%d, flags=%d, samplescale=%.4f, divider=%.4f\n",
-                lm.texinfoIndex, tx.flags, bspFace.samplescale, lm.lightmapDivider);
-            fprintf(dbg, "  TexVecs S: [%.4f, %.4f, %.4f, %.4f]\n",
-                tx.vecs[0][0], tx.vecs[0][1], tx.vecs[0][2], tx.vecs[0][3]);
-            fprintf(dbg, "  TexVecs T: [%.4f, %.4f, %.4f, %.4f]\n",
-                tx.vecs[1][0], tx.vecs[1][1], tx.vecs[1][2], tx.vecs[1][3]);
-            fprintf(dbg, "  Exact ST Bounds: S[%.2f to %.2f] (span %.2f), T[%.2f to %.2f] (span %.2f)\n",
-                lm.exactMins[0], lm.exactMaxs[0], lm.exactMaxs[0] - lm.exactMins[0],
-                lm.exactMins[1], lm.exactMaxs[1], lm.exactMaxs[1] - lm.exactMins[1]);
-            fprintf(dbg, "  TextureMins: [%d, %d], Extents: [%d, %d]\n",
-                lm.textureMins[0], lm.textureMins[1], lm.extents[0], lm.extents[1]);
-            fprintf(dbg, "  Luxel Size: %dx%d (Total: %d luxels)\n",
-                lm.luxelWidth, lm.luxelHeight, lm.totalLuxels);
-            fprintf(dbg, "  LightOffset: %d bytes\n", lm.lightOffset);
-
-            if (!lm.sampleCoords.empty())
-            {
-                const auto& c0 = lm.sampleCoords.front();
-                const auto& cLast = lm.sampleCoords.back();
-                fprintf(dbg, "  First Luxel Pos: (%.2f, %.2f, %.2f) Norm: (%.2f, %.2f, %.2f)\n",
-                    c0.worldPos[0], c0.worldPos[1], c0.worldPos[2], c0.normal[0], c0.normal[1], c0.normal[2]);
-                fprintf(dbg, "  Last  Luxel Pos: (%.2f, %.2f, %.2f) Norm: (%.2f, %.2f, %.2f)\n",
-                    cLast.worldPos[0], cLast.worldPos[1], cLast.worldPos[2], cLast.normal[0], cLast.normal[1], cLast.normal[2]);
-            }
-            fprintf(dbg, "\n");
-        }
-        fclose(dbg);
-    }
 }
