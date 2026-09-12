@@ -1,0 +1,103 @@
+#version 460
+#extension GL_EXT_ray_query : require
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
+
+struct GpuLeafSample
+{
+    vec4 mins;
+    vec4 maxs;
+    vec4 points[13];
+    int count;
+    int solid;
+    int pad0;
+    int pad1;
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer LeafBuffer
+{
+    GpuLeafSample leafs[];
+};
+
+layout(std430, set = 0, binding = 2) buffer PvsBuffer
+{
+    uint pvsBits[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    uint numVisLeafs;
+    uint rowDwords;
+};
+
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    uint j = gl_GlobalInvocationID.y;
+
+    if (i >= numVisLeafs || j >= numVisLeafs)
+    {
+        return;
+    }
+
+    if (leafs[i + 1u].solid != 0 || leafs[j + 1u].solid != 0)
+    {
+        return;
+    }
+
+    if (i == j)
+    {
+        atomicOr(pvsBits[i * rowDwords + (j / 32u)], 1u << (j % 32u));
+        return;
+    }
+
+    vec3 minA = leafs[i + 1u].mins.xyz;
+    vec3 maxA = leafs[i + 1u].maxs.xyz;
+    vec3 minB = leafs[j + 1u].mins.xyz;
+    vec3 maxB = leafs[j + 1u].maxs.xyz;
+
+    bool adjacent = (minA.x <= maxB.x + 2.0 && maxA.x >= minB.x - 2.0) &&
+                    (minA.y <= maxB.y + 2.0 && maxA.y >= minB.y - 2.0) &&
+                    (minA.z <= maxB.z + 2.0 && maxA.z >= minB.z - 2.0);
+
+    if (adjacent)
+    {
+        atomicOr(pvsBits[i * rowDwords + (j / 32u)], 1u << (j % 32u));
+        return;
+    }
+
+    int countA = leafs[i + 1u].count;
+    int countB = leafs[j + 1u].count;
+
+    for (int a = 0; a < countA; ++a)
+    {
+        vec3 pA = leafs[i + 1u].points[a].xyz;
+
+        for (int b = 0; b < countB; ++b)
+        {
+            vec3 pB = leafs[j + 1u].points[b].xyz;
+            vec3 dir = pB - pA;
+            float dist = length(dir);
+
+            if (dist < 0.001)
+            {
+                atomicOr(pvsBits[i * rowDwords + (j / 32u)], 1u << (j % 32u));
+                return;
+            }
+
+            vec3 rayDir = dir / dist;
+
+            rayQueryEXT query;
+            rayQueryInitializeEXT(query, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT, 0xFF, pA, 0.05, rayDir, dist - 0.05);
+            rayQueryProceedEXT(query);
+
+            if (rayQueryGetIntersectionTypeEXT(query, true) == gl_RayQueryCommittedIntersectionNoneEXT)
+            {
+                atomicOr(pvsBits[i * rowDwords + (j / 32u)], 1u << (j % 32u));
+                return;
+            }
+        }
+    }
+}

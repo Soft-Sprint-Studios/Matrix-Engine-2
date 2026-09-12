@@ -51,9 +51,13 @@ Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], In
             {
                 Int32 idx = GridSampleIndex(x, y, z, gridSize);
                 if (samples[idx].occluded)
+                {
                     numOccluded++;
+                }
                 else
+                {
                     numUnoccluded++;
+                }
             }
         }
     }
@@ -116,14 +120,15 @@ Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], In
     return nodeIndex;
 }
 
-void CRadPipeline::BuildLightGrid(Int32 gridDistance)
+void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
 {
     if (g_BSP.GetModelCount() == 0)
+    {
         return;
+    }
 
     std::cout << "Baking Light Grid...\n";
 
-    const dmbspv1model_t& worldModel = g_BSP.GetFaceCount() > 0 ? g_BSP.GetFace(0), dmbspv1model_t() : dmbspv1model_t();
     Float worldMins[3] = { 999999.0f, 999999.0f, 999999.0f };
     Float worldMaxs[3] = { -999999.0f, -999999.0f, -999999.0f };
 
@@ -139,10 +144,8 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
 
             for (Int32 k = 0; k < 3; k++)
             {
-                if (v.origin[k] < worldMins[k]) 
-                    worldMins[k] = v.origin[k];
-                if (v.origin[k] > worldMaxs[k]) 
-                    worldMaxs[k] = v.origin[k];
+                if (v.origin[k] < worldMins[k]) worldMins[k] = v.origin[k];
+                if (v.origin[k] > worldMaxs[k]) worldMaxs[k] = v.origin[k];
             }
         }
     }
@@ -158,160 +161,278 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
     size_t totalSamples = (size_t)gridSize[0] * gridSize[1] * gridSize[2];
     std::vector<grid_sample_t> samples(totalSamples);
 
-    #pragma omp parallel for schedule(dynamic)
-    for (Int32 z = 0; z < gridSize[2]; z++)
+    std::vector<gpu_ray_t> occRays(totalSamples * 2);
+
+    #pragma omp parallel for schedule(static)
+    for (int idx = 0; idx < (int)totalSamples; idx++)
     {
-        for (Int32 y = 0; y < gridSize[1]; y++)
+        Int32 x = idx % gridSize[0];
+        Int32 y = (idx / gridSize[0]) % gridSize[1];
+        Int32 z = idx / (gridSize[0] * gridSize[1]);
+
+        grid_sample_t& s = samples[idx];
+        memset(&s, 0, sizeof(s));
+        memset(s.styles, 255, sizeof(s.styles));
+        s.styles[0] = 0;
+
+        s.worldPos[0] = worldMins[0] + x * gridDist[0];
+        s.worldPos[1] = worldMins[1] + y * gridDist[1];
+        s.worldPos[2] = worldMins[2] + z * gridDist[2];
+
+        gpu_ray_t& rUp = occRays[idx * 2 + 0];
+        rUp.origin[0] = s.worldPos[0]; rUp.origin[1] = s.worldPos[1]; rUp.origin[2] = s.worldPos[2];
+        rUp.tMin = 0.05f;
+        rUp.dir[0] = 0.0f; rUp.dir[1] = 0.0f; rUp.dir[2] = 1.0f;
+        rUp.tMax = 4096.0f;
+
+        gpu_ray_t& rDown = occRays[idx * 2 + 1];
+        rDown.origin[0] = s.worldPos[0]; rDown.origin[1] = s.worldPos[1]; rDown.origin[2] = s.worldPos[2];
+        rDown.tMin = 0.05f;
+        rDown.dir[0] = 0.0f; rDown.dir[1] = 0.0f; rDown.dir[2] = -1.0f;
+        rDown.tMax = 4096.0f;
+    }
+
+    std::vector<Uint32> occHits;
+    TraceOcclusionBatch(occRays, occHits);
+
+    std::vector<Int32> activeIndices;
+    for (size_t i = 0; i < totalSamples; i++)
+    {
+        if (occHits[i * 2 + 0] != 0 && occHits[i * 2 + 1] != 0)
         {
-            for (Int32 x = 0; x < gridSize[0]; x++)
+            samples[i].occluded = true;
+        }
+        else
+        {
+            activeIndices.push_back((Int32)i);
+        }
+    }
+
+    size_t numActive = activeIndices.size();
+    const Int32 numProbeRays = raysPerLuxel;
+
+    std::vector<std::array<Float, 3>> probeDirs(numProbeRays);
+    for (Int32 r = 0; r < numProbeRays; r++)
+    {
+        Float theta = 2.0f * M_PI * ((Float)r / (Float)numProbeRays);
+        Float phi = acosf(1.0f - 2.0f * ((Float)r + 0.5f) / (Float)numProbeRays);
+        probeDirs[r] = {
+            sinf(phi) * cosf(theta),
+            sinf(phi) * sinf(theta),
+            cosf(phi)
+        };
+    }
+
+    struct grid_light_job_t
+    {
+        Int32 sampleIdx;
+        Int32 style;
+        Float color[3];
+        Float dir[3];
+    };
+
+    int maxThreads = omp_get_max_threads();
+    std::vector<std::vector<gpu_ray_t>> threadLightRays(maxThreads);
+    std::vector<std::vector<grid_light_job_t>> threadLightJobs(maxThreads);
+
+    std::vector<gpu_ray_t> gridProbeRays(numActive * (size_t)numProbeRays);
+
+    #pragma omp parallel
+    {
+        int tid = omp_get_thread_num();
+
+        #pragma omp for schedule(static)
+        for (int a = 0; a < (int)numActive; a++)
+        {
+            Int32 i = activeIndices[a];
+            const auto& s = samples[i];
+
+            for (const auto& lt : m_lights)
             {
-                Int32 idx = GridSampleIndex(x, y, z, gridSize);
-                grid_sample_t& s = samples[idx];
-                memset(&s, 0, sizeof(s));
-                memset(s.styles, 255, sizeof(s.styles));
-                s.styles[0] = 0;
+                Int32 style = (lt.style >= 0 && lt.style < 64) ? lt.style : 0;
 
-                s.worldPos[0] = worldMins[0] + x * gridDist[0];
-                s.worldPos[1] = worldMins[1] + y * gridDist[1];
-                s.worldPos[2] = worldMins[2] + z * gridDist[2];
-
-                Float hitDist;
-                Float upTest[3] = { s.worldPos[0], s.worldPos[1], s.worldPos[2] + 4096.0f };
-                Float downTest[3] = { s.worldPos[0], s.worldPos[1], s.worldPos[2] - 4096.0f };
-
-                bool hitUp = TraceOcclusion(s.worldPos, upTest, hitDist);
-                bool hitDown = TraceOcclusion(s.worldPos, downTest, hitDist);
-
-                if (hitUp && hitDown && hitDist < 2.0f)
+                if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
                 {
-                    s.occluded = true;
-                    continue;
-                }
-
-                Float styleDirect[64][3] = { 0.0f };
-                Float styleDir[64][3] = { 0.0f };
-
-                for (const auto& lt : m_lights)
-                {
-                    Int32 style = (lt.style >= 0 && lt.style < 64) ? lt.style : 0;
-
-                    if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
+                    Float toLight[3] = { lt.origin[0] - s.worldPos[0], lt.origin[1] - s.worldPos[1], lt.origin[2] - s.worldPos[2] };
+                    Float dist = sqrtf(toLight[0] * toLight[0] + toLight[1] * toLight[1] + toLight[2] * toLight[2]);
+                    if (dist < 0.1f)
                     {
-                        Float toLight[3] = { lt.origin[0] - s.worldPos[0], lt.origin[1] - s.worldPos[1], lt.origin[2] - s.worldPos[2] };
-                        Float dist = sqrtf(toLight[0] * toLight[0] + toLight[1] * toLight[1] + toLight[2] * toLight[2]);
-                        if (dist < 0.1f) 
-                            continue;
-
-                        Float dir[3] = { toLight[0] / dist, toLight[1] / dist, toLight[2] / dist };
-                        Float spotFactor = 1.0f;
-                        if (lt.type == LIGHT_SPOT)
-                        {
-                            Float spotDot = -(dir[0] * lt.normal[0] + dir[1] * lt.normal[1] + dir[2] * lt.normal[2]);
-                            if (spotDot < lt.stopdot2) 
-                                continue;
-
-                            if (spotDot < lt.stopdot) 
-                                spotFactor = (spotDot - lt.stopdot2) / (lt.stopdot - lt.stopdot2);
-                        }
-
-                        Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
-                        Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor;
-                        Float maxColor = std::max({ lt.color[0], lt.color[1], lt.color[2] });
-                        if (maxColor * atten < 0.05f)
-                            continue;
-
-                        if (!TraceOcclusion(s.worldPos, lt.origin, hitDist))
-                        {
-                            styleDirect[style][0] += lt.color[0] * atten;
-                            styleDirect[style][1] += lt.color[1] * atten;
-                            styleDirect[style][2] += lt.color[2] * atten;
-
-                            styleDir[style][0] += dir[0];
-                            styleDir[style][1] += dir[1];
-                            styleDir[style][2] += dir[2];
-                        }
-                    }
-                }
-
-                Float maxLightPerStyle[64] = { 0.0f };
-                for (Int32 st = 0; st < 64; st++)
-                {
-                    maxLightPerStyle[st] = std::max({ styleDirect[st][0], styleDirect[st][1], styleDirect[st][2] });
-                }
-
-                s.styles[0] = 0;
-                for (Int32 slot = 1; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
-                {
-                    Int32 bestStyle = -1;
-                    Float bestVal = 0.1f;
-                    for (Int32 st = 1; st < 64; st++)
-                    {
-                        if (maxLightPerStyle[st] > bestVal)
-                        {
-                            bestVal = maxLightPerStyle[st];
-                            bestStyle = st;
-                        }
-                    }
-                    if (bestStyle != -1)
-                    {
-                        s.styles[slot] = (byte)bestStyle;
-                        maxLightPerStyle[bestStyle] = 0.0f;
-                    }
-                }
-
-                for (Int32 slot = 0; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
-                {
-                    if (s.styles[slot] == 255) 
                         continue;
+                    }
 
-                    Int32 st = s.styles[slot];
-
-                    s.diffuse[slot][0] = styleDirect[st][0] * 0.7f;
-                    s.diffuse[slot][1] = styleDirect[st][1] * 0.7f;
-                    s.diffuse[slot][2] = styleDirect[st][2] * 0.7f;
-
-                    s.ambient[slot][0] = styleDirect[st][0] * 0.3f;
-                    s.ambient[slot][1] = styleDirect[st][1] * 0.3f;
-                    s.ambient[slot][2] = styleDirect[st][2] * 0.3f;
-
-                    s.dominantDir[slot][0] = styleDir[st][0];
-                    s.dominantDir[slot][1] = styleDir[st][1];
-                    s.dominantDir[slot][2] = styleDir[st][2];
-                }
-                const Int32 numProbeRays = 16;
-                Float bounceRadiance[3] = { 0.0f, 0.0f, 0.0f };
-                for (Int32 r = 0; r < numProbeRays; r++)
-                {
-                    Float theta = 2.0f * M_PI * ((Float)r / (Float)numProbeRays);
-                    Float phi = acosf(1.0f - 2.0f * ((Float)r + 0.5f) / (Float)numProbeRays);
-
-                    Float probeDir[3] = {
-                        sinf(phi) * cosf(theta),
-                        sinf(phi) * sinf(theta),
-                        cosf(phi)
-                    };
-
-                    ray_hit_t hit;
-                    if (TraceRayHit(s.worldPos, probeDir, 2048.0f, hit))
+                    Float dir[3] = { toLight[0] / dist, toLight[1] / dist, toLight[2] / dist };
+                    Float spotFactor = 1.0f;
+                    if (lt.type == LIGHT_SPOT)
                     {
-                        Int32 hitFace = m_primToFaceMap[hit.primID];
-                        if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
+                        Float spotDot = -(dir[0] * lt.normal[0] + dir[1] * lt.normal[1] + dir[2] * lt.normal[2]);
+                        if (spotDot < lt.stopdot2)
                         {
-                            Float albedo[3];
-                            SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+                            continue;
+                        }
 
-                            bounceRadiance[0] += (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
-                            bounceRadiance[1] += (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
-                            bounceRadiance[2] += (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
+                        if (spotDot < lt.stopdot)
+                        {
+                            spotFactor = (spotDot - lt.stopdot2) / (lt.stopdot - lt.stopdot2);
                         }
                     }
-                }
 
-                s.ambient[0][0] += (bounceRadiance[0] / (Float)numProbeRays) * M_PI;
-                s.ambient[0][1] += (bounceRadiance[1] / (Float)numProbeRays) * M_PI;
-                s.ambient[0][2] += (bounceRadiance[2] / (Float)numProbeRays) * M_PI;
+                    Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
+                    Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor;
+                    Float maxColor = std::max({ lt.color[0], lt.color[1], lt.color[2] });
+                    if (maxColor * atten < 0.05f)
+                    {
+                        continue;
+                    }
+
+                    gpu_ray_t gray;
+                    gray.origin[0] = s.worldPos[0]; gray.origin[1] = s.worldPos[1]; gray.origin[2] = s.worldPos[2];
+                    gray.tMin = 0.05f;
+                    gray.dir[0] = dir[0]; gray.dir[1] = dir[1]; gray.dir[2] = dir[2];
+                    gray.tMax = dist - 0.05f;
+
+                    threadLightRays[tid].push_back(gray);
+                    threadLightJobs[tid].push_back({ i, style, { lt.color[0] * atten, lt.color[1] * atten, lt.color[2] * atten }, { dir[0], dir[1], dir[2] } });
+                }
+            }
+
+            size_t baseProbeIdx = (size_t)a * (size_t)numProbeRays;
+            for (Int32 r = 0; r < numProbeRays; r++)
+            {
+                const Float* pDir = probeDirs[r].data();
+                gpu_ray_t& gray = gridProbeRays[baseProbeIdx + r];
+                gray.origin[0] = s.worldPos[0]; gray.origin[1] = s.worldPos[1]; gray.origin[2] = s.worldPos[2];
+                gray.tMin = 0.05f;
+                gray.dir[0] = pDir[0]; gray.dir[1] = pDir[1]; gray.dir[2] = pDir[2];
+                gray.tMax = 2048.0f;
             }
         }
+    }
+
+    std::vector<gpu_ray_t> gridLightRays;
+    std::vector<grid_light_job_t> gridLightJobs;
+    for (int t = 0; t < maxThreads; t++)
+    {
+        gridLightRays.insert(gridLightRays.end(), threadLightRays[t].begin(), threadLightRays[t].end());
+        gridLightJobs.insert(gridLightJobs.end(), threadLightJobs[t].begin(), threadLightJobs[t].end());
+    }
+
+    std::vector<Uint32> lightHits;
+    TraceOcclusionBatch(gridLightRays, lightHits);
+
+    std::vector<std::vector<std::array<Float, 3>>> sampleStyleDirect(totalSamples, std::vector<std::array<Float, 3>>(64, { 0.0f, 0.0f, 0.0f }));
+    std::vector<std::vector<std::array<Float, 3>>> sampleStyleDir(totalSamples, std::vector<std::array<Float, 3>>(64, { 0.0f, 0.0f, 0.0f }));
+
+    for (size_t k = 0; k < lightHits.size(); k++)
+    {
+        if (lightHits[k] == 0)
+        {
+            const auto& job = gridLightJobs[k];
+            Int32 idx = job.sampleIdx;
+            Int32 st = job.style;
+
+            sampleStyleDirect[idx][st][0] += job.color[0];
+            sampleStyleDirect[idx][st][1] += job.color[1];
+            sampleStyleDirect[idx][st][2] += job.color[2];
+
+            sampleStyleDir[idx][st][0] += job.dir[0];
+            sampleStyleDir[idx][st][1] += job.dir[1];
+            sampleStyleDir[idx][st][2] += job.dir[2];
+        }
+    }
+
+    const gpu_ray_hit_t* probeHits = TraceRayHitBatch(gridProbeRays);
+
+    std::vector<std::array<Float, 3>> sampleBounceRad(totalSamples, { 0.0f, 0.0f, 0.0f });
+
+    #pragma omp parallel for schedule(static)
+    for (int a = 0; a < (int)numActive; a++)
+    {
+        Int32 idx = activeIndices[a];
+        size_t baseProbeIdx = (size_t)a * (size_t)numProbeRays;
+        Float accum[3] = { 0.0f, 0.0f, 0.0f };
+
+        for (Int32 r = 0; r < numProbeRays; r++)
+        {
+            const auto& hit = probeHits[baseProbeIdx + r];
+            if (hit.hit != 0)
+            {
+                Int32 hitFace = m_primToFaceMap[hit.primID];
+                if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
+                {
+                    Float albedo[3];
+                    SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+
+                    accum[0] += (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
+                    accum[1] += (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
+                    accum[2] += (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
+                }
+            }
+        }
+
+        sampleBounceRad[idx][0] = accum[0];
+        sampleBounceRad[idx][1] = accum[1];
+        sampleBounceRad[idx][2] = accum[2];
+    }
+
+    for (size_t i = 0; i < totalSamples; i++)
+    {
+        auto& s = samples[i];
+        if (s.occluded)
+        {
+            continue;
+        }
+
+        Float maxLightPerStyle[64] = { 0.0f };
+        for (Int32 st = 0; st < 64; st++)
+        {
+            maxLightPerStyle[st] = std::max({ sampleStyleDirect[i][st][0], sampleStyleDirect[i][st][1], sampleStyleDirect[i][st][2] });
+        }
+
+        s.styles[0] = 0;
+        for (Int32 slot = 1; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
+        {
+            Int32 bestStyle = -1;
+            Float bestVal = 0.1f;
+            for (Int32 st = 1; st < 64; st++)
+            {
+                if (maxLightPerStyle[st] > bestVal)
+                {
+                    bestVal = maxLightPerStyle[st];
+                    bestStyle = st;
+                }
+            }
+            if (bestStyle != -1)
+            {
+                s.styles[slot] = (byte)bestStyle;
+                maxLightPerStyle[bestStyle] = 0.0f;
+            }
+        }
+
+        for (Int32 slot = 0; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
+        {
+            if (s.styles[slot] == 255)
+            {
+                continue;
+            }
+
+            Int32 st = s.styles[slot];
+
+            s.diffuse[slot][0] = sampleStyleDirect[i][st][0] * 0.7f;
+            s.diffuse[slot][1] = sampleStyleDirect[i][st][1] * 0.7f;
+            s.diffuse[slot][2] = sampleStyleDirect[i][st][2] * 0.7f;
+
+            s.ambient[slot][0] = sampleStyleDirect[i][st][0] * 0.3f;
+            s.ambient[slot][1] = sampleStyleDirect[i][st][1] * 0.3f;
+            s.ambient[slot][2] = sampleStyleDirect[i][st][2] * 0.3f;
+
+            s.dominantDir[slot][0] = sampleStyleDir[i][st][0];
+            s.dominantDir[slot][1] = sampleStyleDir[i][st][1];
+            s.dominantDir[slot][2] = sampleStyleDir[i][st][2];
+        }
+
+        s.ambient[0][0] += (sampleBounceRad[i][0] / (Float)numProbeRays) * M_PI;
+        s.ambient[0][1] += (sampleBounceRad[i][1] / (Float)numProbeRays) * M_PI;
+        s.ambient[0][2] += (sampleBounceRad[i][2] / (Float)numProbeRays) * M_PI;
     }
 
     std::vector<grid_octree_node_t> octreeNodes;
@@ -348,8 +469,10 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
                         Int32 styleCount = 0;
                         for (Int32 slot = 0; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
                         {
-                            if (s.styles[slot] != 255) 
+                            if (s.styles[slot] != 255)
+                            {
                                 styleCount++;
+                            }
                         }
 
                         ds.rawsampleoffset = rawDataSize;
@@ -375,13 +498,17 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
     for (const auto& s : samples)
     {
         if (s.occluded || s.rawDataOffset < 0)
+        {
             continue;
+        }
 
         Int32 sampleIdx = s.rawDataOffset;
         for (Int32 slot = 0; slot < MBSPV1_MAX_LIGHTMAPS; slot++)
         {
             if (s.styles[slot] == 255)
+            {
                 continue;
+            }
 
             Float* pAmb = reinterpret_cast<Float*>(&rawAmbient[sampleIdx * sizeof(Float) * 3]);
             Float* pDiff = reinterpret_cast<Float*>(&rawDiffuse[sampleIdx * sizeof(Float) * 3]);
@@ -522,11 +649,17 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance)
     memcpy(pOut + hdr.leafsoffset, bspLeaves.data(), bspLeaves.size() * sizeof(dmbspv1lightgridleaf_t));
 
     if (!compAmb.empty())
+    {
         memcpy(pOut + hdr.ambientdataoffset, compAmb.data(), compAmbSize);
+    }
     if (!compDiff.empty())
+    {
         memcpy(pOut + hdr.diffusedataoffset, compDiff.data(), compDiffSize);
+    }
     if (!compVec.empty())
+    {
         memcpy(pOut + hdr.vectorsdataoffset, compVec.data(), compVecSize);
+    }
 
     g_BSP.SetLightGridData(finalGridLump);
 }

@@ -87,6 +87,7 @@ void CalculatePVS(const CRadPipeline* radPipeline)
     size_t rowBytes = (numVisLeafs + 7) / 8;
     std::vector<std::vector<byte>> uncompressedPVS(numVisLeafs, std::vector<byte>(rowBytes, 0));
     std::vector<leaf_sample_t> leafSamples(totalLeafs);
+    std::vector<gpu_leaf_sample_t> gpuLeafs(totalLeafs);
 
     #pragma omp parallel for schedule(static)
     for (int i = 1; i <= (int)numVisLeafs; i++)
@@ -94,6 +95,7 @@ void CalculatePVS(const CRadPipeline* radPipeline)
         const auto& leaf = g_BSP.GetLeaf(i);
         if (leaf.contents == CONTENTS_SOLID)
         {
+            gpuLeafs[i].solid = 1;
             continue;
         }
 
@@ -126,73 +128,33 @@ void CalculatePVS(const CRadPipeline* radPipeline)
                 ls.center[2] + offsets[o][2] * spanZ
             });
         }
+
+        gpuLeafs[i].solid = 0;
+        gpuLeafs[i].count = (Int32)ls.points.size();
+
+        for (int k = 0; k < 3; k++)
+        {
+            gpuLeafs[i].mins[k] = (Float)leaf.mins[k];
+            gpuLeafs[i].maxs[k] = (Float)leaf.maxs[k];
+        }
+        gpuLeafs[i].mins[3] = 0.0f;
+        gpuLeafs[i].maxs[3] = 0.0f;
+
+        for (size_t p = 0; p < ls.points.size() && p < 13; p++)
+        {
+            gpuLeafs[i].points[p][0] = ls.points[p][0];
+            gpuLeafs[i].points[p][1] = ls.points[p][1];
+            gpuLeafs[i].points[p][2] = ls.points[p][2];
+            gpuLeafs[i].points[p][3] = 1.0f;
+        }
     }
 
-    #pragma omp parallel for schedule(dynamic, 4)
-    for (int i = 0; i < (int)numVisLeafs; i++)
+    std::vector<byte> flatPvs;
+    if (radPipeline && radPipeline->ComputePVSGPU(numVisLeafs, gpuLeafs, flatPvs, rowBytes))
     {
-        Int32 srcLeafIdx = i + 1;
-        const auto& srcLeaf = g_BSP.GetLeaf(srcLeafIdx);
-        if (srcLeaf.contents == CONTENTS_SOLID)
+        for (size_t i = 0; i < numVisLeafs; i++)
         {
-            continue;
-        }
-
-        auto& pvsRow = uncompressedPVS[i];
-        pvsRow[i >> 3] |= (1 << (i & 7));
-
-        for (size_t j = 0; j < numVisLeafs; j++)
-        {
-            if (i == (int)j)
-            {
-                continue;
-            }
-
-            Int32 dstLeafIdx = (Int32)j + 1;
-            const auto& dstLeaf = g_BSP.GetLeaf(dstLeafIdx);
-            if (dstLeaf.contents == CONTENTS_SOLID)
-            {
-                continue;
-            }
-
-            bool adjacent = (srcLeaf.mins[0] <= dstLeaf.maxs[0] + 2 && srcLeaf.maxs[0] >= dstLeaf.mins[0] - 2) &&
-                            (srcLeaf.mins[1] <= dstLeaf.maxs[1] + 2 && srcLeaf.maxs[1] >= dstLeaf.mins[1] - 2) &&
-                            (srcLeaf.mins[2] <= dstLeaf.maxs[2] + 2 && srcLeaf.maxs[2] >= dstLeaf.mins[2] - 2);
-
-            if (adjacent)
-            {
-                pvsRow[j >> 3] |= (1 << (j & 7));
-                continue;
-            }
-
-            bool visible = false;
-            if (radPipeline)
-            {
-                const auto& ptsA = leafSamples[srcLeafIdx].points;
-                const auto& ptsB = leafSamples[dstLeafIdx].points;
-
-                for (const auto& ptA : ptsA)
-                {
-                    for (const auto& ptB : ptsB)
-                    {
-                        Float hitDist = 0.0f;
-                        if (!radPipeline->TraceOcclusion(ptA.data(), ptB.data(), hitDist))
-                        {
-                            visible = true;
-                            break;
-                        }
-                    }
-                    if (visible)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if (visible)
-            {
-                pvsRow[j >> 3] |= (1 << (j & 7));
-            }
+            memcpy(uncompressedPVS[i].data(), &flatPvs[i * rowBytes], rowBytes);
         }
     }
 

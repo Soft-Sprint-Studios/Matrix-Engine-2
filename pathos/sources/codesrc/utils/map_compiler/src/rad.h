@@ -31,7 +31,7 @@
 #include <vector>
 #include <array>
 #include <unordered_map>
-#include <embree4/rtcore.h>
+#include "vk_rad.h"
 #include <OpenImageDenoise/oidn.h>
 
 enum rad_lighttype_t
@@ -55,43 +55,31 @@ struct rad_light_t
     Float fade;
 };
 
-struct ray_hit_t
-{
-    bool hit;
-    Float dist;
-    Float normal[3];
-    Uint32 geomID;
-    Uint32 primID;
-    Float u;
-    Float v;
-};
-
 class CRadPipeline
 {
 public:
     CRadPipeline();
     ~CRadPipeline();
 
-    bool InitializeEmbree();
+    bool InitializeVulkan();
+    bool ComputePVSGPU(size_t numVisLeafs, const std::vector<gpu_leaf_sample_t>& leafs, std::vector<byte>& outPvsMatrix, size_t rowBytes) const;
+    bool TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, std::vector<Uint32>& outHits);
+    const gpu_ray_hit_t* TraceRayHitBatch(const std::vector<gpu_ray_t>& rays);
     void BuildSceneGeometry(const map_data_t& mapData, const map_disp_data_t& dispData, const Char* baseDir);
     void ParseLights(map_data_t& mapData, const std::string& daystage = "");
     void LoadTexlights(const Char* baseDir);
-    bool TraceOcclusion(const Float start[3], const Float end[3], Float& outDist) const;
-    bool TraceRayHit(const Float start[3], const Float dir[3], Float maxDist, ray_hit_t& outHit) const;
     void SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlbedo[3]) const;
-    void BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces = 2, Int32 raysPerLuxel = 32);
-    void BakeVertexLights(map_data_t& mapData, const Char* baseDir);
-    void BuildLightGrid(Int32 gridDistance = 32);
+    void BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces, Int32 raysPerLuxel);
+    void BakeVertexLights(map_data_t& mapData, const Char* baseDir, Int32 raysPerLuxel);
+    void BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel);
     void Shutdown();
 
 private:
     void AddSunLight(const map_entity_t& ent, Int32 style);
     void AddPointLight(const map_entity_t& ent, Int32 style);
     void AddSpotLight(const map_entity_t& ent, Int32 style);
-    static void AlphaTestFilterCallback(const struct RTCFilterFunctionNArguments* args);
+    CVulkanRayTracer m_vk;
 
-    RTCDevice m_device;
-    RTCScene m_scene;
     std::vector<rad_light_t> m_lights;
 
     struct face_info_t
@@ -101,7 +89,6 @@ private:
         Float minLight;
         bool hasAlphaTest;
         const dds_image_t* diffuseImage;
-        bool ignoreNight;
     };
     std::vector<face_info_t> m_faceInfos;
     std::vector<Int32> m_primToFaceMap;
@@ -114,9 +101,6 @@ private:
     std::vector<scene_prim_t> m_scenePrims;
     std::unordered_map<std::string, material_t> m_materials;
     std::unordered_map<std::string, std::array<Float, 3>> m_texlights;
-
-    Uint32 m_alphaGeomID = (Uint32)-1;
-    size_t m_opaquePrimCount = 0;
 
     struct grid_sample_t
     {
@@ -146,4 +130,4 @@ private:
     Int32 BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves, Int32& outOccludedCount);
 };
 
-#endif // RAD_H
+#endif

@@ -1,0 +1,66 @@
+#version 460
+#extension GL_EXT_ray_query : require
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
+
+struct RayInput
+{
+    vec4 origin_tmin;
+    vec4 dir_tmax;
+};
+
+struct RayHitOutput
+{
+    vec4 normal_dist;
+    uvec4 geom_prim_uv_hit;
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer InRayBuffer
+{
+    RayInput rays[];
+};
+
+layout(std430, set = 0, binding = 2) writeonly buffer OutHitBuffer
+{
+    RayHitOutput results[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    uint numRays;
+};
+
+void main()
+{
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= numRays)
+    {
+        return;
+    }
+
+    vec3 origin = rays[idx].origin_tmin.xyz;
+    float tmin = rays[idx].origin_tmin.w;
+    vec3 dir = rays[idx].dir_tmax.xyz;
+    float tmax = rays[idx].dir_tmax.w;
+
+    rayQueryEXT query;
+    rayQueryInitializeEXT(query, topLevelAS, gl_RayFlagsNoneEXT, 0xFF, origin, tmin, dir, tmax);
+    rayQueryProceedEXT(query);
+
+    if (rayQueryGetIntersectionTypeEXT(query, true) != gl_RayQueryCommittedIntersectionNoneEXT)
+    {
+        float dist = rayQueryGetIntersectionTEXT(query, true);
+        vec2 bary = rayQueryGetIntersectionBarycentricsEXT(query, true);
+        uint primID = rayQueryGetIntersectionPrimitiveIndexEXT(query, true);
+
+        results[idx].normal_dist = vec4(0.0, 0.0, 1.0, dist);
+        results[idx].geom_prim_uv_hit = uvec4(primID, floatBitsToUint(bary.x), floatBitsToUint(bary.y), 1u);
+    }
+    else
+    {
+        results[idx].normal_dist = vec4(0.0, 0.0, 0.0, -1.0);
+        results[idx].geom_prim_uv_hit = uvec4(0u, 0u, 0u, 0u);
+    }
+}

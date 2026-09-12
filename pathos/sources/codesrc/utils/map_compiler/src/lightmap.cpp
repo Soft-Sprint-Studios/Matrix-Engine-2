@@ -213,7 +213,7 @@ static void GenerateDisplacementLuxels(lightmap_face_t& lmFace, Int32 dispIdx, c
 
             Float flatPos[3] = {
                 rowPos[0] + sampleS * textoworld[0][0],
-                rowPos[1] + sampleS * textoworld[0][0],
+                rowPos[1] + sampleS * textoworld[0][1],
                 rowPos[2] + sampleS * textoworld[0][2]
             };
 

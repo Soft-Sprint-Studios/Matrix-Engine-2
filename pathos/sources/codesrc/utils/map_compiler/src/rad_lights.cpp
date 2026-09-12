@@ -145,52 +145,6 @@ void CRadPipeline::AddSpotLight(const map_entity_t& ent, Int32 style)
     m_lights.push_back(l);
 }
 
-void CRadPipeline::AlphaTestFilterCallback(const struct RTCFilterFunctionNArguments* args)
-{
-    CRadPipeline* pipeline = reinterpret_cast<CRadPipeline*>(args->geometryUserPtr);
-    if (!pipeline)
-        return;
-
-    for (unsigned int i = 0; i < args->N; i++)
-    {
-        if (args->valid[i] == 0)
-            continue;
-
-        unsigned int primID = RTCHitN_primID(args->hit, args->N, i) + (unsigned int)pipeline->m_opaquePrimCount;
-        if (primID >= pipeline->m_scenePrims.size())
-            continue;
-
-        const scene_prim_t& prim = pipeline->m_scenePrims[primID];
-        if (prim.faceIndex < 0 || prim.faceIndex >= (Int32)pipeline->m_faceInfos.size())
-            continue;
-
-        const face_info_t& fInfo = pipeline->m_faceInfos[prim.faceIndex];
-        if (!fInfo.hasAlphaTest || !fInfo.diffuseImage || fInfo.diffuseImage->rgba.empty())
-            continue;
-
-        float u = RTCHitN_u(args->hit, args->N, i);
-        float v = RTCHitN_v(args->hit, args->N, i);
-        float w = 1.0f - u - v;
-
-        float texU = w * prim.uv[0][0] + u * prim.uv[1][0] + v * prim.uv[2][0];
-        float texV = w * prim.uv[0][1] + u * prim.uv[1][1] + v * prim.uv[2][1];
-
-        texU = texU - floorf(texU);
-        texV = texV - floorf(texV);
-
-        int px = std::clamp((int)(texU * fInfo.diffuseImage->width), 0, fInfo.diffuseImage->width - 1);
-        int py = std::clamp((int)(texV * fInfo.diffuseImage->height), 0, fInfo.diffuseImage->height - 1);
-
-        size_t pixelOffset = ((size_t)py * fInfo.diffuseImage->width + px) * 4;
-        byte alpha = fInfo.diffuseImage->rgba[pixelOffset + 3];
-
-        if (alpha < 128)
-        {
-            args->valid[i] = 0;
-        }
-    }
-}
-
 void CRadPipeline::ParseLights(map_data_t& mapData, const std::string& daystage)
 {
     m_lights.clear();

@@ -30,7 +30,7 @@
 #include <iostream>
 #include <omp.h>
 
-void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
+void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, Int32 raysPerLuxel)
 {
     std::cout << "Baking model vertex lighting...\n";
 
@@ -42,16 +42,23 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
     {
         const Char* classname = ent.GetValue("classname");
         if (strcmp(classname, "env_model") != 0)
+        {
             continue;
+        }
 
         const Char* modelPath = ent.GetValue("model");
         if (!modelPath || !modelPath[0])
+        {
             continue;
+        }
 
         Float origin[3] = { 0.0f, 0.0f, 0.0f };
         Float angles[3] = { 0.0f, 0.0f, 0.0f };
         Float scale = (Float)atof(ent.GetValue("scale"));
-        if (scale <= 0.0f) scale = 1.0f;
+        if (scale <= 0.0f)
+        {
+            scale = 1.0f;
+        }
 
         sscanf(ent.GetValue("origin"), "%f %f %f", &origin[0], &origin[1], &origin[2]);
         if (ent.GetValue("angles")[0])
@@ -61,12 +68,9 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
         else if (ent.GetValue("angle")[0])
         {
             Float a = (Float)atof(ent.GetValue("angle"));
-            if (a == -1.0f) 
-                angles[0] = -90.0f;
-            else if (a == -2.0f) 
-                angles[0] = 90.0f;
-            else 
-                angles[1] = a;
+            if (a == -1.0f) angles[0] = -90.0f;
+            else if (a == -2.0f) angles[0] = 90.0f;
+            else angles[1] = a;
         }
 
         angles[1] += 90.0f;
@@ -74,16 +78,20 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
         Char fullVbmPath[512];
         snprintf(fullVbmPath, sizeof(fullVbmPath), "%s/%s", baseDir, modelPath);
         char* ext = strstr(fullVbmPath, ".mdl");
-        if (ext) 
+        if (ext)
+        {
             strcpy(ext, ".vbm");
+        }
 
         vbm_model_t vbm;
         if (!LoadVBMModel(fullVbmPath, origin, angles, scale, vbm))
         {
             snprintf(fullVbmPath, sizeof(fullVbmPath), "%s/models/%s", baseDir, modelPath);
             ext = strstr(fullVbmPath, ".mdl");
-            if (ext) 
+            if (ext)
+            {
                 strcpy(ext, ".vbm");
+            }
 
             if (!LoadVBMModel(fullVbmPath, origin, angles, scale, vbm))
             {
@@ -93,14 +101,6 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
 
         Int32 vertexCount = vbm.numVerts;
         Int32 bufferOffset = (Int32)totalAmbient.size();
-
-        std::vector<byte> modelAmbient(vertexCount * sizeof(Float) * 3, 0);
-        std::vector<byte> modelDiffuse(vertexCount * sizeof(Float) * 3, 0);
-        std::vector<byte> modelVectors(vertexCount * sizeof(Float) * 3, 128);
-        for (size_t vi = 2; vi < modelVectors.size(); vi += 3)
-        {
-            modelVectors[vi] = 255;
-        }
 
         struct vert_style_data_t
         {
@@ -112,95 +112,180 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
         std::vector<vert_style_data_t> vertSamples(vertexCount);
         Float maxLightPerStyle[64] = { 0.0f };
 
-        #pragma omp parallel for schedule(dynamic)
-        for (Int32 v = 0; v < vertexCount; v++)
+        struct vlight_direct_job_t
         {
-            Float norm[3] = { vbm.worldNormals[v * 3 + 0], vbm.worldNormals[v * 3 + 1], vbm.worldNormals[v * 3 + 2] };
-            Float pos[3] = {
-                vbm.worldVerts[v * 3 + 0] + norm[0] * 1.0f,
-                vbm.worldVerts[v * 3 + 1] + norm[1] * 1.0f,
-                vbm.worldVerts[v * 3 + 2] + norm[2] * 1.0f
-            };
-            vert_style_data_t& vs = vertSamples[v];
-            memset(&vs, 0, sizeof(vs));
+            Int32 v;
+            Int32 style;
+            Float r;
+            Float g;
+            Float b;
+            Float dir[3];
+        };
 
-            for (const auto& lt : m_lights)
+        const Int32 numBounceRays = raysPerLuxel;
+        std::vector<gpu_ray_t> gpuBounceRays((size_t)vertexCount * (size_t)numBounceRays);
+
+        struct local_bounce_dir_t 
+        {
+            Float x, y, z;
+        };
+        std::vector<local_bounce_dir_t> localDirs(numBounceRays);
+        for (Int32 r = 0; r < numBounceRays; r++)
+        {
+            Float u1 = ((Float)r + 0.5f) / (Float)numBounceRays;
+            Float u2 = (Float)((r * 1664525u + 1013904223u) & 0xFFFF) / 65536.0f;
+            Float rSqrt = sqrtf(u1);
+            Float theta = 2.0f * M_PI * u2;
+            localDirs[r].x = rSqrt * cosf(theta);
+            localDirs[r].y = rSqrt * sinf(theta);
+            localDirs[r].z = sqrtf(std::max(0.0f, 1.0f - u1));
+        }
+
+        int maxThreads = omp_get_max_threads();
+        std::vector<std::vector<gpu_ray_t>> threadDirectRays(maxThreads);
+        std::vector<std::vector<vlight_direct_job_t>> threadDirectJobs(maxThreads);
+
+        #pragma omp parallel
+        {
+            int tid = omp_get_thread_num();
+
+            #pragma omp for schedule(static)
+            for (Int32 v = 0; v < vertexCount; v++)
             {
-                Int32 style = (lt.style >= 0 && lt.style < 64) ? lt.style : 0;
+                Float norm[3] = { vbm.worldNormals[v * 3 + 0], vbm.worldNormals[v * 3 + 1], vbm.worldNormals[v * 3 + 2] };
+                Float pos[3] = {
+                    vbm.worldVerts[v * 3 + 0] + norm[0] * 1.0f,
+                    vbm.worldVerts[v * 3 + 1] + norm[1] * 1.0f,
+                    vbm.worldVerts[v * 3 + 2] + norm[2] * 1.0f
+                };
 
-                if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
+                for (const auto& lt : m_lights)
                 {
-                    Float toLight[3] = { lt.origin[0] - pos[0], lt.origin[1] - pos[1], lt.origin[2] - pos[2] };
-                    Float dist = sqrtf(toLight[0] * toLight[0] + toLight[1] * toLight[1] + toLight[2] * toLight[2]);
-                    if (dist < 0.1f) 
-                        continue;
+                    Int32 style = (lt.style >= 0 && lt.style < 64) ? lt.style : 0;
 
-                    Float dir[3] = { toLight[0] / dist, toLight[1] / dist, toLight[2] / dist };
-
-                    Float NdotL = norm[0] * dir[0] + norm[1] * dir[1] + norm[2] * dir[2];
-                    if (NdotL <= 0.001f)
-                        continue;
-
-                    Float spotFactor = 1.0f;
-                    if (lt.type == LIGHT_SPOT)
+                    if (lt.type == LIGHT_POINT || lt.type == LIGHT_SPOT)
                     {
-                        Float spotDot = -(dir[0] * lt.normal[0] + dir[1] * lt.normal[1] + dir[2] * lt.normal[2]);
-                        if (spotDot < lt.stopdot2)
+                        Float toLight[3] = { lt.origin[0] - pos[0], lt.origin[1] - pos[1], lt.origin[2] - pos[2] };
+                        Float dist = sqrtf(toLight[0] * toLight[0] + toLight[1] * toLight[1] + toLight[2] * toLight[2]);
+                        if (dist < 0.1f)
+                        {
                             continue;
+                        }
 
-                        if (spotDot < lt.stopdot) 
-                            spotFactor = (spotDot - lt.stopdot2) / (lt.stopdot - lt.stopdot2);
-                    }
+                        Float dir[3] = { toLight[0] / dist, toLight[1] / dist, toLight[2] / dist };
+                        Float NdotL = norm[0] * dir[0] + norm[1] * dir[1] + norm[2] * dir[2];
+                        if (NdotL <= 0.001f)
+                        {
+                            continue;
+                        }
 
-                    Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
-                    Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor * NdotL;
-                    Float maxColor = std::max({ lt.color[0], lt.color[1], lt.color[2] });
-                    if (maxColor * atten < 0.05f)
-                        continue;
+                        Float spotFactor = 1.0f;
+                        if (lt.type == LIGHT_SPOT)
+                        {
+                            Float spotDot = -(dir[0] * lt.normal[0] + dir[1] * lt.normal[1] + dir[2] * lt.normal[2]);
+                            if (spotDot < lt.stopdot2)
+                            {
+                                continue;
+                            }
 
-                    Float hitDist;
-                    if (!TraceOcclusion(pos, lt.origin, hitDist))
-                    {
-                        Float r = lt.color[0] * atten;
-                        Float g = lt.color[1] * atten;
-                        Float b = lt.color[2] * atten;
+                            if (spotDot < lt.stopdot)
+                            {
+                                spotFactor = (spotDot - lt.stopdot2) / (lt.stopdot - lt.stopdot2);
+                            }
+                        }
 
-                        vs.direct[style][0] += r;
-                        vs.direct[style][1] += g;
-                        vs.direct[style][2] += b;
+                        Float denom = (lt.falloff == 1) ? (dist * lt.fade) : (dist * dist * lt.fade);
+                        Float atten = (1.0f / std::max(1.0f, denom)) * spotFactor * NdotL;
+                        Float maxColor = std::max({ lt.color[0], lt.color[1], lt.color[2] });
+                        if (maxColor * atten < 0.05f)
+                        {
+                            continue;
+                        }
 
-                        Float maxC = std::max({ r, g, b });
-                        vs.dominantDir[style][0] += dir[0] * maxC;
-                        vs.dominantDir[style][1] += dir[1] * maxC;
-                        vs.dominantDir[style][2] += dir[2] * maxC;
+                        gpu_ray_t gray;
+                        gray.origin[0] = pos[0]; gray.origin[1] = pos[1]; gray.origin[2] = pos[2];
+                        gray.tMin = 0.05f;
+                        gray.dir[0] = dir[0]; gray.dir[1] = dir[1]; gray.dir[2] = dir[2];
+                        gray.tMax = dist - 0.05f;
+
+                        threadDirectRays[tid].push_back(gray);
+                        threadDirectJobs[tid].push_back({ v, style, lt.color[0] * atten, lt.color[1] * atten, lt.color[2] * atten, { dir[0], dir[1], dir[2] } });
                     }
                 }
-            }
 
-            const Int32 numBounceRays = 8;
-            Float bounceRad[3] = { 0.0f, 0.0f, 0.0f };
-            Float tangent[3] = { 1.0f, 0.0f, 0.0f };
-            if (fabsf(norm[0]) > 0.9f) 
-            { 
-                tangent[0] = 0.0f; 
-                tangent[1] = 1.0f; 
+                Float tangent[3] = { 1.0f, 0.0f, 0.0f };
+                if (fabsf(norm[0]) > 0.9f)
+                {
+                    tangent[0] = 0.0f;
+                    tangent[1] = 1.0f;
+                }
+                Float bitangent[3] = {
+                    norm[1] * tangent[2] - norm[2] * tangent[1],
+                    norm[2] * tangent[0] - norm[0] * tangent[2],
+                    norm[0] * tangent[1] - norm[1] * tangent[0]
+                };
+
+                size_t baseBounceIdx = (size_t)v * (size_t)numBounceRays;
+                for (Int32 r = 0; r < numBounceRays; r++)
+                {
+                    const auto& ld = localDirs[r];
+                    Float sampleDir[3] = {
+                        tangent[0] * ld.x + bitangent[0] * ld.y + norm[0] * ld.z,
+                        tangent[1] * ld.x + bitangent[1] * ld.y + norm[1] * ld.z,
+                        tangent[2] * ld.x + bitangent[2] * ld.y + norm[2] * ld.z
+                    };
+
+                    gpu_ray_t& gray = gpuBounceRays[baseBounceIdx + r];
+                    gray.origin[0] = pos[0]; gray.origin[1] = pos[1]; gray.origin[2] = pos[2];
+                    gray.tMin = 0.05f;
+                    gray.dir[0] = sampleDir[0]; gray.dir[1] = sampleDir[1]; gray.dir[2] = sampleDir[2];
+                    gray.tMax = 2048.0f;
+                }
             }
-            Float bitangent[3] = { norm[1] * tangent[2] - norm[2] * tangent[1], norm[2] * tangent[0] - norm[0] * tangent[2], norm[0] * tangent[1] - norm[1] * tangent[0]};
-            Float bounceDir[3] = { 0.0f, 0.0f, 0.0f };
+        }
+
+        std::vector<gpu_ray_t> gpuDirectRays;
+        std::vector<vlight_direct_job_t> directJobs;
+        for (int t = 0; t < maxThreads; t++)
+        {
+            gpuDirectRays.insert(gpuDirectRays.end(), threadDirectRays[t].begin(), threadDirectRays[t].end());
+            directJobs.insert(directJobs.end(), threadDirectJobs[t].begin(), threadDirectJobs[t].end());
+        }
+
+        std::vector<Uint32> directHits;
+        TraceOcclusionBatch(gpuDirectRays, directHits);
+
+        for (size_t k = 0; k < directHits.size(); k++)
+        {
+            if (directHits[k] == 0)
+            {
+                const auto& job = directJobs[k];
+                auto& vs = vertSamples[job.v];
+
+                vs.direct[job.style][0] += job.r;
+                vs.direct[job.style][1] += job.g;
+                vs.direct[job.style][2] += job.b;
+
+                Float maxC = std::max({ job.r, job.g, job.b });
+                vs.dominantDir[job.style][0] += job.dir[0] * maxC;
+                vs.dominantDir[job.style][1] += job.dir[1] * maxC;
+                vs.dominantDir[job.style][2] += job.dir[2] * maxC;
+            }
+        }
+
+        const gpu_ray_hit_t* bounceHits = TraceRayHitBatch(gpuBounceRays);
+
+        #pragma omp parallel for schedule(static)
+        for (Int32 v = 0; v < vertexCount; v++)
+        {
+            Float bounceAccum[3] = { 0.0f, 0.0f, 0.0f };
+            Float bounceDirAccum[3] = { 0.0f, 0.0f, 0.0f };
+            size_t baseBounceIdx = (size_t)v * (size_t)numBounceRays;
 
             for (Int32 r = 0; r < numBounceRays; r++)
             {
-                Float u1 = ((Float)r + 0.5f) / (Float)numBounceRays;
-                Float u2 = (Float)((r * 1664525u + 1013904223u) & 0xFFFF) / 65536.0f;
-                Float rSqrt = sqrtf(u1);
-                Float theta = 2.0f * M_PI * u2;
-                Float x = rSqrt * cosf(theta);
-                Float y = rSqrt * sinf(theta);
-                Float z = sqrtf(std::max(0.0f, 1.0f - u1));
-                Float sampleDir[3] = {tangent[0] * x + bitangent[0] * y + norm[0] * z, tangent[1] * x + bitangent[1] * y + norm[1] * z, tangent[2] * x + bitangent[2] * y + norm[2] * z};
-
-                ray_hit_t hit;
-                if (TraceRayHit(pos, sampleDir, 2048.0f, hit))
+                const auto& hit = bounceHits[baseBounceIdx + r];
+                if (hit.hit != 0)
                 {
                     Int32 hitFace = m_primToFaceMap[hit.primID];
                     if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
@@ -212,28 +297,29 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
                         Float gVal = (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
                         Float bVal = (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
 
-                        bounceRad[0] += rVal;
-                        bounceRad[1] += gVal;
-                        bounceRad[2] += bVal;
+                        bounceAccum[0] += rVal;
+                        bounceAccum[1] += gVal;
+                        bounceAccum[2] += bVal;
 
                         Float maxC = std::max({ rVal, gVal, bVal });
-                        bounceDir[0] += sampleDir[0] * maxC;
-                        bounceDir[1] += sampleDir[1] * maxC;
-                        bounceDir[2] += sampleDir[2] * maxC;
+                        bounceDirAccum[0] += gpuBounceRays[baseBounceIdx + r].dir[0] * maxC;
+                        bounceDirAccum[1] += gpuBounceRays[baseBounceIdx + r].dir[1] * maxC;
+                        bounceDirAccum[2] += gpuBounceRays[baseBounceIdx + r].dir[2] * maxC;
                     }
                 }
             }
 
-            vs.ambient[0] = (bounceRad[0] / (Float)numBounceRays) * M_PI;
-            vs.ambient[1] = (bounceRad[1] / (Float)numBounceRays) * M_PI;
-            vs.ambient[2] = (bounceRad[2] / (Float)numBounceRays) * M_PI;
+            auto& vs = vertSamples[v];
+            vs.ambient[0] = (bounceAccum[0] / (Float)numBounceRays) * M_PI;
+            vs.ambient[1] = (bounceAccum[1] / (Float)numBounceRays) * M_PI;
+            vs.ambient[2] = (bounceAccum[2] / (Float)numBounceRays) * M_PI;
 
             Float dDirLen = sqrtf(vs.dominantDir[0][0] * vs.dominantDir[0][0] + vs.dominantDir[0][1] * vs.dominantDir[0][1] + vs.dominantDir[0][2] * vs.dominantDir[0][2]);
             if (dDirLen <= 0.001f)
             {
-                vs.dominantDir[0][0] = bounceDir[0];
-                vs.dominantDir[0][1] = bounceDir[1];
-                vs.dominantDir[0][2] = bounceDir[2];
+                vs.dominantDir[0][0] = bounceDirAccum[0];
+                vs.dominantDir[0][1] = bounceDirAccum[1];
+                vs.dominantDir[0][2] = bounceDirAccum[2];
             }
         }
 
@@ -243,7 +329,9 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
             {
                 Float maxC = std::max({ vertSamples[v].direct[s][0], vertSamples[v].direct[s][1], vertSamples[v].direct[s][2] });
                 if (maxC > maxLightPerStyle[s])
+                {
                     maxLightPerStyle[s] = maxC;
+                }
             }
         }
 
@@ -276,7 +364,9 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
         for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
         {
             if (assignedStyles[s] != 255)
+            {
                 activeStylesCount++;
+            }
         }
 
         for (Int32 slot = 0; slot < activeStylesCount; slot++)
@@ -332,10 +422,10 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir)
             {
                 for (auto& ep : e.epairs)
                 {
-                    if (ep.key == key) 
-                    { 
-                        ep.value = val; 
-                        return; 
+                    if (ep.key == key)
+                    {
+                        ep.value = val;
+                        return;
                     }
                 }
                 e.epairs.push_back({ key, val });

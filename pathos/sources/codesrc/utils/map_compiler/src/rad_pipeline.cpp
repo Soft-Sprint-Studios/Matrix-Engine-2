@@ -33,8 +33,7 @@
 #include <iostream>
 
 CRadPipeline::CRadPipeline() :
-    m_device(nullptr),
-    m_scene(nullptr)
+    m_vk()
 {
 }
 
@@ -43,32 +42,29 @@ CRadPipeline::~CRadPipeline()
     Shutdown();
 }
 
-bool CRadPipeline::InitializeEmbree()
+bool CRadPipeline::InitializeVulkan()
 {
-    m_device = rtcNewDevice(nullptr);
-    if (!m_device)
-    {
-        std::cerr << "Error: Failed to initialize Embree 4 device.\n";
-        return false;
-    }
-
-    m_scene = rtcNewScene(m_device);
-    rtcSetSceneBuildQuality(m_scene, RTC_BUILD_QUALITY_HIGH);
-    return true;
+    return m_vk.Initialize();
 }
 
 void CRadPipeline::Shutdown()
 {
-    if (m_scene)
-    {
-        rtcReleaseScene(m_scene);
-        m_scene = nullptr;
-    }
-    if (m_device)
-    {
-        rtcReleaseDevice(m_device);
-        m_device = nullptr;
-    }
+    m_vk.Shutdown();
+}
+
+bool CRadPipeline::ComputePVSGPU(size_t numVisLeafs, const std::vector<gpu_leaf_sample_t>& leafs, std::vector<byte>& outPvsMatrix, size_t rowBytes) const
+{
+    return const_cast<CVulkanRayTracer&>(m_vk).RunPVSCompute(leafs, (Uint32)numVisLeafs, outPvsMatrix, (Uint32)rowBytes);
+}
+
+bool CRadPipeline::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, std::vector<Uint32>& outHits)
+{
+    return m_vk.TraceOcclusionBatch(rays, outHits);
+}
+
+const gpu_ray_hit_t* CRadPipeline::TraceRayHitBatch(const std::vector<gpu_ray_t>& rays)
+{
+    return m_vk.TraceRayHitBatch(rays);
 }
 
 void CRadPipeline::LoadTexlights(const Char* baseDir)
@@ -86,17 +82,22 @@ void CRadPipeline::LoadTexlights(const Char* baseDir)
     for (const auto& path : pathsToTry)
     {
         f = fopen(path.c_str(), "r");
+        if (f) break;
     }
 
     if (!f)
+    {
         return;
+    }
 
     char line[1024];
     while (fgets(line, sizeof(line), f))
     {
         char* comment = strstr(line, "//");
         if (comment)
+        {
             *comment = '\0';
+        }
 
         char texName[128];
         float r = 0, g = 0, b = 0, intensity = 1.0f;
@@ -140,8 +141,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
     std::vector<Uint32> alphaIndices;
     std::vector<Int32> alphaFaceMap;
     std::vector<scene_prim_t> alphaPrims;
-    m_alphaGeomID = (Uint32)-1;
-    m_opaquePrimCount = 0;
     m_primToFaceMap.clear();
     m_scenePrims.clear();
     m_materials.clear();
@@ -160,7 +159,9 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         {
             material_t mat;
             if (LoadMaterial(baseDir, tex.name, mat))
+            {
                 m_materials[texName] = mat;
+            }
             else
             {
                 mat.hasAlphaTest = false;
@@ -175,7 +176,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         m_faceInfos[i].hasAlphaTest = mat.hasAlphaTest;
         m_faceInfos[i].diffuseImage = &mat.diffuseImage;
         m_faceInfos[i].minLight = 0.0f;
-        m_faceInfos[i].ignoreNight = false;
 
         std::string upperTex = tex.name;
         std::transform(upperTex.begin(), upperTex.end(), upperTex.begin(), ::toupper);
@@ -197,23 +197,25 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
     for (const auto& ent : mapData.entities)
     {
         const Char* mdlName = ent.GetValue("model");
-        if (!mdlName || mdlName[0] != '*') 
+        if (!mdlName || mdlName[0] != '*')
+        {
             continue;
+        }
 
         Int32 subIdx = atoi(mdlName + 1);
-        if (subIdx <= 0 || subIdx >= (Int32)g_BSP.GetModelCount()) 
+        if (subIdx <= 0 || subIdx >= (Int32)g_BSP.GetModelCount())
+        {
             continue;
+        }
 
         const auto& mdl = g_BSP.GetModel(subIdx);
         Float minL = (Float)atof(ent.GetValue("_minlight")) * 128.0f;
-        bool ignN = (atoi(ent.GetValue("_ignorenight")) == 1);
 
         for (Int32 f = mdl.firstface; f < mdl.firstface + mdl.numfaces; f++)
         {
             if (f >= 0 && f < (Int32)m_faceInfos.size())
             {
                 m_faceInfos[f].minLight = minL;
-                m_faceInfos[f].ignoreNight = ignN;
             }
         }
     }
@@ -365,16 +367,16 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                     Float texW = (fInfo.diffuseImage && fInfo.diffuseImage->width > 0) ? (Float)fInfo.diffuseImage->width : 1.0f;
                     Float texH = (fInfo.diffuseImage && fInfo.diffuseImage->height > 0) ? (Float)fInfo.diffuseImage->height : 1.0f;
 
-                    auto CalcUV = [&](Int32 gridX, Int32 gridY, Float outUV[2]) 
+                    auto CalcUV = [&](Int32 gridX, Int32 gridY, Float outUV[2])
                         {
-                        Int32 ptIdx = gridY * K + gridX;
-                        Float posX = grid[ptIdx * 3 + 0];
-                        Float posY = grid[ptIdx * 3 + 1];
-                        Float posZ = grid[ptIdx * 3 + 2];
-                        Float s = posX * tx.vecs[0][0] + posY * tx.vecs[0][1] + posZ * tx.vecs[0][2] + tx.vecs[0][3];
-                        Float t = posX * tx.vecs[1][0] + posY * tx.vecs[1][1] + posZ * tx.vecs[1][2] + tx.vecs[1][3];
-                        outUV[0] = s / texW;
-                        outUV[1] = t / texH;
+                            Int32 ptIdx = gridY * K + gridX;
+                            Float posX = grid[ptIdx * 3 + 0];
+                            Float posY = grid[ptIdx * 3 + 1];
+                            Float posZ = grid[ptIdx * 3 + 2];
+                            Float s = posX * tx.vecs[0][0] + posY * tx.vecs[0][1] + posZ * tx.vecs[0][2] + tx.vecs[0][3];
+                            Float t = posX * tx.vecs[1][0] + posY * tx.vecs[1][1] + posZ * tx.vecs[1][2] + tx.vecs[1][3];
+                            outUV[0] = s / texW;
+                            outUV[1] = t / texH;
                         };
 
                     CalcUV(x, y, p0.uv[0]);
@@ -410,16 +412,16 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                     Float texW = (fInfo.diffuseImage && fInfo.diffuseImage->width > 0) ? (Float)fInfo.diffuseImage->width : 1.0f;
                     Float texH = (fInfo.diffuseImage && fInfo.diffuseImage->height > 0) ? (Float)fInfo.diffuseImage->height : 1.0f;
 
-                    auto CalcUV = [&](Int32 gridX, Int32 gridY, Float outUV[2]) 
+                    auto CalcUV = [&](Int32 gridX, Int32 gridY, Float outUV[2])
                         {
-                        Int32 ptIdx = gridY * K + gridX;
-                        Float posX = grid[ptIdx * 3 + 0];
-                        Float posY = grid[ptIdx * 3 + 1];
-                        Float posZ = grid[ptIdx * 3 + 2];
-                        Float s = posX * tx.vecs[0][0] + posY * tx.vecs[0][1] + posZ * tx.vecs[0][2] + tx.vecs[0][3];
-                        Float t = posX * tx.vecs[1][0] + posY * tx.vecs[1][1] + posZ * tx.vecs[1][2] + tx.vecs[1][3];
-                        outUV[0] = s / texW;
-                        outUV[1] = t / texH;
+                            Int32 ptIdx = gridY * K + gridX;
+                            Float posX = grid[ptIdx * 3 + 0];
+                            Float posY = grid[ptIdx * 3 + 1];
+                            Float posZ = grid[ptIdx * 3 + 2];
+                            Float s = posX * tx.vecs[0][0] + posY * tx.vecs[0][1] + posZ * tx.vecs[0][2] + tx.vecs[0][3];
+                            Float t = posX * tx.vecs[1][0] + posY * tx.vecs[1][1] + posZ * tx.vecs[1][2] + tx.vecs[1][3];
+                            outUV[0] = s / texW;
+                            outUV[1] = t / texH;
                         };
 
                     CalcUV(x, y, p1.uv[0]);
@@ -428,12 +430,9 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                 }
                 else
                 {
-                    p1.uv[0][0] = 0.0f; 
-                    p1.uv[0][1] = 0.0f;
-                    p1.uv[1][0] = 0.0f; 
-                    p1.uv[1][1] = 0.0f;
-                    p1.uv[2][0] = 0.0f; 
-                    p1.uv[2][1] = 0.0f;
+                    p1.uv[0][0] = 0.0f; p1.uv[0][1] = 0.0f;
+                    p1.uv[1][0] = 0.0f; p1.uv[1][1] = 0.0f;
+                    p1.uv[2][0] = 0.0f; p1.uv[2][1] = 0.0f;
                 }
                 m_scenePrims.push_back(p1);
             }
@@ -449,12 +448,16 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
             {
                 poly_brush_t pb;
                 if (!BuildBrushPolygons(br, pb))
+                {
                     continue;
+                }
 
                 for (const auto& f : pb.faces)
                 {
-                    if (f.verts.size() < 3) 
+                    if (f.verts.size() < 3)
+                    {
                         continue;
+                    }
 
                     Uint32 bIdx = (Uint32)(sceneVerts.size() / 3);
                     const auto& v0 = f.verts[0];
@@ -484,19 +487,27 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
 
         if (strcmp(ent.GetValue("classname"), "env_model") != 0)
+        {
             continue;
+        }
         if (atoi(ent.GetValue("disableshadows")) != 0)
+        {
             continue;
+        }
 
         const Char* modelPath = ent.GetValue("model");
         if (!modelPath || !modelPath[0])
+        {
             continue;
+        }
 
         Float origin[3] = { 0.0f, 0.0f, 0.0f };
         Float angles[3] = { 0.0f, 0.0f, 0.0f };
         Float scale = (Float)atof(ent.GetValue("scale"));
-        if (scale <= 0.0f) 
+        if (scale <= 0.0f)
+        {
             scale = 1.0f;
+        }
 
         sscanf(ent.GetValue("origin"), "%f %f %f", &origin[0], &origin[1], &origin[2]);
         if (ent.GetValue("angles")[0])
@@ -506,12 +517,9 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         else if (ent.GetValue("angle")[0])
         {
             Float a = (Float)atof(ent.GetValue("angle"));
-            if (a == -1.0f) 
-                angles[0] = -90.0f;
-            else if (a == -2.0f) 
-                angles[0] = 90.0f;
-            else 
-                angles[1] = a;
+            if (a == -1.0f) angles[0] = -90.0f;
+            else if (a == -2.0f) angles[0] = 90.0f;
+            else angles[1] = a;
         }
 
         angles[1] += 90.0f;
@@ -519,19 +527,25 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         Char fullVbmPath[512];
         snprintf(fullVbmPath, sizeof(fullVbmPath), "%s/%s", baseDir, modelPath);
         char* ext = strstr(fullVbmPath, ".mdl");
-        if (ext) 
+        if (ext)
+        {
             strcpy(ext, ".vbm");
+        }
 
         vbm_model_t vbm;
         if (!LoadVBMModel(fullVbmPath, origin, angles, scale, vbm))
         {
             snprintf(fullVbmPath, sizeof(fullVbmPath), "%s/models/%s", baseDir, modelPath);
             ext = strstr(fullVbmPath, ".mdl");
-            if (ext) 
+            if (ext)
+            {
                 strcpy(ext, ".vbm");
+            }
 
             if (!LoadVBMModel(fullVbmPath, origin, angles, scale, vbm))
+            {
                 continue;
+            }
         }
 
         Uint32 baseVertOffset = (Uint32)(sceneVerts.size() / 3);
@@ -556,121 +570,20 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
     }
 
-    m_opaquePrimCount = m_primToFaceMap.size();
     m_primToFaceMap.insert(m_primToFaceMap.end(), alphaFaceMap.begin(), alphaFaceMap.end());
     m_scenePrims.insert(m_scenePrims.end(), alphaPrims.begin(), alphaPrims.end());
 
-    if (!sceneVerts.empty() && !sceneIndices.empty())
+    std::vector<Float> allVerts = sceneVerts;
+    std::vector<Uint32> allIndices = sceneIndices;
+
+    Uint32 baseAlphaIdx = (Uint32)(allVerts.size() / 3);
+    allVerts.insert(allVerts.end(), alphaVerts.begin(), alphaVerts.end());
+    for (Uint32 idx : alphaIndices)
     {
-        RTCGeometry geomOpaque = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
-        Float* vb = (Float*)rtcSetNewGeometryBuffer(geomOpaque, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Float) * 3, sceneVerts.size() / 3);
-        memcpy(vb, sceneVerts.data(), sceneVerts.size() * sizeof(Float));
-
-        Uint32* ib = (Uint32*)rtcSetNewGeometryBuffer(geomOpaque, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Uint32) * 3, sceneIndices.size() / 3);
-        memcpy(ib, sceneIndices.data(), sceneIndices.size() * sizeof(Uint32));
-
-        rtcCommitGeometry(geomOpaque);
-        rtcAttachGeometry(m_scene, geomOpaque);
-        rtcReleaseGeometry(geomOpaque);
+        allIndices.push_back(baseAlphaIdx + idx);
     }
 
-    if (!alphaVerts.empty() && !alphaIndices.empty())
-    {
-        RTCGeometry geomAlpha = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
-        Float* vb = (Float*)rtcSetNewGeometryBuffer(geomAlpha, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Float) * 3, alphaVerts.size() / 3);
-        memcpy(vb, alphaVerts.data(), alphaVerts.size() * sizeof(Float));
-
-        Uint32* ib = (Uint32*)rtcSetNewGeometryBuffer(geomAlpha, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Uint32) * 3, alphaIndices.size() / 3);
-        memcpy(ib, alphaIndices.data(), alphaIndices.size() * sizeof(Uint32));
-
-        rtcSetGeometryUserData(geomAlpha, this);
-        rtcSetGeometryIntersectFilterFunction(geomAlpha, AlphaTestFilterCallback);
-        rtcSetGeometryOccludedFilterFunction(geomAlpha, AlphaTestFilterCallback);
-        rtcCommitGeometry(geomAlpha);
-        m_alphaGeomID = rtcAttachGeometry(m_scene, geomAlpha);
-        rtcReleaseGeometry(geomAlpha);
-    }
-
-    rtcCommitScene(m_scene);
-}
-
-bool CRadPipeline::TraceOcclusion(const Float start[3], const Float end[3], Float& outDist) const
-{
-    Float dir[3] = { end[0] - start[0], end[1] - start[1], end[2] - start[2] };
-    Float dist = sqrtf(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
-    if (dist < 0.001f)
-    {
-        return false;
-    }
-
-    dir[0] /= dist;
-    dir[1] /= dist;
-    dir[2] /= dist;
-
-    outDist = dist;
-
-    RTCRay ray;
-    ray.org_x = start[0];
-    ray.org_y = start[1];
-    ray.org_z = start[2];
-    ray.dir_x = dir[0];
-    ray.dir_y = dir[1];
-    ray.dir_z = dir[2];
-    ray.tnear = 0.01f;
-    ray.tfar = dist - 0.01f;
-    ray.time = 0.0f;
-    ray.mask = (unsigned int)-1;
-    ray.flags = 0;
-
-    RTCOccludedArguments args;
-    rtcInitOccludedArguments(&args);
-    args.flags = RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER;
-
-    rtcOccluded1(m_scene, &ray, &args);
-    return ray.tfar < 0.0f;
-}
-
-bool CRadPipeline::TraceRayHit(const Float start[3], const Float dir[3], Float maxDist, ray_hit_t& outHit) const
-{
-    RTCRayHit rayhit;
-    rayhit.ray.org_x = start[0];
-    rayhit.ray.org_y = start[1];
-    rayhit.ray.org_z = start[2];
-    rayhit.ray.dir_x = dir[0];
-    rayhit.ray.dir_y = dir[1];
-    rayhit.ray.dir_z = dir[2];
-    rayhit.ray.tnear = 0.01f;
-    rayhit.ray.tfar = maxDist;
-    rayhit.ray.time = 0.0f;
-    rayhit.ray.mask = (unsigned int)-1;
-    rayhit.ray.flags = 0;
-
-    rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-    rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
-
-    RTCIntersectArguments args;
-    rtcInitIntersectArguments(&args);
-    args.flags = RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER;
-
-    rtcIntersect1(m_scene, &rayhit, &args);
-
-    if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
-    {
-        outHit.hit = true;
-        outHit.dist = rayhit.ray.tfar;
-        outHit.normal[0] = rayhit.hit.Ng_x;
-        outHit.normal[1] = rayhit.hit.Ng_y;
-        outHit.normal[2] = rayhit.hit.Ng_z;
-
-        outHit.geomID = rayhit.hit.geomID;
-        outHit.primID = (rayhit.hit.geomID == m_alphaGeomID) ? (rayhit.hit.primID + (Uint32)m_opaquePrimCount) : rayhit.hit.primID;
-        outHit.u = rayhit.hit.u;
-        outHit.v = rayhit.hit.v;
-        return true;
-    }
-
-    outHit.hit = false;
-    return false;
+    m_vk.BuildSceneBVH(allVerts, allIndices);
 }
 
 struct gamma_lut_t
@@ -689,39 +602,33 @@ static const gamma_lut_t g_gammaLUT;
 
 void CRadPipeline::SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlbedo[3]) const
 {
+    outAlbedo[0] = outAlbedo[1] = outAlbedo[2] = 0.5f;
+
     if (primID >= m_scenePrims.size())
-    {
-        outAlbedo[0] = outAlbedo[1] = outAlbedo[2] = 0.5f;
         return;
-    }
 
     const scene_prim_t& prim = m_scenePrims[primID];
     if (prim.faceIndex < 0 || prim.faceIndex >= (Int32)m_faceInfos.size())
-    {
-        outAlbedo[0] = outAlbedo[1] = outAlbedo[2] = 0.5f;
         return;
-    }
 
     const face_info_t& fInfo = m_faceInfos[prim.faceIndex];
     const dds_image_t* img = fInfo.diffuseImage;
     if (!img || img->rgba.empty() || img->width <= 0 || img->height <= 0)
-    {
-        outAlbedo[0] = outAlbedo[1] = outAlbedo[2] = 0.5f;
         return;
-    }
-
-    Int32 imgW = img->width;
-    Int32 imgH = img->height;
 
     Float w = 1.0f - u - v;
     Float texU = w * prim.uv[0][0] + u * prim.uv[1][0] + v * prim.uv[2][0];
     Float texV = w * prim.uv[0][1] + u * prim.uv[1][1] + v * prim.uv[2][1];
 
-    texU = texU - floorf(texU);
-    texV = texV - floorf(texV);
+    Int32 imgW = img->width;
+    Int32 imgH = img->height;
 
-    Int32 px = std::clamp((Int32)(texU * imgW), 0, imgW - 1);
-    Int32 py = std::clamp((Int32)(texV * imgH), 0, imgH - 1);
+    Int32 px = (Int32)(texU * (Float)imgW) % imgW;
+    if (px < 0) 
+        px += imgW;
+    Int32 py = (Int32)(texV * (Float)imgH) % imgH;
+    if (py < 0)
+        py += imgH;
 
     const byte* pixel = &img->rgba[((size_t)py * imgW + px) * 4];
     outAlbedo[0] = g_gammaLUT.table[pixel[0]];

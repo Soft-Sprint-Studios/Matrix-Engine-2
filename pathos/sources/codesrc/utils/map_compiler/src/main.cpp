@@ -35,12 +35,6 @@
 
 int main(int argc, char* argv[])
 {
-#ifdef _WIN32
-    _putenv("OMP_WAIT_POLICY=ACTIVE");
-#else
-    setenv("OMP_WAIT_POLICY", "ACTIVE", 1);
-#endif
-
     std::cout << "=========================================\n";
     std::cout << "Matrix Engine 2 Map Compiler\n";
     std::cout << "=========================================\n\n";
@@ -50,6 +44,11 @@ int main(int argc, char* argv[])
     std::string basePath = "";
     std::string gamedir = "";
     std::string daystage = "";
+
+    int samples = 64;
+    int bounces = 1;
+    int gridDistance = 32;
+
     for (int i = 1; i < argc; i++)
     {
         if ((strcmp(argv[i], "-gamedir") == 0 || strcmp(argv[i], "-moddir") == 0) && i + 1 < argc)
@@ -60,6 +59,18 @@ int main(int argc, char* argv[])
         {
             daystage = argv[++i];
         }
+        else if ((strcmp(argv[i], "-sample") == 0 || strcmp(argv[i], "-samples") == 0) && i + 1 < argc)
+        {
+            samples = std::max(1, atoi(argv[++i]));
+        }
+        else if ((strcmp(argv[i], "-bounce") == 0 || strcmp(argv[i], "-bounces") == 0) && i + 1 < argc)
+        {
+            bounces = std::max(0, atoi(argv[++i]));
+        }
+        else if (strcmp(argv[i], "-griddistance") == 0 && i + 1 < argc)
+        {
+            gridDistance = std::max(4, atoi(argv[++i]));
+        }
         else if (argv[i][0] != '-')
         {
             basePath = argv[i];
@@ -68,7 +79,7 @@ int main(int argc, char* argv[])
 
     if (basePath.empty())
     {
-        std::cout << "Usage: " << argv[0] << " [-gamedir <path>] <path_to_map_file>\n";
+        std::cout << "Usage: " << argv[0] << " [-gamedir <path>] [-sample <n>] [-bounce <n>] [-griddistance <n>] <path_to_map_file>\n";
         return 1;
     }
 
@@ -102,19 +113,19 @@ int main(int argc, char* argv[])
     }
 
     CRadPipeline rad;
-    if (rad.InitializeEmbree())
+    if (rad.InitializeVulkan())
     {
         rad.BuildSceneGeometry(mapData, dispData, gamedir.c_str());
         rad.ParseLights(mapData, daystage);
 
         CalculatePVS(&rad);
 
-        rad.BakeLightmaps(faceLightmaps, gamedir.c_str());
-        rad.BakeVertexLights(mapData, gamedir.c_str());
+        rad.BakeLightmaps(faceLightmaps, gamedir.c_str(), bounces, samples);
+        rad.BakeVertexLights(mapData, gamedir.c_str(), samples);
 
         g_BSP.SetEntities(SerializeEntities(mapData));
 
-        rad.BuildLightGrid(32);
+        rad.BuildLightGrid(gridDistance, samples);
         rad.Shutdown();
     }
 
