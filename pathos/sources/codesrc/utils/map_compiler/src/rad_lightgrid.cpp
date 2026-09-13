@@ -350,7 +350,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         size_t chunkSize = std::min(chunkProbes, numActive - chunkStart);
         chunkProbeRays.resize(chunkSize * (size_t)numProbeRays);
 
-#pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int cIdx = 0; cIdx < (int)chunkSize; cIdx++)
         {
             size_t a = chunkStart + cIdx;

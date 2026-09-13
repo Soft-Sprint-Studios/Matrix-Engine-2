@@ -271,7 +271,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
             size_t chunkSize = std::min(chunkVerts, (size_t)vertexCount - chunkStart);
             chunkBounceRays.resize(chunkSize * (size_t)numBounceRays);
 
-#pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static)
             for (int cIdx = 0; cIdx < (int)chunkSize; cIdx++)
             {
                 Int32 v = (Int32)(chunkStart + cIdx);
