@@ -91,7 +91,9 @@ void main()
 
             rayQueryEXT query;
             rayQueryInitializeEXT(query, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT, 0xFF, pA, 0.05, rayDir, dist - 0.05);
-            rayQueryProceedEXT(query);
+            while (rayQueryProceedEXT(query))
+            {
+            }
 
             if (rayQueryGetIntersectionTypeEXT(query, true) == gl_RayQueryCommittedIntersectionNoneEXT)
             {
