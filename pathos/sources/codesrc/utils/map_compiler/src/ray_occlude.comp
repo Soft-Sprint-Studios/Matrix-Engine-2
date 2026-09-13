@@ -1,5 +1,6 @@
 #version 460
 #extension GL_EXT_ray_query : require
+#extension GL_EXT_nonuniform_qualifier : require
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -21,6 +22,22 @@ layout(std430, set = 0, binding = 2) writeonly buffer OutHitBuffer
     uint hits[];
 };
 
+struct PrimData
+{
+    vec2 uv0;
+    vec2 uv1;
+    vec2 uv2;
+    int texIndex;
+    int faceIndex;
+};
+
+layout(std430, set = 0, binding = 3) readonly buffer InPrimData
+{
+    PrimData prims[];
+};
+
+layout(set = 0, binding = 4) uniform sampler2D textures[256];
+
 layout(push_constant) uniform PushConstants
 {
     uint numRays;
@@ -40,8 +57,31 @@ void main()
     float tmax = rays[idx].dir_tmax.w;
 
     rayQueryEXT query;
-    rayQueryInitializeEXT(query, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT, 0xFF, origin, tmin, dir, tmax);
-    rayQueryProceedEXT(query);
+    rayQueryInitializeEXT(query, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, tmin, dir, tmax);
+
+    while (rayQueryProceedEXT(query))
+    {
+        if (rayQueryGetIntersectionTypeEXT(query, false) == gl_RayQueryCandidateIntersectionTriangleEXT)
+        {
+            uint primID = rayQueryGetIntersectionPrimitiveIndexEXT(query, false);
+            PrimData pd = prims[primID];
+            if (pd.texIndex >= 0)
+            {
+                vec2 bary = rayQueryGetIntersectionBarycentricsEXT(query, false);
+                float w = 1.0 - bary.x - bary.y;
+                vec2 uv = w * pd.uv0 + bary.x * pd.uv1 + bary.y * pd.uv2;
+                float alpha = texture(textures[nonuniformEXT(pd.texIndex)], uv).a;
+                if (alpha >= 0.5)
+                {
+                    rayQueryConfirmIntersectionEXT(query);
+                }
+            }
+            else
+            {
+                rayQueryConfirmIntersectionEXT(query);
+            }
+        }
+    }
 
     uint isHit = (rayQueryGetIntersectionTypeEXT(query, true) != gl_RayQueryCommittedIntersectionNoneEXT) ? 1u : 0u;
     hits[idx] = isHit;

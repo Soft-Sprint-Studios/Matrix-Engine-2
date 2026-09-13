@@ -191,7 +191,7 @@ VkShaderModule CVulkanRayTracer::LoadSPIRV(const std::string& filename)
 
 bool CVulkanRayTracer::CreateComputePipeline(VkShaderModule shaderModule, VkDescriptorSetLayout& outDescLayout, VkPipelineLayout& outPipeLayout, VkPipeline& outPipeline)
 {
-    VkDescriptorSetLayoutBinding bindings[3] = {};
+    VkDescriptorSetLayoutBinding bindings[5] = {};
     bindings[0].binding = 0;
     bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     bindings[0].descriptorCount = 1;
@@ -207,8 +207,18 @@ bool CVulkanRayTracer::CreateComputePipeline(VkShaderModule shaderModule, VkDesc
     bindings[2].descriptorCount = 1;
     bindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
+    bindings[3].binding = 3;
+    bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings[3].descriptorCount = 1;
+    bindings[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    bindings[4].binding = 4;
+    bindings[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[4].descriptorCount = 256;
+    bindings[4].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
     VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-    layoutInfo.bindingCount = 3;
+    layoutInfo.bindingCount = 5;
     layoutInfo.pBindings = bindings;
 
     if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &outDescLayout) != VK_SUCCESS)
@@ -341,13 +351,23 @@ bool CVulkanRayTracer::Initialize()
 
     VkDescriptorPoolSize poolSizes[] = {
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 16 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 64 }
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 64 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 }
     };
     VkDescriptorPoolCreateInfo descPoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     descPoolInfo.maxSets = 32;
-    descPoolInfo.poolSizeCount = 2;
+    descPoolInfo.poolSizeCount = 3;
     descPoolInfo.pPoolSizes = poolSizes;
     vkCreateDescriptorPool(m_device, &descPoolInfo, nullptr, &m_descriptorPool);
+
+    VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+    vkCreateSampler(m_device, &samplerInfo, nullptr, &m_textureSampler);
 
     VkShaderModule pvsMod = LoadSPIRV("vis.comp.spv");
     if (pvsMod != VK_NULL_HANDLE)
@@ -397,7 +417,26 @@ void CVulkanRayTracer::Shutdown()
     {
         vkDeviceWaitIdle(m_device);
 
-        if (m_pvsPipeline) 
+        for (auto& gi : m_gpuImages)
+        {
+            if (gi.view) 
+                vkDestroyImageView(m_device, gi.view, nullptr);
+            if (gi.image) 
+                vkDestroyImage(m_device, gi.image, nullptr);
+            if (gi.memory)
+                vkFreeMemory(m_device, gi.memory, nullptr);
+        }
+        m_gpuImages.clear();
+
+        if (m_textureSampler)
+        {
+            vkDestroySampler(m_device, m_textureSampler, nullptr);
+            m_textureSampler = VK_NULL_HANDLE;
+        }
+
+        DestroyBuffer(m_primBuf);
+
+        if (m_pvsPipeline)
             vkDestroyPipeline(m_device, m_pvsPipeline, nullptr);
         if (m_pvsPipelineLayout)
             vkDestroyPipelineLayout(m_device, m_pvsPipelineLayout, nullptr);
@@ -467,7 +506,7 @@ bool CVulkanRayTracer::BuildSceneBVH(const std::vector<Float>& vertices, const s
 
     VkAccelerationStructureGeometryKHR geom{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR };
     geom.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-    geom.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    geom.flags = 0;
     geom.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
     geom.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
     geom.geometry.triangles.vertexData.deviceAddress = vBuf.deviceAddress;
@@ -590,6 +629,141 @@ bool CVulkanRayTracer::BuildSceneBVH(const std::vector<Float>& vertices, const s
     DestroyBuffer(instBuf);
 
     return true;
+}
+
+void CVulkanRayTracer::UploadGpuTextures(const std::vector<dds_image_t>& images)
+{
+    for (auto& gi : m_gpuImages)
+    {
+        if (gi.view) 
+            vkDestroyImageView(m_device, gi.view, nullptr);
+        if (gi.image) 
+            vkDestroyImage(m_device, gi.image, nullptr);
+        if (gi.memory) 
+            vkFreeMemory(m_device, gi.memory, nullptr);
+    }
+    m_gpuImages.clear();
+
+    m_gpuImages.resize(256);
+
+    dds_image_t dummy;
+    dummy.width = 1;
+    dummy.height = 1;
+    dummy.rgba = { 255, 255, 255, 255 };
+
+    for (size_t i = 0; i < 256; i++)
+    {
+        const dds_image_t& src = (i < images.size() && !images[i].rgba.empty() && images[i].width > 0 && images[i].height > 0) ? images[i] : dummy;
+
+        VkImageCreateInfo imgInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+        imgInfo.imageType = VK_IMAGE_TYPE_2D;
+        imgInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imgInfo.extent.width = (Uint32)src.width;
+        imgInfo.extent.height = (Uint32)src.height;
+        imgInfo.extent.depth = 1;
+        imgInfo.mipLevels = 1;
+        imgInfo.arrayLayers = 1;
+        imgInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imgInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imgInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imgInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imgInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        vkCreateImage(m_device, &imgInfo, nullptr, &m_gpuImages[i].image);
+
+        VkMemoryRequirements memReqs;
+        vkGetImageMemoryRequirements(m_device, m_gpuImages[i].image, &memReqs);
+
+        VkMemoryAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+        allocInfo.allocationSize = memReqs.size;
+        allocInfo.memoryTypeIndex = FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        vkAllocateMemory(m_device, &allocInfo, nullptr, &m_gpuImages[i].memory);
+        vkBindImageMemory(m_device, m_gpuImages[i].image, m_gpuImages[i].memory, 0);
+
+        VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+        viewInfo.image = m_gpuImages[i].image;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+        vkCreateImageView(m_device, &viewInfo, nullptr, &m_gpuImages[i].view);
+
+        vk_buffer_t stageBuf;
+        VkDeviceSize imgBytes = src.width * src.height * 4;
+        CreateBuffer(imgBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stageBuf);
+
+        void* mapped = nullptr;
+        vkMapMemory(m_device, stageBuf.memory, 0, imgBytes, 0, &mapped);
+        memcpy(mapped, src.rgba.data(), imgBytes);
+        vkUnmapMemory(m_device, stageBuf.memory);
+
+        VkCommandBufferAllocateInfo cmdAlloc{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        cmdAlloc.commandPool = m_cmdPool;
+        cmdAlloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdAlloc.commandBufferCount = 1;
+        VkCommandBuffer cmd;
+        vkAllocateCommandBuffers(m_device, &cmdAlloc, &cmd);
+
+        VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        vkBeginCommandBuffer(cmd, &beginInfo);
+
+        VkImageMemoryBarrier barrier1{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        barrier1.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier1.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier1.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier1.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier1.image = m_gpuImages[i].image;
+        barrier1.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier1.subresourceRange.baseMipLevel = 0;
+        barrier1.subresourceRange.levelCount = 1;
+        barrier1.subresourceRange.baseArrayLayer = 0;
+        barrier1.subresourceRange.layerCount = 1;
+        barrier1.srcAccessMask = 0;
+        barrier1.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier1);
+
+        VkBufferImageCopy copyRegion{};
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.layerCount = 1;
+        copyRegion.imageExtent.width = (Uint32)src.width;
+        copyRegion.imageExtent.height = (Uint32)src.height;
+        copyRegion.imageExtent.depth = 1;
+        vkCmdCopyBufferToImage(cmd, stageBuf.buffer, m_gpuImages[i].image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+
+        VkImageMemoryBarrier barrier2 = barrier1;
+        barrier2.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier2.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier2.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier2);
+
+        vkEndCommandBuffer(cmd);
+
+        VkSubmitInfo submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        submit.commandBufferCount = 1;
+        submit.pCommandBuffers = &cmd;
+        vkQueueSubmit(m_queue, 1, &submit, VK_NULL_HANDLE);
+        vkQueueWaitIdle(m_queue);
+
+        vkFreeCommandBuffers(m_device, m_cmdPool, 1, &cmd);
+        DestroyBuffer(stageBuf);
+    }
+}
+
+void CVulkanRayTracer::UploadPrimData(const std::vector<gpu_prim_data_t>& prims)
+{
+    if (prims.empty()) 
+        return;
+
+    VkDeviceSize bSize = prims.size() * sizeof(gpu_prim_data_t);
+    EnsureBuffer(m_primBuf, bSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* mapped = nullptr;
+    vkMapMemory(m_device, m_primBuf.memory, 0, bSize, 0, &mapped);
+    memcpy(mapped, prims.data(), bSize);
+    vkUnmapMemory(m_device, m_primBuf.memory);
 }
 
 bool CVulkanRayTracer::RunPVSCompute(const std::vector<gpu_leaf_sample_t>& leafs, Uint32 numVisLeafs, std::vector<byte>& outPvsMatrix, Uint32 rowBytes)
@@ -726,7 +900,15 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     asDesc.accelerationStructureCount = 1;
     asDesc.pAccelerationStructures = &m_tlas.handle;
 
-    VkWriteDescriptorSet writes[3] = {};
+    VkDescriptorImageInfo imageInfos[256];
+    for (size_t i = 0; i < 256; i++)
+    {
+        imageInfos[i].sampler = m_textureSampler;
+        imageInfos[i].imageView = (i < m_gpuImages.size()) ? m_gpuImages[i].view : VK_NULL_HANDLE;
+        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
+
+    VkWriteDescriptorSet writes[5] = {};
     writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[0].pNext = &asDesc;
     writes[0].dstSet = m_occludeDescSet;
@@ -750,7 +932,24 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     writes[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     writes[2].pBufferInfo = &bInfo2;
 
-    vkUpdateDescriptorSets(m_device, 3, writes, 0, nullptr);
+    VkDescriptorBufferInfo bInfo3{ m_primBuf.buffer, 0, m_primBuf.size };
+    writes[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[3].dstSet = m_occludeDescSet;
+    writes[3].dstBinding = 3;
+    writes[3].descriptorCount = 1;
+    writes[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    writes[3].pBufferInfo = &bInfo3;
+
+    writes[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[4].dstSet = m_occludeDescSet;
+    writes[4].dstBinding = 4;
+    writes[4].descriptorCount = 256;
+    writes[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writes[4].pImageInfo = imageInfos;
+
+    vkUpdateDescriptorSets(m_device, 5, writes, 0, nullptr);
+
+    vkResetCommandBuffer(m_cmdBuffer, 0);
 
     VkCommandBufferBeginInfo bBegin{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     vkBeginCommandBuffer(m_cmdBuffer, &bBegin);
@@ -806,7 +1005,15 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
     asDesc.accelerationStructureCount = 1;
     asDesc.pAccelerationStructures = &m_tlas.handle;
 
-    VkWriteDescriptorSet writes[3] = {};
+    VkDescriptorImageInfo imageInfos[256];
+    for (size_t i = 0; i < 256; i++)
+    {
+        imageInfos[i].sampler = m_textureSampler;
+        imageInfos[i].imageView = (i < m_gpuImages.size()) ? m_gpuImages[i].view : VK_NULL_HANDLE;
+        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
+
+    VkWriteDescriptorSet writes[5] = {};
     writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[0].pNext = &asDesc;
     writes[0].dstSet = m_intersectDescSet;
@@ -830,7 +1037,24 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
     writes[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     writes[2].pBufferInfo = &bInfo2;
 
-    vkUpdateDescriptorSets(m_device, 3, writes, 0, nullptr);
+    VkDescriptorBufferInfo bInfo3{ m_primBuf.buffer, 0, m_primBuf.size };
+    writes[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[3].dstSet = m_intersectDescSet;
+    writes[3].dstBinding = 3;
+    writes[3].descriptorCount = 1;
+    writes[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    writes[3].pBufferInfo = &bInfo3;
+
+    writes[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[4].dstSet = m_intersectDescSet;
+    writes[4].dstBinding = 4;
+    writes[4].descriptorCount = 256;
+    writes[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writes[4].pImageInfo = imageInfos;
+
+    vkUpdateDescriptorSets(m_device, 5, writes, 0, nullptr);
+
+    vkResetCommandBuffer(m_cmdBuffer, 0);
 
     VkCommandBufferBeginInfo bBegin{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     vkBeginCommandBuffer(m_cmdBuffer, &bBegin);

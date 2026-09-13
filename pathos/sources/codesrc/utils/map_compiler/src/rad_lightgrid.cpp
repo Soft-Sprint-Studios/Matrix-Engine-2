@@ -361,7 +361,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
 
         if (probeHits)
         {
-#pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static)
             for (int cIdx = 0; cIdx < (int)chunkSize; cIdx++)
             {
                 size_t a = chunkStart + cIdx;
@@ -372,17 +372,16 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
                 for (Int32 r = 0; r < numProbeRays; r++)
                 {
                     const auto& hit = probeHits[baseRayIdx + r];
-                    if (hit.hit != 0)
+                    Uint32 uBits = 0;
+                    memcpy(&uBits, &hit.faceIndexFloat, sizeof(Uint32));
+                    if (uBits != 0xFFFFFFFFu)
                     {
-                        Int32 hitFace = m_primToFaceMap[hit.primID];
+                        Int32 hitFace = (Int32)uBits;
                         if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
                         {
-                            Float albedo[3];
-                            SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
-
-                            accum[0] += (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
-                            accum[1] += (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
-                            accum[2] += (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
+                            accum[0] += (m_faceInfos[hitFace].avgRadiance[0] * hit.albedo[0] + m_faceInfos[hitFace].emissive[0]);
+                            accum[1] += (m_faceInfos[hitFace].avgRadiance[1] * hit.albedo[1] + m_faceInfos[hitFace].emissive[1]);
+                            accum[2] += (m_faceInfos[hitFace].avgRadiance[2] * hit.albedo[2] + m_faceInfos[hitFace].emissive[2]);
                         }
                     }
                 }

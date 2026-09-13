@@ -320,17 +320,16 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                     for (Int32 r = 0; r < numBounceRays; r++)
                     {
                         const auto& hit = bounceHits[baseBounceIdx + r];
-                        if (hit.hit != 0)
+                        Uint32 uBits = 0;
+                        memcpy(&uBits, &hit.faceIndexFloat, sizeof(Uint32));
+                        if (uBits != 0xFFFFFFFFu)
                         {
-                            Int32 hitFace = m_primToFaceMap[hit.primID];
+                            Int32 hitFace = (Int32)uBits;
                             if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
                             {
-                                Float albedo[3];
-                                SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
-
-                                Float rVal = (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
-                                Float gVal = (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
-                                Float bVal = (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
+                                Float rVal = (m_faceInfos[hitFace].avgRadiance[0] * hit.albedo[0] + m_faceInfos[hitFace].emissive[0]);
+                                Float gVal = (m_faceInfos[hitFace].avgRadiance[1] * hit.albedo[1] + m_faceInfos[hitFace].emissive[1]);
+                                Float bVal = (m_faceInfos[hitFace].avgRadiance[2] * hit.albedo[2] + m_faceInfos[hitFace].emissive[2]);
 
                                 bounceAccum[0] += rVal;
                                 bounceAccum[1] += gVal;

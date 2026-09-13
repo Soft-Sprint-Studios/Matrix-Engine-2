@@ -68,7 +68,6 @@ public:
     void BuildSceneGeometry(const map_data_t& mapData, const map_disp_data_t& dispData, const Char* baseDir);
     void ParseLights(map_data_t& mapData, const std::string& daystage = "");
     void LoadTexlights(const Char* baseDir);
-    void SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlbedo[3]) const;
     void BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces, Int32 raysPerLuxel);
     void BakeVertexLights(map_data_t& mapData, const Char* baseDir, Int32 raysPerLuxel);
     void BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel);

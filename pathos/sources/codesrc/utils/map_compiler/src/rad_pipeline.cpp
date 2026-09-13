@@ -584,54 +584,43 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
     }
 
     m_vk.BuildSceneBVH(allVerts, allIndices);
-}
+    std::vector<dds_image_t> gpuTexImages;
+    std::unordered_map<const dds_image_t*, Int32> imageMap;
 
-struct gamma_lut_t
-{
-    Float table[256];
-    gamma_lut_t()
+    for (const auto& matPair : m_materials)
     {
-        for (int i = 0; i < 256; i++)
+        const dds_image_t* img = &matPair.second.diffuseImage;
+        if (imageMap.find(img) == imageMap.end() && gpuTexImages.size() < 256)
         {
-            table[i] = powf((Float)i / 255.0f, 2.2f);
+            imageMap[img] = (Int32)gpuTexImages.size();
+            gpuTexImages.push_back(*img);
         }
     }
-};
 
-static const gamma_lut_t g_gammaLUT;
+    std::vector<gpu_prim_data_t> gpuPrims(m_scenePrims.size());
+    for (size_t p = 0; p < m_scenePrims.size(); p++)
+    {
+        gpuPrims[p].uv0[0] = m_scenePrims[p].uv[0][0];
+        gpuPrims[p].uv0[1] = m_scenePrims[p].uv[0][1];
+        gpuPrims[p].uv1[0] = m_scenePrims[p].uv[1][0];
+        gpuPrims[p].uv1[1] = m_scenePrims[p].uv[1][1];
+        gpuPrims[p].uv2[0] = m_scenePrims[p].uv[2][0];
+        gpuPrims[p].uv2[1] = m_scenePrims[p].uv[2][1];
+        gpuPrims[p].faceIndex = m_scenePrims[p].faceIndex;
 
-void CRadPipeline::SampleHitAlbedo(Uint32 primID, Float u, Float v, Float outAlbedo[3]) const
-{
-    outAlbedo[0] = outAlbedo[1] = outAlbedo[2] = 0.5f;
+        Int32 texSlot = -1;
+        if (m_scenePrims[p].faceIndex >= 0 && m_scenePrims[p].faceIndex < (Int32)m_faceInfos.size())
+        {
+            const dds_image_t* img = m_faceInfos[m_scenePrims[p].faceIndex].diffuseImage;
+            auto it = imageMap.find(img);
+            if (it != imageMap.end())
+            {
+                texSlot = it->second;
+            }
+        }
+        gpuPrims[p].texIndex = texSlot;
+    }
 
-    if (primID >= m_scenePrims.size())
-        return;
-
-    const scene_prim_t& prim = m_scenePrims[primID];
-    if (prim.faceIndex < 0 || prim.faceIndex >= (Int32)m_faceInfos.size())
-        return;
-
-    const face_info_t& fInfo = m_faceInfos[prim.faceIndex];
-    const dds_image_t* img = fInfo.diffuseImage;
-    if (!img || img->rgba.empty() || img->width <= 0 || img->height <= 0)
-        return;
-
-    Float w = 1.0f - u - v;
-    Float texU = w * prim.uv[0][0] + u * prim.uv[1][0] + v * prim.uv[2][0];
-    Float texV = w * prim.uv[0][1] + u * prim.uv[1][1] + v * prim.uv[2][1];
-
-    Int32 imgW = img->width;
-    Int32 imgH = img->height;
-
-    Int32 px = (Int32)(texU * (Float)imgW) % imgW;
-    if (px < 0) 
-        px += imgW;
-    Int32 py = (Int32)(texV * (Float)imgH) % imgH;
-    if (py < 0)
-        py += imgH;
-
-    const byte* pixel = &img->rgba[((size_t)py * imgW + px) * 4];
-    outAlbedo[0] = g_gammaLUT.table[pixel[0]];
-    outAlbedo[1] = g_gammaLUT.table[pixel[1]];
-    outAlbedo[2] = g_gammaLUT.table[pixel[2]];
+    m_vk.UploadGpuTextures(gpuTexImages);
+    m_vk.UploadPrimData(gpuPrims);
 }

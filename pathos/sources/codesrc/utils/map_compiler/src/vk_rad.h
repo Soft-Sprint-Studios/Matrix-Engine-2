@@ -25,6 +25,7 @@
 #define VK_RAD_H
 
 #include "datatypes.h"
+#include "dds.h"
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
@@ -39,10 +40,17 @@ struct gpu_ray_t
 
 struct gpu_ray_hit_t
 {
-    Uint32 primID;
-    Float u;
-    Float v;
-    Uint32 hit;
+    Float albedo[3];
+    Float faceIndexFloat;
+};
+
+struct gpu_prim_data_t
+{
+    Float uv0[2];
+    Float uv1[2];
+    Float uv2[2];
+    Int32 texIndex;
+    Int32 faceIndex;
 };
 
 struct gpu_leaf_sample_t
@@ -81,6 +89,8 @@ public:
     bool BuildSceneBVH(const std::vector<Float>& vertices, const std::vector<Uint32>& indices);
 
     bool RunPVSCompute(const std::vector<gpu_leaf_sample_t>& leafs, Uint32 numVisLeafs, std::vector<byte>& outPvsMatrix, Uint32 rowBytes);
+    void UploadGpuTextures(const std::vector<dds_image_t>& images);
+    void UploadPrimData(const std::vector<gpu_prim_data_t>& prims);
     bool TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, std::vector<Uint32>& outHits);
     const gpu_ray_hit_t* TraceRayHitBatch(const std::vector<gpu_ray_t>& rays);
 
@@ -123,6 +133,17 @@ private:
     vk_buffer_t m_rayBuf;
     vk_buffer_t m_hitBuf;
     std::vector<gpu_ray_hit_t> m_hostHits;
+
+    vk_buffer_t m_primBuf;
+
+    struct gpu_image_res_t
+    {
+        VkImage image = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        VkImageView view = VK_NULL_HANDLE;
+    };
+    std::vector<gpu_image_res_t> m_gpuImages;
+    VkSampler m_textureSampler = VK_NULL_HANDLE;
 
     PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR_fn = nullptr;
     PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR_fn = nullptr;

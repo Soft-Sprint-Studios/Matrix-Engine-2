@@ -381,22 +381,21 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                     for (Int32 r = 0; r < raysPerLuxel; r++)
                     {
                         const auto& hit = rawHits[baseRayIdx + r];
-                        if (hit.hit != 0)
+                        Uint32 uBits = 0;
+                        memcpy(&uBits, &hit.faceIndexFloat, sizeof(Uint32));
+                        if (uBits != 0xFFFFFFFFu)
                         {
-                            Int32 hitFaceIdx = m_primToFaceMap[hit.primID];
+                            Int32 hitFaceIdx = (Int32)uBits;
                             if (hitFaceIdx >= 0 && hitFaceIdx < (Int32)m_faceInfos.size())
                             {
                                 const auto& hitInfo = m_faceInfos[hitFaceIdx];
-                                Float albedo[3];
-                                SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
-
                                 Float emitR = (bounce == 0) ? hitInfo.emissive[0] : 0.0f;
                                 Float emitG = (bounce == 0) ? hitInfo.emissive[1] : 0.0f;
                                 Float emitB = (bounce == 0) ? hitInfo.emissive[2] : 0.0f;
 
-                                bounceAccum[0] += (hitInfo.avgRadiance[0] * albedo[0] + emitR);
-                                bounceAccum[1] += (hitInfo.avgRadiance[1] * albedo[1] + emitG);
-                                bounceAccum[2] += (hitInfo.avgRadiance[2] * albedo[2] + emitB);
+                                bounceAccum[0] += (hitInfo.avgRadiance[0] * hit.albedo[0] + emitR);
+                                bounceAccum[1] += (hitInfo.avgRadiance[1] * hit.albedo[1] + emitG);
+                                bounceAccum[2] += (hitInfo.avgRadiance[2] * hit.albedo[2] + emitB);
                             }
                         }
                     }
@@ -577,7 +576,8 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     {
         if (!faceLuxels[f].empty() && faceLightmaps[f].totalLuxels > 0)
         {
-            planeFaceGroups[faceLightmaps[f].planeIndex].push_back(f);
+            Int32 sideKey = (faceLightmaps[f].planeIndex << 1) | (g_BSP.GetFace(faceLightmaps[f].bspFaceIndex).side & 1);
+            planeFaceGroups[sideKey].push_back(f);
         }
     }
 
