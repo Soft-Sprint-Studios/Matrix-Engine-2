@@ -68,6 +68,10 @@ struct dds_header_t
     Uint32 reserved2;
 };
 
+//=============================================
+// @brief
+//
+//=============================================
 static void DecodeDXT1Block(const byte* block, byte* outRgba, Int32 width, Int32 x, Int32 y)
 {
     Uint16 c0 = block[0] | (block[1] << 8);
@@ -123,6 +127,10 @@ static void DecodeDXT1Block(const byte* block, byte* outRgba, Int32 width, Int32
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static void DecodeDXT5Block(const byte* block, byte* outRgba, Int32 width, Int32 x, Int32 y)
 {
     byte a0 = block[0];
@@ -168,6 +176,10 @@ static void DecodeDXT5Block(const byte* block, byte* outRgba, Int32 width, Int32
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool LoadDDSFromMemory(const byte* fileBuffer, size_t fileSize, dds_image_t& outImage)
 {
     if (fileSize < sizeof(dds_header_t))
@@ -244,6 +256,10 @@ bool LoadDDSFromMemory(const byte* fileBuffer, size_t fileSize, dds_image_t& out
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool LoadDDSFromFile(const Char* filename, dds_image_t& outImage)
 {
     FILE* f = fopen(filename, "rb");

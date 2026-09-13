@@ -27,20 +27,36 @@
 #include <cstring>
 #include <algorithm>
 
+//=============================================
+// @brief
+//
+//=============================================
 CLightmapPacker::CLightmapPacker(Int32 atlasSize) :
     m_atlasSize(atlasSize)
 {
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 CLightmapPacker::~CLightmapPacker()
 {
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CLightmapPacker::Reset()
 {
     m_pages.clear();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CLightmapPacker::AllocateBlock(Int32 width, Int32 height, Int32& outPage, Int32& outX, Int32& outY)
 {
     if (width > m_atlasSize || height > m_atlasSize)
@@ -102,6 +118,10 @@ bool CLightmapPacker::AllocateBlock(Int32 width, Int32 height, Int32& outPage, I
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceIndex, lightmap_face_t& outLm)
 {
     outLm.bspFaceIndex = bspFaceIndex;
@@ -165,6 +185,10 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
     GenerateLuxelWorldCoordinates(outLm, polyFace);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static void GenerateDisplacementLuxels(lightmap_face_t& lmFace, Int32 dispIdx, const Float texorg[3], const Float textoworld[2][3], const Float normal[3], Int32 minS, Int32 minT)
 {
     const auto& di = g_BSP.GetDispInfo(dispIdx);
@@ -280,6 +304,10 @@ static void GenerateDisplacementLuxels(lightmap_face_t& lmFace, Int32 dispIdx, c
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& polyFace)
 {
     lmFace.sampleCoords.resize(lmFace.totalLuxels);
@@ -379,6 +407,10 @@ void GenerateLuxelWorldCoordinates(lightmap_face_t& lmFace, const poly_face_t& p
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void AllocateAllFaceLightmaps(std::vector<lightmap_face_t>& inOutFaceLightmaps)
 {
     CLightmapPacker packer(2048);

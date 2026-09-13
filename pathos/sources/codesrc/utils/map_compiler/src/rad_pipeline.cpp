@@ -32,41 +32,73 @@
 #include <fstream>
 #include <iostream>
 
+//=============================================
+// @brief
+//
+//=============================================
 CRadPipeline::CRadPipeline() :
     m_vk()
 {
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 CRadPipeline::~CRadPipeline()
 {
     Shutdown();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CRadPipeline::InitializeVulkan()
 {
     return m_vk.Initialize();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::Shutdown()
 {
     m_vk.Shutdown();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CRadPipeline::ComputePVSGPU(size_t numVisLeafs, const std::vector<gpu_leaf_sample_t>& leafs, std::vector<byte>& outPvsMatrix, size_t rowBytes) const
 {
     return const_cast<CVulkanRayTracer&>(m_vk).RunPVSCompute(leafs, (Uint32)numVisLeafs, outPvsMatrix, (Uint32)rowBytes);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CRadPipeline::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, std::vector<Uint32>& outHits)
 {
     return m_vk.TraceOcclusionBatch(rays, outHits);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const gpu_ray_hit_t* CRadPipeline::TraceRayHitBatch(const std::vector<gpu_ray_t>& rays)
 {
     return m_vk.TraceRayHitBatch(rays);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::LoadTexlights(const Char* baseDir)
 {
     m_texlights.clear();
@@ -82,7 +114,8 @@ void CRadPipeline::LoadTexlights(const Char* baseDir)
     for (const auto& path : pathsToTry)
     {
         f = fopen(path.c_str(), "r");
-        if (f) break;
+        if (f) 
+            break;
     }
 
     if (!f)
@@ -129,6 +162,10 @@ void CRadPipeline::LoadTexlights(const Char* baseDir)
     fclose(f);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_data_t& dispData, const Char* baseDir)
 {
     std::cout << "Building ray tracing scene...\n";
@@ -517,9 +554,12 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         else if (ent.GetValue("angle")[0])
         {
             Float a = (Float)atof(ent.GetValue("angle"));
-            if (a == -1.0f) angles[0] = -90.0f;
-            else if (a == -2.0f) angles[0] = 90.0f;
-            else angles[1] = a;
+            if (a == -1.0f) 
+                angles[0] = -90.0f;
+            else if (a == -2.0f) 
+                angles[0] = 90.0f;
+            else 
+                angles[1] = a;
         }
 
         angles[1] += 90.0f;

@@ -33,11 +33,19 @@
 static constexpr Int32 FL_OCTREE_OCCLUDED = (1 << 31);
 static constexpr Int32 FL_OCTREE_LEAF = (1 << 30);
 
+//=============================================
+// @brief
+//
+//=============================================
 static inline Int32 GridSampleIndex(Int32 x, Int32 y, Int32 z, const Int32 size[3])
 {
     return (size[0] * size[1] * z) + (size[0] * y) + x;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves, Int32& outOccludedCount)
 {
     Int32 numOccluded = 0;
@@ -120,6 +128,10 @@ Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], In
     return nodeIndex;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
 {
     if (g_BSP.GetModelCount() == 0)

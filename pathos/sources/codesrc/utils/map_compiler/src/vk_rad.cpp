@@ -32,15 +32,27 @@
 #include <windows.h>
 #endif
 
+//=============================================
+// @brief
+//
+//=============================================
 CVulkanRayTracer::CVulkanRayTracer()
 {
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 CVulkanRayTracer::~CVulkanRayTracer()
 {
     Shutdown();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Uint32 CVulkanRayTracer::FindMemoryType(Uint32 typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
@@ -69,6 +81,10 @@ Uint32 CVulkanRayTracer::FindMemoryType(Uint32 typeFilter, VkMemoryPropertyFlags
     return 0;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CVulkanRayTracer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, vk_buffer_t& outBuffer)
 {
     outBuffer.size = size;
@@ -119,6 +135,10 @@ bool CVulkanRayTracer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CVulkanRayTracer::DestroyBuffer(vk_buffer_t& buffer)
 {
     if (buffer.pMapped != nullptr)
@@ -140,6 +160,10 @@ void CVulkanRayTracer::DestroyBuffer(vk_buffer_t& buffer)
     buffer.size = 0;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CVulkanRayTracer::EnsureBuffer(vk_buffer_t& buf, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
     if (buf.buffer != VK_NULL_HANDLE && buf.size >= size)
@@ -152,6 +176,10 @@ void CVulkanRayTracer::EnsureBuffer(vk_buffer_t& buf, VkDeviceSize size, VkBuffe
     CreateBuffer(allocSize, usage, properties, buf);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 VkShaderModule CVulkanRayTracer::LoadSPIRV(const std::string& filename)
 {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -199,6 +227,10 @@ VkShaderModule CVulkanRayTracer::LoadSPIRV(const std::string& filename)
     return shaderModule;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CVulkanRayTracer::CreateComputePipeline(VkShaderModule shaderModule, VkDescriptorSetLayout& outDescLayout, VkPipelineLayout& outPipeLayout, VkPipeline& outPipeline)
 {
     VkDescriptorSetLayoutBinding bindings[5] = {};
@@ -262,6 +294,10 @@ bool CVulkanRayTracer::CreateComputePipeline(VkShaderModule shaderModule, VkDesc
     return vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &outPipeline) == VK_SUCCESS;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CVulkanRayTracer::Initialize()
 {
     VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
@@ -421,6 +457,10 @@ bool CVulkanRayTracer::Initialize()
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CVulkanRayTracer::Shutdown()
 {
     if (m_device != VK_NULL_HANDLE)
@@ -494,6 +534,10 @@ void CVulkanRayTracer::Shutdown()
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CVulkanRayTracer::BuildSceneBVH(const std::vector<Float>& vertices, const std::vector<Uint32>& indices)
 {
     if (vertices.empty() || indices.empty())
@@ -633,6 +677,10 @@ bool CVulkanRayTracer::BuildSceneBVH(const std::vector<Float>& vertices, const s
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CVulkanRayTracer::UploadGpuTextures(const std::vector<dds_image_t>& images)
 {
     for (auto& gi : m_gpuImages)
@@ -752,6 +800,10 @@ void CVulkanRayTracer::UploadGpuTextures(const std::vector<dds_image_t>& images)
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CVulkanRayTracer::UploadPrimData(const std::vector<gpu_prim_data_t>& prims)
 {
     if (prims.empty()) 
@@ -763,6 +815,10 @@ void CVulkanRayTracer::UploadPrimData(const std::vector<gpu_prim_data_t>& prims)
     memcpy(m_primBuf.pMapped, prims.data(), bSize);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CVulkanRayTracer::RunPVSCompute(const std::vector<gpu_leaf_sample_t>& leafs, Uint32 numVisLeafs, std::vector<byte>& outPvsMatrix, Uint32 rowBytes)
 {
     if (!m_pvsPipeline)
@@ -867,6 +923,10 @@ bool CVulkanRayTracer::RunPVSCompute(const std::vector<gpu_leaf_sample_t>& leafs
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, std::vector<Uint32>& outHits)
 {
     if (!m_occludePipeline || rays.empty())
@@ -968,6 +1028,10 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ray_t>& rays)
 {
     if (!m_intersectPipeline || rays.empty())

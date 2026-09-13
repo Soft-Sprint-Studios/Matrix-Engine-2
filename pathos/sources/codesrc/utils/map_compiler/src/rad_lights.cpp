@@ -27,6 +27,10 @@
 #include <cstring>
 #include <algorithm>
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::AddSunLight(const map_entity_t& ent, Int32 style)
 {
     rad_light_t l;
@@ -64,6 +68,10 @@ void CRadPipeline::AddSunLight(const map_entity_t& ent, Int32 style)
     m_lights.push_back(l);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::AddPointLight(const map_entity_t& ent, Int32 style)
 {
     rad_light_t l;
@@ -91,6 +99,11 @@ void CRadPipeline::AddPointLight(const map_entity_t& ent, Int32 style)
 
     m_lights.push_back(l);
 }
+
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::AddSpotLight(const map_entity_t& ent, Int32 style)
 {
     rad_light_t l;
@@ -145,6 +158,10 @@ void CRadPipeline::AddSpotLight(const map_entity_t& ent, Int32 style)
     m_lights.push_back(l);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::ParseLights(map_data_t& mapData, const std::string& daystage)
 {
     m_lights.clear();

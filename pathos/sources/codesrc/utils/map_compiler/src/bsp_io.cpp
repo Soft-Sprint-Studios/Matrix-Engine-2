@@ -28,6 +28,10 @@
 #include <cstring>
 #include <iostream>
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::AppendLumpData(Int32 lumpIndex, const void* data, size_t size)
 {
     if (size == 0 || !data)
@@ -51,6 +55,10 @@ void CBSPBuilder::AppendLumpData(Int32 lumpIndex, const void* data, size_t size)
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::AppendLightingLump(Int32 lumpIndex, const std::vector<byte>& data)
 {
     if (data.empty())
@@ -110,6 +118,10 @@ void CBSPBuilder::AppendLightingLump(Int32 lumpIndex, const std::vector<byte>& d
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Uint64 CBSPBuilder::ComputeChecksum(const byte* buffer, size_t size) const
 {
     Uint64 hash = 14695981039346656037ULL;
@@ -121,6 +133,10 @@ Uint64 CBSPBuilder::ComputeChecksum(const byte* buffer, size_t size) const
     return hash;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CBSPBuilder::ExportFile(const Char* filename)
 {
     m_fileBuffer.clear();
@@ -216,6 +232,10 @@ bool CBSPBuilder::ExportFile(const Char* filename)
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool CBSPBuilder::ExportALD(const Char* filename, aldlumptype_t lumpType)
 {
     std::vector<byte> existingAldData;

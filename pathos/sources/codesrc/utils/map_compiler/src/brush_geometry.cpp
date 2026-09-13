@@ -31,6 +31,10 @@
 
 static constexpr Float EPSILON_PLANE = 0.001f;
 
+//=============================================
+// @brief
+//
+//=============================================
 static void PlaneFromPoints(const Float p0[3], const Float p1[3], const Float p2[3], Float outNormal[3], Float& outDist)
 {
     Float d0[3] = { p0[0] - p1[0], p0[1] - p1[1], p0[2] - p1[2] };
@@ -57,6 +61,10 @@ static void PlaneFromPoints(const Float p0[3], const Float p1[3], const Float p2
     outDist = p0[0] * outNormal[0] + p0[1] * outNormal[1] + p0[2] * outNormal[2];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static std::vector<poly_vert_t> MakePlanePolygon(const Float normal[3], Float dist)
 {
     Int32 axis = 0;
@@ -112,6 +120,10 @@ static std::vector<poly_vert_t> MakePlanePolygon(const Float normal[3], Float di
     return poly;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static bool ClipPolygonByPlane(std::vector<poly_vert_t>& inOutVerts, const Float normal[3], Float dist)
 {
     size_t count = inOutVerts.size();
@@ -184,6 +196,10 @@ static bool ClipPolygonByPlane(std::vector<poly_vert_t>& inOutVerts, const Float
     return inOutVerts.size() >= 3;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_face_t>& outFaces, const map_disp_data_t* dispData = nullptr)
 {
     const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(inFace.texinfoIndex);
@@ -325,6 +341,10 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
     SubdivideFaceIfNeeded(backFace, outFaces, dispData);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly, const map_disp_data_t* dispData)
 {
     size_t numSides = inBrush.sides.size();

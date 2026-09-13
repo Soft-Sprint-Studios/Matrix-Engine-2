@@ -37,6 +37,10 @@ struct phong_poly_t
     std::vector<std::array<Float, 3>> vertNormals;
 };
 
+//=============================================
+// @brief
+//
+//=============================================
 static void InterpolateTriangleBarycentric(const std::array<Float, 3>& A, const std::array<Float, 3>& B, const std::array<Float, 3>& C,
                                           const std::array<Float, 3>& NA, const std::array<Float, 3>& NB, const std::array<Float, 3>& NC,
                                           const Float P[3], Float outNormal[3], Float& outDistSq)
@@ -72,6 +76,10 @@ static void InterpolateTriangleBarycentric(const std::array<Float, 3>& A, const 
     outNormal[2] = u * NA[2] + v * NB[2] + w * NC[2];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void SmoothFaceNormals(std::vector<lightmap_face_t>& faceLightmaps, Float maxAngleDegrees)
 {
     const Float minDot = cosf(maxAngleDegrees * (M_PI / 180.0f));

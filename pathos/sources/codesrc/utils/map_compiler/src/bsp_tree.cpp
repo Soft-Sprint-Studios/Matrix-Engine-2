@@ -42,6 +42,10 @@ struct bsp_build_face_t
     std::vector<poly_vert_t> verts;
 };
 
+//=============================================
+// @brief
+//
+//=============================================
 static void CalculateBounds(const std::vector<bsp_build_face_t>& faces, Int32 mins[3], Int32 maxs[3])
 {
     mins[0] = mins[1] = mins[2] = 999999;
@@ -64,6 +68,10 @@ static void CalculateBounds(const std::vector<bsp_build_face_t>& faces, Int32 mi
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static Int32 FindBestSplitPlane(const std::vector<bsp_build_face_t>& faces)
 {
     Int32 bestIdx = -1;
@@ -126,6 +134,10 @@ static Int32 FindBestSplitPlane(const std::vector<bsp_build_face_t>& faces)
     return (bestIdx >= 0) ? faces[bestIdx].planeIndex : -1;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static Int32 EmitFaceToBSP(const bsp_build_face_t& face, Int32 nodePlaneIndex)
 {
     size_t vertCount = face.verts.size();
@@ -170,6 +182,10 @@ static Int32 EmitFaceToBSP(const bsp_build_face_t& face, Int32 nodePlaneIndex)
     return bspFaceIndex;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static Int32 PartitionAndEmitTree(std::vector<bsp_build_face_t>& faces, const std::vector<Uint32>& modelBrushIndices, std::vector<Int32>& modelEmittedFaces, Int32& outVisLeafCount, Int32 outNodeMins[3], Int32 outNodeMaxs[3], Int32 currentDepth = 0)
 {
     auto CreateLeaf = [&](Int32 contents) -> Int32 {
@@ -303,6 +319,10 @@ static Int32 PartitionAndEmitTree(std::vector<bsp_build_face_t>& faces, const st
     return nodeIndex;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static Int32 EmitClipTreeRecursive(std::vector<bsp_build_face_t>& faces, Int32 currentDepth = 0)
 {
     if (faces.empty() || currentDepth >= MAX_BSP_TREE_DEPTH)
@@ -356,6 +376,10 @@ static Int32 EmitClipTreeRecursive(std::vector<bsp_build_face_t>& faces, Int32 c
     return g_BSP.InsertClipNode(splitPlane, c0, c1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool BuildBSPModelTrees(Int32 modelIndex, const std::vector<poly_face_t>& modelFaces, const std::vector<poly_brush_t>& modelBrushes, const Float mins[3], const Float maxs[3], bool skipClip)
 {
     std::vector<Uint32> brushIndices;

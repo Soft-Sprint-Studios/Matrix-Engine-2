@@ -30,6 +30,10 @@
 #include <iostream>
 #include <omp.h>
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, Int32 raysPerLuxel)
 {
     std::cout << "Baking model vertex lighting...\n";
@@ -68,9 +72,12 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
         else if (ent.GetValue("angle")[0])
         {
             Float a = (Float)atof(ent.GetValue("angle"));
-            if (a == -1.0f) angles[0] = -90.0f;
-            else if (a == -2.0f) angles[0] = 90.0f;
-            else angles[1] = a;
+            if (a == -1.0f) 
+                angles[0] = -90.0f;
+            else if (a == -2.0f) 
+                angles[0] = 90.0f;
+            else 
+                angles[1] = a;
         }
 
         angles[1] += 90.0f;

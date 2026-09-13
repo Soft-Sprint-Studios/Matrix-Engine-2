@@ -29,15 +29,27 @@
 
 CBSPBuilder g_BSP;
 
+//=============================================
+// @brief
+//
+//=============================================
 CBSPBuilder::CBSPBuilder()
 {
     Reset();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 CBSPBuilder::~CBSPBuilder()
 {
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::Reset()
 {
     memset(&m_header, 0, sizeof(m_header));
@@ -89,6 +101,10 @@ void CBSPBuilder::Reset()
     m_dispFaceMap.clear();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertPlane(const Float normal[3], Float distance, Int32 axisType)
 {
     for (size_t i = 0; i < m_planes.size(); i++)
@@ -114,6 +130,10 @@ Int32 CBSPBuilder::InsertPlane(const Float normal[3], Float distance, Int32 axis
     return (Int32)(m_planes.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertVertex(const Float position[3])
 {
     Int64 qx = (Int64)roundf(position[0] * 200.0f);
@@ -138,6 +158,10 @@ Int32 CBSPBuilder::InsertVertex(const Float position[3])
     return newIndex;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertEdge(Uint32 startVertex, Uint32 endVertex)
 {
     Uint64 fwdKey = ((Uint64)startVertex << 32) | (Uint64)endVertex;
@@ -164,12 +188,20 @@ Int32 CBSPBuilder::InsertEdge(Uint32 startVertex, Uint32 endVertex)
     return newIndex;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertSurfEdge(Int32 edgeIndex)
 {
     m_surfedges.push_back(edgeIndex);
     return (Int32)(m_surfedges.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertTexture(const Char* name)
 {
     for (size_t i = 0; i < m_textures.size(); i++)
@@ -188,6 +220,10 @@ Int32 CBSPBuilder::InsertTexture(const Char* name)
     return (Int32)(m_textures.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertTexinfo(const Float vecs[2][4], Int32 textureIndex, Int32 flags)
 {
     for (size_t i = 0; i < m_texinfos.size(); i++)
@@ -229,6 +265,10 @@ Int32 CBSPBuilder::InsertTexinfo(const Float vecs[2][4], Int32 textureIndex, Int
     return (Int32)(m_texinfos.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, Int32 numEdges, Int32 texinfoIndex, Float sampleScale, const byte styles[MBSPV1_MAX_LIGHTMAPS])
 {
     dmbspv1face_t f;
@@ -254,6 +294,10 @@ Int32 CBSPBuilder::InsertFace(Uint32 planeIndex, Int32 side, Int32 firstEdge, In
     return (Int32)(m_faces.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertModel(const Float mins[3], const Float maxs[3], const Float origin[3], Int32 firstFace, Int32 numFaces)
 {
     dmbspv1model_t mdl;
@@ -270,6 +314,10 @@ Int32 CBSPBuilder::InsertModel(const Float mins[3], const Float maxs[3], const F
     return (Int32)(m_models.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertNode(Int32 planeIndex, Int32 child0, Int32 child1, const Int32 mins[3], const Int32 maxs[3], Uint32 firstFace, Uint32 numFaces)
 {
     dmbspv1node_t node;
@@ -288,6 +336,10 @@ Int32 CBSPBuilder::InsertNode(Int32 planeIndex, Int32 child0, Int32 child1, cons
     return (Int32)(m_nodes.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertClipNode(Int32 planeIndex, Int32 child0, Int32 child1)
 {
     dmbspv1clipnode_t cn;
@@ -299,6 +351,10 @@ Int32 CBSPBuilder::InsertClipNode(Int32 planeIndex, Int32 child0, Int32 child1)
     return (Int32)(m_clipnodes.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertLeaf(Int32 contents, Int32 visOffset, const Int32 mins[3], const Int32 maxs[3], Uint32 firstMarkSurface, Uint32 numMarkSurfaces, Uint32 firstLeafBrush, Uint32 numLeafBrushes)
 {
     dmbspv1leaf_brush_t leaf;
@@ -318,12 +374,20 @@ Int32 CBSPBuilder::InsertLeaf(Int32 contents, Int32 visOffset, const Int32 mins[
     return (Int32)(m_leafs.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertMarkSurface(Uint32 faceIndex)
 {
     m_marksurfaces.push_back(faceIndex);
     return (Int32)(m_marksurfaces.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertBrush(Int32 firstSide, Int32 numSides, Int32 contents)
 {
     dmbspv1brush_t brush;
@@ -335,6 +399,10 @@ Int32 CBSPBuilder::InsertBrush(Int32 firstSide, Int32 numSides, Int32 contents)
     return (Int32)(m_brushes.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertBrushSide(Int32 planeIndex, Int32 texinfoIndex, Int32 flags)
 {
     dmbspv1brushside_t side;
@@ -346,27 +414,47 @@ Int32 CBSPBuilder::InsertBrushSide(Int32 planeIndex, Int32 texinfoIndex, Int32 f
     return (Int32)(m_brushsides.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::InsertLeafBrush(Uint32 brushIndex)
 {
     m_leafbrushes.push_back(brushIndex);
     return (Int32)(m_leafbrushes.size() - 1);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::SetVisibilityData(const std::vector<byte>& visData)
 {
     m_visibility = visData;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::SetEntities(const std::string& entityString)
 {
     m_entityData = entityString;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::BindFaceId(Int32 mapFaceId, Int32 bspFaceIndex)
 {
     m_faceIdToBspIndex.push_back({ mapFaceId, bspFaceIndex });
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::ImportDisplacements(const map_disp_data_t& dispData)
 {
     m_dispInfos.clear();
@@ -423,6 +511,10 @@ void CBSPBuilder::ImportDisplacements(const map_disp_data_t& dispData)
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::SetLightmapLayer(surf_lmap_layers_t layer, const std::vector<byte>& uncompressedData)
 {
     if (layer >= 0 && layer < NB_SURF_LIGHTMAP_LAYERS)
@@ -431,6 +523,10 @@ void CBSPBuilder::SetLightmapLayer(surf_lmap_layers_t layer, const std::vector<b
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::SetVertexLightingLayer(baked_vertexlight_layers_t layer, const std::vector<byte>& uncompressedData)
 {
     if (layer >= 0 && layer < NB_BAKED_VERTEXLIGHT_LAYERS)
@@ -439,6 +535,10 @@ void CBSPBuilder::SetVertexLightingLayer(baked_vertexlight_layers_t layer, const
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::SetLightGridData(const std::vector<byte>& gridData)
 {
     m_lightGrid = gridData;

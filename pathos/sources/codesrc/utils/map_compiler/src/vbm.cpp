@@ -34,6 +34,10 @@ struct vbm_mat3x4_t
     Float m[3][4];
 };
 
+//=============================================
+// @brief
+//
+//=============================================
 static void AngleMatrix( const Float angles[3], Float matrix[3][4] )
 {
     Float angle = angles[1] * (M_PI * 2.0f / 360.0f);
@@ -65,6 +69,10 @@ static void AngleMatrix( const Float angles[3], Float matrix[3][4] )
     matrix[2][3] = 0.0f;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static void ConcatTransforms( const Float in1[3][4], const Float in2[3][4], Float out[3][4] )
 {
     out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0];
@@ -83,6 +91,10 @@ static void ConcatTransforms( const Float in1[3][4], const Float in2[3][4], Floa
     out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool LoadVBMModel(const Char* filename, const Float origin[3], const Float angles[3], Float scale, vbm_model_t& outModel)
 {
     FILE* f = fopen(filename, "rb");

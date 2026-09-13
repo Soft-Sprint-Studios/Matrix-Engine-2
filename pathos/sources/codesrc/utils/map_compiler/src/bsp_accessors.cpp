@@ -25,116 +25,208 @@
 #include <cstdio>
 #include <cstring>
 
+//=============================================
+// @brief
+//
+//=============================================
 size_t CBSPBuilder::GetFaceCount() const
 {
     return m_faces.size();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 size_t CBSPBuilder::GetModelCount() const
 {
     return m_models.size();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1model_t& CBSPBuilder::GetModel(size_t index) const
 {
     return m_models[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 dmbspv1model_t& CBSPBuilder::GetModel(size_t index)
 {
     return m_models[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 size_t CBSPBuilder::GetLeafCount() const
 {
     return m_leafs.size();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 size_t CBSPBuilder::GetNodeCount() const
 {
     return m_nodes.size();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1node_t& CBSPBuilder::GetNode(size_t index) const
 {
     return m_nodes[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 dmbspv1node_t& CBSPBuilder::GetNode(size_t index)
 {
     return m_nodes[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1leaf_brush_t& CBSPBuilder::GetLeaf(size_t index) const
 {
     return m_leafs[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 dmbspv1leaf_brush_t& CBSPBuilder::GetLeaf(size_t index)
 {
     return m_leafs[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 size_t CBSPBuilder::GetSurfEdgeCount() const
 {
     return m_surfedges.size();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 size_t CBSPBuilder::GetMarkSurfaceCount() const
 {
     return m_marksurfaces.size();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 size_t CBSPBuilder::GetLeafBrushCount() const
 {
     return m_leafbrushes.size();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 size_t CBSPBuilder::GetBrushSideCount() const
 {
     return m_brushsides.size();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1face_t& CBSPBuilder::GetFace(size_t index) const
 {
     return m_faces[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 dmbspv1face_t& CBSPBuilder::GetFace(size_t index)
 {
     return m_faces[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1texinfo_t& CBSPBuilder::GetTexinfo(size_t index) const
 {
     return m_texinfos[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1plane_t& CBSPBuilder::GetPlane(size_t index) const
 {
     return m_planes[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1vertex_t& CBSPBuilder::GetVertex(size_t index) const
 {
     return m_vertexes[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1edge_t& CBSPBuilder::GetEdge(size_t index) const
 {
     return m_edges[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::GetSurfEdge(size_t index) const
 {
     return m_surfedges[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1texture_t& CBSPBuilder::GetTexture(size_t index) const
 {
     return m_textures[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::ResolveFaceId(Int32 faceId) const
 {
     for (const auto& pair : m_faceIdToBspIndex)
@@ -145,21 +237,37 @@ Int32 CBSPBuilder::ResolveFaceId(Int32 faceId) const
     return -1;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 Int32 CBSPBuilder::GetFaceDispIndex(size_t faceIndex) const
 {
     return m_dispFaceMap[faceIndex];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1dispinfo_t& CBSPBuilder::GetDispInfo(size_t index) const
 {
     return m_dispInfos[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 const dmbspv1dispvert_t& CBSPBuilder::GetDispVert(size_t index) const
 {
     return m_dispVerts[index];
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void CBSPBuilder::SetFaceLightOffset(Int32 faceIndex, Int32 offset)
 {
     if (faceIndex >= 0 && faceIndex < (Int32)m_faces.size())

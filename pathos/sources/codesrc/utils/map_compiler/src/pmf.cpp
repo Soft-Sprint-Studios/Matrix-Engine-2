@@ -29,6 +29,10 @@
 #include <algorithm>
 #include <string>
 
+//=============================================
+// @brief
+//
+//=============================================
 static const Char* LexToken(const Char* str, Char* outToken, size_t maxLen)
 {
     outToken[0] = '\0';
@@ -120,6 +124,10 @@ static const Char* LexToken(const Char* str, Char* outToken, size_t maxLen)
     return str;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static bool ParsePMFScript(const Char* scriptBuffer, material_t& outMat, std::string& outAliasScript)
 {
     const Char* ptr = scriptBuffer;
@@ -184,6 +192,10 @@ static bool ParsePMFScript(const Char* scriptBuffer, material_t& outMat, std::st
     return !outMat.diffusePath.empty();
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool LoadMaterial(const Char* baseDir, const Char* materialName, material_t& outMat)
 {
     outMat.hasAlphaTest = false;

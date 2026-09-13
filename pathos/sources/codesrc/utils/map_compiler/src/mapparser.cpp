@@ -30,6 +30,10 @@
 #include <cctype>
 #include <cmath>
 
+//=============================================
+// @brief
+//
+//=============================================
 static Char* ReadEntireFile(const Char* filename, size_t* pOutSize)
 {
     FILE* f = fopen(filename, "rb");
@@ -66,6 +70,10 @@ static Char* ReadEntireFile(const Char* filename, size_t* pOutSize)
     return buffer;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool ParseMapFile(const Char* filename, map_data_t& outMap)
 {
     size_t length = 0;
@@ -190,6 +198,10 @@ bool ParseMapFile(const Char* filename, map_data_t& outMap)
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool ParseMapDisp(const Char* filename, map_disp_data_t& outDisp)
 {
     size_t length = 0;

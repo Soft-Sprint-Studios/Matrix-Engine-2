@@ -34,6 +34,10 @@
 #include <iostream>
 #include <omp.h>
 
+//=============================================
+// @brief
+//
+//=============================================
 static size_t CompressPVS(const byte* src, size_t srcLength, byte* dest)
 {
     byte* destPtr = dest;
@@ -68,6 +72,10 @@ struct leaf_sample_t
     std::vector<std::array<Float, 3>> points;
 };
 
+//=============================================
+// @brief
+//
+//=============================================
 void CalculatePVS(const CRadPipeline* radPipeline)
 {
     std::cout << "Computing PVS Visibility...\n";

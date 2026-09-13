@@ -30,6 +30,10 @@
 #include <algorithm>
 #include <omp.h>
 
+//=============================================
+// @brief
+//
+//=============================================
 static void InitializeLeaf0()
 {
     Int32 solidMins[3] = { -999999, -999999, -999999 };
@@ -37,6 +41,10 @@ static void InitializeLeaf0()
     g_BSP.InsertLeaf(CONTENTS_SOLID, -1, solidMins, solidMaxs, 0, 0, 0, 0);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 static void EmitModelFaces(const std::vector<map_brush_t>& brushes, Int32& outFirstFace, Int32& outNumFaces, Float outMins[3], Float outMaxs[3], const map_disp_data_t* dispData = nullptr)
 {
     outFirstFace = (Int32)g_BSP.GetFaceCount();
@@ -60,6 +68,10 @@ static void EmitModelFaces(const std::vector<map_brush_t>& brushes, Int32& outFi
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, std::vector<lightmap_face_t>& outFaceLightmaps)
 {
     g_BSP.Reset();
@@ -190,6 +202,10 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 std::string SerializeEntities(const map_data_t& mapData)
 {
     std::stringstream ss;
