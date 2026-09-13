@@ -565,8 +565,10 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
             const Float* p = lm.sampleCoords[i].worldPos;
             for (int k = 0; k < 3; k++)
             {
-                if (p[k] < box.mins[k]) box.mins[k] = p[k];
-                if (p[k] > box.maxs[k]) box.maxs[k] = p[k];
+                if (p[k] < box.mins[k]) 
+                    box.mins[k] = p[k];
+                if (p[k] > box.maxs[k]) 
+                    box.maxs[k] = p[k];
             }
         }
     }
@@ -639,7 +641,8 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                         cand1.push_back(i1);
                     }
                 }
-                if (cand1.empty()) continue;
+                if (cand1.empty()) 
+                    continue;
 
                 cand2.clear();
                 for (Int32 i2 = 0; i2 < lm2.totalLuxels; i2++)
@@ -652,7 +655,8 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                         cand2.push_back(i2);
                     }
                 }
-                if (cand2.empty()) continue;
+                if (cand2.empty()) 
+                    continue;
 
                 for (Int32 i1 : cand1)
                 {
