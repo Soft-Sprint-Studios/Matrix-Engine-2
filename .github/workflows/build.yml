@@ -21,6 +21,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: latest
+          cache: true
+
       - name: Configure CMake
         run: |
           cmake -B pathos/sources/codesrc/build_windows_x64 -S pathos/sources/codesrc -G "Visual Studio 18 2026" -A x64
@@ -67,7 +73,11 @@ jobs:
             libfontconfig1-dev \
             libopenal-dev \
             libwayland-dev \
-            libegl1-mesa-dev
+            libegl1-mesa-dev \
+            libvulkan-dev \
+            glslang-tools \
+            vulkan-tools \
+            libtbb-dev
 
           sudo ln -s /usr/include/AL /usr/include/al
 

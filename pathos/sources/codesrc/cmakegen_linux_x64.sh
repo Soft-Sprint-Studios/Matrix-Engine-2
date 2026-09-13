@@ -18,7 +18,15 @@ sudo apt-get install -y \
     libfontconfig1-dev \
     libopenal-dev \
     libwayland-dev \
-    libegl1-mesa-dev
+    libegl1-mesa-dev \
+    libvulkan-dev \
+    glslang-tools \
+    vulkan-tools \
+    libtbb-dev
+
+if [ ! -L /usr/include/al ] && [ ! -d /usr/include/al ]; then
+    sudo ln -s /usr/include/AL /usr/include/al
+fi
 
 if [ ! -d "build_linux_x64" ]; then
     mkdir build_linux_x64
