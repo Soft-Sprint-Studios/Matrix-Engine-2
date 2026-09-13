@@ -39,8 +39,6 @@ struct gpu_ray_t
 
 struct gpu_ray_hit_t
 {
-    Float normal[3];
-    Float dist;
     Uint32 primID;
     Float u;
     Float v;
@@ -102,6 +100,7 @@ private:
     Uint32 m_queueFamilyIndex = 0;
 
     VkCommandPool m_cmdPool = VK_NULL_HANDLE;
+    VkCommandBuffer m_cmdBuffer = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
     vk_as_t m_blas;
@@ -114,14 +113,16 @@ private:
     VkDescriptorSetLayout m_occludeDescLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_occludePipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_occludePipeline = VK_NULL_HANDLE;
+    VkDescriptorSet m_occludeDescSet = VK_NULL_HANDLE;
 
     VkDescriptorSetLayout m_intersectDescLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_intersectPipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_intersectPipeline = VK_NULL_HANDLE;
+    VkDescriptorSet m_intersectDescSet = VK_NULL_HANDLE;
 
     vk_buffer_t m_rayBuf;
     vk_buffer_t m_hitBuf;
-    void* m_hitMapped = nullptr;
+    std::vector<gpu_ray_hit_t> m_hostHits;
 
     PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR_fn = nullptr;
     PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR_fn = nullptr;

@@ -370,6 +370,24 @@ bool CVulkanRayTracer::Initialize()
         vkDestroyShaderModule(m_device, intMod, nullptr);
     }
 
+    VkCommandBufferAllocateInfo cmdAlloc{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+    cmdAlloc.commandPool = m_cmdPool;
+    cmdAlloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAlloc.commandBufferCount = 1;
+    vkAllocateCommandBuffers(m_device, &cmdAlloc, &m_cmdBuffer);
+
+    VkDescriptorSetAllocateInfo occSetAlloc{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+    occSetAlloc.descriptorPool = m_descriptorPool;
+    occSetAlloc.descriptorSetCount = 1;
+    occSetAlloc.pSetLayouts = &m_occludeDescLayout;
+    vkAllocateDescriptorSets(m_device, &occSetAlloc, &m_occludeDescSet);
+
+    VkDescriptorSetAllocateInfo intSetAlloc{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+    intSetAlloc.descriptorPool = m_descriptorPool;
+    intSetAlloc.descriptorSetCount = 1;
+    intSetAlloc.pSetLayouts = &m_intersectDescLayout;
+    vkAllocateDescriptorSets(m_device, &intSetAlloc, &m_intersectDescSet);
+
     return true;
 }
 
@@ -378,11 +396,6 @@ void CVulkanRayTracer::Shutdown()
     if (m_device != VK_NULL_HANDLE)
     {
         vkDeviceWaitIdle(m_device);
-        if (m_hitMapped)
-        {
-            vkUnmapMemory(m_device, m_hitBuf.memory);
-            m_hitMapped = nullptr;
-        }
 
         if (m_pvsPipeline) 
             vkDestroyPipeline(m_device, m_pvsPipeline, nullptr);
@@ -685,7 +698,6 @@ bool CVulkanRayTracer::RunPVSCompute(const std::vector<gpu_leaf_sample_t>& leafs
     vkUnmapMemory(m_device, outPvsBuf.memory);
 
     vkFreeCommandBuffers(m_device, m_cmdPool, 1, &cmd);
-    vkResetDescriptorPool(m_device, m_descriptorPool, 0);
     DestroyBuffer(inLeafBuf);
     DestroyBuffer(outPvsBuf);
 
@@ -710,14 +722,6 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     memcpy(mapped, rays.data(), count * sizeof(gpu_ray_t));
     vkUnmapMemory(m_device, m_rayBuf.memory);
 
-    VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-    allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_occludeDescLayout;
-
-    VkDescriptorSet descSet;
-    vkAllocateDescriptorSets(m_device, &allocInfo, &descSet);
-
     VkWriteDescriptorSetAccelerationStructureKHR asDesc{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR };
     asDesc.accelerationStructureCount = 1;
     asDesc.pAccelerationStructures = &m_tlas.handle;
@@ -725,14 +729,14 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     VkWriteDescriptorSet writes[3] = {};
     writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[0].pNext = &asDesc;
-    writes[0].dstSet = descSet;
+    writes[0].dstSet = m_occludeDescSet;
     writes[0].dstBinding = 0;
     writes[0].descriptorCount = 1;
     writes[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
     VkDescriptorBufferInfo bInfo1{ m_rayBuf.buffer, 0, count * sizeof(gpu_ray_t) };
     writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writes[1].dstSet = descSet;
+    writes[1].dstSet = m_occludeDescSet;
     writes[1].dstBinding = 1;
     writes[1].descriptorCount = 1;
     writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -740,7 +744,7 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
 
     VkDescriptorBufferInfo bInfo2{ m_hitBuf.buffer, 0, count * sizeof(Uint32) };
     writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writes[2].dstSet = descSet;
+    writes[2].dstSet = m_occludeDescSet;
     writes[2].dstBinding = 2;
     writes[2].descriptorCount = 1;
     writes[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -748,31 +752,23 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
 
     vkUpdateDescriptorSets(m_device, 3, writes, 0, nullptr);
 
-    VkCommandBufferAllocateInfo cmdAlloc{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-    cmdAlloc.commandPool = m_cmdPool;
-    cmdAlloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmdAlloc.commandBufferCount = 1;
-
-    VkCommandBuffer cmd;
-    vkAllocateCommandBuffers(m_device, &cmdAlloc, &cmd);
-
     VkCommandBufferBeginInfo bBegin{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-    vkBeginCommandBuffer(cmd, &bBegin);
+    vkBeginCommandBuffer(m_cmdBuffer, &bBegin);
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_occludePipeline);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_occludePipelineLayout, 0, 1, &descSet, 0, nullptr);
+    vkCmdBindPipeline(m_cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_occludePipeline);
+    vkCmdBindDescriptorSets(m_cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_occludePipelineLayout, 0, 1, &m_occludeDescSet, 0, nullptr);
 
     Uint32 numRays = (Uint32)count;
-    vkCmdPushConstants(cmd, m_occludePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(Uint32), &numRays);
+    vkCmdPushConstants(m_cmdBuffer, m_occludePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(Uint32), &numRays);
 
     Uint32 groupX = (numRays + 63) / 64;
-    vkCmdDispatch(cmd, groupX, 1, 1);
+    vkCmdDispatch(m_cmdBuffer, groupX, 1, 1);
 
-    vkEndCommandBuffer(cmd);
+    vkEndCommandBuffer(m_cmdBuffer);
 
     VkSubmitInfo submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
     submit.commandBufferCount = 1;
-    submit.pCommandBuffers = &cmd;
+    submit.pCommandBuffers = &m_cmdBuffer;
     vkQueueSubmit(m_queue, 1, &submit, VK_NULL_HANDLE);
     vkQueueWaitIdle(m_queue);
 
@@ -786,9 +782,6 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     memcpy(outHits.data(), mapped, count * sizeof(Uint32));
     vkUnmapMemory(m_device, m_hitBuf.memory);
 
-    vkFreeCommandBuffers(m_device, m_cmdPool, 1, &cmd);
-    vkResetDescriptorPool(m_device, m_descriptorPool, 0);
-
     return true;
 }
 
@@ -797,12 +790,6 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
     if (!m_intersectPipeline || rays.empty())
     {
         return nullptr;
-    }
-
-    if (m_hitMapped)
-    {
-        vkUnmapMemory(m_device, m_hitBuf.memory);
-        m_hitMapped = nullptr;
     }
 
     size_t count = rays.size();
@@ -815,14 +802,6 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
     memcpy(mapped, rays.data(), count * sizeof(gpu_ray_t));
     vkUnmapMemory(m_device, m_rayBuf.memory);
 
-    VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-    allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_intersectDescLayout;
-
-    VkDescriptorSet descSet;
-    vkAllocateDescriptorSets(m_device, &allocInfo, &descSet);
-
     VkWriteDescriptorSetAccelerationStructureKHR asDesc{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR };
     asDesc.accelerationStructureCount = 1;
     asDesc.pAccelerationStructures = &m_tlas.handle;
@@ -830,14 +809,14 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
     VkWriteDescriptorSet writes[3] = {};
     writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[0].pNext = &asDesc;
-    writes[0].dstSet = descSet;
+    writes[0].dstSet = m_intersectDescSet;
     writes[0].dstBinding = 0;
     writes[0].descriptorCount = 1;
     writes[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
     VkDescriptorBufferInfo bInfo1{ m_rayBuf.buffer, 0, count * sizeof(gpu_ray_t) };
     writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writes[1].dstSet = descSet;
+    writes[1].dstSet = m_intersectDescSet;
     writes[1].dstBinding = 1;
     writes[1].descriptorCount = 1;
     writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -845,7 +824,7 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
 
     VkDescriptorBufferInfo bInfo2{ m_hitBuf.buffer, 0, count * sizeof(gpu_ray_hit_t) };
     writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writes[2].dstSet = descSet;
+    writes[2].dstSet = m_intersectDescSet;
     writes[2].dstBinding = 2;
     writes[2].descriptorCount = 1;
     writes[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -853,31 +832,23 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
 
     vkUpdateDescriptorSets(m_device, 3, writes, 0, nullptr);
 
-    VkCommandBufferAllocateInfo cmdAlloc{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-    cmdAlloc.commandPool = m_cmdPool;
-    cmdAlloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmdAlloc.commandBufferCount = 1;
-
-    VkCommandBuffer cmd;
-    vkAllocateCommandBuffers(m_device, &cmdAlloc, &cmd);
-
     VkCommandBufferBeginInfo bBegin{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-    vkBeginCommandBuffer(cmd, &bBegin);
+    vkBeginCommandBuffer(m_cmdBuffer, &bBegin);
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_intersectPipeline);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_intersectPipelineLayout, 0, 1, &descSet, 0, nullptr);
+    vkCmdBindPipeline(m_cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_intersectPipeline);
+    vkCmdBindDescriptorSets(m_cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_intersectPipelineLayout, 0, 1, &m_intersectDescSet, 0, nullptr);
 
     Uint32 numRays = (Uint32)count;
-    vkCmdPushConstants(cmd, m_intersectPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(Uint32), &numRays);
+    vkCmdPushConstants(m_cmdBuffer, m_intersectPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(Uint32), &numRays);
 
     Uint32 groupX = (numRays + 63) / 64;
-    vkCmdDispatch(cmd, groupX, 1, 1);
+    vkCmdDispatch(m_cmdBuffer, groupX, 1, 1);
 
-    vkEndCommandBuffer(cmd);
+    vkEndCommandBuffer(m_cmdBuffer);
 
     VkSubmitInfo submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
     submit.commandBufferCount = 1;
-    submit.pCommandBuffers = &cmd;
+    submit.pCommandBuffers = &m_cmdBuffer;
     vkQueueSubmit(m_queue, 1, &submit, VK_NULL_HANDLE);
     vkQueueWaitIdle(m_queue);
 
@@ -887,10 +858,11 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
     range.size = VK_WHOLE_SIZE;
     vkInvalidateMappedMemoryRanges(m_device, 1, &range);
 
-    vkMapMemory(m_device, m_hitBuf.memory, 0, count * sizeof(gpu_ray_hit_t), 0, &m_hitMapped);
+    m_hostHits.resize(count);
+    mapped = nullptr;
+    vkMapMemory(m_device, m_hitBuf.memory, 0, count * sizeof(gpu_ray_hit_t), 0, &mapped);
+    memcpy(m_hostHits.data(), mapped, count * sizeof(gpu_ray_hit_t));
+    vkUnmapMemory(m_device, m_hitBuf.memory);
 
-    vkFreeCommandBuffers(m_device, m_cmdPool, 1, &cmd);
-    vkResetDescriptorPool(m_device, m_descriptorPool, 0);
-
-    return reinterpret_cast<const gpu_ray_hit_t*>(m_hitMapped);
+    return m_hostHits.data();
 }

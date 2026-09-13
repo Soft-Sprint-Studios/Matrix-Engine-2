@@ -11,12 +11,6 @@ struct RayInput
     vec4 dir_tmax;
 };
 
-struct RayHitOutput
-{
-    vec4 normal_dist;
-    uvec4 geom_prim_uv_hit;
-};
-
 layout(std430, set = 0, binding = 1) readonly buffer InRayBuffer
 {
     RayInput rays[];
@@ -24,7 +18,7 @@ layout(std430, set = 0, binding = 1) readonly buffer InRayBuffer
 
 layout(std430, set = 0, binding = 2) writeonly buffer OutHitBuffer
 {
-    RayHitOutput results[];
+    uvec4 results[];
 };
 
 layout(push_constant) uniform PushConstants
@@ -51,16 +45,13 @@ void main()
 
     if (rayQueryGetIntersectionTypeEXT(query, true) != gl_RayQueryCommittedIntersectionNoneEXT)
     {
-        float dist = rayQueryGetIntersectionTEXT(query, true);
         vec2 bary = rayQueryGetIntersectionBarycentricsEXT(query, true);
         uint primID = rayQueryGetIntersectionPrimitiveIndexEXT(query, true);
 
-        results[idx].normal_dist = vec4(0.0, 0.0, 1.0, dist);
-        results[idx].geom_prim_uv_hit = uvec4(primID, floatBitsToUint(bary.x), floatBitsToUint(bary.y), 1u);
+        results[idx] = uvec4(primID, floatBitsToUint(bary.x), floatBitsToUint(bary.y), 1u);
     }
     else
     {
-        results[idx].normal_dist = vec4(0.0, 0.0, 0.0, -1.0);
-        results[idx].geom_prim_uv_hit = uvec4(0u, 0u, 0u, 0u);
+        results[idx] = uvec4(0u, 0u, 0u, 0u);
     }
 }

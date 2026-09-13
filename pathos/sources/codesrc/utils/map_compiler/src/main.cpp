@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     std::string gamedir = "";
     std::string daystage = "";
 
-    int samples = 64;
+    int samples = 128;
     int bounces = 1;
     int gridDistance = 32;
 

@@ -123,7 +123,6 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
         };
 
         const Int32 numBounceRays = raysPerLuxel;
-        std::vector<gpu_ray_t> gpuBounceRays((size_t)vertexCount * (size_t)numBounceRays);
 
         struct local_bounce_dir_t 
         {
@@ -224,23 +223,6 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                     norm[2] * tangent[0] - norm[0] * tangent[2],
                     norm[0] * tangent[1] - norm[1] * tangent[0]
                 };
-
-                size_t baseBounceIdx = (size_t)v * (size_t)numBounceRays;
-                for (Int32 r = 0; r < numBounceRays; r++)
-                {
-                    const auto& ld = localDirs[r];
-                    Float sampleDir[3] = {
-                        tangent[0] * ld.x + bitangent[0] * ld.y + norm[0] * ld.z,
-                        tangent[1] * ld.x + bitangent[1] * ld.y + norm[1] * ld.z,
-                        tangent[2] * ld.x + bitangent[2] * ld.y + norm[2] * ld.z
-                    };
-
-                    gpu_ray_t& gray = gpuBounceRays[baseBounceIdx + r];
-                    gray.origin[0] = pos[0]; gray.origin[1] = pos[1]; gray.origin[2] = pos[2];
-                    gray.tMin = 0.05f;
-                    gray.dir[0] = sampleDir[0]; gray.dir[1] = sampleDir[1]; gray.dir[2] = sampleDir[2];
-                    gray.tMax = 2048.0f;
-                }
             }
         }
 
@@ -273,53 +255,108 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
             }
         }
 
-        const gpu_ray_hit_t* bounceHits = TraceRayHitBatch(gpuBounceRays);
+        const size_t MAX_VBOUNCE_RAYS_PER_BATCH = 1048576;
+        const size_t chunkVerts = std::clamp(MAX_VBOUNCE_RAYS_PER_BATCH / std::max(1, numBounceRays), (size_t)1, (size_t)32768);
+        std::vector<gpu_ray_t> chunkBounceRays;
 
-        #pragma omp parallel for schedule(static)
-        for (Int32 v = 0; v < vertexCount; v++)
+        for (size_t chunkStart = 0; chunkStart < (size_t)vertexCount; chunkStart += chunkVerts)
         {
-            Float bounceAccum[3] = { 0.0f, 0.0f, 0.0f };
-            Float bounceDirAccum[3] = { 0.0f, 0.0f, 0.0f };
-            size_t baseBounceIdx = (size_t)v * (size_t)numBounceRays;
+            size_t chunkSize = std::min(chunkVerts, (size_t)vertexCount - chunkStart);
+            chunkBounceRays.resize(chunkSize * (size_t)numBounceRays);
 
-            for (Int32 r = 0; r < numBounceRays; r++)
+#pragma omp parallel for schedule(static)
+            for (int cIdx = 0; cIdx < (int)chunkSize; cIdx++)
             {
-                const auto& hit = bounceHits[baseBounceIdx + r];
-                if (hit.hit != 0)
+                Int32 v = (Int32)(chunkStart + cIdx);
+                Float norm[3] = { vbm.worldNormals[v * 3 + 0], vbm.worldNormals[v * 3 + 1], vbm.worldNormals[v * 3 + 2] };
+                Float pos[3] = {
+                    vbm.worldVerts[v * 3 + 0] + norm[0] * 1.0f,
+                    vbm.worldVerts[v * 3 + 1] + norm[1] * 1.0f,
+                    vbm.worldVerts[v * 3 + 2] + norm[2] * 1.0f
+                };
+
+                Float tangent[3] = { 1.0f, 0.0f, 0.0f };
+                if (fabsf(norm[0]) > 0.9f)
                 {
-                    Int32 hitFace = m_primToFaceMap[hit.primID];
-                    if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
-                    {
-                        Float albedo[3];
-                        SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+                    tangent[0] = 0.0f;
+                    tangent[1] = 1.0f;
+                }
+                Float bitangent[3] = {
+                    norm[1] * tangent[2] - norm[2] * tangent[1],
+                    norm[2] * tangent[0] - norm[0] * tangent[2],
+                    norm[0] * tangent[1] - norm[1] * tangent[0]
+                };
 
-                        Float rVal = (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
-                        Float gVal = (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
-                        Float bVal = (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
+                size_t baseBounceIdx = (size_t)cIdx * (size_t)numBounceRays;
+                for (Int32 r = 0; r < numBounceRays; r++)
+                {
+                    const auto& ld = localDirs[r];
+                    Float sampleDir[3] = {
+                        tangent[0] * ld.x + bitangent[0] * ld.y + norm[0] * ld.z,
+                        tangent[1] * ld.x + bitangent[1] * ld.y + norm[1] * ld.z,
+                        tangent[2] * ld.x + bitangent[2] * ld.y + norm[2] * ld.z
+                    };
 
-                        bounceAccum[0] += rVal;
-                        bounceAccum[1] += gVal;
-                        bounceAccum[2] += bVal;
-
-                        Float maxC = std::max({ rVal, gVal, bVal });
-                        bounceDirAccum[0] += gpuBounceRays[baseBounceIdx + r].dir[0] * maxC;
-                        bounceDirAccum[1] += gpuBounceRays[baseBounceIdx + r].dir[1] * maxC;
-                        bounceDirAccum[2] += gpuBounceRays[baseBounceIdx + r].dir[2] * maxC;
-                    }
+                    gpu_ray_t& gray = chunkBounceRays[baseBounceIdx + r];
+                    gray.origin[0] = pos[0]; gray.origin[1] = pos[1]; gray.origin[2] = pos[2];
+                    gray.tMin = 0.05f;
+                    gray.dir[0] = sampleDir[0]; gray.dir[1] = sampleDir[1]; gray.dir[2] = sampleDir[2];
+                    gray.tMax = 2048.0f;
                 }
             }
 
-            auto& vs = vertSamples[v];
-            vs.ambient[0] = (bounceAccum[0] / (Float)numBounceRays) * M_PI;
-            vs.ambient[1] = (bounceAccum[1] / (Float)numBounceRays) * M_PI;
-            vs.ambient[2] = (bounceAccum[2] / (Float)numBounceRays) * M_PI;
+            const gpu_ray_hit_t* bounceHits = TraceRayHitBatch(chunkBounceRays);
 
-            Float dDirLen = sqrtf(vs.dominantDir[0][0] * vs.dominantDir[0][0] + vs.dominantDir[0][1] * vs.dominantDir[0][1] + vs.dominantDir[0][2] * vs.dominantDir[0][2]);
-            if (dDirLen <= 0.001f)
+            if (bounceHits)
             {
-                vs.dominantDir[0][0] = bounceDirAccum[0];
-                vs.dominantDir[0][1] = bounceDirAccum[1];
-                vs.dominantDir[0][2] = bounceDirAccum[2];
+                #pragma omp parallel for schedule(static)
+                for (int cIdx = 0; cIdx < (int)chunkSize; cIdx++)
+                {
+                    Int32 v = (Int32)(chunkStart + cIdx);
+                    Float bounceAccum[3] = { 0.0f, 0.0f, 0.0f };
+                    Float bounceDirAccum[3] = { 0.0f, 0.0f, 0.0f };
+                    size_t baseBounceIdx = (size_t)cIdx * (size_t)numBounceRays;
+
+                    for (Int32 r = 0; r < numBounceRays; r++)
+                    {
+                        const auto& hit = bounceHits[baseBounceIdx + r];
+                        if (hit.hit != 0)
+                        {
+                            Int32 hitFace = m_primToFaceMap[hit.primID];
+                            if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
+                            {
+                                Float albedo[3];
+                                SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+
+                                Float rVal = (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
+                                Float gVal = (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
+                                Float bVal = (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
+
+                                bounceAccum[0] += rVal;
+                                bounceAccum[1] += gVal;
+                                bounceAccum[2] += bVal;
+
+                                Float maxC = std::max({ rVal, gVal, bVal });
+                                bounceDirAccum[0] += chunkBounceRays[baseBounceIdx + r].dir[0] * maxC;
+                                bounceDirAccum[1] += chunkBounceRays[baseBounceIdx + r].dir[1] * maxC;
+                                bounceDirAccum[2] += chunkBounceRays[baseBounceIdx + r].dir[2] * maxC;
+                            }
+                        }
+                    }
+
+                    auto& vs = vertSamples[v];
+                    vs.ambient[0] = (bounceAccum[0] / (Float)numBounceRays) * M_PI;
+                    vs.ambient[1] = (bounceAccum[1] / (Float)numBounceRays) * M_PI;
+                    vs.ambient[2] = (bounceAccum[2] / (Float)numBounceRays) * M_PI;
+
+                    Float dDirLen = sqrtf(vs.dominantDir[0][0] * vs.dominantDir[0][0] + vs.dominantDir[0][1] * vs.dominantDir[0][1] + vs.dominantDir[0][2] * vs.dominantDir[0][2]);
+                    if (dDirLen <= 0.001f)
+                    {
+                        vs.dominantDir[0][0] = bounceDirAccum[0];
+                        vs.dominantDir[0][1] = bounceDirAccum[1];
+                        vs.dominantDir[0][2] = bounceDirAccum[2];
+                    }
+                }
             }
         }
 

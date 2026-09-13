@@ -29,6 +29,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
 #include <omp.h>
 
 struct fast_trig_t
@@ -289,7 +290,8 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         }
     }
 
-    const size_t CHUNK_LUXELS = 32768;
+    const size_t MAX_BOUNCE_RAYS_PER_BATCH = 1048576;
+    const size_t chunkLuxels = std::clamp(MAX_BOUNCE_RAYS_PER_BATCH / std::max(1, raysPerLuxel), (size_t)1, (size_t)32768);
     std::vector<gpu_ray_t> gpuBounceRays;
 
     for (Int32 bounce = 0; bounce < numBounces; bounce++)
@@ -303,9 +305,9 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
             }
         }
 
-        for (size_t chunkStart = 0; chunkStart < numActive; chunkStart += CHUNK_LUXELS)
+        for (size_t chunkStart = 0; chunkStart < numActive; chunkStart += chunkLuxels)
         {
-            size_t chunkSize = std::min(CHUNK_LUXELS, numActive - chunkStart);
+            size_t chunkSize = std::min(chunkLuxels, numActive - chunkStart);
             gpuBounceRays.resize(chunkSize * (size_t)raysPerLuxel);
 
             #pragma omp parallel for schedule(static)

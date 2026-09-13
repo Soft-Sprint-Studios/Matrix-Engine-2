@@ -235,8 +235,6 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
     std::vector<std::vector<gpu_ray_t>> threadLightRays(maxThreads);
     std::vector<std::vector<grid_light_job_t>> threadLightJobs(maxThreads);
 
-    std::vector<gpu_ray_t> gridProbeRays(numActive * (size_t)numProbeRays);
-
     #pragma omp parallel
     {
         int tid = omp_get_thread_num();
@@ -294,17 +292,6 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
                     threadLightJobs[tid].push_back({ i, style, { lt.color[0] * atten, lt.color[1] * atten, lt.color[2] * atten }, { dir[0], dir[1], dir[2] } });
                 }
             }
-
-            size_t baseProbeIdx = (size_t)a * (size_t)numProbeRays;
-            for (Int32 r = 0; r < numProbeRays; r++)
-            {
-                const Float* pDir = probeDirs[r].data();
-                gpu_ray_t& gray = gridProbeRays[baseProbeIdx + r];
-                gray.origin[0] = s.worldPos[0]; gray.origin[1] = s.worldPos[1]; gray.origin[2] = s.worldPos[2];
-                gray.tMin = 0.05f;
-                gray.dir[0] = pDir[0]; gray.dir[1] = pDir[1]; gray.dir[2] = pDir[2];
-                gray.tMax = 2048.0f;
-            }
         }
     }
 
@@ -340,38 +327,71 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         }
     }
 
-    const gpu_ray_hit_t* probeHits = TraceRayHitBatch(gridProbeRays);
-
     std::vector<std::array<Float, 3>> sampleBounceRad(totalSamples, { 0.0f, 0.0f, 0.0f });
 
-    #pragma omp parallel for schedule(static)
-    for (int a = 0; a < (int)numActive; a++)
+    const size_t MAX_PROBE_RAYS_PER_BATCH = 1048576;
+    const size_t chunkProbes = std::clamp(MAX_PROBE_RAYS_PER_BATCH / std::max(1, numProbeRays), (size_t)1, (size_t)32768);
+    std::vector<gpu_ray_t> chunkProbeRays;
+
+    for (size_t chunkStart = 0; chunkStart < numActive; chunkStart += chunkProbes)
     {
-        Int32 idx = activeIndices[a];
-        size_t baseProbeIdx = (size_t)a * (size_t)numProbeRays;
-        Float accum[3] = { 0.0f, 0.0f, 0.0f };
+        size_t chunkSize = std::min(chunkProbes, numActive - chunkStart);
+        chunkProbeRays.resize(chunkSize * (size_t)numProbeRays);
 
-        for (Int32 r = 0; r < numProbeRays; r++)
+#pragma omp parallel for schedule(static)
+        for (int cIdx = 0; cIdx < (int)chunkSize; cIdx++)
         {
-            const auto& hit = probeHits[baseProbeIdx + r];
-            if (hit.hit != 0)
-            {
-                Int32 hitFace = m_primToFaceMap[hit.primID];
-                if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
-                {
-                    Float albedo[3];
-                    SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+            size_t a = chunkStart + cIdx;
+            Int32 i = activeIndices[a];
+            const auto& s = samples[i];
+            size_t baseRayIdx = (size_t)cIdx * (size_t)numProbeRays;
 
-                    accum[0] += (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
-                    accum[1] += (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
-                    accum[2] += (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
-                }
+            for (Int32 r = 0; r < numProbeRays; r++)
+            {
+                const Float* pDir = probeDirs[r].data();
+                gpu_ray_t& gray = chunkProbeRays[baseRayIdx + r];
+                gray.origin[0] = s.worldPos[0]; gray.origin[1] = s.worldPos[1]; gray.origin[2] = s.worldPos[2];
+                gray.tMin = 0.05f;
+                gray.dir[0] = pDir[0]; gray.dir[1] = pDir[1]; gray.dir[2] = pDir[2];
+                gray.tMax = 2048.0f;
             }
         }
 
-        sampleBounceRad[idx][0] = accum[0];
-        sampleBounceRad[idx][1] = accum[1];
-        sampleBounceRad[idx][2] = accum[2];
+        const gpu_ray_hit_t* probeHits = TraceRayHitBatch(chunkProbeRays);
+
+        if (probeHits)
+        {
+#pragma omp parallel for schedule(static)
+            for (int cIdx = 0; cIdx < (int)chunkSize; cIdx++)
+            {
+                size_t a = chunkStart + cIdx;
+                Int32 idx = activeIndices[a];
+                size_t baseRayIdx = (size_t)cIdx * (size_t)numProbeRays;
+                Float accum[3] = { 0.0f, 0.0f, 0.0f };
+
+                for (Int32 r = 0; r < numProbeRays; r++)
+                {
+                    const auto& hit = probeHits[baseRayIdx + r];
+                    if (hit.hit != 0)
+                    {
+                        Int32 hitFace = m_primToFaceMap[hit.primID];
+                        if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
+                        {
+                            Float albedo[3];
+                            SampleHitAlbedo(hit.primID, hit.u, hit.v, albedo);
+
+                            accum[0] += (m_faceInfos[hitFace].avgRadiance[0] * albedo[0] + m_faceInfos[hitFace].emissive[0]);
+                            accum[1] += (m_faceInfos[hitFace].avgRadiance[1] * albedo[1] + m_faceInfos[hitFace].emissive[1]);
+                            accum[2] += (m_faceInfos[hitFace].avgRadiance[2] * albedo[2] + m_faceInfos[hitFace].emissive[2]);
+                        }
+                    }
+                }
+
+                sampleBounceRad[idx][0] = accum[0];
+                sampleBounceRad[idx][1] = accum[1];
+                sampleBounceRad[idx][2] = accum[2];
+            }
+        }
     }
 
     for (size_t i = 0; i < totalSamples; i++)
