@@ -374,11 +374,11 @@ bool CBSPBuilder::ExportALD(const Char* filename, aldlumptype_t lumpType)
     pHdr->vertexlightdatasize = (int)m_vertexLight[VERTEX_LIGHTING_AMBIENT].size();
     pHdr->lightgridsampledatasize = rawGridSampleSize;
 
-    aldlump_t* pLumpTable = reinterpret_cast<aldlump_t*>(outBuffer.data() + pHdr->lumpoffset);
+    std::vector<aldlump_t> lumpTable(outLumps.size());
 
     for (size_t i = 0; i < outLumps.size(); i++)
     {
-        pLumpTable[i].type = outLumps[i].type;
+        lumpTable[i].type = outLumps[i].type;
 
         auto WriteLayer = [&](const std::vector<byte>& data, int& offsetField) {
             if (data.empty()) 
@@ -401,12 +401,14 @@ bool CBSPBuilder::ExportALD(const Char* filename, aldlumptype_t lumpType)
             };
 
         for (int l = 0; l < NB_SURF_LIGHTMAP_LAYERS; l++)
-            WriteLayer(outLumps[i].layerData[l], pLumpTable[i].lmaplayeroffsets[l]);
+            WriteLayer(outLumps[i].layerData[l], lumpTable[i].lmaplayeroffsets[l]);
         for (int l = 0; l < NB_BAKED_VERTEXLIGHT_LAYERS; l++)
-            WriteLayer(outLumps[i].vertData[l], pLumpTable[i].vertexlightlayeroffsets[l]);
+            WriteLayer(outLumps[i].vertData[l], lumpTable[i].vertexlightlayeroffsets[l]);
         for (int l = 0; l < NB_LIGHTGRID_DATA_LAYERS; l++)
-            WriteLayer(outLumps[i].gridData[l], pLumpTable[i].lightgridlayeroffsets[l]);
+            WriteLayer(outLumps[i].gridData[l], lumpTable[i].lightgridlayeroffsets[l]);
     }
+
+    memcpy(outBuffer.data() + sizeof(aldheader_t), lumpTable.data(), lumpTable.size() * sizeof(aldlump_t));
 
     FILE* pfOut = fopen(filename, "wb");
     if (!pfOut) 
