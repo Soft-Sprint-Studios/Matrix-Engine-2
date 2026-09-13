@@ -69,6 +69,7 @@ struct vk_buffer_t
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkDeviceAddress deviceAddress = 0;
     VkDeviceSize size = 0;
+    void* pMapped = nullptr;
 };
 
 struct vk_as_t

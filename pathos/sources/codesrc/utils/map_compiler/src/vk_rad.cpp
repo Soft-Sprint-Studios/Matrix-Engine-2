@@ -104,6 +104,11 @@ bool CVulkanRayTracer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 
     vkBindBufferMemory(m_device, outBuffer.buffer, outBuffer.memory, 0);
 
+    if (properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+    {
+        vkMapMemory(m_device, outBuffer.memory, 0, memReqs.size, 0, &outBuffer.pMapped);
+    }
+
     if (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
     {
         VkBufferDeviceAddressInfo addrInfo{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
@@ -116,6 +121,11 @@ bool CVulkanRayTracer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 
 void CVulkanRayTracer::DestroyBuffer(vk_buffer_t& buffer)
 {
+    if (buffer.pMapped != nullptr)
+    {
+        vkUnmapMemory(m_device, buffer.memory);
+        buffer.pMapped = nullptr;
+    }
     if (buffer.buffer != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(m_device, buffer.buffer, nullptr);
@@ -495,14 +505,8 @@ bool CVulkanRayTracer::BuildSceneBVH(const std::vector<Float>& vertices, const s
     CreateBuffer(vertices.size() * sizeof(Float), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vBuf);
     CreateBuffer(indices.size() * sizeof(Uint32), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, iBuf);
 
-    void* mapped = nullptr;
-    vkMapMemory(m_device, vBuf.memory, 0, vBuf.size, 0, &mapped);
-    memcpy(mapped, vertices.data(), vBuf.size);
-    vkUnmapMemory(m_device, vBuf.memory);
-
-    vkMapMemory(m_device, iBuf.memory, 0, iBuf.size, 0, &mapped);
-    memcpy(mapped, indices.data(), iBuf.size);
-    vkUnmapMemory(m_device, iBuf.memory);
+    memcpy(vBuf.pMapped, vertices.data(), vBuf.size);
+    memcpy(iBuf.pMapped, indices.data(), iBuf.size);
 
     VkAccelerationStructureGeometryKHR geom{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR };
     geom.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
@@ -580,9 +584,7 @@ bool CVulkanRayTracer::BuildSceneBVH(const std::vector<Float>& vertices, const s
     vk_buffer_t instBuf;
     CreateBuffer(sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, instBuf);
 
-    vkMapMemory(m_device, instBuf.memory, 0, sizeof(instance), 0, &mapped);
-    memcpy(mapped, &instance, sizeof(instance));
-    vkUnmapMemory(m_device, instBuf.memory);
+    memcpy(instBuf.pMapped, &instance, sizeof(instance));
 
     VkAccelerationStructureGeometryKHR tlasGeom{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR };
     tlasGeom.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
@@ -695,10 +697,7 @@ void CVulkanRayTracer::UploadGpuTextures(const std::vector<dds_image_t>& images)
         VkDeviceSize imgBytes = src.width * src.height * 4;
         CreateBuffer(imgBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stageBuf);
 
-        void* mapped = nullptr;
-        vkMapMemory(m_device, stageBuf.memory, 0, imgBytes, 0, &mapped);
-        memcpy(mapped, src.rgba.data(), imgBytes);
-        vkUnmapMemory(m_device, stageBuf.memory);
+        memcpy(stageBuf.pMapped, src.rgba.data(), imgBytes);
 
         VkCommandBufferAllocateInfo cmdAlloc{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         cmdAlloc.commandPool = m_cmdPool;
@@ -760,10 +759,8 @@ void CVulkanRayTracer::UploadPrimData(const std::vector<gpu_prim_data_t>& prims)
 
     VkDeviceSize bSize = prims.size() * sizeof(gpu_prim_data_t);
     EnsureBuffer(m_primBuf, bSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    void* mapped = nullptr;
-    vkMapMemory(m_device, m_primBuf.memory, 0, bSize, 0, &mapped);
-    memcpy(mapped, prims.data(), bSize);
-    vkUnmapMemory(m_device, m_primBuf.memory);
+
+    memcpy(m_primBuf.pMapped, prims.data(), bSize);
 }
 
 bool CVulkanRayTracer::RunPVSCompute(const std::vector<gpu_leaf_sample_t>& leafs, Uint32 numVisLeafs, std::vector<byte>& outPvsMatrix, Uint32 rowBytes)
@@ -780,14 +777,8 @@ bool CVulkanRayTracer::RunPVSCompute(const std::vector<gpu_leaf_sample_t>& leafs
     CreateBuffer(leafs.size() * sizeof(gpu_leaf_sample_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, inLeafBuf);
     CreateBuffer(totalDwords * sizeof(Uint32), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, outPvsBuf);
 
-    void* mapped = nullptr;
-    vkMapMemory(m_device, inLeafBuf.memory, 0, inLeafBuf.size, 0, &mapped);
-    memcpy(mapped, leafs.data(), inLeafBuf.size);
-    vkUnmapMemory(m_device, inLeafBuf.memory);
-
-    vkMapMemory(m_device, outPvsBuf.memory, 0, outPvsBuf.size, 0, &mapped);
-    memset(mapped, 0, outPvsBuf.size);
-    vkUnmapMemory(m_device, outPvsBuf.memory);
+    memcpy(inLeafBuf.pMapped, leafs.data(), inLeafBuf.size);
+    memset(outPvsBuf.pMapped, 0, outPvsBuf.size);
 
     VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
     allocInfo.descriptorPool = m_descriptorPool;
@@ -863,13 +854,11 @@ bool CVulkanRayTracer::RunPVSCompute(const std::vector<gpu_leaf_sample_t>& leafs
     vkInvalidateMappedMemoryRanges(m_device, 1, &range);
 
     outPvsMatrix.resize(numVisLeafs * rowBytes, 0);
-    vkMapMemory(m_device, outPvsBuf.memory, 0, outPvsBuf.size, 0, &mapped);
-    const byte* srcBytes = reinterpret_cast<const byte*>(mapped);
+    const byte* srcBytes = reinterpret_cast<const byte*>(outPvsBuf.pMapped);
     for (Uint32 i = 0; i < numVisLeafs; i++)
     {
         memcpy(&outPvsMatrix[i * rowBytes], srcBytes + (i * rowDwords * sizeof(Uint32)), rowBytes);
     }
-    vkUnmapMemory(m_device, outPvsBuf.memory);
 
     vkFreeCommandBuffers(m_device, m_cmdPool, 1, &cmd);
     DestroyBuffer(inLeafBuf);
@@ -891,10 +880,7 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     EnsureBuffer(m_rayBuf, count * sizeof(gpu_ray_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     EnsureBuffer(m_hitBuf, count * sizeof(Uint32), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
 
-    void* mapped = nullptr;
-    vkMapMemory(m_device, m_rayBuf.memory, 0, count * sizeof(gpu_ray_t), 0, &mapped);
-    memcpy(mapped, rays.data(), count * sizeof(gpu_ray_t));
-    vkUnmapMemory(m_device, m_rayBuf.memory);
+    memcpy(m_rayBuf.pMapped, rays.data(), count * sizeof(gpu_ray_t));
 
     VkWriteDescriptorSetAccelerationStructureKHR asDesc{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR };
     asDesc.accelerationStructureCount = 1;
@@ -977,9 +963,7 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     range.size = VK_WHOLE_SIZE;
     vkInvalidateMappedMemoryRanges(m_device, 1, &range);
 
-    vkMapMemory(m_device, m_hitBuf.memory, 0, count * sizeof(Uint32), 0, &mapped);
-    memcpy(outHits.data(), mapped, count * sizeof(Uint32));
-    vkUnmapMemory(m_device, m_hitBuf.memory);
+    memcpy(outHits.data(), m_hitBuf.pMapped, count * sizeof(Uint32));
 
     return true;
 }
@@ -996,10 +980,7 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
     EnsureBuffer(m_rayBuf, count * sizeof(gpu_ray_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     EnsureBuffer(m_hitBuf, count * sizeof(gpu_ray_hit_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
 
-    void* mapped = nullptr;
-    vkMapMemory(m_device, m_rayBuf.memory, 0, count * sizeof(gpu_ray_t), 0, &mapped);
-    memcpy(mapped, rays.data(), count * sizeof(gpu_ray_t));
-    vkUnmapMemory(m_device, m_rayBuf.memory);
+    memcpy(m_rayBuf.pMapped, rays.data(), count * sizeof(gpu_ray_t));
 
     VkWriteDescriptorSetAccelerationStructureKHR asDesc{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR };
     asDesc.accelerationStructureCount = 1;
@@ -1083,10 +1064,8 @@ const gpu_ray_hit_t* CVulkanRayTracer::TraceRayHitBatch(const std::vector<gpu_ra
     vkInvalidateMappedMemoryRanges(m_device, 1, &range);
 
     m_hostHits.resize(count);
-    mapped = nullptr;
-    vkMapMemory(m_device, m_hitBuf.memory, 0, count * sizeof(gpu_ray_hit_t), 0, &mapped);
-    memcpy(m_hostHits.data(), mapped, count * sizeof(gpu_ray_hit_t));
-    vkUnmapMemory(m_device, m_hitBuf.memory);
+
+    memcpy(m_hostHits.data(), m_hitBuf.pMapped, count * sizeof(gpu_ray_hit_t));
 
     return m_hostHits.data();
 }
