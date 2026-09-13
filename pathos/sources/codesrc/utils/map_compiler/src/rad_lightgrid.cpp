@@ -436,13 +436,13 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
 
             Int32 st = s.styles[slot];
 
-            s.diffuse[slot][0] = sampleStyleDirect[i][st][0] * 0.7f;
-            s.diffuse[slot][1] = sampleStyleDirect[i][st][1] * 0.7f;
-            s.diffuse[slot][2] = sampleStyleDirect[i][st][2] * 0.7f;
+            s.diffuse[slot][0] = sampleStyleDirect[i][st][0];
+            s.diffuse[slot][1] = sampleStyleDirect[i][st][1];
+            s.diffuse[slot][2] = sampleStyleDirect[i][st][2];
 
-            s.ambient[slot][0] = sampleStyleDirect[i][st][0] * 0.3f;
-            s.ambient[slot][1] = sampleStyleDirect[i][st][1] * 0.3f;
-            s.ambient[slot][2] = sampleStyleDirect[i][st][2] * 0.3f;
+            s.ambient[slot][0] = 0.0f;
+            s.ambient[slot][1] = 0.0f;
+            s.ambient[slot][2] = 0.0f;
 
             s.dominantDir[slot][0] = sampleStyleDir[i][st][0];
             s.dominantDir[slot][1] = sampleStyleDir[i][st][1];
