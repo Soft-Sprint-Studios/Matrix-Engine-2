@@ -465,15 +465,39 @@ bool BuildBSPModelTrees(Int32 modelIndex, const std::vector<poly_face_t>& modelF
         }
     }
 
-    Int32 clipHead = skipClip ? -1 : EmitClipTreeRecursive(buildFaces, 0);
+    auto BuildExpandedHull = [&](Float hx, Float hy, Float hz) -> Int32 
+        {
+        if (skipClip || buildFaces.empty())
+            return -1;
+
+        std::vector<bsp_build_face_t> hullFaces = buildFaces;
+        for (auto& hf : hullFaces)
+        {
+            const dmbspv1plane_t& pl = g_BSP.GetPlane(hf.planeIndex);
+            Float offset = fabsf(hf.normal[0]) * hx + fabsf(hf.normal[1]) * hy + fabsf(hf.normal[2]) * hz;
+            hf.dist += offset;
+            hf.planeIndex = g_BSP.InsertPlane(hf.normal, hf.dist, pl.type);
+            for (auto& v : hf.verts)
+            {
+                v.pos[0] += hf.normal[0] * offset;
+                v.pos[1] += hf.normal[1] * offset;
+                v.pos[2] += hf.normal[2] * offset;
+            }
+        }
+        return EmitClipTreeRecursive(hullFaces, 0);
+        };
+
+    Int32 clipHeadHuman = BuildExpandedHull(16.0f, 16.0f, 36.0f);
+    Int32 clipHeadLarge = BuildExpandedHull(32.0f, 32.0f, 32.0f);
+    Int32 clipHeadSmall = BuildExpandedHull(16.0f, 16.0f, 18.0f);
 
     if (modelIndex >= 0 && modelIndex < (Int32)g_BSP.GetModelCount())
     {
         dmbspv1model_t& mdl = g_BSP.GetModel(modelIndex);
         mdl.headnode[0] = rootNode;
-        mdl.headnode[1] = clipHead;
-        mdl.headnode[2] = clipHead;
-        mdl.headnode[3] = clipHead;
+        mdl.headnode[1] = clipHeadHuman;
+        mdl.headnode[2] = clipHeadLarge;
+        mdl.headnode[3] = clipHeadSmall;
         mdl.visleafs = visLeafCount;
         mdl.firstface = startFaceCount;
         mdl.numfaces = totalEmittedFaces;
