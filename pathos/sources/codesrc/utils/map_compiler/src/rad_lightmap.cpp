@@ -549,6 +549,59 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 
     oidnReleaseDevice(oidnDevice);
 
+    #pragma omp parallel for schedule(dynamic)
+    for (int f = 0; f < (int)faceLightmaps.size(); f++)
+    {
+        const auto& lm = faceLightmaps[f];
+        int W = lm.luxelWidth;
+        int H = lm.luxelHeight;
+        if ((W <= 1 && H <= 1) || faceLuxels[f].empty())
+        {
+            continue;
+        }
+
+        std::vector<std::array<Float, 3>> temp(W * H);
+        static const Float kWeights[5] = { 0.0625f, 0.25f, 0.375f, 0.25f, 0.0625f };
+
+        for (int y = 0; y < H; y++)
+        {
+            for (int x = 0; x < W; x++)
+            {
+                Float r = 0.0f, g = 0.0f, b = 0.0f;
+                for (int k = -2; k <= 2; k++)
+                {
+                    int sampleX = std::clamp(x + k, 0, W - 1);
+                    Float w = kWeights[k + 2];
+                    const auto& src = faceLuxels[f][y * W + sampleX].bounce[0];
+                    r += src[0] * w;
+                    g += src[1] * w;
+                    b += src[2] * w;
+                }
+                temp[y * W + x] = { r, g, b };
+            }
+        }
+
+        for (int y = 0; y < H; y++)
+        {
+            for (int x = 0; x < W; x++)
+            {
+                Float r = 0.0f, g = 0.0f, b = 0.0f;
+                for (int k = -2; k <= 2; k++)
+                {
+                    int sampleY = std::clamp(y + k, 0, H - 1);
+                    Float w = kWeights[k + 2];
+                    const auto& src = temp[sampleY * W + x];
+                    r += src[0] * w;
+                    g += src[1] * w;
+                    b += src[2] * w;
+                }
+                faceLuxels[f][y * W + x].bounce[0][0] = r;
+                faceLuxels[f][y * W + x].bounce[0][1] = g;
+                faceLuxels[f][y * W + x].bounce[0][2] = b;
+            }
+        }
+    }
+
     struct face_bbox_t
     {
         Float mins[3];
