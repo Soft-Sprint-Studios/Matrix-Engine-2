@@ -58,6 +58,10 @@ struct fast_trig_t
 
 static const fast_trig_t g_fastTrig;
 
+//=============================================
+// @brief
+//
+//=============================================
 void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces, Int32 raysPerLuxel)
 {
     std::cout << "Baking lightmaps...\n";
