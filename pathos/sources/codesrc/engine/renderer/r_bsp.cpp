@@ -719,22 +719,7 @@ void CBSPRenderer::InitLightmaps( void )
 			else
 				psrclightdata = nullptr;
 
-			if(psrclightdata)
-			{
-				Vector* psrc = psrclightdata + i * size;
-				for(Uint32 y = 0; y < ysize; y++)
-				{
-					for(Uint32 x = 0; x < xsize; x++)
-					{
-						Uint32 dstIdx = (mbspsurface->light_t[i] + y) * m_lightmapWidths[i] + (mbspsurface->light_s[i] + x);
-						Uint32 srcIdx = y * xsize + x;
-						plightmap[dstIdx][0] = psrc[srcIdx].x;
-						plightmap[dstIdx][1] = psrc[srcIdx].y;
-						plightmap[dstIdx][2] = psrc[srcIdx].z;
-						plightmap[dstIdx][3] = 1.0f;
-					}
-				}
-			}
+			R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrclightdata, psurface, plightmap, i, m_lightmapWidths[i], paddingAmount, false, isfullbright, true);
 			lightmapdatasize += size * sizeof(vec4_t);
 		}
 
@@ -896,19 +881,8 @@ void CBSPRenderer::InitLightmaps( void )
 						Uint32 ysize = (psurface->extents[1] / psurface->lightmapdivider)+1;
 						Uint32 size = xsize*ysize;
 
-						Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(ens.pworld->plightdata[k]) + psurface->lightoffset) + i * size;
-						for(Uint32 y = 0; y < ysize; y++)
-						{
-							for(Uint32 x = 0; x < xsize; x++)
-							{
-								Uint32 dstIdx = (mbspsurface->light_t[i] + y) * m_lightmapWidths[i] + (mbspsurface->light_s[i] + x);
-								Uint32 srcIdx = y * xsize + x;
-								plightmapdata[dstIdx][0] = psrc[srcIdx].x;
-								plightmapdata[dstIdx][1] = psrc[srcIdx].y;
-								plightmapdata[dstIdx][2] = psrc[srcIdx].z;
-								plightmapdata[dstIdx][3] = 1.0f;
-							}
-						}
+						Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(ens.pworld->plightdata[k]) + psurface->lightoffset);
+						R_BuildLightmap(mbspsurface->light_s[i], mbspsurface->light_t[i], psrc, psurface, plightmapdata, i, m_lightmapWidths[i], paddingAmount, false, false, true);
 						lightdatasize += size * sizeof(vec4_t);
 					}
 

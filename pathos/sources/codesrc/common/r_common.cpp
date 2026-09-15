@@ -107,12 +107,129 @@ void R_AllocBlock ( Uint32 w, Uint32 h, Uint32 &x, Uint32 &y, Uint32& width, Uin
 // @brief
 //
 //=============================================
-void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples, const msurface_t *psurface, color32_t *pout, Int32 index, Uint32 sizex, Uint32 padamount, bool isvectormap, bool fullbright )
+void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const void *psamples, const msurface_t *psurface, void *pout, Int32 index, Uint32 sizex, Uint32 padamount, bool isvectormap, bool fullbright, bool isfloat )
 {
 	const Uint32 smax = (psurface->extents[0] / psurface->lightmapdivider) + 1;
 	const Uint32 tmax = (psurface->extents[1] / psurface->lightmapdivider) + 1;
 	const Uint32 size = smax*tmax;
-	
+
+	if(isfloat)
+	{
+		vec4_t *blocklights = new vec4_t[size];
+		vec4_t *pblock = blocklights;
+
+		if(!psamples || fullbright)
+		{
+			for (Uint32 j = 0; j < size; j++)
+			{
+				pblock[j][0] = 1.0f;
+				pblock[j][1] = 1.0f;
+				pblock[j][2] = 1.0f;
+				pblock[j][3] = 1.0f;
+			}
+		}
+		else
+		{
+			const Vector *psrc = reinterpret_cast<const Vector*>(psamples) + size * index;
+			for (Uint32 j = 0; j < size; j++)
+			{
+				pblock[j][0] = psrc[j].x;
+				pblock[j][1] = psrc[j].y;
+				pblock[j][2] = psrc[j].z;
+				pblock[j][3] = 1.0f;
+			}
+		}
+
+		if(pout)
+		{
+			// Copy colors to destination
+			vec4_t *pdest = reinterpret_cast<vec4_t*>(pout) + light_t * sizex + light_s;
+			vec4_t *psrc = pblock;
+			for (Uint32 i = 0; i < tmax; i++, pdest += sizex)
+			{
+				for (Uint32 j = 0; j < smax; j++)
+				{
+					pdest[j] = *psrc;
+					psrc++;
+				}
+			}
+
+			// Apply padding if any is present
+			if(padamount)
+			{
+				// Add horizontal padding
+				for(Uint32 i = 0; i < tmax; i++)
+				{
+					// Add top padding
+					for(Uint32 k = 0; k < smax; k++)
+					{
+						for(Uint32 j = 0; j < padamount; j++)
+						{
+							pdest = reinterpret_cast<vec4_t*>(pout) + (light_t - (j+1)) * sizex + light_s + k;
+							psrc = pblock + k;
+							*pdest = *psrc;
+
+							// Add bottom padding
+							pdest = reinterpret_cast<vec4_t*>(pout) + (light_t + (tmax + j)) * sizex + light_s + k;
+							psrc = pblock + (tmax - 1) * smax + k;
+							*pdest = *psrc;
+						}
+					}
+				}
+
+				// Add add vertical padding
+				for(Uint32 i = 0; i < smax; i++)
+				{
+					for(Uint32 k = 0; k < tmax; k++)
+					{
+						for(Uint32 j = 0; j < padamount; j++)
+						{
+							// Add left side padding
+							pdest = reinterpret_cast<vec4_t*>(pout) + (light_t * sizex) + k * sizex + light_s - (j+1);
+							psrc = pblock + smax * k;
+							*pdest = *psrc;
+
+							// Add right side padding
+							pdest = reinterpret_cast<vec4_t*>(pout) + (light_t * sizex) + k * sizex + light_s + smax + j;
+							psrc = pblock + smax * k + smax - 1;
+							*pdest = *psrc;
+						}
+					}
+				}
+
+				// Manage corner pixels
+				for(Uint32 i = 0; i < padamount; i++)
+				{
+					for(Uint32 j = 0; j < padamount; j++)
+					{
+						// Top left
+						pdest = reinterpret_cast<vec4_t*>(pout) + (light_t - (i+1)) * sizex + light_s - (j+1);
+						psrc = pblock;
+						*pdest = *psrc;
+
+						// Top right
+						pdest = reinterpret_cast<vec4_t*>(pout) + (light_t - (i+1)) * sizex + light_s + smax + j;
+						psrc = pblock + smax - 1;
+						*pdest = *psrc;
+
+						// Bottom left
+						pdest = reinterpret_cast<vec4_t*>(pout) + (light_t + tmax + (padamount - (i+1))) * sizex + light_s - (j + 1);
+						psrc = pblock + smax * (tmax - 1);
+						*pdest = *psrc;
+
+						// Bottom right
+						pdest = reinterpret_cast<vec4_t*>(pout) + (light_t + tmax + (padamount - (i+1))) * sizex + light_s + smax + j;
+						psrc = pblock + (smax * tmax) - 1;
+						*pdest = *psrc;
+					}
+				}
+			}
+		}
+
+		delete[] blocklights;
+		return;
+	}
+
 	color24_t *blocklights = new color24_t[size];
 	color24_t *pblock = blocklights;
 
@@ -127,7 +244,7 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 	}
 	else
 	{
-		const color24_t *psrc = psamples + size * index;
+		const color24_t *psrc = reinterpret_cast<const color24_t*>(psamples) + size * index;
 
 		for (Uint32 j = 0; j < size; j++)
 		{
@@ -157,7 +274,7 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 	if(pout)
 	{
 		// Copy colors to destination
-		color32_t *pdest = pout + light_t * sizex + light_s;
+		color32_t *pdest = reinterpret_cast<color32_t*>(pout) + light_t * sizex + light_s;
 		color24_t *psrc = pblock;
 		for (Uint32 i = 0; i < tmax; i++, pdest += sizex)
 		{
@@ -182,14 +299,14 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 				{
 					for(Uint32 j = 0; j < padamount; j++)
 					{
-						pdest = pout + (light_t - (j+1)) * sizex + light_s + k;
+						pdest = reinterpret_cast<color32_t*>(pout) + (light_t - (j+1)) * sizex + light_s + k;
 						psrc = pblock + k;
 						pdest->r = psrc->r;
 						pdest->g = psrc->g;
 						pdest->b = psrc->b;
 
 						// Add bottom padding
-						pdest = pout + (light_t + (tmax + j)) * sizex + light_s + k;
+						pdest = reinterpret_cast<color32_t*>(pout) + (light_t + (tmax + j)) * sizex + light_s + k;
 						psrc = pblock + (tmax - 1) * smax + k;
 						pdest->r = psrc->r;
 						pdest->g = psrc->g;
@@ -206,14 +323,14 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 					for(Uint32 j = 0; j < padamount; j++)
 					{
 						// Add left side padding
-						pdest = pout + (light_t * sizex) + k * sizex + light_s - (j+1);
+						pdest = reinterpret_cast<color32_t*>(pout) + (light_t * sizex) + k * sizex + light_s - (j+1);
 						psrc = pblock + smax * k;
 						pdest->r = psrc->r;
 						pdest->g = psrc->g;
 						pdest->b = psrc->b;
 
 						// Add right side padding
-						pdest = pout + (light_t * sizex) + k * sizex + light_s + smax + j;
+						pdest = reinterpret_cast<color32_t*>(pout) + (light_t * sizex) + k * sizex + light_s + smax + j;
 						psrc = pblock + smax * k + smax - 1;
 						pdest->r = psrc->r;
 						pdest->g = psrc->g;
@@ -228,7 +345,7 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 				for(Uint32 j = 0; j < padamount; j++)
 				{
 					// Top left
-					pdest = pout + (light_t - (i+1)) * sizex + light_s - (j+1);
+					pdest = reinterpret_cast<color32_t*>(pout) + (light_t - (i+1)) * sizex + light_s - (j+1);
 					psrc = pblock;
 
 					pdest->r = psrc->r;
@@ -236,7 +353,7 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 					pdest->b = psrc->b;
 
 					// Top right
-					pdest = pout + (light_t - (i+1)) * sizex + light_s + smax + j;
+					pdest = reinterpret_cast<color32_t*>(pout) + (light_t - (i+1)) * sizex + light_s + smax + j;
 					psrc = pblock + smax - 1;
 
 					pdest->r = psrc->r;
@@ -244,7 +361,7 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 					pdest->b = psrc->b;
 
 					// Bottom left
-					pdest = pout + (light_t + tmax + (padamount - (i+1))) * sizex + light_s - (j + 1);
+					pdest = reinterpret_cast<color32_t*>(pout) + (light_t + tmax + (padamount - (i+1))) * sizex + light_s - (j + 1);
 					psrc = pblock + smax * (tmax - 1);
 
 					pdest->r = psrc->r;
@@ -252,7 +369,7 @@ void R_BuildLightmap( Uint16 light_s, Uint16 light_t, const color24_t *psamples,
 					pdest->b = psrc->b;
 
 					// Bottom right
-					pdest = pout + (light_t + tmax + (padamount - (i+1))) * sizex + light_s + smax + j;
+					pdest = reinterpret_cast<color32_t*>(pout) + (light_t + tmax + (padamount - (i+1))) * sizex + light_s + smax + j;
 					psrc = pblock + (smax * tmax) - 1;
 
 					pdest->r = psrc->r;

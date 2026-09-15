@@ -541,37 +541,15 @@ void CWaterShader::CreateLightmapTexture( cl_water_t* pwater )
 
 			if(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DEFAULT])
 			{
-				Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DEFAULT]) + psurf->lightoffset_water) + i * size;
-				for(Uint32 y = 0; y < ysize; y++)
-				{
-					for(Uint32 x = 0; x < xsize; x++)
-					{
-						Uint32 dstIdx = (psurf->light_t[i] + y) * pwater->lightmaptexturewidths[i] + (psurf->light_s[i] + x);
-						Uint32 srcIdx = y * xsize + x;
-						plightmapdata[dstIdx][0] = psrc[srcIdx].x;
-						plightmapdata[dstIdx][1] = psrc[srcIdx].y;
-						plightmapdata[dstIdx][2] = psrc[srcIdx].z;
-						plightmapdata[dstIdx][3] = 1.0f;
-					}
-				}
+				Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DEFAULT]) + psurf->lightoffset_water);
+				R_BuildLightmap(psurf->light_s[i], psurf->light_t[i], psrc, psurf, plightmapdata, i, pwater->lightmaptexturewidths[i], paddingAmount, false, false, true);
 				lightmapdatasize += size * sizeof(vec4_t);
 			}
 
 			if(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DIFFUSE] && pbrushmodel->plightdata_water[SURF_LIGHTMAP_AMBIENT])
 			{
-				Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DIFFUSE]) + psurf->lightoffset_water) + i * size;
-				for(Uint32 y = 0; y < ysize; y++)
-				{
-					for(Uint32 x = 0; x < xsize; x++)
-					{
-						Uint32 dstIdx = (psurf->light_t[i] + y) * pwater->lightmaptexturewidths[i] + (psurf->light_s[i] + x);
-						Uint32 srcIdx = y * xsize + x;
-						pdiffusemaptexture[dstIdx][0] = psrc[srcIdx].x;
-						pdiffusemaptexture[dstIdx][1] = psrc[srcIdx].y;
-						pdiffusemaptexture[dstIdx][2] = psrc[srcIdx].z;
-						pdiffusemaptexture[dstIdx][3] = 1.0f;
-					}
-				}
+				Vector* psrc = reinterpret_cast<Vector*>(reinterpret_cast<byte*>(pbrushmodel->plightdata_water[SURF_LIGHTMAP_DIFFUSE]) + psurf->lightoffset_water);
+				R_BuildLightmap(psurf->light_s[i], psurf->light_t[i], psrc, psurf, pdiffusemaptexture, i, pwater->lightmaptexturewidths[i], paddingAmount, false, false, true);
 				diffuselightdatasize += size * sizeof(vec4_t);
 
 				Uint32 pixelIdx = psurf->lightoffset_water / sizeof(Vector);
