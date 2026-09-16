@@ -70,7 +70,7 @@ void main()
                 vec2 bary = rayQueryGetIntersectionBarycentricsEXT(query, false);
                 float w = 1.0 - bary.x - bary.y;
                 vec2 uv = w * pd.uv0 + bary.x * pd.uv1 + bary.y * pd.uv2;
-                float alpha = texture(textures[nonuniformEXT(pd.texIndex)], uv).a;
+                float alpha = textureLod(textures[nonuniformEXT(pd.texIndex)], uv, 0.0).a;
                 if (alpha >= 0.5)
                 {
                     rayQueryConfirmIntersectionEXT(query);
