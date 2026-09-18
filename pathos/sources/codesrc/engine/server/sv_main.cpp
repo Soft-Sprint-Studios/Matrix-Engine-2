@@ -33,7 +33,7 @@ All Rights Reserved.
 #include "file.h"
 
 #include "vid.h"
-#include "trace_shared.h"
+#include "trace_core.h"
 #include "save_shared.h"
 #include "saverestore.h"
 #include "constants.h"
@@ -1874,6 +1874,13 @@ bool SV_SpawnClient( sv_client_t& cl )
 
 	// Call for entities to send init messages
 	svs.dllfuncs.pfnInitializeClientData(cl.pedict);
+
+	// Force send of usermsgs before sending svc_postclientinit
+	SV_SendUserMessages(cl);
+
+	// Tell client we're done initializing
+	cls.netinfo.pnet->SVC_MessageBegin(MSG_ONE, svc_postclientinit, cl.pedict);
+	cls.netinfo.pnet->SVC_MessageEnd();
 
 	return true;
 }

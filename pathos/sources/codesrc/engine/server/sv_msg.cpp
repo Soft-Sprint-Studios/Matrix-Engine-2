@@ -288,7 +288,9 @@ bool SV_WriteEntitiesToClient( sv_client_t* pclient )
 			updateMask |= U_POSITIONS;
 
 		if(curstate.mins != clstate.mins
-			|| curstate.maxs != clstate.maxs)
+			|| curstate.maxs != clstate.maxs
+			|| curstate.absmin != clstate.absmin
+			|| curstate.absmax != clstate.absmax)
 			updateMask |= U_MINSMAXS;
 
 		if((curstate.modelindex != clstate.modelindex
@@ -329,7 +331,8 @@ bool SV_WriteEntitiesToClient( sv_client_t* pclient )
 			|| curstate.renderfx != clstate.renderfx
 			|| curstate.numsegments != clstate.numsegments
 			|| curstate.rendercolor != clstate.rendercolor
-			|| curstate.lightorigin != clstate.lightorigin)
+			|| curstate.lightorigin != clstate.lightorigin
+			|| memcmp(curstate.vlight_styles, clstate.vlight_styles, sizeof(byte)*MAX_SURFACE_STYLES) != 0)
 			updateMask |= U_RENDERINFO;
 
 		if(curstate.health != clstate.health
@@ -340,7 +343,8 @@ bool SV_WriteEntitiesToClient( sv_client_t* pclient )
 			|| curstate.oldbuttons != clstate.oldbuttons
 			|| curstate.flags != clstate.flags
 			|| curstate.waterlevel != clstate.waterlevel
-			|| curstate.fov != clstate.fov)
+			|| curstate.fov != clstate.fov
+			|| curstate.deadstate != clstate.deadstate)
 			updateMask |= U_BASICS4;
 
 		if(curstate.aiment != clstate.aiment
@@ -466,6 +470,11 @@ bool SV_WriteEntitiesToClient( sv_client_t* pclient )
 				svs.netinfo.pnet->WriteFloat(curstate.mins[j]);
 			for(Uint32 j = 0; j < 3; j++)
 				svs.netinfo.pnet->WriteFloat(curstate.maxs[j]);
+
+			for(Uint32 j = 0; j < 3; j++)
+				svs.netinfo.pnet->WriteFloat(curstate.absmin[j]);
+			for(Uint32 j = 0; j < 3; j++)
+				svs.netinfo.pnet->WriteFloat(curstate.absmax[j]);
 		}
 
 		if(updateMask & U_BASICS1)
@@ -526,6 +535,9 @@ bool SV_WriteEntitiesToClient( sv_client_t* pclient )
 
 			for(Uint32 j = 0; j < 3; j++)
 				svs.netinfo.pnet->WriteFloat(curstate.lightorigin[j]);
+
+			for(Uint32 j = 0; j < MAX_SURFACE_STYLES; j++)
+				svs.netinfo.pnet->WriteByte(curstate.vlight_styles[j]);
 		}
 
 		if(updateMask & U_BASICS4)
@@ -539,6 +551,7 @@ bool SV_WriteEntitiesToClient( sv_client_t* pclient )
 			svs.netinfo.pnet->WriteUint64(curstate.flags);
 			svs.netinfo.pnet->WriteInt32(curstate.waterlevel);
 			svs.netinfo.pnet->WriteFloat(curstate.fov);
+			svs.netinfo.pnet->WriteInt32(curstate.deadstate);
 		}
 
 		if(updateMask & U_ENTSINFO)

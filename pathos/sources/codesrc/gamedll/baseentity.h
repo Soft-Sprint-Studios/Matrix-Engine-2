@@ -291,7 +291,7 @@ public:
 	// Sets parent door for func_door entities
 	virtual void SetParentDoor( CFuncDoor* pParent ) { STUBWARNING; }
 	// Nudges this ground entity
-	virtual void GroundEntityNudge( bool noExceptions = false ) { STUBWARNING; }
+	virtual bool GroundEntityNudge( bool noExceptions = false ) { STUBWARNING; return false; }
 	// Called when a related entity is removed
 	virtual void ChildEntityRemoved( CBaseEntity* pEntity ) {}
 	// Sets a door to be forced to close
@@ -314,6 +314,10 @@ public:
 	virtual void SetPairedButtonDelay( Float delayTime ) { STUBWARNING; };
 	// Tells an light_environment to set the cvar values
 	virtual bool SetLightEnvValues( daystage_t daystage ) { STUBWARNING; return false; };
+	// Get door shared identifier
+	virtual const Char* GetDoorIdentifier( void ) const { return ""; }
+	// Get related door entities from func_door/func_door_rotating
+	virtual void GetRelatedDoors( CArray<CBaseEntity*>& entitesArray ) const { STUBWARNING; }
 
 	// Tells if the entity is an envpos_portal entity
 	virtual bool IsEnvPosPortalEntity( void ) const { return false; }

@@ -529,7 +529,14 @@ void BSP_ReleaseLightmapData( brushmodel_t& model )
 			model.plightdata[i] = nullptr;
 		}
 	}
+}
 
+//=============================================
+// @brief
+//
+//=============================================
+void BSP_ReleaseVertexLightData( brushmodel_t& model )
+{
 	for(Uint32 i = 0; i < NB_BAKED_VERTEXLIGHT_LAYERS; i++)
 	{
 		if(model.pvertexlightdata_original[i] && reinterpret_cast<byte*>(model.pvertexlightdata[i]) != model.pvertexlightdata_original[i])
@@ -643,4 +650,28 @@ void BSP_SetBrushType( brushmodel_t& model, mbrush_t* pbrush, Uint32 index )
 		pbrush->type = BRUSHTYPE_CLIP_BRUSH;
 	else
 		pbrush->type = BRUSHTYPE_NORMAL;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void BSP_SetupLeafBrushBVHs( brushmodel_t& model )
+{
+	for(Uint32 i = 0; i < model.numleafs; i++)
+	{
+		mleaf_t* pleaf = &model.pleafs[i];
+		if(!pleaf->numleafbrushes)
+			continue;
+
+		if(pleaf->numleafbrushes <= 1)
+			continue;
+
+		// Create BVH for leaf, but only keep the BVH if there's more than one node
+		CLeafBrushBVH* pnewbvh = new CLeafBrushBVH(pleaf);
+		if(pnewbvh->GetNodeCount() <= 1)
+			delete pnewbvh;
+		else
+			pleaf->pleafbrushbvh = pnewbvh;
+	}
 }

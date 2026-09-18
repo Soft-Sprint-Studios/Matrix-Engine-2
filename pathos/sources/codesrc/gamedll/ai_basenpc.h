@@ -504,7 +504,7 @@ public:
 	virtual bool IsAlive( void ) const override { return (m_pState->deadstate == DEADSTATE_NONE && m_npcState != NPC_STATE_DEAD) ? true : false; };
 
 	// Nudges an NPC off the ground by a few units, then puts them on the floor
-	virtual void GroundEntityNudge( bool noExceptions = false ) override;
+	virtual bool GroundEntityNudge( bool noExceptions = false ) override;
 	
 	// Handles an animation event
 	virtual void HandleAnimationEvent( const mstudioevent_t* pevent ) override;
@@ -1183,8 +1183,8 @@ protected:
 	// Next schedule to play after current schedule has ended for any reason
 	Int32						m_nextScheduleIndex;
 
-	// Own position navigability result
-	bool						m_ownPositionNavigability;
+	// Last position navigability result
+	bool						m_lastCheckedPositionNavigability;
 	// Last checked own position for navigability
 	Vector						m_lastCheckedNavigabilityPosition;
 

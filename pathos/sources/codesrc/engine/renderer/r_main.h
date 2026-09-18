@@ -46,6 +46,10 @@ static constexpr Uint32 MAINFRAME_RENDERPASS_ID = 0;
 static constexpr Uint32 MAX_DLIGHTS = 4;
 // Max active-load shaders per frame
 static constexpr Uint32 MAX_LIGHTMAP_PADDING = 8;
+// Number of random colors
+static constexpr Uint32 NUM_RANDOM_COLORS = 16;
+// Array of random colors
+extern const Float RANDOM_COLOR_ARRAY[NUM_RANDOM_COLORS][3];
 
 enum alphatest_mode_t
 {
@@ -487,9 +491,11 @@ extern bool R_DrawLoadingScreen( const Char* pstrText = nullptr );
 extern bool R_DrawPausedLogo( void );
 extern bool R_DrawHUD( bool hudOnly = false, bool noFilmGrain = false );
 extern bool R_DrawShownMaterial( void );
+extern bool R_DrawEntityMinsMaxs( void );
 
 extern bool R_Init( void );
 extern void R_Shutdown( void );
+extern void R_PostClientInit( void );
 
 extern bool R_InitGL( void );
 extern void R_ShutdownGL( void );
@@ -544,6 +550,7 @@ extern Int32 R_SortEntities( const void* p1, const void* p2 );
 extern void R_AddShaderForLoading( CGLSLShader* pShader );
 extern bool R_PerformPendingShaderLoads( void );
 extern Vector R_GetLightingForPosition( const Vector& position, const Vector& defaultcolor );
+extern void R_GetLightingForPosition( const Vector& position, const Vector& defaultcolor, Vector* pdiffusecolors, Vector* pambientcolors, Vector* plightdirs, byte* plightstyles );
 
 extern void R_SetLightmapTexture( Uint32 glindex, Uint32 width, Uint32 height, bool isvectormap, color32_t* pdata, Uint32& resultsize );
 

@@ -64,6 +64,7 @@ public:
 	enum shader_modes_t
 	{
 		SHADER_TEXTURE = 0,
+		SHADER_TEXTURE_BICUBIC,
 		SHADER_COLOR,
 		SHADER_PROCEDUAL
 	};
@@ -139,6 +140,8 @@ private:
 
 	// Cvar for toggling sky rendering
 	CCVar* m_pCvarDrawSky;
+	// Cvar for toggling sky bicubic sampling
+	CCVar* m_pCvarSkyBicubic;
 
 	// Cvars for procedural sky rendering
 	CCVar* m_pCvarProcedualSky;

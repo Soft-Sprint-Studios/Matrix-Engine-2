@@ -206,17 +206,17 @@ mlight_t* CL_AllocEntityLight( Int32 key, Float life, Int32 attachment )
 //====================================
 //
 //====================================
-void CL_CreateCableEntity( const Vector& start, const Vector& end, Uint32 depth, Uint32 width, Uint32 numsegments )
+void CL_CreateCableEntity( Int32 modelindex, const Vector& start, const Vector& end, Uint32 depth, Uint32 width, Uint32 numsegments, Float windx, Float windy )
 {
-	gCableRenderer.AddCable(start, end, depth, width, numsegments);
+	gCableRenderer.AddCable(modelindex, start, end, depth, width, numsegments, windx, windy);
 }
 
 //====================================
 //
 //====================================
-bool CL_SetupEntityVertexLightVBO( cl_entity_t* pentity, Int32 vlightoffset, Uint32 vertexcount, byte* plightstyles )
+bool CL_SetupEntityVertexLightVBO( Int32 modelindex, cl_entity_t* pentity, Int32 vlightoffset, Uint32 vertexcount, byte* plightstyles )
 {
-	return gVBMRenderer.SetupEntityVertexLightVBO(pentity, vlightoffset, vertexcount, plightstyles);
+	return gVBMRenderer.SetupEntityVertexLightVBO(modelindex, pentity, vlightoffset, vertexcount, plightstyles);
 }
 
 //====================================
@@ -371,6 +371,8 @@ void CL_SetDayStage( daystage_t daystage )
 
 	// Load day stage cubemaps
 	gCubemaps.InitGame();
+	// Reset cable lighting
+	gCableRenderer.RefreshLighting();
 
 	// Load day stage water scripts
 	BSP_ReserveWaterLighting();
@@ -380,6 +382,7 @@ void CL_SetDayStage( daystage_t daystage )
 
 	// Release the lightmap data
 	BSP_ReleaseLightmapData(*ens.pworld);
+	BSP_ReleaseVertexLightData(*ens.pworld);
 
 	// Mark as having relevant data
 	rns.hasdaystagedata = true;
@@ -667,9 +670,9 @@ void CL_BlobExplosion( const Vector& origin )
 //====================================
 //
 //====================================
-void CL_RocketExplosion( const Vector& origin, Uint32 color )
+void CL_RocketExplosion( const Vector& origin )
 {
-	gLegacyParticles.CreateRocketExplosion(origin, color);
+	gLegacyParticles.CreateRocketExplosion(origin);
 }
 
 //====================================

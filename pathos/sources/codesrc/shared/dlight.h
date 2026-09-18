@@ -30,6 +30,7 @@ public:
 		lastframe(0),
 		lightstyle(0),
 		textureindex(0),
+		isskydlight(false),
 		followentity(false),
 		attachment(NO_POSITION),
 		isstatic(false),
@@ -88,6 +89,7 @@ public:
 
 	Uint32 textureindex;
 
+	bool	isskydlight;
 	bool	followentity;
 	Int32	attachment;
 

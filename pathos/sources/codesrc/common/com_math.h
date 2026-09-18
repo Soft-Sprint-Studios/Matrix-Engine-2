@@ -12,6 +12,7 @@ All Rights Reserved.
 
 #include <math.h>
 #include "plane.h"
+#include "constants.h"
 
 namespace Math
 {
@@ -39,10 +40,10 @@ namespace Math
 	extern inline Float AngleDiff( Float destangle, Float srcangle );
 	extern inline Float VectorNormalize( Vector& v );
 	extern inline bool IsVectorZero( const Vector& v );
-	extern inline bool CheckMinsMaxs( const Vector& mins1, const Vector& maxs1, const Vector& mins2, const Vector& maxs2 );
+	extern inline bool CheckMinsMaxs( const Vector& mins1, const Vector& maxs1, const Vector& mins2, const Vector& maxs2, Float epsilon = MINSMAXS_EPSILON );
 	extern inline void RotateToEntitySpace( const Vector& angles, Vector& vec );
 	extern inline void RotateFromEntitySpace( const Vector& angles, Vector& vec );
-	extern inline bool PointInMinsMaxs( const Vector& point, const Vector& mins, const Vector& maxs );
+	extern inline bool PointInMinsMaxs( const Vector& point, const Vector& mins, const Vector& maxs, Float epsilon = MINSMAXS_EPSILON );
 	extern inline void AngleMatrix( const Vector& angles, Float (*pmatrix)[4] );
 	extern inline void AngleInverseMatrix( const Vector& angles, Float (*pmatrix)[4] );
 	extern inline void VectorRotate( const Vector& vec, const Float (*pmatrix)[4], Vector& out );
@@ -66,6 +67,7 @@ namespace Math
 	extern inline void FindMinMaxValuesOf3( Float v1, Float v2, Float v3, Float& min, Float& max );
 	extern inline Uint32 BoxOnPlaneSide( const Vector& mins, const Vector& maxs, const plane_t* pplane );
 	extern inline void RotatePointAroundVector( const Vector& dir, const Vector& point, Float deg, Vector& dest );
+	extern inline void RotateMinsMaxsByAngle( const Vector& inmins, const Vector& inmaxs, const Vector& angles, Vector& outmins, Vector& outmaxs );
 };
 #include "com_math_inline.hpp"
 #endif //Common::MATH_H

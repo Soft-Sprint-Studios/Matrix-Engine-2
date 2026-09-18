@@ -141,6 +141,7 @@ entity_data_desc_t g_edictStateFields[] =
 	DEFINE_DATA_FIELD( entity_state_t, vuser3, EFIELD_VECTOR ),
 	DEFINE_DATA_FIELD( entity_state_t, vuser4, EFIELD_VECTOR ),
 	DEFINE_DATA_FIELD( entity_state_t, children, EFIELD_CARRAY_ENTINDEX ),
+	DEFINE_DATA_FIELD_ARRAY( entity_state_t, vlight_styles, EFIELD_BYTE, MAX_SURFACE_STYLES )
 };
 
 entity_data_desc_t g_edictStringFields[] = 
@@ -1619,13 +1620,6 @@ void SaveEntityFields( edict_fields_t& ef, bool istransitionsave )
 //=============================================
 bool KeyValue( edict_t* pedict, const keyvalue_t& keyvalue )
 {
-	if(!qstrcmp(keyvalue.keyname, "zhlt_noclip")
-		|| !qstrcmp(keyvalue.keyname, "zhlt_lightflags")
-		|| !qstrcmp(keyvalue.keyname, "mapversion")
-		|| !qstrcmp(keyvalue.keyname, "compiler")
-		|| !qstrcmp(keyvalue.keyname, "wad"))
-		return true;
-
 	if(!pedict->pprivatedata)
 		return false;
 
@@ -1638,6 +1632,14 @@ bool KeyValue( edict_t* pedict, const keyvalue_t& keyvalue )
 
 	// Allow entity to check it
 	if(pEntity->KeyValue(keyvalue))
+		return true;
+
+	// Don't report these as errors if not managed
+	if(!qstrcmp(keyvalue.keyname, "zhlt_noclip")
+		|| !qstrcmp(keyvalue.keyname, "zhlt_lightflags")
+		|| !qstrcmp(keyvalue.keyname, "mapversion")
+		|| !qstrcmp(keyvalue.keyname, "compiler")
+		|| !qstrcmp(keyvalue.keyname, "wad"))
 		return true;
 
 	return false;
@@ -1764,7 +1766,7 @@ bool AddPacketEntity( entity_state_t& state, entindex_t entindex, edict_t& entit
 	if(!(entity.state.effects & EF_ALWAYS_SEND))
 	{
 		// Don't send entities with EF_NODRAW, only if it's the host
-		if((entity.state.effects & EF_NODRAW) && &entity != &client)
+		if((entity.state.effects & EF_NODRAW) && entity.state.solid == SOLID_NOT && &entity != &client)
 			return false;
 	}
 
@@ -1808,6 +1810,7 @@ bool AddPacketEntity( entity_state_t& state, entindex_t entindex, edict_t& entit
 	state.gravity		= entity.state.gravity;
 	state.sequence		= entity.state.sequence;
 	state.gaitsequence	= entity.state.gaitsequence;
+	state.deadstate		= entity.state.deadstate;
 
 	state.iuser1		= entity.state.iuser1;
 	state.iuser2		= entity.state.iuser2;
@@ -1827,6 +1830,9 @@ bool AddPacketEntity( entity_state_t& state, entindex_t entindex, edict_t& entit
 	state.parentoffset	= entity.state.parentoffset;
 
 	state.lightorigin	= entity.state.lightorigin;
+
+	for(Uint32 i = 0; i < MAX_SURFACE_STYLES; i++)
+		state.vlight_styles[i] = entity.state.vlight_styles[i];
 
 	if(entity.state.flags & FL_CLIENT)
 	{
@@ -1886,6 +1892,8 @@ bool AddPacketEntity( entity_state_t& state, entindex_t entindex, edict_t& entit
 
 	Math::VectorCopy(entity.state.mins, state.mins);
 	Math::VectorCopy(entity.state.maxs, state.maxs);
+	Math::VectorCopy(entity.state.absmin, state.absmin);
+	Math::VectorCopy(entity.state.absmax, state.absmax);
 
 	Math::VectorCopy(entity.state.startpos, state.startpos);
 	Math::VectorCopy(entity.state.endpos, state.endpos);
