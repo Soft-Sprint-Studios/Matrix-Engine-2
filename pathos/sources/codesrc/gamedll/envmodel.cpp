@@ -77,19 +77,11 @@ bool CEnvModel::Spawn( void )
 			Util::RemoveEntity(this);
 			return true;
 		}
-		else
-		{
-			// Keep server edict for MCD collision, but hide from rendering since client creates EF_CLIENTENT
-			m_pState->effects |= EF_NODRAW;
-		}
 	}
 	
 	if((pModel->cacheflags & CACHE_FL_HAS_MCD) && !HasSpawnFlag(FL_NOT_SOLID))
 	{
-		if (m_pFields->targetname != NO_STRING_VALUE || m_pState->parent != NO_ENTITY_INDEX)
-			m_pState->movetype = MOVETYPE_PUSH;
-		else
-			m_pState->movetype = MOVETYPE_NONE;
+		m_pState->movetype = MOVETYPE_PUSH;
 		m_pState->solid = SOLID_BBOX;
 	}
 	else

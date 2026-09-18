@@ -388,12 +388,19 @@ Int32 CBSPBuilder::InsertMarkSurface(Uint32 faceIndex)
 // @brief
 //
 //=============================================
-Int32 CBSPBuilder::InsertBrush(Int32 firstSide, Int32 numSides, Int32 contents)
+Int32 CBSPBuilder::InsertBrush(Int32 firstSide, Int32 numSides, Int32 contents, const Float mins[3], const Float maxs[3], Int32 noclip)
 {
     dmbspv1brush_t brush;
     brush.firstside = firstSide;
     brush.numsides = numSides;
     brush.contents = contents;
+    brush.noclip = noclip;
+
+    for (Int32 i = 0; i < 3; i++)
+    {
+        brush.mins[i] = mins[i];
+        brush.maxs[i] = maxs[i];
+    }
 
     m_brushes.push_back(brush);
     return (Int32)(m_brushes.size() - 1);

@@ -147,8 +147,8 @@ struct en_material_t
 	inline en_texture_t* getnormalmap( void ) { return ptextures[MT_TX_NORMALMAP]; }
 	inline en_texture_t* getnormalmap2( void ) { return ptextures[MT_TX_NORMALMAP2]; }
 	inline en_texture_t* getdetail( void ) { return ptextures[MT_TX_DETAIL]; }
-	inline en_texture_t* getspecular( void ) { return ptextures[MT_TX_MRAO]; }
-	inline en_texture_t* getspecular2( void ) { return ptextures[MT_TX_MRAO2]; }
+	inline en_texture_t* getmrao( void ) { return ptextures[MT_TX_MRAO]; }
+	inline en_texture_t* getmrao2( void ) { return ptextures[MT_TX_MRAO2]; }
 
 	CString filepath;
 	rs_level_t level;

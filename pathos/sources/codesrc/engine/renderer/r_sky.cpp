@@ -425,21 +425,23 @@ bool CSkyRenderer::DrawSky( void )
 		m_pShader->EnableAttribute(m_attribs.a_texcoord);
 		m_pShader->SetUniform4f(m_attribs.u_color, 1.0, 1.0, 1.0, 1.0);
 
-		Int32 mode = (m_pCvarSkyBicubic->GetValue() >= 1) ? SHADER_TEXTURE_BICUBIC : SHADER_TEXTURE;
+		Int32 mode = SHADER_TEXTURE;
+		if (m_pCvarProcedualSky && m_pCvarProcedualSky->GetValue() >= 1)
+			mode = SHADER_PROCEDUAL;
+		else if (m_pCvarSkyBicubic && m_pCvarSkyBicubic->GetValue() >= 1)
+			mode = SHADER_TEXTURE_BICUBIC;
+
 		if(!m_pShader->SetDeterminator(m_attribs.d_mode, mode))
 		{
-			Sys_ErrorPopup("Rendering error: %s.", m_pShader->GetError());
+			Sys_ErrorPopup("Sky shader determinator error: %s (mode %d).", m_pShader->GetError(), mode);
 			return false;
 		}
-		
+
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_projection, rns.view.projection.GetMatrix());
 		m_pShader->SetUniformMatrix4fv(m_attribs.u_modelview, rns.view.modelview.GetMatrix());
 
-		if (m_pCvarProcedualSky && m_pCvarProcedualSky->GetValue() >= 1)
+		if(mode == SHADER_PROCEDUAL)
 		{
-			if (!m_pShader->SetDeterminator(m_attribs.d_mode, SHADER_PROCEDUAL))
-				return false;
-
 			Vector sunDir = -cls.skyvec;
 
 			m_pShader->SetUniform3f(m_attribs.u_sundir, sunDir.x, sunDir.y, sunDir.z);
@@ -455,19 +457,16 @@ bool CSkyRenderer::DrawSky( void )
 		}
 		else
 		{
-			if (!m_pShader->SetDeterminator(m_attribs.d_mode, SHADER_TEXTURE))
-				return false;
-
 			R_ValidateShader(m_pShader);
 
 			en_texture_t** pTexturesArray = nullptr;
-			if (drawskybox && m_skyBoxSkySet != NO_POSITION
+			if(drawskybox && m_skyBoxSkySet != NO_POSITION
 				&& m_skyBoxSkySet >= 0
-				&& m_skyBoxSkySet < m_skySetsArray.size())
+				&& m_skyBoxSkySet < static_cast<Int32>(m_skySetsArray.size()))
 				pTexturesArray = m_skySetsArray[m_skyBoxSkySet].ptextures;
-			else if (m_currentSkySet != NO_POSITION
+			else if(m_currentSkySet != NO_POSITION
 				&& m_currentSkySet >= 0
-				&& m_currentSkySet < m_skySetsArray.size())
+				&& m_currentSkySet < static_cast<Int32>(m_skySetsArray.size()))
 				pTexturesArray = m_skySetsArray[m_currentSkySet].ptextures;
 			else
 				pTexturesArray = m_pSkyboxTextures;

@@ -1167,29 +1167,18 @@ void Sys_PollEvents( void )
 //=============================================
 Int64 Sys_GetBuildNumber( void )
 {
-	// Date of earliest Pathos build
-	SYSTEMTIME firstBuildTime = {};
-	firstBuildTime.wYear = 2016;
-	firstBuildTime.wMonth = 1;
-	firstBuildTime.wDay = 27;
-	firstBuildTime.wHour = 0;
-	firstBuildTime.wMinute = 0;
-	firstBuildTime.wSecond = 0;
-	firstBuildTime.wMilliseconds = 0;
-	firstBuildTime.wDayOfWeek = 0;
+	// Date of earliest Pathos build (January 27, 2016)
+	SDL_DateTime firstBuildTime = {};
+	firstBuildTime.year = 2016;
+	firstBuildTime.month = 1;
+	firstBuildTime.day = 27;
 
-	// Convert to FILETIME
-	FILETIME firstBuildFileTime;
-	if(!SystemTimeToFileTime(&firstBuildTime, &firstBuildFileTime))
+	SDL_Time firstBuildTicks = 0;
+	if(!SDL_DateTimeToTime(&firstBuildTime, &firstBuildTicks))
 	{
-		Con_EPrintf("Failed to convert first build time to FILETIME, returned error code is '%d'\n", GetLastError());
+		Con_EPrintf("%s - Failed to convert first build time: %s\n", __FUNCTION__, SDL_GetError());
 		return -1;
 	}
-
-	// Now to ULARGE_INTEGER
-	ULARGE_INTEGER ulFirstBuild;
-	ulFirstBuild.LowPart = firstBuildFileTime.dwLowDateTime;
-	ulFirstBuild.HighPart = firstBuildFileTime.dwHighDateTime;
 
 	CString buildDateStr(__DATE__);
 	buildDateStr.tolower();
@@ -1199,7 +1188,7 @@ Int64 Sys_GetBuildNumber( void )
 	const Char* pstr = Common::Parse(buildDateStr.c_str(), monthToken);
 	if(!pstr)
 	{
-		Con_EPrintf("%s - Failed to get month, __DATE__ is of incorrect format.\n");
+		Con_EPrintf("%s - Failed to get month, __DATE__ is of incorrect format.\n", __FUNCTION__);
 		return -1;
 	}
 
@@ -1208,7 +1197,7 @@ Int64 Sys_GetBuildNumber( void )
 	pstr = Common::Parse(pstr, dayToken);
 	if(!pstr)
 	{
-		Con_EPrintf("%s - Failed to get day, __DATE__ is of incorrect format.\n");
+		Con_EPrintf("%s - Failed to get day, __DATE__ is of incorrect format.\n", __FUNCTION__);
 		return -1;
 	}
 
@@ -1243,37 +1232,27 @@ Int64 Sys_GetBuildNumber( void )
 		monthNumber = 12;
 	else
 	{
-		Con_EPrintf("%s - Failed to determine month number, __DATE__ is of incorrect format.\n");
+		Con_EPrintf("%s - Failed to determine month number, __DATE__ is of incorrect format.\n", __FUNCTION__);
 		return -1;
 	}
 
-	// Now build the date
-	SYSTEMTIME curBuildTime = {};
-	curBuildTime.wYear = SDL_atoi(yearToken.c_str());
-	curBuildTime.wMonth = monthNumber;
-	curBuildTime.wDay = SDL_atoi(dayToken.c_str());
-	curBuildTime.wHour = 0;
-	curBuildTime.wMinute = 0;
-	curBuildTime.wSecond = 0;
-	curBuildTime.wMilliseconds = 0;
-	curBuildTime.wDayOfWeek = 0;
+	// Now build current build date
+	SDL_DateTime curBuildTime = {};
+	curBuildTime.year = SDL_atoi(yearToken.c_str());
+	curBuildTime.month = monthNumber;
+	curBuildTime.day = SDL_atoi(dayToken.c_str());
 
-	// Convert both to FILETIME, then to ULARGE_INTEGER
-	FILETIME curBuildFileTime;
-	if(!SystemTimeToFileTime(&curBuildTime, &curBuildFileTime))
+	SDL_Time curBuildTicks = 0;
+	if(!SDL_DateTimeToTime(&curBuildTime, &curBuildTicks))
 	{
-		Con_EPrintf("Failed to convert build time to FILETIME, returned error code is '%d'\n", GetLastError());
+		Con_EPrintf("%s - Failed to convert build time: %s\n", __FUNCTION__, SDL_GetError());
 		return -1;
 	}
 
-	ULARGE_INTEGER ulCurBuild;
-	ulCurBuild.LowPart = curBuildFileTime.dwLowDateTime;
-	ulCurBuild.HighPart = curBuildFileTime.dwHighDateTime;
+	// Convert nanoseconds difference to calendar days
+	constexpr Sint64 NS_PER_DAY = 86400LL * SDL_NS_PER_SECOND;
+	Int64 dayNb = (curBuildTicks - firstBuildTicks) / NS_PER_DAY;
 
-	ULARGE_INTEGER diff;
-	diff.QuadPart = ulCurBuild.QuadPart - ulFirstBuild.QuadPart;
-
-	Int64 dayNb = diff.QuadPart / 864000000000;
 	return dayNb;
 }
 

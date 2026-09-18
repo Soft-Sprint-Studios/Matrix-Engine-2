@@ -4061,24 +4061,19 @@ void R_GetLightingForPosition( const Vector& position, const Vector& defaultcolo
 {
 	Vector end = position - Vector(0, 0, 8192);
 
-	// Get overdarken treshold
-	Float overdarken = g_pCvarOverdarkenTreshold->GetValue();
-	if(overdarken < 0)
-		overdarken = 0;
-
 	// Reset this to base
 	plightstyles[SURF_LIGHTMAP_DEFAULT] = 0;
 
 	bool gridResult;
 	if(ens.pworld->plightgrid)
-		gridResult = Mod_GetLightGridLighting(ens.pworld->plightgrid, position, pambientcolors, pdiffusecolors, plightdirs, plightstyles, overdarken);
+		gridResult = Mod_GetLightGridLighting(ens.pworld->plightgrid, position, pambientcolors, pdiffusecolors, plightdirs, plightstyles);
 	else
 		gridResult = false;
 
 	if(!gridResult)
 	{
 		Vector lightcolors[MAX_SURFACE_STYLES];
-		if(Mod_RecursiveLightPoint(ens.pworld, ens.pworld->pnodes, position, end, lightcolors, plightstyles, overdarken))
+		if(Mod_RecursiveLightPoint(ens.pworld, ens.pworld->pnodes, position, end, lightcolors, plightstyles))
 		{
 			const Float lightDivisor = 0.5;
 
@@ -4310,6 +4305,13 @@ void R_GrabScreenToTexture(en_texalloc_t* palloc, Uint32 width, Uint32 height, b
 
 		glCopyTexImage2D(target, 0, GL_RGBA16F, 0, 0, width, height, 0);
 	}
+}
+
+//====================================
+//
+//====================================
+void R_PostClientInit( void )
+{
 }
 
 //====================================

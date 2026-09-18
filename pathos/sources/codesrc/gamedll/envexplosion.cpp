@@ -183,26 +183,10 @@ void CEnvExplosion::CallUse( CBaseEntity* pActivator, CBaseEntity* pCaller, usem
 	// Spawn fireball if needed
 	if(!HasSpawnFlag(FL_NO_FIREBALL))
 	{
-		if(g_pCvarOldSchoolExplosions->GetValue() >= 1)
-		{
-			Util::CreateRocketExplosion(explosionPosition);
-
-			CEnvSprite* pSprite = CEnvSprite::CreateSprite(OLDSCHOOL_EXPLOSION_SPRITE_PATH, explosionPosition, true);
-			if(pSprite)
-			{
-				pSprite->SetRenderMode(RENDER_TRANSTEXTURE);
-				pSprite->SetRenderAmount(200);
-				pSprite->AnimateAndDie(10);
-				pSprite->SetScale(2.5);
-			}
-		}
-		else
-		{
-			Util::CreateParticles("explosion_cluster.txt", explosionPosition, explosionDir, PART_SCRIPT_CLUSTER);
-		}
+		Util::CreateParticles("explosion_cluster.txt", explosionPosition, explosionDir, PART_SCRIPT_CLUSTER);
 	}
 
-	if(!HasSpawnFlag(FL_NO_SPARKS) && g_pCvarOldSchoolExplosions->GetValue() < 1)
+	if(!HasSpawnFlag(FL_NO_SPARKS))
 	{
 		Uint32 numsparks = Common::RandomLong(0, 3);
 		if(numsparks > 0)

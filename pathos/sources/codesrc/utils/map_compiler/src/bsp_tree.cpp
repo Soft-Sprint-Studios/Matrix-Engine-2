@@ -412,7 +412,7 @@ bool BuildBSPModelTrees(Int32 modelIndex, const std::vector<poly_face_t>& modelF
         if (numSides < 4)
             continue;
 
-        Int32 bIdx = g_BSP.InsertBrush(firstSide, numSides, CONTENTS_SOLID);
+        Int32 bIdx = g_BSP.InsertBrush(firstSide, numSides, CONTENTS_SOLID, b.mins, b.maxs, skipClip ? 1 : 0);
         brushIndices.push_back((Uint32)bIdx);
     }
 

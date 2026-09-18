@@ -2108,10 +2108,7 @@ namespace Util
 	{
 		CString soundname;
 
-		if(g_pCvarOldSchoolExplosions->GetValue() >= 1)
-			soundname << OLDSCHOOL_EXPLOSION_SOUND_PATH;
-		else
-			soundname << "weapons/explosion" << (Int32)Common::RandomLong(1, 3) << ".wav";
+		soundname << "weapons/explosion" << (Int32)Common::RandomLong(1, 3) << ".wav";
 
 		Util::EmitAmbientSound(origin, soundname.c_str(), VOL_NORM, 0.3, PITCH_NORM, SND_FL_NONE);
 	}

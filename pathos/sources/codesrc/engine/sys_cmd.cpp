@@ -39,11 +39,6 @@ All Rights Reserved.
 #include "filewriterthread.h"
 #include "cl_utils.h"
 
-// Version major number
-static const Uint32 GAME_MAJOR_VERSION = 0;
-// Version minor number
-static const Uint32 GAME_MINOR_VERSION = 6;
-
 // Port CVAR
 CCVar* g_pCVarPort = nullptr;
 
@@ -62,10 +57,9 @@ void Cmd_Sys_Quit( void )
 //=============================================
 void Cmd_Version( void )
 {
-	Con_Printf("Pathos Engine - Reckoning branch.\n");
+	Con_Printf("Matrix Engine 2.\n");
 	Con_Printf("Build date: %s %s.\n", __TIME__, __DATE__);
 	Con_Printf("Build number: %d.\n", Sys_GetBuildNumber());
-	Con_Printf("Version: %d.%d - In development mid-term alpha.\n", GAME_MAJOR_VERSION, GAME_MINOR_VERSION);
 }
 
 //=============================================

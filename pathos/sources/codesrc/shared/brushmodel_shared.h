@@ -12,6 +12,7 @@ All Rights Reserved.
 
 #include "plane.h"
 #include "constants.h"
+#include "contents.h"
 #include "leafbrushbvh.h"
 
 // No lightmaps for this surface

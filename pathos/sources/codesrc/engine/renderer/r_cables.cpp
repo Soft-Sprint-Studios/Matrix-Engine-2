@@ -336,7 +336,7 @@ Vector CCableRenderer::CalculateLighting( const cable_object_t& cable, const cab
 			stylestrength = (*pstylesarray)[sample.styles[i]];
 
 		Float dp = -Math::DotProduct(sample.lightdirs[i], normal);
-		dp = clamp(dp, 0, 1);
+		dp = CLAMP(dp, 0, 1);
 
 		Math::VectorAdd(outcolor, sample.ambientlight[i], outcolor);
 		Math::VectorMA(outcolor, dp*stylestrength, sample.diffuselight[i], outcolor);
@@ -372,11 +372,11 @@ Vector CCableRenderer::CalculateLighting( const cable_object_t& cable, const cab
 		Float dist = Math::DotProduct(dir, dir);
 		Float attenuation = ((dist/rad)-1) * -1;
 		
-		attenuation = clamp(attenuation, 0, 1);
+		attenuation = CLAMP(attenuation, 0, 1);
 		dir.Normalize();
 
 		Float dp = Math::DotProduct(dir, normal);
-		dp = clamp(dp, 0, 1);
+		dp = CLAMP(dp, 0, 1);
 
 		if(dl->cone_size)
 		{

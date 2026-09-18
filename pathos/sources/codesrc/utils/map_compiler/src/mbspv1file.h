@@ -92,7 +92,7 @@ enum mbspv1_brushside_flags_t
 };
 
 //
-// Header for Pathos BSP V1
+// Header for Matrix BSP V1
 //
 
 struct dmbspv1lump_t
@@ -327,11 +327,14 @@ struct dmbspv1lightgridlumpheader_t
 
         for(Uint32 i = 0; i < 3; i++)
 			grid_size[i] = 0;
+
+		for(Uint32 i = 0; i < 3; i++)
+			grid_mins[i] = 0;			
     }
 
     Int32 grid_distance[3];
     Int32 grid_size[3];
-    Float grid_mins[3];
+	Float grid_mins[3];
     Int32 rootnodeindex;
     Uint32 totalsize;
 
@@ -427,12 +430,23 @@ struct dmbspv1brush_t
     dmbspv1brush_t():
         firstside(0),
         numsides(0),
-        contents(0)
-    {}
+        contents(0),
+		noclip(0)
+    {
+		for(Uint32 i = 0; i < 3; i++)
+		{
+			mins[i] = 0;
+			maxs[i] = 0;
+		}
+	}
 
     Int32 firstside;
     Int32 numsides;
     Int32 contents;
+	Int32 noclip;
+
+	Float mins[3];
+	Float maxs[3];
 };
 
 struct dmbspv1texture_t

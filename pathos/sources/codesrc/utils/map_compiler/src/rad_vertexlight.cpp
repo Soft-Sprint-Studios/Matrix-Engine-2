@@ -50,6 +50,12 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
             continue;
         }
 
+        Int32 spawnflags = atoi(ent.GetValue("spawnflags"));
+        if (spawnflags & 32)
+        {
+            continue;
+        }
+
         const Char* modelPath = ent.GetValue("model");
         if (!modelPath || !modelPath[0])
         {

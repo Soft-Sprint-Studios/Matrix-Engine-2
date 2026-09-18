@@ -3661,6 +3661,365 @@ bool CVBMRenderer::Draw( void )
 //
 //
 //=============================================
+bool CVBMRenderer::DrawMesh( en_material_t *pmaterial, const vbmmesh_t *pmesh, bool drawBlended )
+{
+	// Set the determinator states
+	m_pShader->SetUniform1i(m_attribs.u_d_chrome, (pmaterial->flags & (TX_FL_CHROME) || (pmaterial->flags & TX_FL_EYEGLINT && drawBlended)) ? TRUE : FALSE);
+	m_pShader->SetUniform1i(m_attribs.u_d_numlights, (pmaterial->flags & (TX_FL_FULLBRIGHT|TX_FL_SCOPE)) ? 0 : m_numModelLights);
+	m_pShader->SetUniform1i(m_attribs.u_d_mrao, (pmaterial->ptextures[MT_TX_MRAO]) && !(pmaterial->flags & TX_FL_FULLBRIGHT) ? true : false);
+	m_pShader->SetUniform1i(m_attribs.u_d_bumpmapping, (pmaterial->ptextures[MT_TX_NORMALMAP]) && !(pmaterial->flags & TX_FL_FULLBRIGHT));
+
+	// Alpha testing needs to be handled specially
+	Int32 alphatestMode = ALPHATEST_DISABLED;
+	if((!m_useBlending && (pmaterial->flags & TX_FL_ALPHATEST) && !(pmaterial->flags & (TX_FL_SCOPE|TX_FL_CHROME|TX_FL_EYEGLINT))))
+	{
+		alphatestMode = (rns.msaa && rns.mainframe) ? ALPHATEST_COVERAGE : ALPHATEST_LESSTHAN;
+		if(alphatestMode == ALPHATEST_COVERAGE)
+		{
+			glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+			glSampleCoverage(0.5, GL_FALSE);
+		}
+	}
+
+	if(!m_pShader->SetDeterminator(m_attribs.d_alphatest, alphatestMode, false))
+		return false;
+
+	bool result = false;
+	if(pmaterial->flags & TX_FL_SCOPE)
+	{
+		// Apply scope effect
+		result = m_pShader->SetDeterminator(m_attribs.d_shadertype, vbm_scope);
+	}
+	else if(pmaterial->flags & TX_FL_FULLBRIGHT)
+	{
+		// Fullbright with default or fullbright color
+		if(!pmaterial->fullbrightcolor.IsZero())
+			m_pShader->SetUniform4f(m_attribs.u_color, pmaterial->fullbrightcolor.x, pmaterial->fullbrightcolor.y, pmaterial->fullbrightcolor.z, m_renderAlpha);
+
+		result = m_pShader->SetDeterminator(m_attribs.d_shadertype, rns.fog.settings.active ? vbm_texonly_fog : vbm_texonly);
+	}
+	else
+	{
+		// Normal textured single-pass rendering
+		result = m_pShader->SetDeterminator(m_attribs.d_shadertype, rns.fog.settings.active ? vbm_texture_fog : vbm_texture);
+	}
+		
+	// Verify the settings
+	if(!result)
+		return false;
+
+	// Reset sampler to the first texture unit available
+	m_pShader->ResetSamplerIndex(m_firstTextureUnit);
+	Int32 textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_texture0);
+
+	if(drawBlended && pmaterial->flags & TX_FL_EYEGLINT)
+		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, m_pGlintTexture->palloc->gl_index);
+	else
+		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_DIFFUSE]->palloc->gl_index);
+
+	if(pmaterial->flags & TX_FL_SCOPE)
+	{
+		Float flscale = pmaterial->scale / g_pCvarReferenceFOV->GetValue();
+		m_pShader->SetUniform1f(m_attribs.u_scope_scale, flscale);
+		m_pShader->SetUniform2f(m_attribs.u_scope_scrsize, rns.screenwidth, rns.screenheight);
+
+		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_rectangle);
+		R_BindRectangleTexture(GL_TEXTURE0 + textureIndex, m_pScreenTexture->palloc->gl_index);
+	}
+
+	if (pmaterial->ptextures[MT_TX_MRAO])
+	{
+		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_mraotexture);
+		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_MRAO]->palloc->gl_index);
+	}
+
+	cubemapinfo_t* pcubemapinfo = nullptr;
+	cubemapinfo_t* pprevcubemapinfo = nullptr;
+	if (g_pCvarCubemaps->GetValue() > 0 && (pmaterial->flags & TX_FL_CUBEMAPS) && pmaterial->ptextures[MT_TX_MRAO])
+	{
+		pcubemapinfo = gCubemaps.GetIdealCubemap();
+		if (gCubemaps.GetInterpolant() != 1.0)
+			pprevcubemapinfo = gCubemaps.GetPrevCubemap();
+	}
+
+	if (pcubemapinfo)
+	{
+		Int32 cubemapUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap);
+		R_BindCubemapTexture(GL_TEXTURE0 + cubemapUnit, pcubemapinfo->palloc->gl_index);
+
+		if (pprevcubemapinfo)
+		{
+			m_pShader->SetUniform1f(m_attribs.u_interpolant, gCubemaps.GetInterpolant());
+			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_INTERP);
+
+			Int32 prevUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_cubemap_prev);
+			R_BindCubemapTexture(GL_TEXTURE0 + prevUnit, pprevcubemapinfo->palloc->gl_index);
+		}
+		else
+		{
+			m_pShader->SetUniform1f(m_attribs.u_interpolant, 0.0);
+			m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_ON);
+		}
+
+		m_pShader->EnableSync(m_attribs.u_modelmatrix);
+		m_pShader->EnableSync(m_attribs.u_inv_modelmatrix);
+
+		CMatrix modelMatrix;
+		modelMatrix.LoadIdentity();
+		modelMatrix.Rotate(90, 1, 0, 0);
+		modelMatrix.Rotate(-90, 0, 0, 1);
+		modelMatrix.Scale(-1.0, 1.0, 1.0);
+		modelMatrix.Translate(-rns.view.v_origin[0], -rns.view.v_origin[1], -rns.view.v_origin[2]);
+
+		m_pShader->SetUniformMatrix4fv(m_attribs.u_modelmatrix, modelMatrix.GetMatrix());
+		m_pShader->SetUniformMatrix4fv(m_attribs.u_inv_modelmatrix, modelMatrix.GetInverse());
+
+		// Parallax correction
+		if (pcubemapinfo->use_parallax)
+		{
+			Vector cam = rns.view.v_origin;
+			Vector cubemin = pcubemapinfo->box_mins - cam;
+			Vector cubemax = pcubemapinfo->box_maxs - cam;
+			Vector cubeorigin = pcubemapinfo->origin - cam;
+
+			m_pShader->SetUniform3f(m_attribs.u_cube_min, cubemin.x, cubemin.y, cubemin.z);
+			m_pShader->SetUniform3f(m_attribs.u_cube_max, cubemax.x, cubemax.y, cubemax.z);
+			m_pShader->SetUniform3f(m_attribs.u_cube_origin, cubeorigin.x, cubeorigin.y, cubeorigin.z);
+		}
+		else
+		{
+			m_pShader->SetUniform3f(m_attribs.u_cube_origin, 0, 0, 0);
+			m_pShader->SetUniform3f(m_attribs.u_cube_min, 0, 0, 0);
+			m_pShader->SetUniform3f(m_attribs.u_cube_max, 0, 0, 0);
+		}
+
+		if (pprevcubemapinfo && pprevcubemapinfo->use_parallax)
+		{
+			Vector cam = rns.view.v_origin;
+			m_pShader->SetUniform3f(m_attribs.u_cube_prev_min, pprevcubemapinfo->box_mins.x - cam.x, pprevcubemapinfo->box_mins.y - cam.y, pprevcubemapinfo->box_mins.z - cam.z);
+			m_pShader->SetUniform3f(m_attribs.u_cube_prev_max, pprevcubemapinfo->box_maxs.x - cam.x, pprevcubemapinfo->box_maxs.y - cam.y, pprevcubemapinfo->box_maxs.z - cam.z);
+			m_pShader->SetUniform3f(m_attribs.u_cube_prev_origin, pprevcubemapinfo->origin.x - cam.x, pprevcubemapinfo->origin.y - cam.y, pprevcubemapinfo->origin.z - cam.z);
+		}
+		else
+		{
+			m_pShader->SetUniform3f(m_attribs.u_cube_prev_origin, 0, 0, 0);
+			m_pShader->SetUniform3f(m_attribs.u_cube_prev_min, 0, 0, 0);
+			m_pShader->SetUniform3f(m_attribs.u_cube_prev_max, 0, 0, 0);
+		}
+	}
+	else
+	{
+		m_pShader->SetUniform1i(m_attribs.u_d_cubemaps, CUBEMAPS_OFF);
+	}
+
+	if(pmaterial->ptextures[MT_TX_NORMALMAP])
+	{
+		textureIndex = m_pShader->AutoSetSamplerUniform(m_attribs.u_normalmap);
+		R_Bind2DTexture(GL_TEXTURE0 + textureIndex, pmaterial->ptextures[MT_TX_NORMALMAP]->palloc->gl_index);
+	}
+	
+	if(pmaterial->scrollu || pmaterial->scrollv)
+	{
+		Float scrollu = pmaterial->scrollu ? (rns.time * pmaterial->scrollu) : 0;
+		Float scrollv = pmaterial->scrollv ? (rns.time * pmaterial->scrollv) : 0;
+
+		m_pShader->SetUniform2f(m_attribs.u_scroll, scrollu, scrollv);
+	}
+	else
+	{
+		// No scrolling
+		m_pShader->SetUniform2f(m_attribs.u_scroll, 0, 0);
+	}
+
+	Uint32 texUnit1 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex1);
+	Uint32 texUnit2 = m_pShader->AutoSetSamplerUniform(m_attribs.u_causticstex2);
+
+	if (rns.inwater && g_pCvarCaustics->GetValue() >= 1)
+	{
+		const water_settings_t* psettings = gWaterShader.GetActiveSettings();
+		if (psettings && !psettings->cheaprefraction && psettings->causticscale > 0 && psettings->causticstrength > 0 && !rns.objects.caustics_textures.empty())
+		{
+			GLfloat splane[4] = { static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f, 0.0f };
+			GLfloat tplane[4] = { 0.0f, static_cast<Float>(0.005) * psettings->causticscale, static_cast<Float>(0.0025) * psettings->causticscale, 0.0f };
+
+			Float causticsTime = rns.time * 10.0f * psettings->causticstimescale;
+			Int32 causticsCurFrame = static_cast<Int32>(causticsTime) % rns.objects.caustics_textures.size();
+			Int32 causticsNextFrame = (causticsCurFrame + 1) % rns.objects.caustics_textures.size();
+			Float causticsInterp = causticsTime - static_cast<Int32>(causticsTime);
+
+			R_Bind2DTexture(GL_TEXTURE0 + texUnit1, rns.objects.caustics_textures[causticsCurFrame]->palloc->gl_index);
+			R_Bind2DTexture(GL_TEXTURE0 + texUnit2, rns.objects.caustics_textures[causticsNextFrame]->palloc->gl_index);
+
+			m_pShader->SetUniform4f(m_attribs.u_causticsm1, splane[0], splane[1], splane[2], splane[3]);
+			m_pShader->SetUniform4f(m_attribs.u_causticsm2, tplane[0], tplane[1], tplane[2], tplane[3]);
+			m_pShader->SetUniform1f(m_attribs.u_caustics_interp, causticsInterp);
+
+			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 
+				psettings->fogparams.color[0] * psettings->causticstrength,
+				psettings->fogparams.color[1] * psettings->causticstrength,
+				psettings->fogparams.color[2] * psettings->causticstrength,
+				1.0f);
+		}
+		else
+		{
+			m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+	}
+	else
+	{
+		m_pShader->SetUniform4f(m_attribs.u_causticscolor, 0.0f, 0.0f, 0.0f, 0.0f);
+	}
+
+	// Fix overlapping sampler issue
+	if(!m_pShader->PerformPreRenderChecks())
+		return false;
+
+	if(pmesh->numbones)
+		SetShaderBoneTransform(m_pWeightBoneTransform, pmesh->getBones(m_pVBMHeader), pmesh->numbones);
+
+	CCVar* pCvarCSM = gConsole.GetCVar("r_csm");
+	if (pCvarCSM && pCvarCSM->GetValue() >= 1.0f && gDynamicLights.GetCSMShadowMap() && !cls.skycolor.IsZero())
+	{
+		Int32 csmTexUnit = m_pShader->AutoSetSamplerUniform(m_attribs.u_csm_shadowmap);
+		R_Bind2DTexture(GL_TEXTURE0 + csmTexUnit, gDynamicLights.GetCSMShadowMap()->pfbo->ptexture1->gl_index);
+	}
+
+	// Bind dynamic lights
+	Uint32 draw_dlights = (m_numDynamicLights > MAX_DLIGHTS) ? MAX_DLIGHTS : m_numDynamicLights;
+	m_pShader->SetUniform1i(m_attribs.u_d_numdlights, draw_dlights);
+
+	for (Uint32 l = 0; l < draw_dlights; l++)
+	{
+		cl_dlight_t* pdlight = m_pDynamicLights[l];
+
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_color);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_origin);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_radius);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_cubemap);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_projtexture);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_shadowmap);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_matrix);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_cone_size);
+		m_pShader->EnableSync(m_attribs.dlights[l].u_light_spotdirection);
+
+		Vector vtransorigin;
+		Math::MatMultPosition(rns.view.modelview.Transpose(), pdlight->origin, &vtransorigin);
+
+		Vector lcolor;
+		Math::VectorCopy(pdlight->color, lcolor);
+		gLightStyles.ApplyLightStyle(pdlight, lcolor);
+
+		m_pShader->SetUniform4f(m_attribs.dlights[l].u_light_color, lcolor[0], lcolor[1], lcolor[2], 1.0);
+		m_pShader->SetUniform3f(m_attribs.dlights[l].u_light_origin, vtransorigin[0], vtransorigin[1], vtransorigin[2]);
+		m_pShader->SetUniform1f(m_attribs.dlights[l].u_light_radius, pdlight->radius);
+
+		Uint32 projUnit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_projtexture);
+		Uint32 shadowUnit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_shadowmap);
+		Uint32 cubeUnit = m_pShader->AutoSetSamplerUniform(m_attribs.dlights[l].u_light_cubemap);
+
+		if (pdlight->cone_size > 0.0f)
+		{
+			Vector vforward, vtarget;
+			Vector angles = pdlight->angles;
+			Common::FixVector(angles);
+			Math::AngleVectors(angles, &vforward, nullptr, nullptr);
+			Math::VectorMA(pdlight->origin, pdlight->radius, vforward, vtarget);
+
+			Int32 ltexIndex = pdlight->textureindex;
+			if (ltexIndex >= rns.objects.projective_textures.size())
+			{
+				ltexIndex = 0;
+			}
+
+			R_Bind2DTexture(GL_TEXTURE0 + projUnit, rns.objects.projective_textures[ltexIndex]->palloc->gl_index);
+
+			if (DL_CanShadow(pdlight))
+			{
+				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, TRUE);
+				R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, pdlight->getProjShadowMap()->pfbo->ptexture1->gl_index);
+			}
+			else
+			{
+				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, FALSE);
+				R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
+			}
+
+			R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, 0);
+
+			CMatrix matrix;
+			matrix.LoadIdentity();
+			matrix.Translate(0.5, 0.5, 0.5);
+			matrix.Scale(0.5, 0.5, 1.0);
+			Float flsize = tan((M_PI / 360) * pdlight->cone_size);
+			matrix.SetFrustum(-flsize, flsize, -flsize, flsize, 1, pdlight->radius);
+			matrix.LookAt(pdlight->origin[0], pdlight->origin[1], pdlight->origin[2], vtarget[0], vtarget[1], vtarget[2], 0, 0, Common::IsPitchReversed(angles[PITCH]) ? -1 : 1);
+
+			m_pShader->SetUniformMatrix4fv(m_attribs.dlights[l].u_light_matrix, matrix.Transpose());
+			m_pShader->SetUniform1f(m_attribs.dlights[l].u_light_cone_size, pdlight->cone_size);
+
+			Vector transdirection;
+			Math::MatMult(rns.view.modelview.Transpose(), vforward, &transdirection);
+			m_pShader->SetUniform3f(m_attribs.dlights[l].u_light_spotdirection, transdirection[0], transdirection[1], transdirection[2]);
+		}
+		else
+		{
+			m_pShader->SetUniform1f(m_attribs.dlights[l].u_light_cone_size, 0.0f);
+			R_Bind2DTexture(GL_TEXTURE0 + projUnit, 0);
+			R_Bind2DTexture(GL_TEXTURE0 + shadowUnit, 0);
+
+			if (DL_CanShadow(pdlight))
+			{
+				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, TRUE);
+				R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, pdlight->getCubeShadowMap()->pfbo->ptexture1->gl_index);
+
+				CMatrix matrix;
+				matrix.LoadIdentity();
+				matrix.Rotate(-90, 1, 0, 0);
+				matrix.Rotate(90, 0, 0, 1);
+				matrix.Translate(-pdlight->origin[0], -pdlight->origin[1], -pdlight->origin[2]);
+				m_pShader->SetUniformMatrix4fv(m_attribs.dlights[l].u_light_matrix, matrix.GetMatrix(), true);
+			}
+			else
+			{
+				m_pShader->SetUniform1i(m_attribs.dlights[l].u_d_light_shadowmap, FALSE);
+				R_BindCubemapTexture(GL_TEXTURE0 + cubeUnit, 0);
+			}
+		}
+	}
+
+	if(pmaterial->flags & TX_FL_NO_CULLING)
+		glDisable(GL_CULL_FACE);
+
+	R_ValidateShader(m_pShader);
+
+	m_pShader->DrawElements(GL_TRIANGLES, pmesh->num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(m_pVBMHeader->ibooffset + pmesh->start_index));
+
+	if (pcubemapinfo)
+	{
+		m_pShader->DisableSync(m_attribs.u_modelmatrix);
+		m_pShader->DisableSync(m_attribs.u_inv_modelmatrix);
+	}
+
+	if (pmaterial->flags & TX_FL_NO_CULLING)
+		glEnable(GL_CULL_FACE);
+
+	// Restore default color if fullbright had a custom color
+	if((pmaterial->flags & TX_FL_FULLBRIGHT) && !pmaterial->fullbrightcolor.IsZero())
+		m_pShader->SetUniform4f(m_attribs.u_color, 1.0, 1.0, 1.0, m_renderAlpha);
+
+	if(alphatestMode == ALPHATEST_COVERAGE)
+	{
+		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+		glSampleCoverage(1.0, GL_FALSE);
+	}
+
+	return true;
+}
+
+//=============================================
+//
+//
+//=============================================
 bool CVBMRenderer::DrawWireframe( void )
 {
 	if(g_pCvarWireFrame->GetValue() < 1)

@@ -54,7 +54,7 @@ public:
     Int32 InsertClipNode(Int32 planeIndex, Int32 child0, Int32 child1);
     Int32 InsertLeaf(Int32 contents, Int32 visOffset, const Int32 mins[3], const Int32 maxs[3], Uint32 firstMarkSurface, Uint32 numMarkSurfaces, Uint32 firstLeafBrush, Uint32 numLeafBrushes);
     Int32 InsertMarkSurface(Uint32 faceIndex);
-    Int32 InsertBrush(Int32 firstSide, Int32 numSides, Int32 contents);
+    Int32 InsertBrush(Int32 firstSide, Int32 numSides, Int32 contents, const Float mins[3], const Float maxs[3], Int32 noclip = 0);
     Int32 InsertBrushSide(Int32 planeIndex, Int32 texinfoIndex, Int32 flags);
     Int32 InsertLeafBrush(Uint32 brushIndex);
     void SetVisibilityData(const std::vector<byte>& visData);

@@ -1793,7 +1793,7 @@ bool CWaterShader::DrawWater( bool skybox )
 		m_pShader->EnableAttribute(m_attribs.a_lightcoords[k]);
 	m_pShader->EnableAttribute(m_attribs.a_styles);
 
-	CArray<Float>* pLightStyleValuesArray = gLightStyles.GetLightStyleValuesArray();
+	const CArray<Float>* pLightStyleValuesArray = gLightStyles.GetLightStyleValuesArray();
 	if (pLightStyleValuesArray && !pLightStyleValuesArray->empty())
 		m_pShader->SetUniform1fv(m_attribs.u_lightstyle_values, &((*pLightStyleValuesArray)[0]), 256);
 
@@ -2179,92 +2179,8 @@ bool CWaterShader::DrawWater( bool skybox )
 
 		m_pShader->DrawElements(GL_TRIANGLES, m_pCurrentWater->num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(m_pCurrentWater->start_index));
 
-		if(rectangleUnit != NO_POSITION)
-			R_BindRectangleTexture(GL_TEXTURE0+rectangleUnit, 0);
-
-		if(!m_pCurrentWater->stylebatches.empty())
-		{
-			result = m_pShader->SetDeterminator(m_attribs.d_rectrefract, FALSE, false);
-			if(!result)
-				break;
-
-			result = m_pShader->SetDeterminator(m_attribs.d_lightonly, TRUE);
-			if(!result)
-				break;
-
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
-
-			if(rns.fog.settings.active)
-				m_pShader->SetUniform3f(m_attribs.u_fogcolor, 0, 0, 0);
-
-			// Set ptr to lightstyles array
-			const CArray<Float>* pLightStyleValuesArray = gLightStyles.GetLightStyleValuesArray();
-			for(Uint32 j = 0; j < m_pCurrentWater->stylebatches.size(); j++)
-			{
-				cl_water_style_batches_t& stylebatches = m_pCurrentWater->stylebatches[j];
-				if(stylebatches.styleindex == NO_POSITION)
-					continue;
-
-				Float styleStrength = (*pLightStyleValuesArray)[stylebatches.styleindex];
-				if(!styleStrength)
-					continue;
-
-				for(Uint32 k = 1; k < MAX_SURFACE_STYLES; k++)
-				{
-					if(stylebatches.batches[k].empty())
-						continue;
-
-					// Reset to base past the normal map unit
-					R_ClearBinds(resetUnit);
-					textureUnit = resetUnit;
-
-					m_pShader->SetUniform1i(m_attribs.u_lightmap, textureUnit);
-					R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_textures[k]->gl_index);
-					textureUnit++;
-
-					m_pShader->SetUniform1f(m_attribs.u_stylestrength, styleStrength);
-
-					if(g_pCvarSpecular->GetValue() >= 1 && psettings->specularstrength 
-						&& m_pCurrentWater->plightmap_diffuse_textures[k] 
-						&& m_pCurrentWater->plightmap_lightvecs_textures[k])
-					{
-						result = m_pShader->SetDeterminator(m_attribs.d_specular, 1);
-						if(!result)
-							break;
-
-						m_pShader->SetUniform1i(m_attribs.u_diffusemap, textureUnit);
-						R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_diffuse_textures[k]->gl_index);
-						textureUnit++;
-
-						m_pShader->SetUniform1i(m_attribs.u_lightvecsmap, textureUnit);
-						R_Bind2DTexture(GL_TEXTURE0 + textureUnit, m_pCurrentWater->plightmap_lightvecs_textures[k]->gl_index);
-						textureUnit++;
-					}
-					else
-					{
-						result = m_pShader->SetDeterminator(m_attribs.d_specular, 0);
-						if(!result)
-							break;
-					}
-
-					for(Uint32 l = 0; l < stylebatches.batches[k].size(); l++)
-					{
-						cl_water_style_batch_t& batch = stylebatches.batches[k][l];
-						m_pShader->DrawElements(GL_TRIANGLES, batch.num_indexes, GL_UNSIGNED_INT, BUFFER_OFFSET(batch.start_index));
-					}
-				}
-			}
-
-			glDisable(GL_BLEND);
-
-			if(rns.fog.settings.active)
-				m_pShader->SetUniform3f(m_attribs.u_fogcolor, rns.fog.settings.color[0], rns.fog.settings.color[1], rns.fog.settings.color[2]);
-
-			result = m_pShader->SetDeterminator(m_attribs.d_lightonly, FALSE, false);
-			if(!result)
-				break;
-		}
+		if (rectangleUnit != NO_POSITION)
+			R_BindRectangleTexture(GL_TEXTURE0 + rectangleUnit, 0);
 	}
 
 	for (Uint32 k = 0; k < MAX_SURFACE_STYLES; k++)

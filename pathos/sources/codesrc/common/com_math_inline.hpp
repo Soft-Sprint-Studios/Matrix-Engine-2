@@ -415,7 +415,7 @@ namespace Math
 	// @param maxs2 Maxs of second bounding box
 	// @return TRUE if bounding boxes intersect, FALSE otherwise
 	//=============================================
-	inline bool CheckMinsMaxs( const Vector& mins1, const Vector& maxs1, const Vector& mins2, const Vector& maxs2 )
+	inline bool CheckMinsMaxs( const Vector& mins1, const Vector& maxs1, const Vector& mins2, const Vector& maxs2, Float epsilon )
 	{
 		if ((mins1[0]-epsilon) > (maxs2[0]+epsilon)) 
 			return true;
@@ -447,7 +447,7 @@ namespace Math
 	// @return TRUE if point is inside the bounding box,
 	// FALSE otherwise
 	//=============================================
-	inline bool PointInMinsMaxs( const Vector& point, const Vector& mins, const Vector& maxs )
+	inline bool PointInMinsMaxs( const Vector& point, const Vector& mins, const Vector& maxs, Float epsilon )
 	{
 		for(Uint32 i = 0; i < 3; i++)
 		{
