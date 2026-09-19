@@ -42,6 +42,7 @@ All Rights Reserved.
 #include "screentext.h"
 #include "gameuielements.h"
 #include "discordrpc.h"
+#include "credits.h"
 
 // Declaration of gamedll enginefuncs struct
 cldll_engfuncs_t cl_engfuncs;
@@ -179,6 +180,10 @@ bool ClientDLLInit( void )
 	if(!gScreenText.Init())
 		return false;
 
+	// Init credits
+	if(!gCredits.Init())
+		return false;
+
 	return true;
 }
 
@@ -226,6 +231,9 @@ void ClientDLLShutdown( void )
 
 	// Shut down screen text
 	gScreenText.Shutdown();
+
+	// Shut down credits
+	gCredits.Shutdown();
 }
 
 //=============================================
@@ -254,6 +262,8 @@ void ClientFrame( void )
 	gMotorBike.Think();
 	// Process Discord callbacks
 	g_discordRpc.Frame();
+	// Think for credits
+	gCredits.Think();
 }
 
 //=============================================
@@ -352,6 +362,9 @@ bool ClientGameInit( void )
 	if(!gScreenText.InitGame())
 		return false;
 
+	if(!gCredits.InitGame())
+		return false;
+
 	// Reset this
 	g_isLevelChangeReset = false;
 
@@ -394,6 +407,8 @@ void ClientGameReset( void )
 	gScreenText.ClearGame();
 	// Clear shakes
 	gShake.ClearGame();
+	// Clear credits
+	gCredits.ClearGame();
 
 	if(!g_isLevelChangeReset)
 	{
@@ -430,6 +445,9 @@ bool ClientGLInit( void )
 	if(!gGameUIManager.InitGL())
 		return false;
 
+	if(!gCredits.InitGL())
+		return false;
+
 	return true;
 }
 
@@ -451,6 +469,8 @@ void ClientGLClear( void )
 	gHUDDraw.ClearGL();
 	// Clear HUD
 	gHUD.ClearGL();
+	// Clear credits
+	gCredits.ClearGL();
 }
 
 //=============================================
