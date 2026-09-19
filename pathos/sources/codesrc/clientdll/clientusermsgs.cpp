@@ -27,7 +27,6 @@ All Rights Reserved.
 #include "messages.h"
 #include "tempentity.h"
 #include "screentext.h"
-#include "credits.h"
 #include "beam_shared.h"
 #include "flex_shared.h"
 #include "tracer.h"
@@ -2789,24 +2788,5 @@ MSGFN MsgFunc_SetupVertexLighting(const Char* pstrName, const byte* pdata, Uint3
 	}
 
 	cl_efxapi.pfnSetupEntityVertexLightVBO(modelindex, pentity, vlight_offset, vlight_vertexcount, styles);
-	return true;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-MSGFN MsgFunc_ShowCredits( const Char* pstrName, const byte* pdata, Uint32 msgsize )
-{
-	CMSGReader reader(pdata, msgsize);
-	Float scrollSpeed = reader.ReadFloat();
-
-	if (reader.HasError())
-	{
-		cl_engfuncs.pfnCon_Printf("%s - Error reading message: %s.\n", __FUNCTION__, reader.GetError());
-		return false;
-	}
-
-	gCredits.StartCredits(scrollSpeed);
 	return true;
 }

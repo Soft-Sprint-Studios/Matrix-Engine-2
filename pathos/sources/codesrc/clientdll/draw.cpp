@@ -24,7 +24,6 @@ All Rights Reserved.
 #include "dlight.h"
 #include "nodedebug.h"
 #include "screentext.h"
-#include "credits.h"
 
 //=============================================
 // @brief
@@ -52,10 +51,6 @@ bool CL_DrawHUD( bool hudOnly )
 
 		// Draw screen text
 		if(!gScreenText.Draw())
-			return false;
-
-		// Draw credits
-		if(!gCredits.Draw())
 			return false;
 
 		// Draw text messages
