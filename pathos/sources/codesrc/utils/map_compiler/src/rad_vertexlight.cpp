@@ -38,6 +38,11 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
 {
     std::cout << "Baking model vertex lighting...\n";
 
+    if (!m_worldVerts.empty())
+    {
+        m_vk.BuildSceneBVH(m_worldVerts, m_worldIndices);
+    }
+
     std::vector<byte> totalAmbient;
     std::vector<byte> totalDiffuse;
     std::vector<byte> totalVectors;
@@ -185,7 +190,9 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                         }
 
                         Float dir[3] = { toLight[0] / dist, toLight[1] / dist, toLight[2] / dist };
-                        Float NdotL = norm[0] * dir[0] + norm[1] * dir[1] + norm[2] * dir[2];
+                        Float dotNL = norm[0] * dir[0] + norm[1] * dir[1] + norm[2] * dir[2];
+                        Float halfLambert = dotNL * 0.5f + 0.5f;
+                        Float NdotL = halfLambert * halfLambert;
                         if (NdotL <= 0.001f)
                         {
                             continue;

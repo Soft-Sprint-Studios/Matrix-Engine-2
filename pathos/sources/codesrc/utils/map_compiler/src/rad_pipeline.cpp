@@ -343,6 +343,9 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
     }
 
+    m_worldVerts = sceneVerts;
+    m_worldIndices = sceneIndices;
+
     for (const auto& di : dispData.displacements)
     {
         Int32 N = 1 << di.power;

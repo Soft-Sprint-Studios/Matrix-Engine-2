@@ -7383,7 +7383,8 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 	// Do bounds check
 	vbmheader_t* pvbmheader = pvlightvbo->pvbmcache->pvbmhdr;
 	Int32 offsetdatastart = pvlightvbo->vlightoffset;
-	Int32 offsetdataend = offsetdatastart + (pvbmheader->numverts * 3) * pvlightvbo->stylecount;
+	Uint32 vertexDataSize = (pvbmheader->numverts * sizeof(Vector)) * pvlightvbo->stylecount;
+	Int32 offsetdataend = offsetdatastart + vertexDataSize;
 	if(offsetdatastart > pworldbrushmodel->vertexlightdatasize || offsetdataend > pworldbrushmodel->vertexlightdatasize)
 	{
 		Con_Printf("%s - Vertex data pointer out of bounds.\n", __FUNCTION__);
@@ -7391,7 +7392,8 @@ bool CVBMRenderer::BuildVertexLightVBO( vlight_vbo_t* pvlightvbo )
 	}
 
 	// Create vertex data
-	const byte* pvlight_vector = reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_VECTORS]) + offsetdatastart;
+	Uint32 vectorOffset = (offsetdatastart / sizeof(Vector)) * sizeof(color24_t);
+	const byte* pvlight_vector = reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_VECTORS]) + vectorOffset;
 	const Vector* pvlight_ambient = reinterpret_cast<const Vector*>(reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_AMBIENT]) + offsetdatastart);
 	const Vector* pvlight_diffuse = reinterpret_cast<const Vector*>(reinterpret_cast<const byte*>(pworldbrushmodel->pvertexlightdata[VERTEX_LIGHTING_DIFFUSE]) + offsetdatastart);
 
