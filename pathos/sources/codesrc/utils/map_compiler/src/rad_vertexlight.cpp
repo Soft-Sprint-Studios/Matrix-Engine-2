@@ -38,11 +38,6 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
 {
     std::cout << "Baking model vertex lighting...\n";
 
-    if (!m_worldVerts.empty())
-    {
-        m_vk.BuildSceneBVH(m_worldVerts, m_worldIndices);
-    }
-
     std::vector<byte> totalAmbient;
     std::vector<byte> totalDiffuse;
     std::vector<byte> totalVectors;
@@ -90,8 +85,6 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
             else 
                 angles[1] = a;
         }
-
-        angles[1] += 90.0f;
 
         Char fullVbmPath[512];
         snprintf(fullVbmPath, sizeof(fullVbmPath), "%s/%s", baseDir, modelPath);
@@ -171,9 +164,9 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
             {
                 Float norm[3] = { vbm.worldNormals[v * 3 + 0], vbm.worldNormals[v * 3 + 1], vbm.worldNormals[v * 3 + 2] };
                 Float pos[3] = {
-                    vbm.worldVerts[v * 3 + 0] + norm[0] * 1.0f,
-                    vbm.worldVerts[v * 3 + 1] + norm[1] * 1.0f,
-                    vbm.worldVerts[v * 3 + 2] + norm[2] * 1.0f
+                    vbm.worldVerts[v * 3 + 0] + norm[0],
+                    vbm.worldVerts[v * 3 + 1] + norm[1],
+                    vbm.worldVerts[v * 3 + 2] + norm[2]
                 };
 
                 for (const auto& lt : m_lights)

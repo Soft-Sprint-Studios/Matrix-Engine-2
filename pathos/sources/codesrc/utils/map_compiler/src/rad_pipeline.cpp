@@ -343,9 +343,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
     }
 
-    m_worldVerts = sceneVerts;
-    m_worldIndices = sceneIndices;
-
     for (const auto& di : dispData.displacements)
     {
         Int32 N = 1 << di.power;
@@ -564,8 +561,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
             else 
                 angles[1] = a;
         }
-
-        angles[1] += 90.0f;
 
         Char fullVbmPath[512];
         snprintf(fullVbmPath, sizeof(fullVbmPath), "%s/%s", baseDir, modelPath);

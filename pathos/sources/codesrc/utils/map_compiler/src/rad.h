@@ -92,9 +92,6 @@ private:
     std::vector<face_info_t> m_faceInfos;
     std::vector<Int32> m_primToFaceMap;
 
-    std::vector<Float> m_worldVerts;
-    std::vector<Uint32> m_worldIndices;
-
     struct scene_prim_t
     {
         Int32 faceIndex;

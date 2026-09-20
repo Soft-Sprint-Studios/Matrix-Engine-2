@@ -38,34 +38,29 @@ struct vbm_mat3x4_t
 // @brief
 //
 //=============================================
-static void AngleMatrix( const Float angles[3], Float matrix[3][4] )
+static void AngleMatrix(const Float angles[3], Float matrix[3][4])
 {
-    Float angle = angles[1] * (M_PI * 2.0f / 360.0f);
-    Float sy = sinf(angle);
-    Float cy = cosf(angle);
+    Float radX = angles[0] * (M_PI / 180.0f);
+    Float radZ = (angles[1] + 90.0f) * (M_PI / 180.0f);
+    Float radY = angles[2] * (M_PI / 180.0f);
 
-    angle = angles[0] * (M_PI * 2.0f / 360.0f);
-    Float sp = sinf(angle);
-    Float cp = cosf(angle);
+    Float sx = sinf(radX), cx = cosf(radX);
+    Float sz = sinf(radZ), cz = cosf(radZ);
+    Float sy = sinf(radY), cy = cosf(radY);
 
-    angle = angles[2] * (M_PI * 2.0f / 360.0f);
-    Float sr = sinf(angle);
-    Float cr = cosf(angle);
-
-    matrix[0][0] = cp * cy;
-    matrix[1][0] = cp * sy;
-    matrix[2][0] = -sp;
-
-    matrix[0][1] = sr * sp * cy + cr * -sy;
-    matrix[1][1] = sr * sp * sy + cr * cy;
-    matrix[2][1] = sr * cp;
-
-    matrix[0][2] = (cr * sp * cy + -sr * -sy);
-    matrix[1][2] = (cr * sp * sy + -sr * cy);
-    matrix[2][2] = cr * cp;
-
+    matrix[0][0] = cz * cy - sz * sx * sy;
+    matrix[0][1] = -sz * cx;
+    matrix[0][2] = cz * sy + sz * sx * cy;
     matrix[0][3] = 0.0f;
+
+    matrix[1][0] = sz * cy + cz * sx * sy;
+    matrix[1][1] = cz * cx;
+    matrix[1][2] = sz * sy - cz * sx * cy;
     matrix[1][3] = 0.0f;
+
+    matrix[2][0] = -cx * sy;
+    matrix[2][1] = sx;
+    matrix[2][2] = cx * cy;
     matrix[2][3] = 0.0f;
 }
 
