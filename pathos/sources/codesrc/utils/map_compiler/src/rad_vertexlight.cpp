@@ -281,9 +281,9 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                 Int32 v = (Int32)(chunkStart + cIdx);
                 Float norm[3] = { vbm.worldNormals[v * 3 + 0], vbm.worldNormals[v * 3 + 1], vbm.worldNormals[v * 3 + 2] };
                 Float pos[3] = {
-                    vbm.worldVerts[v * 3 + 0] + norm[0] * 1.0f,
-                    vbm.worldVerts[v * 3 + 1] + norm[1] * 1.0f,
-                    vbm.worldVerts[v * 3 + 2] + norm[2] * 1.0f
+                    vbm.worldVerts[v * 3 + 0] + norm[0],
+                    vbm.worldVerts[v * 3 + 1] + norm[1],
+                    vbm.worldVerts[v * 3 + 2] + norm[2]
                 };
 
                 Float tangent[3] = { 1.0f, 0.0f, 0.0f };
