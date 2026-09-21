@@ -183,9 +183,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                         }
 
                         Float dir[3] = { toLight[0] / dist, toLight[1] / dist, toLight[2] / dist };
-                        Float dotNL = norm[0] * dir[0] + norm[1] * dir[1] + norm[2] * dir[2];
-                        Float halfLambert = dotNL * 0.5f + 0.5f;
-                        Float NdotL = halfLambert * halfLambert;
+                        Float NdotL = norm[0] * dir[0] + norm[1] * dir[1] + norm[2] * dir[2];
                         if (NdotL <= 0.001f)
                         {
                             continue;
