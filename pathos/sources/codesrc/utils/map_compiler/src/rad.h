@@ -90,7 +90,6 @@ private:
         const dds_image_t* diffuseImage;
     };
     std::vector<face_info_t> m_faceInfos;
-    std::vector<Int32> m_primToFaceMap;
 
     struct scene_prim_t
     {
@@ -126,7 +125,7 @@ private:
         Int32 numsamples;
     };
 
-    Int32 BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves, Int32& outOccludedCount);
+    Int32 BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves);
 };
 
 #endif

@@ -79,7 +79,6 @@ public:
     const dmbspv1model_t& GetModel(size_t index) const;
     dmbspv1model_t& GetModel(size_t index);
     size_t GetLeafCount() const;
-    size_t GetNodeCount() const;
     const dmbspv1node_t& GetNode(size_t index) const;
     dmbspv1node_t& GetNode(size_t index);
     const dmbspv1leaf_brush_t& GetLeaf(size_t index) const;

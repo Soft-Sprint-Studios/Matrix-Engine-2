@@ -176,9 +176,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
     std::vector<Uint32> sceneIndices;
     std::vector<Float> alphaVerts;
     std::vector<Uint32> alphaIndices;
-    std::vector<Int32> alphaFaceMap;
     std::vector<scene_prim_t> alphaPrims;
-    m_primToFaceMap.clear();
     m_scenePrims.clear();
     m_materials.clear();
 
@@ -315,7 +313,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         bool isAlpha = fInfo.hasAlphaTest;
         std::vector<Float>& curVerts = isAlpha ? alphaVerts : sceneVerts;
         std::vector<Uint32>& curIndices = isAlpha ? alphaIndices : sceneIndices;
-        std::vector<Int32>& curFaceMap = isAlpha ? alphaFaceMap : m_primToFaceMap;
         std::vector<scene_prim_t>& curPrims = isAlpha ? alphaPrims : m_scenePrims;
 
         for (Int32 e = 1; e < numEdges - 1; e++)
@@ -332,7 +329,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
             curIndices.push_back(baseIdx + 0);
             curIndices.push_back(baseIdx + 1);
             curIndices.push_back(baseIdx + 2);
-            curFaceMap.push_back((Int32)i);
 
             scene_prim_t prim;
             prim.faceIndex = (Int32)i;
@@ -348,6 +344,8 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         Int32 N = 1 << di.power;
         Int32 K = N + 1;
         std::vector<Float> grid(K * K * 3);
+
+        Int32 bspFaceIdx = g_BSP.ResolveFaceId(di.face_id);
 
         for (Int32 y = 0; y < K; y++)
         {
@@ -391,8 +389,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                 sceneIndices.push_back(baseIdx + 1);
                 sceneIndices.push_back(baseIdx + 2);
 
-                Int32 bspFaceIdx = g_BSP.ResolveFaceId(di.face_id);
-                m_primToFaceMap.push_back(bspFaceIdx);
                 scene_prim_t p0;
                 p0.faceIndex = bspFaceIdx;
 
@@ -437,7 +433,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                 sceneIndices.push_back(baseIdx + 0);
                 sceneIndices.push_back(baseIdx + 1);
                 sceneIndices.push_back(baseIdx + 2);
-                m_primToFaceMap.push_back(bspFaceIdx);
                 scene_prim_t p1;
                 p1.faceIndex = bspFaceIdx;
 
@@ -509,7 +504,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                         sceneIndices.push_back(bIdx + 0);
                         sceneIndices.push_back(bIdx + 1);
                         sceneIndices.push_back(bIdx + 2);
-                        m_primToFaceMap.push_back(-1);
 
                         scene_prim_t p;
                         p.faceIndex = -1;
@@ -597,7 +591,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
             sceneIndices.push_back(baseVertOffset + vbm.sceneIndices[ii + 0]);
             sceneIndices.push_back(baseVertOffset + vbm.sceneIndices[ii + 1]);
             sceneIndices.push_back(baseVertOffset + vbm.sceneIndices[ii + 2]);
-            m_primToFaceMap.push_back(-1);
 
             scene_prim_t p;
             p.faceIndex = -1;
@@ -608,7 +601,6 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
     }
 
-    m_primToFaceMap.insert(m_primToFaceMap.end(), alphaFaceMap.begin(), alphaFaceMap.end());
     m_scenePrims.insert(m_scenePrims.end(), alphaPrims.begin(), alphaPrims.end());
 
     std::vector<Float> allVerts = sceneVerts;

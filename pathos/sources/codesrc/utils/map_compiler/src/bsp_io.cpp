@@ -266,11 +266,9 @@ bool CBSPBuilder::ExportALD(const Char* filename, aldlumptype_t lumpType)
     struct LayerPayload
     {
         std::vector<byte> compressedData;
-        size_t rawSize;
     };
 
     auto CompressRaw = [](const std::vector<byte>& src, LayerPayload& out) {
-        out.rawSize = src.size();
         if (src.empty()) 
             return;
 
@@ -301,21 +299,18 @@ bool CBSPBuilder::ExportALD(const Char* filename, aldlumptype_t lumpType)
 
         if (gHdr->ambientcompressedsize > 0)
         {
-            gridPayloads[LIGHTGRID_LAYER_AMBIENT].rawSize = gHdr->rawsampledatasize;
             gridPayloads[LIGHTGRID_LAYER_AMBIENT].compressedData.assign(
                 m_lightGrid.data() + gHdr->ambientdataoffset,
                 m_lightGrid.data() + gHdr->ambientdataoffset + gHdr->ambientcompressedsize);
         }
         if (gHdr->diffusecompressedsize > 0)
         {
-            gridPayloads[LIGHTGRID_LAYER_DIFFUSE].rawSize = gHdr->rawsampledatasize;
             gridPayloads[LIGHTGRID_LAYER_DIFFUSE].compressedData.assign(
                 m_lightGrid.data() + gHdr->diffusedataoffset,
                 m_lightGrid.data() + gHdr->diffusedataoffset + gHdr->diffusecompressedsize);
         }
         if (gHdr->vectorscompressedsize > 0)
         {
-            gridPayloads[LIGHTGRID_LAYER_VECTORS].rawSize = gHdr->rawsampledatasize;
             gridPayloads[LIGHTGRID_LAYER_VECTORS].compressedData.assign(
                 m_lightGrid.data() + gHdr->vectorsdataoffset,
                 m_lightGrid.data() + gHdr->vectorsdataoffset + gHdr->vectorscompressedsize);

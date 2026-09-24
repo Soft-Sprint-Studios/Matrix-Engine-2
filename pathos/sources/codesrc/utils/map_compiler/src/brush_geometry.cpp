@@ -214,8 +214,6 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
     Float avgLen = (lenU + lenV) * 0.5f;
     Float rawDivider = (avgLen > 0.0f) ? (16.0f * avgLen) : 16.0f;
     Float lightmapDivider = std::max(1.0f, roundf(rawDivider));
-    if (lightmapDivider < 1.0f)
-        lightmapDivider = 1.0f;
 
     Float baseSampleSize = (Float)MBSPV1_LM_SAMPLE_SIZE;
 

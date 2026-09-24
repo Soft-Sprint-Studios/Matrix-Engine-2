@@ -36,7 +36,7 @@
 //=============================================
 void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, Int32 raysPerLuxel)
 {
-    std::cout << "Baking model vertex lighting...\n";
+    std::cout << "Baking vertex lighting...\n";
 
     std::vector<byte> totalAmbient;
     std::vector<byte> totalDiffuse;
@@ -222,18 +222,6 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                         threadDirectJobs[tid].push_back({ v, style, lt.color[0] * atten, lt.color[1] * atten, lt.color[2] * atten, { dir[0], dir[1], dir[2] } });
                     }
                 }
-
-                Float tangent[3] = { 1.0f, 0.0f, 0.0f };
-                if (fabsf(norm[0]) > 0.9f)
-                {
-                    tangent[0] = 0.0f;
-                    tangent[1] = 1.0f;
-                }
-                Float bitangent[3] = {
-                    norm[1] * tangent[2] - norm[2] * tangent[1],
-                    norm[2] * tangent[0] - norm[0] * tangent[2],
-                    norm[0] * tangent[1] - norm[1] * tangent[0]
-                };
             }
         }
 

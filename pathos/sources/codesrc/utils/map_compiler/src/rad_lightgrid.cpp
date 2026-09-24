@@ -46,9 +46,8 @@ static inline Int32 GridSampleIndex(Int32 x, Int32 y, Int32 z, const Int32 size[
 // @brief
 //
 //=============================================
-Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves, Int32& outOccludedCount)
+Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves)
 {
-    Int32 numOccluded = 0;
     Int32 numUnoccluded = 0;
 
     for (Int32 z = mins[2]; z < mins[2] + size[2]; z++)
@@ -58,11 +57,7 @@ Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], In
             for (Int32 x = mins[0]; x < mins[0] + size[0]; x++)
             {
                 Int32 idx = GridSampleIndex(x, y, z, gridSize);
-                if (samples[idx].occluded)
-                {
-                    numOccluded++;
-                }
-                else
+                if (!samples[idx].occluded)
                 {
                     numUnoccluded++;
                 }
@@ -72,7 +67,6 @@ Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], In
 
     if (numUnoccluded == 0)
     {
-        outOccludedCount += (size[0] * size[1] * size[2]);
         return FL_OCTREE_OCCLUDED;
     }
 
@@ -121,7 +115,7 @@ Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], In
             }
         }
 
-        Int32 childRef = BuildGridOctree(childMins, childSize, depth + 1, gridSize, samples, nodes, leaves, outOccludedCount);
+        Int32 childRef = BuildGridOctree(childMins, childSize, depth + 1, gridSize, samples, nodes, leaves);
         nodes[nodeIndex].children[i] = childRef;
     }
 
@@ -139,7 +133,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         return;
     }
 
-    std::cout << "Baking Light Grid...\n";
+    std::cout << "Baking light Grid...\n";
 
     Float worldMins[3] = { 999999.0f, 999999.0f, 999999.0f };
     Float worldMaxs[3] = { -999999.0f, -999999.0f, -999999.0f };
@@ -469,9 +463,8 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
     std::vector<grid_octree_node_t> octreeNodes;
     std::vector<grid_octree_leaf_t> octreeLeaves;
     Int32 rootMins[3] = { 0, 0, 0 };
-    Int32 occludedCount = 0;
 
-    Int32 rootNodeIdx = BuildGridOctree(rootMins, gridSize, 0, gridSize, samples, octreeNodes, octreeLeaves, occludedCount);
+    Int32 rootNodeIdx = BuildGridOctree(rootMins, gridSize, 0, gridSize, samples, octreeNodes, octreeLeaves);
 
     Int32 rawDataSize = 0;
     std::vector<dmbspv1lightgridsample_t> bspSamples;

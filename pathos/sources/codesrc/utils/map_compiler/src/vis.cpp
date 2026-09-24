@@ -66,12 +66,6 @@ static size_t CompressPVS(const byte* src, size_t srcLength, byte* dest)
     return (size_t)(destPtr - dest);
 }
 
-struct leaf_sample_t
-{
-    Float center[3];
-    std::vector<std::array<Float, 3>> points;
-};
-
 //=============================================
 // @brief
 //
@@ -94,7 +88,6 @@ void CalculatePVS(const CRadPipeline* radPipeline)
 
     size_t rowBytes = (numVisLeafs + 7) / 8;
     std::vector<std::vector<byte>> uncompressedPVS(numVisLeafs, std::vector<byte>(rowBytes, 0));
-    std::vector<leaf_sample_t> leafSamples(totalLeafs);
     std::vector<gpu_leaf_sample_t> gpuLeafs(totalLeafs);
 
     #pragma omp parallel for schedule(static)
@@ -107,18 +100,17 @@ void CalculatePVS(const CRadPipeline* radPipeline)
             continue;
         }
 
-        auto& ls = leafSamples[i];
-        for (Int32 k = 0; k < 3; k++)
-        {
-            ls.center[k] = (leaf.mins[k] + leaf.maxs[k]) * 0.5f;
-        }
-        ls.points.push_back({ ls.center[0], ls.center[1], ls.center[2] });
+        Float center[3] = {
+            (leaf.mins[0] + leaf.maxs[0]) * 0.5f,
+            (leaf.mins[1] + leaf.maxs[1]) * 0.5f,
+            (leaf.mins[2] + leaf.maxs[2]) * 0.5f
+        };
 
         Float spanX = (Float)(leaf.maxs[0] - leaf.mins[0]);
         Float spanY = (Float)(leaf.maxs[1] - leaf.mins[1]);
         Float spanZ = (Float)(leaf.maxs[2] - leaf.mins[2]);
 
-        Float offsets[12][3] =
+        static const Float offsets[12][3] =
         {
             {  0.35f,  0.00f,  0.00f }, { -0.35f,  0.00f,  0.00f },
             {  0.00f,  0.35f,  0.00f }, {  0.00f, -0.35f,  0.00f },
@@ -128,17 +120,8 @@ void CalculatePVS(const CRadPipeline* radPipeline)
             {  0.00f,  0.25f,  0.25f }, {  0.00f, -0.25f, -0.25f }
         };
 
-        for (int o = 0; o < 12; o++)
-        {
-            ls.points.push_back({
-                ls.center[0] + offsets[o][0] * spanX,
-                ls.center[1] + offsets[o][1] * spanY,
-                ls.center[2] + offsets[o][2] * spanZ
-            });
-        }
-
         gpuLeafs[i].solid = 0;
-        gpuLeafs[i].count = (Int32)ls.points.size();
+        gpuLeafs[i].count = 13;
 
         for (int k = 0; k < 3; k++)
         {
@@ -148,12 +131,17 @@ void CalculatePVS(const CRadPipeline* radPipeline)
         gpuLeafs[i].mins[3] = 0.0f;
         gpuLeafs[i].maxs[3] = 0.0f;
 
-        for (size_t p = 0; p < ls.points.size() && p < 13; p++)
+        gpuLeafs[i].points[0][0] = center[0];
+        gpuLeafs[i].points[0][1] = center[1];
+        gpuLeafs[i].points[0][2] = center[2];
+        gpuLeafs[i].points[0][3] = 1.0f;
+
+        for (int o = 0; o < 12; o++)
         {
-            gpuLeafs[i].points[p][0] = ls.points[p][0];
-            gpuLeafs[i].points[p][1] = ls.points[p][1];
-            gpuLeafs[i].points[p][2] = ls.points[p][2];
-            gpuLeafs[i].points[p][3] = 1.0f;
+            gpuLeafs[i].points[o + 1][0] = center[0] + offsets[o][0] * spanX;
+            gpuLeafs[i].points[o + 1][1] = center[1] + offsets[o][1] * spanY;
+            gpuLeafs[i].points[o + 1][2] = center[2] + offsets[o][2] * spanZ;
+            gpuLeafs[i].points[o + 1][3] = 1.0f;
         }
     }
 

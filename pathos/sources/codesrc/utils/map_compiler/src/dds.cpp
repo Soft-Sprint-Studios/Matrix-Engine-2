@@ -34,7 +34,6 @@
 #define DDPF_ALPHAPIXELS 0x00000001
 
 #define FOURCC_DXT1 0x31545844
-#define FOURCC_DXT3 0x33545844
 #define FOURCC_DXT5 0x35545844
 
 struct dds_pixel_format_t

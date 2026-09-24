@@ -29,7 +29,6 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
-#include <chrono>
 #include <omp.h>
 
 struct fast_trig_t
@@ -72,7 +71,6 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     {
         Float direct[MBSPV1_MAX_LIGHTMAPS][3];
         Float bounce[MBSPV1_MAX_LIGHTMAPS][3];
-        Float ambient[3];
         Float dominantDir[MBSPV1_MAX_LIGHTMAPS][3];
         Float sunDirect[3];
     };
@@ -785,8 +783,6 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         }
 
         const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(lm.texinfoIndex);
-        const dmbspv1plane_t& pl = g_BSP.GetPlane(lm.planeIndex);
-
         auto Normalize = [](Float v[3])
             {
                 Float len = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
@@ -797,18 +793,6 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                     v[2] /= len;
                 }
             };
-
-        Float tbn[3][3];
-        for (Int32 k = 0; k < 3; k++)
-        {
-            tbn[0][k] = tx.vecs[0][k];
-            tbn[1][k] = tx.vecs[1][k];
-            tbn[2][k] = pl.normal[k];
-        }
-
-        Normalize(tbn[0]);
-        Normalize(tbn[1]);
-        Normalize(tbn[2]);
 
         Int32 numStyles = 0;
         for (Int32 s = 0; s < MBSPV1_MAX_LIGHTMAPS; s++)
@@ -854,17 +838,17 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
 
                 if (s == 0)
                 {
-                    finalTotal[0] = lux.direct[0][0] + lux.bounce[0][0] + lux.ambient[0];
-                    finalTotal[1] = lux.direct[0][1] + lux.bounce[0][1] + lux.ambient[1];
-                    finalTotal[2] = lux.direct[0][2] + lux.bounce[0][2] + lux.ambient[2];
+                    finalTotal[0] = lux.direct[0][0] + lux.bounce[0][0];
+                    finalTotal[1] = lux.direct[0][1] + lux.bounce[0][1];
+                    finalTotal[2] = lux.direct[0][2] + lux.bounce[0][2];
 
                     finalDiffuse[0] = lux.direct[0][0];
                     finalDiffuse[1] = lux.direct[0][1];
                     finalDiffuse[2] = lux.direct[0][2];
 
-                    finalAmbient[0] = lux.bounce[0][0] + lux.ambient[0];
-                    finalAmbient[1] = lux.bounce[0][1] + lux.ambient[1];
-                    finalAmbient[2] = lux.bounce[0][2] + lux.ambient[2];
+                    finalAmbient[0] = lux.bounce[0][0];
+                    finalAmbient[1] = lux.bounce[0][1];
+                    finalAmbient[2] = lux.bounce[0][2];
                 }
                 else
                 {

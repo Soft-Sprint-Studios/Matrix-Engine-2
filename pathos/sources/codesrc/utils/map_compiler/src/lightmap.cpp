@@ -164,9 +164,6 @@ void CalculateFaceLightmapExtents(const poly_face_t& polyFace, Int32 bspFaceInde
             outLm.exactMaxs[1] = t;
     }
 
-    Float spanS = outLm.exactMaxs[0] - outLm.exactMins[0];
-    Float spanT = outLm.exactMaxs[1] - outLm.exactMins[1];
-
     Int32 minS = (Int32)floorf(outLm.exactMins[0] / outLm.lightmapDivider + 0.001f);
     Int32 maxS = (Int32)ceilf(outLm.exactMaxs[0] / outLm.lightmapDivider - 0.001f);
     Int32 minT = (Int32)floorf(outLm.exactMins[1] / outLm.lightmapDivider + 0.001f);
@@ -442,18 +439,4 @@ void AllocateAllFaceLightmaps(std::vector<lightmap_face_t>& inOutFaceLightmaps)
         size_t faceByteSize = (size_t)lm.totalLuxels * sizeof(Float) * 3 * numStyles;
         currentLightOffset += faceByteSize;
     }
-
-    std::vector<byte> defLight(currentLightOffset, 0);
-    std::vector<byte> ambLight(currentLightOffset, 0);
-    std::vector<byte> diffLight(currentLightOffset, 0);
-    std::vector<byte> vecLight(currentLightOffset, 128);
-    for (size_t i = 2; i < currentLightOffset; i += 3)
-    {
-        vecLight[i] = 255;
-    }
-
-    g_BSP.SetLightmapLayer(SURF_LIGHTMAP_DEFAULT, defLight);
-    g_BSP.SetLightmapLayer(SURF_LIGHTMAP_AMBIENT, ambLight);
-    g_BSP.SetLightmapLayer(SURF_LIGHTMAP_DIFFUSE, diffLight);
-    g_BSP.SetLightmapLayer(SURF_LIGHTMAP_VECTORS, vecLight);
 }

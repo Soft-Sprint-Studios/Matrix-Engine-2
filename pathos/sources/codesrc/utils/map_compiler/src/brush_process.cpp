@@ -45,33 +45,6 @@ static void InitializeLeaf0()
 // @brief
 //
 //=============================================
-static void EmitModelFaces(const std::vector<map_brush_t>& brushes, Int32& outFirstFace, Int32& outNumFaces, Float outMins[3], Float outMaxs[3], const map_disp_data_t* dispData = nullptr)
-{
-    outFirstFace = (Int32)g_BSP.GetFaceCount();
-    outNumFaces = 0;
-    outMins[0] = outMins[1] = outMins[2] = 9999999.0f;
-    outMaxs[0] = outMaxs[1] = outMaxs[2] = -9999999.0f;
-
-    for (const auto& brush : brushes)
-    {
-        poly_brush_t poly;
-        if (!BuildBrushPolygons(brush, poly, dispData))
-            continue;
-
-        for (Int32 k = 0; k < 3; k++)
-        {
-            if (poly.mins[k] < outMins[k]) 
-                outMins[k] = poly.mins[k];
-            if (poly.maxs[k] > outMaxs[k]) 
-                outMaxs[k] = poly.maxs[k];
-        }
-    }
-}
-
-//=============================================
-// @brief
-//
-//=============================================
 bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, std::vector<lightmap_face_t>& outFaceLightmaps)
 {
     g_BSP.Reset();
@@ -84,13 +57,11 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
 
     InitializeLeaf0();
 
-    Int32 firstFace = 0;
-    Int32 numFaces = 0;
     Float mins[3], maxs[3];
     Float origin[3] = { 0.0f, 0.0f, 0.0f };
 
-    EmitModelFaces(mapData.entities[0].brushes, firstFace, numFaces, mins, maxs, &dispData);
-    Int32 worldModelIndex = g_BSP.InsertModel(mins, maxs, origin, firstFace, numFaces);
+    mins[0] = mins[1] = mins[2] = 9999999.0f;
+    maxs[0] = maxs[1] = maxs[2] = -9999999.0f;
 
     std::vector<poly_face_t> worldFaces;
     std::vector<poly_brush_t> worldBrushes;
@@ -99,6 +70,13 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
         poly_brush_t pb;
         if (BuildBrushPolygons(brush, pb, &dispData))
         {
+            for (Int32 k = 0; k < 3; k++)
+            {
+                if (pb.mins[k] < mins[k]) mins[k] = 
+                    pb.mins[k];
+                if (pb.maxs[k] > maxs[k]) maxs[k] = 
+                    pb.maxs[k];
+            }
             worldBrushes.push_back(pb);
             for (const auto& f : pb.faces)
             {
@@ -116,6 +94,8 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
         }
     }
 
+    Int32 worldModelIndex = g_BSP.InsertModel(mins, maxs, origin, 0, 0);
+
     BuildBSPModelTrees(worldModelIndex, worldFaces, worldBrushes, mins, maxs);
 
     g_BSP.GetModel(worldModelIndex).visleafs = (Int32)(g_BSP.GetLeafCount() - 1);
@@ -128,8 +108,8 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
             continue;
         }
 
-        EmitModelFaces(mapData.entities[i].brushes, firstFace, numFaces, mins, maxs, &dispData);
-        Int32 subModelIndex = g_BSP.InsertModel(mins, maxs, origin, firstFace, numFaces);
+        mins[0] = mins[1] = mins[2] = 9999999.0f;
+        maxs[0] = maxs[1] = maxs[2] = -9999999.0f;
 
         std::vector<poly_face_t> subFaces;
         std::vector<poly_brush_t> subBrushes;
@@ -138,6 +118,13 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
             poly_brush_t pb;
             if (BuildBrushPolygons(brush, pb, &dispData))
             {
+                for (Int32 k = 0; k < 3; k++)
+                {
+                    if (pb.mins[k] < mins[k]) 
+                        mins[k] = pb.mins[k];
+                    if (pb.maxs[k] > maxs[k])
+                        maxs[k] = pb.maxs[k];
+                }
                 subBrushes.push_back(pb);
                 for (const auto& f : pb.faces)
                 {
@@ -154,6 +141,8 @@ bool ProcessMapGeometry(map_data_t& mapData, const map_disp_data_t& dispData, st
                 }
             }
         }
+
+        Int32 subModelIndex = g_BSP.InsertModel(mins, maxs, origin, 0, 0);
 
         bool noclip = (atoi(mapData.entities[i].GetValue("zhlt_noclip")) == 1);
         BuildBSPModelTrees(subModelIndex, subFaces, subBrushes, mins, maxs, noclip);

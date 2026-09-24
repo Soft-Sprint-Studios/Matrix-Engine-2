@@ -74,15 +74,6 @@ size_t CBSPBuilder::GetLeafCount() const
 // @brief
 //
 //=============================================
-size_t CBSPBuilder::GetNodeCount() const
-{
-    return m_nodes.size();
-}
-
-//=============================================
-// @brief
-//
-//=============================================
 const dmbspv1node_t& CBSPBuilder::GetNode(size_t index) const
 {
     return m_nodes[index];

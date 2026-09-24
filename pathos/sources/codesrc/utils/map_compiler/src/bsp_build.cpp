@@ -238,7 +238,7 @@ Int32 CBSPBuilder::InsertTexinfo(const Float vecs[2][4], Int32 textureIndex, Int
         {
             for (Int32 k = 0; k < 4; k++)
             {
-                if (fabs(m_texinfos[i].vecs[j][k] - vecs[j][k]) > 0.0001f)
+                if (fabsf(m_texinfos[i].vecs[j][k] - vecs[j][k]) > 0.0001f)
                 {
                     match = false;
                     break;
@@ -472,17 +472,9 @@ void CBSPBuilder::ImportDisplacements(const map_disp_data_t& dispData)
     {
         const map_dispinfo_t& src = dispData.displacements[i];
 
-        Int32 resolvedBspFace = -1;
-        for (const auto& pair : m_faceIdToBspIndex)
-        {
-            if (pair.first == src.face_id)
-            {
-                resolvedBspFace = pair.second;
-                break;
-            }
-        }
+        Int32 bspFaceIdx = ResolveFaceId(src.face_id);
 
-        if (resolvedBspFace < 0 || resolvedBspFace >= (Int32)m_faces.size())
+        if (bspFaceIdx < 0 || bspFaceIdx >= (Int32)m_faces.size())
         {
             continue;
         }
@@ -490,7 +482,7 @@ void CBSPBuilder::ImportDisplacements(const map_disp_data_t& dispData)
         dmbspv1dispinfo_t info;
         strncpy(info.texture2, src.texture2, sizeof(info.texture2) - 1);
         info.texture2[sizeof(info.texture2) - 1] = '\0';
-        info.face_index = resolvedBspFace;
+        info.face_index = bspFaceIdx;
         info.power = src.power;
         info.vert_start = (Int32)m_dispVerts.size();
 
@@ -512,7 +504,7 @@ void CBSPBuilder::ImportDisplacements(const map_disp_data_t& dispData)
             m_dispVerts.push_back(vert);
         }
 
-        m_dispFaceMap[resolvedBspFace] = (Int32)m_dispInfos.size();
+        m_dispFaceMap[bspFaceIdx] = (Int32)m_dispInfos.size();
 
         m_dispInfos.push_back(info);
     }

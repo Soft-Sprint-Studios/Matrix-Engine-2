@@ -125,8 +125,8 @@ int main(int argc, char* argv[])
         CalculatePVS(&rad);
 
         rad.BakeLightmaps(faceLightmaps, gamedir.c_str(), bounces, samples);
-        rad.BuildLightGrid(gridDistance, samples);
         rad.BakeVertexLights(mapData, gamedir.c_str(), samples);
+        rad.BuildLightGrid(gridDistance, samples);
 
         g_BSP.SetEntities(SerializeEntities(mapData));
         rad.Shutdown();

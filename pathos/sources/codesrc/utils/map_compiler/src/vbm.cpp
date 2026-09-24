@@ -29,11 +29,6 @@
 #include <cmath>
 #include <vector>
 
-struct vbm_mat3x4_t
-{
-    Float m[3][4];
-};
-
 //=============================================
 // @brief
 //
@@ -62,28 +57,6 @@ static void AngleMatrix(const Float angles[3], Float matrix[3][4])
     matrix[2][1] = sx;
     matrix[2][2] = cx * cy;
     matrix[2][3] = 0.0f;
-}
-
-//=============================================
-// @brief
-//
-//=============================================
-static void ConcatTransforms( const Float in1[3][4], const Float in2[3][4], Float out[3][4] )
-{
-    out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0];
-    out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1];
-    out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] + in1[0][2] * in2[2][2];
-    out[0][3] = in1[0][0] * in2[0][3] + in1[0][1] * in2[1][3] + in1[0][2] * in2[2][3] + in1[0][3];
-
-    out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] + in1[1][2] * in2[2][0];
-    out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] + in1[1][2] * in2[2][1];
-    out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] + in1[1][2] * in2[2][2];
-    out[1][3] = in1[1][0] * in2[0][3] + in1[1][1] * in2[1][3] + in1[1][2] * in2[2][3] + in1[1][3];
-
-    out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] + in1[2][2] * in2[2][0];
-    out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] + in1[2][2] * in2[2][1];
-    out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] + in1[2][2] * in2[2][2];
-    out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3];
 }
 
 //=============================================
@@ -146,9 +119,6 @@ bool LoadVBMModel(const Char* filename, const Float origin[3], const Float angle
     outModel.worldNormals.resize(hdr->numverts * 3);
     outModel.sceneIndices.clear();
 
-    Float bmin[3] = { 999999.0f, 999999.0f, 999999.0f };
-    Float bmax[3] = { -999999.0f, -999999.0f, -999999.0f };
-
     for (Int32 i = 0; i < hdr->numverts; i++)
     {
         const vbm_vertex_t& v = outModel.rawVerts[i];
@@ -178,14 +148,6 @@ bool LoadVBMModel(const Char* filename, const Float origin[3], const Float angle
         outModel.worldNormals[i * 3 + 0] = finalNorm[0];
         outModel.worldNormals[i * 3 + 1] = finalNorm[1];
         outModel.worldNormals[i * 3 + 2] = finalNorm[2];
-
-        for (Int32 k = 0; k < 3; k++)
-        {
-            if (finalPos[k] < bmin[k]) 
-                bmin[k] = finalPos[k];
-            if (finalPos[k] > bmax[k]) 
-                bmax[k] = finalPos[k];
-        }
     }
 
     const vbm_bodypart_t* pBodyparts = reinterpret_cast<const vbm_bodypart_t*>(buf.data() + hdr->bodypartoffset);
