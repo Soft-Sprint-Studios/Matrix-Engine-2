@@ -72,7 +72,7 @@ static size_t CompressPVS(const byte* src, size_t srcLength, byte* dest)
 //=============================================
 void CalculatePVS(const CRadPipeline* radPipeline)
 {
-    std::cout << "Computing PVS Visibility...\n";
+    std::cout << "Computing PVS visibility...\n";
 
     size_t totalLeafs = g_BSP.GetLeafCount();
     if (totalLeafs <= 1)

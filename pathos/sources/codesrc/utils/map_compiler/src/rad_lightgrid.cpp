@@ -133,7 +133,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         return;
     }
 
-    std::cout << "Baking light Grid...\n";
+    std::cout << "Baking light grid...\n";
 
     Float worldMins[3] = { 999999.0f, 999999.0f, 999999.0f };
     Float worldMaxs[3] = { -999999.0f, -999999.0f, -999999.0f };
