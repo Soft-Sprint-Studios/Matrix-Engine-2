@@ -19,8 +19,10 @@ layout(std430, set = 0, binding = 1) readonly buffer InRayBuffer
 
 struct HitResult
 {
-    vec4 albedo_face;
-    vec4 hitPos_t;
+    uint packedAlbedo;
+    int faceIndex;
+    float hitT;
+    uint pad;
 };
 
 layout(std430, set = 0, binding = 2) writeonly buffer OutHitBuffer
@@ -104,12 +106,16 @@ void main()
             vec4 col = textureLod(textures[nonuniformEXT(pd.texIndex)], uv, 0.0);
             albedo = pow(col.rgb, vec3(2.2));
         }
-        results[idx].albedo_face = vec4(albedo, uintBitsToFloat(uint(pd.faceIndex)));
-        results[idx].hitPos_t = vec4(hitPos, hitT);
+        results[idx].packedAlbedo = packUnorm4x8(vec4(albedo, 1.0));
+        results[idx].faceIndex = pd.faceIndex;
+        results[idx].hitT = hitT;
+        results[idx].pad = 0u;
     }
     else
     {
-        results[idx].albedo_face = vec4(0.0, 0.0, 0.0, uintBitsToFloat(0xFFFFFFFFu));
-        results[idx].hitPos_t = vec4(0.0);
+        results[idx].packedAlbedo = 0u;
+        results[idx].faceIndex = -1;
+        results[idx].hitT = 0.0;
+        results[idx].pad = 0u;
     }
 }

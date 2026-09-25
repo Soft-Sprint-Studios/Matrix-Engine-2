@@ -366,39 +366,46 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                     for (Int32 r = 0; r < raysPerLuxel; r++)
                     {
                         const auto& hit = rawHits[baseRayIdx + r];
-                        Uint32 uBits = 0;
-                        memcpy(&uBits, &hit.faceIndexFloat, sizeof(Uint32));
-                        if (uBits != 0xFFFFFFFFu)
+                        Int32 hitFaceIdx = hit.faceIndex;
+                        if (hitFaceIdx >= 0 && hitFaceIdx < (Int32)faceLightmaps.size())
                         {
-                            Int32 hitFaceIdx = (Int32)uBits;
-                            if (hitFaceIdx >= 0 && hitFaceIdx < (Int32)faceLightmaps.size())
+                            const auto& gray = gpuBounceRays[baseRayIdx + r];
+                            Float hitPos[3] = {
+                                gray.origin[0] + gray.dir[0] * hit.hitT,
+                                gray.origin[1] + gray.dir[1] * hit.hitT,
+                                gray.origin[2] + gray.dir[2] * hit.hitT
+                            };
+                            Float albedo[3] = {
+                                (hit.packedAlbedo & 0xFF) / 255.0f,
+                                ((hit.packedAlbedo >> 8) & 0xFF) / 255.0f,
+                                ((hit.packedAlbedo >> 16) & 0xFF) / 255.0f
+                            };
+
+                            Float rad[3] = { 0.0f, 0.0f, 0.0f };
+                            const auto& hitLm = faceLightmaps[hitFaceIdx];
+                            if (!faceLuxels[hitFaceIdx].empty() && hitLm.luxelWidth > 0 && hitLm.luxelHeight > 0)
                             {
-                                Float rad[3] = { 0.0f, 0.0f, 0.0f };
-                                const auto& hitLm = faceLightmaps[hitFaceIdx];
-                                if (!faceLuxels[hitFaceIdx].empty() && hitLm.luxelWidth > 0 && hitLm.luxelHeight > 0)
-                                {
-                                    const auto& tx = g_BSP.GetTexinfo(hitLm.texinfoIndex);
-                                    Float s = hit.hitPos[0] * tx.vecs[0][0] + hit.hitPos[1] * tx.vecs[0][1] + hit.hitPos[2] * tx.vecs[0][2] + tx.vecs[0][3];
-                                    Float t = hit.hitPos[0] * tx.vecs[1][0] + hit.hitPos[1] * tx.vecs[1][1] + hit.hitPos[2] * tx.vecs[1][2] + tx.vecs[1][3];
+                                const auto& tx = g_BSP.GetTexinfo(hitLm.texinfoIndex);
+                                Float s = hitPos[0] * tx.vecs[0][0] + hitPos[1] * tx.vecs[0][1] + hitPos[2] * tx.vecs[0][2] + tx.vecs[0][3];
+                                Float t = hitPos[0] * tx.vecs[1][0] + hitPos[1] * tx.vecs[1][1] + hitPos[2] * tx.vecs[1][2] + tx.vecs[1][3];
 
-                                    Int32 lx = std::clamp((Int32)floorf((s - hitLm.textureMins[0]) / hitLm.lightmapDivider), 0, hitLm.luxelWidth - 1);
-                                    Int32 ly = std::clamp((Int32)floorf((t - hitLm.textureMins[1]) / hitLm.lightmapDivider), 0, hitLm.luxelHeight - 1);
+                                Int32 lx = std::clamp((Int32)floorf((s - hitLm.textureMins[0]) / hitLm.lightmapDivider), 0, hitLm.luxelWidth - 1);
+                                Int32 ly = std::clamp((Int32)floorf((t - hitLm.textureMins[1]) / hitLm.lightmapDivider), 0, hitLm.luxelHeight - 1);
 
-                                    const auto& srcLux = faceLuxels[hitFaceIdx][ly * hitLm.luxelWidth + lx];
-                                    rad[0] = srcLux.direct[0][0] + srcLux.sunDirect[0] + srcLux.bounce[0][0];
-                                    rad[1] = srcLux.direct[0][1] + srcLux.sunDirect[1] + srcLux.bounce[0][1];
-                                    rad[2] = srcLux.direct[0][2] + srcLux.sunDirect[2] + srcLux.bounce[0][2];
-                                }
-
-                                const auto& hitInfo = m_faceInfos[hitFaceIdx];
-                                Float emitR = (bounce == 0) ? hitInfo.emissive[0] : 0.0f;
-                                Float emitG = (bounce == 0) ? hitInfo.emissive[1] : 0.0f;
-                                Float emitB = (bounce == 0) ? hitInfo.emissive[2] : 0.0f;
-
-                                bounceAccum[0] += (rad[0] * hit.albedo[0] + emitR);
-                                bounceAccum[1] += (rad[1] * hit.albedo[1] + emitG);
-                                bounceAccum[2] += (rad[2] * hit.albedo[2] + emitB);
+                                const auto& srcLux = faceLuxels[hitFaceIdx][ly * hitLm.luxelWidth + lx];
+                                rad[0] = srcLux.direct[0][0] + srcLux.sunDirect[0] + srcLux.bounce[0][0];
+                                rad[1] = srcLux.direct[0][1] + srcLux.sunDirect[1] + srcLux.bounce[0][1];
+                                rad[2] = srcLux.direct[0][2] + srcLux.sunDirect[2] + srcLux.bounce[0][2];
                             }
+
+                            const auto& hitInfo = m_faceInfos[hitFaceIdx];
+                            Float emitR = (bounce == 0) ? hitInfo.emissive[0] : 0.0f;
+                            Float emitG = (bounce == 0) ? hitInfo.emissive[1] : 0.0f;
+                            Float emitB = (bounce == 0) ? hitInfo.emissive[2] : 0.0f;
+
+                            bounceAccum[0] += (rad[0] * albedo[0] + emitR);
+                            bounceAccum[1] += (rad[1] * albedo[1] + emitG);
+                            bounceAccum[2] += (rad[2] * albedo[2] + emitB);
                         }
                     }
 
@@ -887,7 +894,8 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
     m_bakedFaceLightmaps = faceLightmaps;
     m_bakedLuxels.resize(faceLightmaps.size());
 
-    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    #pragma omp parallel for schedule(dynamic)
+    for (int f = 0; f < (int)faceLightmaps.size(); f++)
     {
         if (!faceLuxels[f].empty())
         {

@@ -40,10 +40,10 @@ struct gpu_ray_t
 
 struct gpu_ray_hit_t
 {
-    Float albedo[3];
-    Float faceIndexFloat;
-    Float hitPos[3];
+    Uint32 packedAlbedo;
+    Int32 faceIndex;
     Float hitT;
+    Uint32 pad;
 };
 
 struct gpu_prim_data_t

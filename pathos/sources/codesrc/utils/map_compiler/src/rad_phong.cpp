@@ -85,7 +85,8 @@ void SmoothFaceNormals(std::vector<lightmap_face_t>& faceLightmaps, Float maxAng
     const Float minDot = cosf(maxAngleDegrees * (M_PI / 180.0f));
     std::vector<phong_poly_t> polys(faceLightmaps.size());
 
-    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    #pragma omp parallel for schedule(dynamic)
+    for (int f = 0; f < (int)faceLightmaps.size(); f++)
     {
         const auto& lm = faceLightmaps[f];
         if (lm.bspFaceIndex < 0 || (g_BSP.GetTexinfo(lm.texinfoIndex).flags & 1) || g_BSP.GetFaceDispIndex(lm.bspFaceIndex) >= 0)

@@ -175,8 +175,10 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
 
             for (Int32 k = 0; k < 3; k++)
             {
-                if (v.origin[k] < worldMins[k]) worldMins[k] = v.origin[k];
-                if (v.origin[k] > worldMaxs[k]) worldMaxs[k] = v.origin[k];
+                if (v.origin[k] < worldMins[k]) 
+                    worldMins[k] = v.origin[k];
+                if (v.origin[k] > worldMaxs[k]) 
+                    worldMaxs[k] = v.origin[k];
             }
         }
     }
@@ -403,20 +405,26 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
                 for (Int32 r = 0; r < numProbeRays; r++)
                 {
                     const auto& hit = probeHits[baseRayIdx + r];
-                    Uint32 uBits = 0;
-                    memcpy(&uBits, &hit.faceIndexFloat, sizeof(Uint32));
-                    if (uBits != 0xFFFFFFFFu)
+                    if (hit.faceIndex >= 0 && hit.faceIndex < (Int32)m_faceInfos.size())
                     {
-                        Int32 hitFace = (Int32)uBits;
-                        if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
-                        {
-                            Float hitRad[3];
-                            GetHitSurfaceRadiance(hitFace, hit.hitPos, hitRad);
+                        const auto& gray = chunkProbeRays[baseRayIdx + r];
+                        Float hitPos[3] = {
+                            gray.origin[0] + gray.dir[0] * hit.hitT,
+                            gray.origin[1] + gray.dir[1] * hit.hitT,
+                            gray.origin[2] + gray.dir[2] * hit.hitT
+                        };
+                        Float albedo[3] = {
+                            (hit.packedAlbedo & 0xFF) / 255.0f,
+                            ((hit.packedAlbedo >> 8) & 0xFF) / 255.0f,
+                            ((hit.packedAlbedo >> 16) & 0xFF) / 255.0f
+                        };
 
-                            accum[0] += (hitRad[0] * hit.albedo[0] + m_faceInfos[hitFace].emissive[0]);
-                            accum[1] += (hitRad[1] * hit.albedo[1] + m_faceInfos[hitFace].emissive[1]);
-                            accum[2] += (hitRad[2] * hit.albedo[2] + m_faceInfos[hitFace].emissive[2]);
-                        }
+                        Float hitRad[3];
+                        GetHitSurfaceRadiance(hit.faceIndex, hitPos, hitRad);
+
+                        accum[0] += (hitRad[0] * albedo[0] + m_faceInfos[hit.faceIndex].emissive[0]);
+                        accum[1] += (hitRad[1] * albedo[1] + m_faceInfos[hit.faceIndex].emissive[1]);
+                        accum[2] += (hitRad[2] * albedo[2] + m_faceInfos[hit.faceIndex].emissive[2]);
                     }
                 }
 
@@ -427,7 +435,8 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         }
     }
 
-    for (size_t i = 0; i < totalSamples; i++)
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < (int)totalSamples; i++)
     {
         auto& s = samples[i];
         if (s.occluded)
@@ -547,8 +556,10 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         rawVectors[vi] = 255;
     }
 
-    for (const auto& s : samples)
+   #pragma omp parallel for schedule(static)
+    for (int i = 0; i < (int)totalSamples; i++)
     {
+        const auto& s = samples[i];
         if (s.occluded || s.rawDataOffset < 0)
         {
             continue;

@@ -34,12 +34,12 @@
 // @brief
 //
 //=============================================
-static Char* ReadEntireFile(const Char* filename, size_t* pOutSize)
+static bool ReadEntireFile(const Char* filename, std::vector<Char>& outBuffer)
 {
     FILE* f = fopen(filename, "rb");
     if (!f)
     {
-        return nullptr;
+        return false;
     }
 
     fseek(f, 0, SEEK_END);
@@ -49,25 +49,16 @@ static Char* ReadEntireFile(const Char* filename, size_t* pOutSize)
     if (size <= 0)
     {
         fclose(f);
-        return nullptr;
+        return false;
     }
 
-    Char* buffer = (Char*)malloc(size + 1);
-    if (!buffer)
-    {
-        fclose(f);
-        return nullptr;
-    }
-
-    size_t bytesRead = fread(buffer, 1, size, f);
-    buffer[bytesRead] = '\0';
+    outBuffer.resize(size + 1, 0);
+    size_t bytesRead = fread(outBuffer.data(), 1, size, f);
+    outBuffer[bytesRead] = '\0';
+    outBuffer.resize(bytesRead + 1);
     fclose(f);
 
-    if (pOutSize)
-    {
-        *pOutSize = bytesRead;
-    }
-    return buffer;
+    return true;
 }
 
 //=============================================
@@ -76,14 +67,13 @@ static Char* ReadEntireFile(const Char* filename, size_t* pOutSize)
 //=============================================
 bool ParseMapFile(const Char* filename, map_data_t& outMap)
 {
-    size_t length = 0;
-    Char* pBuffer = ReadEntireFile(filename, &length);
-    if (!pBuffer)
+    std::vector<Char> buffer;
+    if (!ReadEntireFile(filename, buffer))
     {
         return false;
     }
 
-    CMapLexer lexer(pBuffer, length);
+    CMapLexer lexer(buffer.data(), buffer.size() - 1);
     Char token[256];
 
     while (lexer.NextToken(token, sizeof(token)))
@@ -194,7 +184,6 @@ bool ParseMapFile(const Char* filename, map_data_t& outMap)
         outMap.entities.push_back(entity);
     }
 
-    free(pBuffer);
     return true;
 }
 
@@ -204,14 +193,13 @@ bool ParseMapFile(const Char* filename, map_data_t& outMap)
 //=============================================
 bool ParseMapDisp(const Char* filename, map_disp_data_t& outDisp)
 {
-    size_t length = 0;
-    Char* pBuffer = ReadEntireFile(filename, &length);
-    if (!pBuffer)
+    std::vector<Char> buffer;
+    if (!ReadEntireFile(filename, buffer))
     {
         return false;
     }
 
-    CMapLexer lexer(pBuffer, length);
+    CMapLexer lexer(buffer.data(), buffer.size() - 1);
     Char token[256];
 
     while (lexer.NextToken(token, sizeof(token)))
@@ -393,7 +381,5 @@ bool ParseMapDisp(const Char* filename, map_disp_data_t& outDisp)
 
         outDisp.displacements.push_back(disp);
     }
-
-    free(pBuffer);
     return true;
 }

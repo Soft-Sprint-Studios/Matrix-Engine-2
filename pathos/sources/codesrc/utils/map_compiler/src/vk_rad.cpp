@@ -936,10 +936,19 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     size_t count = rays.size();
     outHits.resize(count, 0);
 
+    VkDeviceSize hitBufferSize = ((count + 31) / 32) * sizeof(Uint32);
+
     EnsureBuffer(m_rayBuf, count * sizeof(gpu_ray_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    EnsureBuffer(m_hitBuf, count * sizeof(Uint32), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+    EnsureBuffer(m_hitBuf, hitBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
 
     memcpy(m_rayBuf.pMapped, rays.data(), count * sizeof(gpu_ray_t));
+    memset(m_hitBuf.pMapped, 0, hitBufferSize);
+
+    VkMappedMemoryRange flushRange{ VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE };
+    flushRange.memory = m_hitBuf.memory;
+    flushRange.offset = 0;
+    flushRange.size = VK_WHOLE_SIZE;
+    vkFlushMappedMemoryRanges(m_device, 1, &flushRange);
 
     VkWriteDescriptorSetAccelerationStructureKHR asDesc{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR };
     asDesc.accelerationStructureCount = 1;
@@ -969,7 +978,7 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     writes[1].pBufferInfo = &bInfo1;
 
-    VkDescriptorBufferInfo bInfo2{ m_hitBuf.buffer, 0, count * sizeof(Uint32) };
+    VkDescriptorBufferInfo bInfo2{ m_hitBuf.buffer, 0, hitBufferSize };
     writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[2].dstSet = m_occludeDescSet;
     writes[2].dstBinding = 2;
@@ -1022,7 +1031,11 @@ bool CVulkanRayTracer::TraceOcclusionBatch(const std::vector<gpu_ray_t>& rays, s
     range.size = VK_WHOLE_SIZE;
     vkInvalidateMappedMemoryRanges(m_device, 1, &range);
 
-    memcpy(outHits.data(), m_hitBuf.pMapped, count * sizeof(Uint32));
+    const Uint32* packedHits = reinterpret_cast<const Uint32*>(m_hitBuf.pMapped);
+    for (size_t i = 0; i < count; i++)
+    {
+        outHits[i] = (packedHits[i >> 5] & (1u << (i & 31))) ? 1u : 0u;
+    }
 
     return true;
 }

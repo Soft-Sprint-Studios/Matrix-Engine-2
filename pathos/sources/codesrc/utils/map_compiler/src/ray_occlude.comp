@@ -17,7 +17,7 @@ layout(std430, set = 0, binding = 1) readonly buffer InRayBuffer
     RayInput rays[];
 };
 
-layout(std430, set = 0, binding = 2) writeonly buffer OutHitBuffer
+layout(std430, set = 0, binding = 2) buffer OutHitBuffer
 {
     uint hits[];
 };
@@ -83,6 +83,8 @@ void main()
         }
     }
 
-    uint isHit = (rayQueryGetIntersectionTypeEXT(query, true) != gl_RayQueryCommittedIntersectionNoneEXT) ? 1u : 0u;
-    hits[idx] = isHit;
+    if (rayQueryGetIntersectionTypeEXT(query, true) != gl_RayQueryCommittedIntersectionNoneEXT)
+    {
+        atomicOr(hits[idx >> 5], 1u << (idx & 31u));
+    }
 }

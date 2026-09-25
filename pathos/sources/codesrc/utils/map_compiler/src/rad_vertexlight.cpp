@@ -319,29 +319,35 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                     for (Int32 r = 0; r < numBounceRays; r++)
                     {
                         const auto& hit = bounceHits[baseBounceIdx + r];
-                        Uint32 uBits = 0;
-                        memcpy(&uBits, &hit.faceIndexFloat, sizeof(Uint32));
-                        if (uBits != 0xFFFFFFFFu)
+                        if (hit.faceIndex >= 0 && hit.faceIndex < (Int32)m_faceInfos.size())
                         {
-                            Int32 hitFace = (Int32)uBits;
-                            if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
-                            {
-                                Float hitRad[3];
-                                GetHitSurfaceRadiance(hitFace, hit.hitPos, hitRad);
+                            const auto& gray = chunkBounceRays[baseBounceIdx + r];
+                            Float hitPos[3] = {
+                                gray.origin[0] + gray.dir[0] * hit.hitT,
+                                gray.origin[1] + gray.dir[1] * hit.hitT,
+                                gray.origin[2] + gray.dir[2] * hit.hitT
+                            };
+                            Float albedo[3] = {
+                                (hit.packedAlbedo & 0xFF) / 255.0f,
+                                ((hit.packedAlbedo >> 8) & 0xFF) / 255.0f,
+                                ((hit.packedAlbedo >> 16) & 0xFF) / 255.0f
+                            };
 
-                                Float rVal = (hitRad[0] * hit.albedo[0] + m_faceInfos[hitFace].emissive[0]);
-                                Float gVal = (hitRad[1] * hit.albedo[1] + m_faceInfos[hitFace].emissive[1]);
-                                Float bVal = (hitRad[2] * hit.albedo[2] + m_faceInfos[hitFace].emissive[2]);
+                            Float hitRad[3];
+                            GetHitSurfaceRadiance(hit.faceIndex, hitPos, hitRad);
 
-                                bounceAccum[0] += rVal;
-                                bounceAccum[1] += gVal;
-                                bounceAccum[2] += bVal;
+                            Float rVal = (hitRad[0] * albedo[0] + m_faceInfos[hit.faceIndex].emissive[0]);
+                            Float gVal = (hitRad[1] * albedo[1] + m_faceInfos[hit.faceIndex].emissive[1]);
+                            Float bVal = (hitRad[2] * albedo[2] + m_faceInfos[hit.faceIndex].emissive[2]);
 
-                                Float maxC = std::max({ rVal, gVal, bVal });
-                                bounceDirAccum[0] += chunkBounceRays[baseBounceIdx + r].dir[0] * maxC;
-                                bounceDirAccum[1] += chunkBounceRays[baseBounceIdx + r].dir[1] * maxC;
-                                bounceDirAccum[2] += chunkBounceRays[baseBounceIdx + r].dir[2] * maxC;
-                            }
+                            bounceAccum[0] += rVal;
+                            bounceAccum[1] += gVal;
+                            bounceAccum[2] += bVal;
+
+                            Float maxC = std::max({ rVal, gVal, bVal });
+                            bounceDirAccum[0] += gray.dir[0] * maxC;
+                            bounceDirAccum[1] += gray.dir[1] * maxC;
+                            bounceDirAccum[2] += gray.dir[2] * maxC;
                         }
                     }
 
