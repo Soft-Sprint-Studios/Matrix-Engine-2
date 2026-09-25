@@ -42,6 +42,8 @@ struct gpu_ray_hit_t
 {
     Float albedo[3];
     Float faceIndexFloat;
+    Float hitPos[3];
+    Float hitT;
 };
 
 struct gpu_prim_data_t

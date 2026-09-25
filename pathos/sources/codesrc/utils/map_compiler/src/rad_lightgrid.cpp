@@ -33,6 +33,31 @@
 static constexpr Int32 FL_OCTREE_OCCLUDED = (1 << 31);
 static constexpr Int32 FL_OCTREE_LEAF = (1 << 30);
 
+struct grid_sample_t
+{
+    bool occluded;
+    Float worldPos[3];
+    byte styles[MBSPV1_MAX_LIGHTMAPS];
+    Float ambient[MBSPV1_MAX_LIGHTMAPS][3];
+    Float diffuse[MBSPV1_MAX_LIGHTMAPS][3];
+    Float dominantDir[MBSPV1_MAX_LIGHTMAPS][3];
+    Int32 rawDataOffset;
+};
+
+struct grid_octree_node_t
+{
+    Int32 divisionpoint[3];
+    Int32 children[8];
+};
+
+struct grid_octree_leaf_t
+{
+    Int32 mins[3];
+    Int32 size[3];
+    Int32 firstsample;
+    Int32 numsamples;
+};
+
 //=============================================
 // @brief
 //
@@ -46,7 +71,7 @@ static inline Int32 GridSampleIndex(Int32 x, Int32 y, Int32 z, const Int32 size[
 // @brief
 //
 //=============================================
-Int32 CRadPipeline::BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves)
+static Int32 BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves)
 {
     Int32 numUnoccluded = 0;
 
@@ -385,9 +410,12 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
                         Int32 hitFace = (Int32)uBits;
                         if (hitFace >= 0 && hitFace < (Int32)m_faceInfos.size())
                         {
-                            accum[0] += (m_faceInfos[hitFace].avgRadiance[0] * hit.albedo[0] + m_faceInfos[hitFace].emissive[0]);
-                            accum[1] += (m_faceInfos[hitFace].avgRadiance[1] * hit.albedo[1] + m_faceInfos[hitFace].emissive[1]);
-                            accum[2] += (m_faceInfos[hitFace].avgRadiance[2] * hit.albedo[2] + m_faceInfos[hitFace].emissive[2]);
+                            Float hitRad[3];
+                            GetHitSurfaceRadiance(hitFace, hit.hitPos, hitRad);
+
+                            accum[0] += (hitRad[0] * hit.albedo[0] + m_faceInfos[hitFace].emissive[0]);
+                            accum[1] += (hitRad[1] * hit.albedo[1] + m_faceInfos[hitFace].emissive[1]);
+                            accum[2] += (hitRad[2] * hit.albedo[2] + m_faceInfos[hitFace].emissive[2]);
                         }
                     }
                 }

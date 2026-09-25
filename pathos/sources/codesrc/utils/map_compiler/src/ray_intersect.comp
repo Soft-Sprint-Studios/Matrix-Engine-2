@@ -17,9 +17,15 @@ layout(std430, set = 0, binding = 1) readonly buffer InRayBuffer
     RayInput rays[];
 };
 
+struct HitResult
+{
+    vec4 albedo_face;
+    vec4 hitPos_t;
+};
+
 layout(std430, set = 0, binding = 2) writeonly buffer OutHitBuffer
 {
-    vec4 results[];
+    HitResult results[];
 };
 
 struct PrimData
@@ -85,6 +91,8 @@ void main()
 
     if (rayQueryGetIntersectionTypeEXT(query, true) != gl_RayQueryCommittedIntersectionNoneEXT)
     {
+        float hitT = rayQueryGetIntersectionTEXT(query, true);
+        vec3 hitPos = origin + dir * hitT;
         uint primID = rayQueryGetIntersectionPrimitiveIndexEXT(query, true);
         PrimData pd = prims[primID];
         vec3 albedo = vec3(0.5);
@@ -96,10 +104,12 @@ void main()
             vec4 col = textureLod(textures[nonuniformEXT(pd.texIndex)], uv, 0.0);
             albedo = pow(col.rgb, vec3(2.2));
         }
-        results[idx] = vec4(albedo, uintBitsToFloat(uint(pd.faceIndex)));
+        results[idx].albedo_face = vec4(albedo, uintBitsToFloat(uint(pd.faceIndex)));
+        results[idx].hitPos_t = vec4(hitPos, hitT);
     }
     else
     {
-        results[idx] = vec4(0.0, 0.0, 0.0, uintBitsToFloat(0xFFFFFFFFu));
+        results[idx].albedo_face = vec4(0.0, 0.0, 0.0, uintBitsToFloat(0xFFFFFFFFu));
+        results[idx].hitPos_t = vec4(0.0);
     }
 }

@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <iostream>
 #include <omp.h>
+#include <OpenImageDenoise/oidn.h>
 
 struct fast_trig_t
 {
@@ -274,24 +275,6 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
         }
     }
 
-    for (size_t f = 0; f < faceLightmaps.size(); f++)
-    {
-        const auto& lm = faceLightmaps[f];
-        if (!faceLuxels[f].empty() && lm.totalLuxels > 0 && lm.bspFaceIndex >= 0 && lm.bspFaceIndex < (Int32)m_faceInfos.size())
-        {
-            Float sumRad[3] = { 0.0f, 0.0f, 0.0f };
-            for (Int32 i = 0; i < lm.totalLuxels; i++)
-            {
-                sumRad[0] += faceLuxels[f][i].direct[0][0] + faceLuxels[f][i].sunDirect[0];
-                sumRad[1] += faceLuxels[f][i].direct[0][1] + faceLuxels[f][i].sunDirect[1];
-                sumRad[2] += faceLuxels[f][i].direct[0][2] + faceLuxels[f][i].sunDirect[2];
-            }
-            m_faceInfos[lm.bspFaceIndex].avgRadiance[0] = sumRad[0] / (Float)lm.totalLuxels;
-            m_faceInfos[lm.bspFaceIndex].avgRadiance[1] = sumRad[1] / (Float)lm.totalLuxels;
-            m_faceInfos[lm.bspFaceIndex].avgRadiance[2] = sumRad[2] / (Float)lm.totalLuxels;
-        }
-    }
-
     const size_t MAX_BOUNCE_RAYS_PER_BATCH = 1048576;
     const size_t chunkLuxels = std::clamp(MAX_BOUNCE_RAYS_PER_BATCH / std::max(1, raysPerLuxel), (size_t)1, (size_t)32768);
     std::vector<gpu_ray_t> gpuBounceRays;
@@ -388,16 +371,33 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                         if (uBits != 0xFFFFFFFFu)
                         {
                             Int32 hitFaceIdx = (Int32)uBits;
-                            if (hitFaceIdx >= 0 && hitFaceIdx < (Int32)m_faceInfos.size())
+                            if (hitFaceIdx >= 0 && hitFaceIdx < (Int32)faceLightmaps.size())
                             {
+                                Float rad[3] = { 0.0f, 0.0f, 0.0f };
+                                const auto& hitLm = faceLightmaps[hitFaceIdx];
+                                if (!faceLuxels[hitFaceIdx].empty() && hitLm.luxelWidth > 0 && hitLm.luxelHeight > 0)
+                                {
+                                    const auto& tx = g_BSP.GetTexinfo(hitLm.texinfoIndex);
+                                    Float s = hit.hitPos[0] * tx.vecs[0][0] + hit.hitPos[1] * tx.vecs[0][1] + hit.hitPos[2] * tx.vecs[0][2] + tx.vecs[0][3];
+                                    Float t = hit.hitPos[0] * tx.vecs[1][0] + hit.hitPos[1] * tx.vecs[1][1] + hit.hitPos[2] * tx.vecs[1][2] + tx.vecs[1][3];
+
+                                    Int32 lx = std::clamp((Int32)floorf((s - hitLm.textureMins[0]) / hitLm.lightmapDivider), 0, hitLm.luxelWidth - 1);
+                                    Int32 ly = std::clamp((Int32)floorf((t - hitLm.textureMins[1]) / hitLm.lightmapDivider), 0, hitLm.luxelHeight - 1);
+
+                                    const auto& srcLux = faceLuxels[hitFaceIdx][ly * hitLm.luxelWidth + lx];
+                                    rad[0] = srcLux.direct[0][0] + srcLux.sunDirect[0] + srcLux.bounce[0][0];
+                                    rad[1] = srcLux.direct[0][1] + srcLux.sunDirect[1] + srcLux.bounce[0][1];
+                                    rad[2] = srcLux.direct[0][2] + srcLux.sunDirect[2] + srcLux.bounce[0][2];
+                                }
+
                                 const auto& hitInfo = m_faceInfos[hitFaceIdx];
                                 Float emitR = (bounce == 0) ? hitInfo.emissive[0] : 0.0f;
                                 Float emitG = (bounce == 0) ? hitInfo.emissive[1] : 0.0f;
                                 Float emitB = (bounce == 0) ? hitInfo.emissive[2] : 0.0f;
 
-                                bounceAccum[0] += (hitInfo.avgRadiance[0] * hit.albedo[0] + emitR);
-                                bounceAccum[1] += (hitInfo.avgRadiance[1] * hit.albedo[1] + emitG);
-                                bounceAccum[2] += (hitInfo.avgRadiance[2] * hit.albedo[2] + emitB);
+                                bounceAccum[0] += (rad[0] * hit.albedo[0] + emitR);
+                                bounceAccum[1] += (rad[1] * hit.albedo[1] + emitG);
+                                bounceAccum[2] += (rad[2] * hit.albedo[2] + emitB);
                             }
                         }
                     }
@@ -414,25 +414,6 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                     faceLuxels[f][i].bounce[0][1] += gVal;
                     faceLuxels[f][i].bounce[0][2] += bVal;
                 }
-            }
-        }
-
-        #pragma omp parallel for schedule(static)
-        for (int f = 0; f < (int)faceLightmaps.size(); f++)
-        {
-            const auto& lm = faceLightmaps[f];
-            if (!stepBounce[f].empty() && lm.totalLuxels > 0 && lm.bspFaceIndex >= 0 && lm.bspFaceIndex < (Int32)m_faceInfos.size())
-            {
-                Float sumRad[3] = { 0.0f, 0.0f, 0.0f };
-                for (Int32 i = 0; i < lm.totalLuxels; i++)
-                {
-                    sumRad[0] += stepBounce[f][i][0];
-                    sumRad[1] += stepBounce[f][i][1];
-                    sumRad[2] += stepBounce[f][i][2];
-                }
-                m_faceInfos[lm.bspFaceIndex].avgRadiance[0] = sumRad[0] / (Float)lm.totalLuxels;
-                m_faceInfos[lm.bspFaceIndex].avgRadiance[1] = sumRad[1] / (Float)lm.totalLuxels;
-                m_faceInfos[lm.bspFaceIndex].avgRadiance[2] = sumRad[2] / (Float)lm.totalLuxels;
             }
         }
     }
@@ -901,19 +882,22 @@ void CRadPipeline::BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, co
                 vecData[vecByteIdx + 2] = (byte)std::clamp((Int32)((tangentDir[2] * 0.5f + 0.5f) * 255.0f), 0, 255);
             }
         }
+    }
 
-        if (lm.totalLuxels > 0)
+    m_bakedFaceLightmaps = faceLightmaps;
+    m_bakedLuxels.resize(faceLightmaps.size());
+
+    for (size_t f = 0; f < faceLightmaps.size(); f++)
+    {
+        if (!faceLuxels[f].empty())
         {
-            Float sumRad[3] = { 0.0f, 0.0f, 0.0f };
-            for (Int32 i = 0; i < lm.totalLuxels; i++)
+            m_bakedLuxels[f].resize(faceLuxels[f].size());
+            for (size_t i = 0; i < faceLuxels[f].size(); i++)
             {
-                sumRad[0] += faceLuxels[f][i].direct[0][0] + faceLuxels[f][i].bounce[0][0];
-                sumRad[1] += faceLuxels[f][i].direct[0][1] + faceLuxels[f][i].bounce[0][1];
-                sumRad[2] += faceLuxels[f][i].direct[0][2] + faceLuxels[f][i].bounce[0][2];
+                m_bakedLuxels[f][i].r = faceLuxels[f][i].direct[0][0] + faceLuxels[f][i].sunDirect[0] + faceLuxels[f][i].bounce[0][0];
+                m_bakedLuxels[f][i].g = faceLuxels[f][i].direct[0][1] + faceLuxels[f][i].sunDirect[1] + faceLuxels[f][i].bounce[0][1];
+                m_bakedLuxels[f][i].b = faceLuxels[f][i].direct[0][2] + faceLuxels[f][i].sunDirect[2] + faceLuxels[f][i].bounce[0][2];
             }
-            m_faceInfos[lm.bspFaceIndex].avgRadiance[0] = sumRad[0] / (Float)lm.totalLuxels;
-            m_faceInfos[lm.bspFaceIndex].avgRadiance[1] = sumRad[1] / (Float)lm.totalLuxels;
-            m_faceInfos[lm.bspFaceIndex].avgRadiance[2] = sumRad[2] / (Float)lm.totalLuxels;
         }
     }
 

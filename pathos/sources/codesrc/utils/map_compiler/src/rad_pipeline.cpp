@@ -32,6 +32,12 @@
 #include <fstream>
 #include <iostream>
 
+struct scene_prim_t
+{
+    Int32 faceIndex;
+    Float uv[3][2];
+};
+
 //=============================================
 // @brief
 //
@@ -99,9 +105,9 @@ const gpu_ray_hit_t* CRadPipeline::TraceRayHitBatch(const std::vector<gpu_ray_t>
 // @brief
 //
 //=============================================
-void CRadPipeline::LoadTexlights(const Char* baseDir)
+static void LoadTexlights(const Char* baseDir, std::unordered_map<std::string, std::array<Float, 3>>& outTexlights)
 {
-    m_texlights.clear();
+    outTexlights.clear();
 
     std::vector<std::string> pathsToTry;
     if (baseDir && baseDir[0])
@@ -156,10 +162,41 @@ void CRadPipeline::LoadTexlights(const Char* baseDir)
 
         std::string key = texName;
         std::transform(key.begin(), key.end(), key.begin(), ::toupper);
-        m_texlights[key] = { r, g, b };
+        outTexlights[key] = { r, g, b };
     }
 
     fclose(f);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void CRadPipeline::GetHitSurfaceRadiance(Int32 hitFace, const Float hitPos[3], Float outRad[3]) const
+{
+    outRad[0] = outRad[1] = outRad[2] = 0.0f;
+    if (hitFace < 0 || hitFace >= (Int32)m_bakedLuxels.size() || m_bakedLuxels[hitFace].empty())
+    {
+        return;
+    }
+
+    const auto& lm = m_bakedFaceLightmaps[hitFace];
+    if (lm.luxelWidth <= 0 || lm.luxelHeight <= 0)
+    {
+        return;
+    }
+
+    const auto& tx = g_BSP.GetTexinfo(lm.texinfoIndex);
+    Float s = hitPos[0] * tx.vecs[0][0] + hitPos[1] * tx.vecs[0][1] + hitPos[2] * tx.vecs[0][2] + tx.vecs[0][3];
+    Float t = hitPos[0] * tx.vecs[1][0] + hitPos[1] * tx.vecs[1][1] + hitPos[2] * tx.vecs[1][2] + tx.vecs[1][3];
+
+    Int32 lx = std::clamp((Int32)floorf((s - lm.textureMins[0]) / lm.lightmapDivider), 0, lm.luxelWidth - 1);
+    Int32 ly = std::clamp((Int32)floorf((t - lm.textureMins[1]) / lm.lightmapDivider), 0, lm.luxelHeight - 1);
+
+    const auto& lux = m_bakedLuxels[hitFace][ly * lm.luxelWidth + lx];
+    outRad[0] = lux.r;
+    outRad[1] = lux.g;
+    outRad[2] = lux.b;
 }
 
 //=============================================
@@ -170,15 +207,16 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
 {
     std::cout << "Building ray tracing scene...\n";
 
-    LoadTexlights(baseDir);
+    std::unordered_map<std::string, std::array<Float, 3>> texlights;
+    LoadTexlights(baseDir, texlights);
 
     std::vector<Float> sceneVerts;
     std::vector<Uint32> sceneIndices;
     std::vector<Float> alphaVerts;
     std::vector<Uint32> alphaIndices;
     std::vector<scene_prim_t> alphaPrims;
-    m_scenePrims.clear();
-    m_materials.clear();
+    std::vector<scene_prim_t> scenePrims;
+    std::unordered_map<std::string, material_t> materials;
 
     size_t faceCount = g_BSP.GetFaceCount();
     m_faceInfos.resize(faceCount);
@@ -190,12 +228,12 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         const auto& tex = g_BSP.GetTexture(tx.miptex);
 
         std::string texName = tex.name;
-        if (m_materials.find(texName) == m_materials.end())
+        if (materials.find(texName) == materials.end())
         {
             material_t mat;
             if (LoadMaterial(baseDir, tex.name, mat))
             {
-                m_materials[texName] = mat;
+                materials[texName] = mat;
             }
             else
             {
@@ -203,19 +241,19 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                 mat.hasNoShadow = false;
                 mat.diffuseImage.width = 16;
                 mat.diffuseImage.height = 16;
-                m_materials[texName] = mat;
+                materials[texName] = mat;
             }
         }
 
-        const material_t& mat = m_materials[texName];
+        const material_t& mat = materials[texName];
         m_faceInfos[i].hasAlphaTest = mat.hasAlphaTest;
         m_faceInfos[i].diffuseImage = &mat.diffuseImage;
         m_faceInfos[i].minLight = 0.0f;
 
         std::string upperTex = tex.name;
         std::transform(upperTex.begin(), upperTex.end(), upperTex.begin(), ::toupper);
-        auto it = m_texlights.find(upperTex);
-        if (it != m_texlights.end())
+        auto it = texlights.find(upperTex);
+        if (it != texlights.end())
         {
             m_faceInfos[i].emissive[0] = it->second[0];
             m_faceInfos[i].emissive[1] = it->second[1];
@@ -313,7 +351,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         bool isAlpha = fInfo.hasAlphaTest;
         std::vector<Float>& curVerts = isAlpha ? alphaVerts : sceneVerts;
         std::vector<Uint32>& curIndices = isAlpha ? alphaIndices : sceneIndices;
-        std::vector<scene_prim_t>& curPrims = isAlpha ? alphaPrims : m_scenePrims;
+        std::vector<scene_prim_t>& curPrims = isAlpha ? alphaPrims : scenePrims;
 
         for (Int32 e = 1; e < numEdges - 1; e++)
         {
@@ -422,7 +460,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                     p0.uv[1][0] = 0.0f; p0.uv[1][1] = 0.0f;
                     p0.uv[2][0] = 0.0f; p0.uv[2][1] = 0.0f;
                 }
-                m_scenePrims.push_back(p0);
+                scenePrims.push_back(p0);
 
                 baseIdx += 3;
 
@@ -466,7 +504,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                     p1.uv[1][0] = 0.0f; p1.uv[1][1] = 0.0f;
                     p1.uv[2][0] = 0.0f; p1.uv[2][1] = 0.0f;
                 }
-                m_scenePrims.push_back(p1);
+                scenePrims.push_back(p1);
             }
         }
     }
@@ -510,7 +548,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
                         p.uv[0][0] = 0.0f; p.uv[0][1] = 0.0f;
                         p.uv[1][0] = 0.0f; p.uv[1][1] = 0.0f;
                         p.uv[2][0] = 0.0f; p.uv[2][1] = 0.0f;
-                        m_scenePrims.push_back(p);
+                        scenePrims.push_back(p);
                         bIdx += 3;
                     }
                 }
@@ -597,11 +635,11 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
             p.uv[0][0] = 0.0f; p.uv[0][1] = 0.0f;
             p.uv[1][0] = 0.0f; p.uv[1][1] = 0.0f;
             p.uv[2][0] = 0.0f; p.uv[2][1] = 0.0f;
-            m_scenePrims.push_back(p);
+            scenePrims.push_back(p);
         }
     }
 
-    m_scenePrims.insert(m_scenePrims.end(), alphaPrims.begin(), alphaPrims.end());
+    scenePrims.insert(scenePrims.end(), alphaPrims.begin(), alphaPrims.end());
 
     std::vector<Float> allVerts = sceneVerts;
     std::vector<Uint32> allIndices = sceneIndices;
@@ -617,7 +655,7 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
     std::vector<dds_image_t> gpuTexImages;
     std::unordered_map<const dds_image_t*, Int32> imageMap;
 
-    for (const auto& matPair : m_materials)
+    for (const auto& matPair : materials)
     {
         const dds_image_t* img = &matPair.second.diffuseImage;
         if (imageMap.find(img) == imageMap.end() && gpuTexImages.size() < 256)
@@ -627,21 +665,21 @@ void CRadPipeline::BuildSceneGeometry(const map_data_t& mapData, const map_disp_
         }
     }
 
-    std::vector<gpu_prim_data_t> gpuPrims(m_scenePrims.size());
-    for (size_t p = 0; p < m_scenePrims.size(); p++)
+    std::vector<gpu_prim_data_t> gpuPrims(scenePrims.size());
+    for (size_t p = 0; p < scenePrims.size(); p++)
     {
-        gpuPrims[p].uv0[0] = m_scenePrims[p].uv[0][0];
-        gpuPrims[p].uv0[1] = m_scenePrims[p].uv[0][1];
-        gpuPrims[p].uv1[0] = m_scenePrims[p].uv[1][0];
-        gpuPrims[p].uv1[1] = m_scenePrims[p].uv[1][1];
-        gpuPrims[p].uv2[0] = m_scenePrims[p].uv[2][0];
-        gpuPrims[p].uv2[1] = m_scenePrims[p].uv[2][1];
-        gpuPrims[p].faceIndex = m_scenePrims[p].faceIndex;
+        gpuPrims[p].uv0[0] = scenePrims[p].uv[0][0];
+        gpuPrims[p].uv0[1] = scenePrims[p].uv[0][1];
+        gpuPrims[p].uv1[0] = scenePrims[p].uv[1][0];
+        gpuPrims[p].uv1[1] = scenePrims[p].uv[1][1];
+        gpuPrims[p].uv2[0] = scenePrims[p].uv[2][0];
+        gpuPrims[p].uv2[1] = scenePrims[p].uv[2][1];
+        gpuPrims[p].faceIndex = scenePrims[p].faceIndex;
 
         Int32 texSlot = -1;
-        if (m_scenePrims[p].faceIndex >= 0 && m_scenePrims[p].faceIndex < (Int32)m_faceInfos.size())
+        if (scenePrims[p].faceIndex >= 0 && scenePrims[p].faceIndex < (Int32)m_faceInfos.size())
         {
-            const dds_image_t* img = m_faceInfos[m_scenePrims[p].faceIndex].diffuseImage;
+            const dds_image_t* img = m_faceInfos[scenePrims[p].faceIndex].diffuseImage;
             auto it = imageMap.find(img);
             if (it != imageMap.end())
             {

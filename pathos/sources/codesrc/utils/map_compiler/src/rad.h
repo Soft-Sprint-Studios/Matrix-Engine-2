@@ -32,7 +32,6 @@
 #include <array>
 #include <unordered_map>
 #include "vk_rad.h"
-#include <OpenImageDenoise/oidn.h>
 
 enum rad_lighttype_t
 {
@@ -67,7 +66,6 @@ public:
     const gpu_ray_hit_t* TraceRayHitBatch(const std::vector<gpu_ray_t>& rays);
     void BuildSceneGeometry(const map_data_t& mapData, const map_disp_data_t& dispData, const Char* baseDir);
     void ParseLights(map_data_t& mapData, const std::string& daystage = "");
-    void LoadTexlights(const Char* baseDir);
     void BakeLightmaps(std::vector<lightmap_face_t>& faceLightmaps, const Char* baseDir, Int32 numBounces, Int32 raysPerLuxel);
     void BakeVertexLights(map_data_t& mapData, const Char* baseDir, Int32 raysPerLuxel);
     void BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel);
@@ -83,49 +81,20 @@ private:
 
     struct face_info_t
     {
-        Float avgRadiance[3];
         Float emissive[3];
         Float minLight;
         bool hasAlphaTest;
         const dds_image_t* diffuseImage;
     };
+
+    void GetHitSurfaceRadiance(Int32 hitFace, const Float hitPos[3], Float outRad[3]) const;
+    struct baked_luxel_t
+    {
+        Float r, g, b;
+    };
+    std::vector<std::vector<baked_luxel_t>> m_bakedLuxels;
+    std::vector<lightmap_face_t> m_bakedFaceLightmaps;
     std::vector<face_info_t> m_faceInfos;
-
-    struct scene_prim_t
-    {
-        Int32 faceIndex;
-        Float uv[3][2];
-    };
-    std::vector<scene_prim_t> m_scenePrims;
-    std::unordered_map<std::string, material_t> m_materials;
-    std::unordered_map<std::string, std::array<Float, 3>> m_texlights;
-
-    struct grid_sample_t
-    {
-        bool occluded;
-        Float worldPos[3];
-        byte styles[MBSPV1_MAX_LIGHTMAPS];
-        Float ambient[MBSPV1_MAX_LIGHTMAPS][3];
-        Float diffuse[MBSPV1_MAX_LIGHTMAPS][3];
-        Float dominantDir[MBSPV1_MAX_LIGHTMAPS][3];
-        Int32 rawDataOffset;
-    };
-
-    struct grid_octree_node_t
-    {
-        Int32 divisionpoint[3];
-        Int32 children[8];
-    };
-
-    struct grid_octree_leaf_t
-    {
-        Int32 mins[3];
-        Int32 size[3];
-        Int32 firstsample;
-        Int32 numsamples;
-    };
-
-    Int32 BuildGridOctree(const Int32 mins[3], const Int32 size[3], Int32 depth, const Int32 gridSize[3], const std::vector<grid_sample_t>& samples, std::vector<grid_octree_node_t>& nodes, std::vector<grid_octree_leaf_t>& leaves);
 };
 
 #endif
