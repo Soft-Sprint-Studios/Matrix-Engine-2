@@ -61,6 +61,10 @@ struct AppConfig
 
 AppConfig g_Config;
 
+//=============================================
+// @brief
+//
+//=============================================
 void LoadConfig()
 {
     std::ifstream file("config.txt");
@@ -132,6 +136,10 @@ struct DecodedImage
     std::vector<uint8_t> pixels;
 };
 
+//=============================================
+// @brief
+//
+//=============================================
 DecodedImage LoadGLTFImageRGBA(const cgltf_image* image)
 {
     DecodedImage result;
@@ -161,6 +169,10 @@ DecodedImage LoadGLTFImageRGBA(const cgltf_image* image)
     return result;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 std::vector<uint8_t> ResizeRGBA(const uint8_t* src, int srcW, int srcH, int dstW, int dstH)
 {
     std::vector<uint8_t> dst(dstW * dstH * 4);
@@ -202,6 +214,10 @@ std::vector<uint8_t> ResizeRGBA(const uint8_t* src, int srcW, int srcH, int dstW
     return dst;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool WriteBMP(const std::string& filename, int w, int h, const uint8_t* rgba, int bpp)
 {
     std::ofstream out(filename, std::ios::binary);
@@ -259,6 +275,10 @@ bool WriteBMP(const std::string& filename, int w, int h, const uint8_t* rgba, in
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool WriteBMP8Indexed(const std::string& filename, int w, int h, const uint8_t* rgba)
 {
     std::ofstream out(filename, std::ios::binary);
@@ -335,6 +355,10 @@ bool WriteBMP8Indexed(const std::string& filename, int w, int h, const uint8_t* 
     return true;
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filename, bool is8bppIndexed, int targetW = 0, int targetH = 0)
 {
     DecodedImage img = LoadGLTFImageRGBA(image);
@@ -366,6 +390,10 @@ bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filenam
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
 {
     const cgltf_image* mr_image = mat.pbr_metallic_roughness.metallic_roughness_texture.texture ? mat.pbr_metallic_roughness.metallic_roughness_texture.texture->image : nullptr;
@@ -444,6 +472,10 @@ bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
     return WriteBMP(out_filename, width, height, target.data(), 32);
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void ConvertBMPToDDS(const std::string& inputBmp, const std::string& outputDds, const std::string& format = "-bc1 -alpha")
 {
     fs::path inPath = fs::path(inputBmp).make_preferred();
@@ -459,6 +491,10 @@ void ConvertBMPToDDS(const std::string& inputBmp, const std::string& outputDds, 
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void RunCompiler(const std::string& modelName)
 {
 #ifdef _WIN32
@@ -485,6 +521,10 @@ void RunCompiler(const std::string& modelName)
     }
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::string& texture_name)
 {
     std::ofstream out(smd_filename);
@@ -496,9 +536,17 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
     out << std::fixed << std::setprecision(6);
     out << "version 1\nnodes\n  0 \"root\" -1\nend\nskeleton\ntime 0\n  0 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\nend\ntriangles\n";
 
-    for (cgltf_size mi = 0; mi < data->meshes_count; ++mi)
+    for (cgltf_size ni = 0; ni < data->nodes_count; ++ni)
     {
-        const cgltf_mesh& mesh = data->meshes[mi];
+        const cgltf_node& node = data->nodes[ni];
+        if (!node.mesh)
+        {
+            continue;
+        }
+
+        float matrix[16];
+        cgltf_node_transform_world(&node, matrix);
+        const cgltf_mesh& mesh = *node.mesh;
         for (cgltf_size pi = 0; pi < mesh.primitives_count; ++pi)
         {
             const cgltf_primitive& prim = mesh.primitives[pi];
@@ -542,7 +590,24 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
                     {
                         cgltf_accessor_read_float(uv, idx, u, 2);
                     }
-                    out << "  0 " << p[0] << " " << p[1] << " " << p[2] << " " << n[0] << " " << n[1] << " " << n[2] << " " << u[0] << " " << 1.0f - u[1] << " 1 0 1.000\n";
+                    float tp[3] = {
+                            matrix[0] * p[0] + matrix[4] * p[1] + matrix[8] * p[2] + matrix[12],
+                            matrix[1] * p[0] + matrix[5] * p[1] + matrix[9] * p[2] + matrix[13],
+                            matrix[2] * p[0] + matrix[6] * p[1] + matrix[10] * p[2] + matrix[14]
+                    };
+
+                    float tn[3] = {
+                        matrix[0] * n[0] + matrix[4] * n[1] + matrix[8] * n[2],
+                        matrix[1] * n[0] + matrix[5] * n[1] + matrix[9] * n[2],
+                        matrix[2] * n[0] + matrix[6] * n[1] + matrix[10] * n[2]
+                    };
+                    float len = std::sqrt(tn[0] * tn[0] + tn[1] * tn[1] + tn[2] * tn[2]);
+                    if (len > 0.00001f)
+                    {
+                        tn[0] /= len; tn[1] /= len; tn[2] /= len;
+                    }
+
+                    out << "  0 " << tp[0] << " " << tp[1] << " " << tp[2] << " " << tn[0] << " " << tn[1] << " " << tn[2] << " " << u[0] << " " << 1.0f - u[1] << " 1 0 1.000\n";
                 }
             }
         }
@@ -550,6 +615,10 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
     out << "end\n";
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void WriteQC(const std::string& qc_filename, const std::string& model_name)
 {
     std::ofstream out(qc_filename);
@@ -569,6 +638,10 @@ void WriteQC(const std::string& qc_filename, const std::string& model_name)
         << "$sequence \"idle1\" \"" << model_name << "\" fps 1\n";
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void WritePMF(const std::string& pmf_filename, const std::string& asset_name, ExportMode mode)
 {
     std::ofstream out(pmf_filename);
@@ -586,6 +659,10 @@ void WritePMF(const std::string& pmf_filename, const std::string& asset_name, Ex
     out << "    $cubemaps\n}\n";
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void ProcessFile(const fs::path& glbPath, ExportMode mode)
 {
     std::string assetName = glbPath.stem().string();
@@ -694,6 +771,10 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
     std::cout << "Finished and Copied: " << assetName << (mode == ExportMode::Model ? " (Model)" : " (Texture)") << "\n";
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 void PrintUsage()
 {
     std::cout << "Usage:\n"
@@ -703,6 +784,10 @@ void PrintUsage()
               << "  mdlimporter -batch <folder> -texture\n";
 }
 
+//=============================================
+// @brief
+//
+//=============================================
 int main(int argc, char* argv[])
 {
     LoadConfig();
