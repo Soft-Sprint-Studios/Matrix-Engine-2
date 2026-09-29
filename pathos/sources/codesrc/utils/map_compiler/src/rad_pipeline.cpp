@@ -172,7 +172,7 @@ static void LoadTexlights(const Char* baseDir, std::unordered_map<std::string, s
 // @brief
 //
 //=============================================
-void CRadPipeline::GetHitSurfaceRadiance(Int32 hitFace, const Float hitPos[3], Float outRad[3]) const
+void CRadPipeline::GetHitSurfaceRadiance(Int32 hitFace, const Float hitPos[3], Float outRad[3], Int32 styleSlot) const
 {
     outRad[0] = outRad[1] = outRad[2] = 0.0f;
     if (hitFace < 0 || hitFace >= (Int32)m_bakedLuxels.size() || m_bakedLuxels[hitFace].empty())
@@ -193,10 +193,11 @@ void CRadPipeline::GetHitSurfaceRadiance(Int32 hitFace, const Float hitPos[3], F
     Int32 lx = std::clamp((Int32)floorf((s - lm.textureMins[0]) / lm.lightmapDivider), 0, lm.luxelWidth - 1);
     Int32 ly = std::clamp((Int32)floorf((t - lm.textureMins[1]) / lm.lightmapDivider), 0, lm.luxelHeight - 1);
 
+    Int32 slot = std::clamp(styleSlot, 0, (Int32)MBSPV1_MAX_LIGHTMAPS - 1);
     const auto& lux = m_bakedLuxels[hitFace][ly * lm.luxelWidth + lx];
-    outRad[0] = lux.r;
-    outRad[1] = lux.g;
-    outRad[2] = lux.b;
+    outRad[0] = lux.rad[slot][0];
+    outRad[1] = lux.rad[slot][1];
+    outRad[2] = lux.rad[slot][2];
 }
 
 //=============================================

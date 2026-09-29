@@ -360,7 +360,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         }
     }
 
-    std::vector<std::array<Float, 3>> sampleBounceRad(totalSamples, { 0.0f, 0.0f, 0.0f });
+    std::vector<std::vector<std::array<Float, 3>>> sampleStyleBounce(totalSamples, std::vector<std::array<Float, 3>>(64, { 0.0f, 0.0f, 0.0f }));
 
     const size_t MAX_PROBE_RAYS_PER_BATCH = 1048576;
     const size_t chunkProbes = std::clamp(MAX_PROBE_RAYS_PER_BATCH / std::max(1, numProbeRays), (size_t)1, (size_t)32768);
@@ -400,8 +400,6 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
                 size_t a = chunkStart + cIdx;
                 Int32 idx = activeIndices[a];
                 size_t baseRayIdx = (size_t)cIdx * (size_t)numProbeRays;
-                Float accum[3] = { 0.0f, 0.0f, 0.0f };
-
                 for (Int32 r = 0; r < numProbeRays; r++)
                 {
                     const auto& hit = probeHits[baseRayIdx + r];
@@ -419,18 +417,29 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
                             ((hit.packedAlbedo >> 16) & 0xFF) / 255.0f
                         };
 
-                        Float hitRad[3];
-                        GetHitSurfaceRadiance(hit.faceIndex, hitPos, hitRad);
+                        const auto& hitBspFace = g_BSP.GetFace(hit.faceIndex);
+                        for (Int32 hs = 0; hs < MBSPV1_MAX_LIGHTMAPS; hs++)
+                        {
+                            if (hitBspFace.lmstyles[hs] == 255)
+                                continue;
 
-                        accum[0] += (hitRad[0] * albedo[0] + m_faceInfos[hit.faceIndex].emissive[0]);
-                        accum[1] += (hitRad[1] * albedo[1] + m_faceInfos[hit.faceIndex].emissive[1]);
-                        accum[2] += (hitRad[2] * albedo[2] + m_faceInfos[hit.faceIndex].emissive[2]);
+                            Int32 st = hitBspFace.lmstyles[hs];
+                            if (st < 0 || st >= 64)
+                                continue;
+
+                            Float hitRad[3];
+                            GetHitSurfaceRadiance(hit.faceIndex, hitPos, hitRad, hs);
+
+                            Float emitR = (hs == 0) ? m_faceInfos[hit.faceIndex].emissive[0] : 0.0f;
+                            Float emitG = (hs == 0) ? m_faceInfos[hit.faceIndex].emissive[1] : 0.0f;
+                            Float emitB = (hs == 0) ? m_faceInfos[hit.faceIndex].emissive[2] : 0.0f;
+
+                            sampleStyleBounce[idx][st][0] += (hitRad[0] * albedo[0] + emitR);
+                            sampleStyleBounce[idx][st][1] += (hitRad[1] * albedo[1] + emitG);
+                            sampleStyleBounce[idx][st][2] += (hitRad[2] * albedo[2] + emitB);
+                        }
                     }
                 }
-
-                sampleBounceRad[idx][0] = accum[0];
-                sampleBounceRad[idx][1] = accum[1];
-                sampleBounceRad[idx][2] = accum[2];
             }
         }
     }
@@ -447,7 +456,11 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         Float maxLightPerStyle[64] = { 0.0f };
         for (Int32 st = 0; st < 64; st++)
         {
-            maxLightPerStyle[st] = std::max({ sampleStyleDirect[i][st][0], sampleStyleDirect[i][st][1], sampleStyleDirect[i][st][2] });
+            Float bounceR = (sampleStyleBounce[i][st][0] / (Float)numProbeRays) * M_PI;
+            Float bounceG = (sampleStyleBounce[i][st][1] / (Float)numProbeRays) * M_PI;
+            Float bounceB = (sampleStyleBounce[i][st][2] / (Float)numProbeRays) * M_PI;
+
+            maxLightPerStyle[st] = std::max({ sampleStyleDirect[i][st][0], sampleStyleDirect[i][st][1], sampleStyleDirect[i][st][2], bounceR, bounceG, bounceB });
         }
 
         s.styles[0] = 0;
@@ -483,18 +496,14 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
             s.diffuse[slot][1] = sampleStyleDirect[i][st][1];
             s.diffuse[slot][2] = sampleStyleDirect[i][st][2];
 
-            s.ambient[slot][0] = 0.0f;
-            s.ambient[slot][1] = 0.0f;
-            s.ambient[slot][2] = 0.0f;
+            s.ambient[slot][0] = (sampleStyleBounce[i][st][0] / (Float)numProbeRays) * M_PI;
+            s.ambient[slot][1] = (sampleStyleBounce[i][st][1] / (Float)numProbeRays) * M_PI;
+            s.ambient[slot][2] = (sampleStyleBounce[i][st][2] / (Float)numProbeRays) * M_PI;
 
             s.dominantDir[slot][0] = sampleStyleDir[i][st][0];
             s.dominantDir[slot][1] = sampleStyleDir[i][st][1];
             s.dominantDir[slot][2] = sampleStyleDir[i][st][2];
         }
-
-        s.ambient[0][0] += (sampleBounceRad[i][0] / (Float)numProbeRays) * M_PI;
-        s.ambient[0][1] += (sampleBounceRad[i][1] / (Float)numProbeRays) * M_PI;
-        s.ambient[0][2] += (sampleBounceRad[i][2] / (Float)numProbeRays) * M_PI;
     }
 
     std::vector<grid_octree_node_t> octreeNodes;

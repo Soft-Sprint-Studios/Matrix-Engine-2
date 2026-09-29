@@ -117,7 +117,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
         {
             Float direct[64][3];
             Float dominantDir[64][3];
-            Float ambient[3];
+            Float ambient[64][3];
         };
 
         std::vector<vert_style_data_t> vertSamples(vertexCount);
@@ -312,7 +312,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                 for (int cIdx = 0; cIdx < (int)chunkSize; cIdx++)
                 {
                     Int32 v = (Int32)(chunkStart + cIdx);
-                    Float bounceAccum[3] = { 0.0f, 0.0f, 0.0f };
+                    Float bounceAccum[64][3] = { 0 };
                     Float bounceDirAccum[3] = { 0.0f, 0.0f, 0.0f };
                     size_t baseBounceIdx = (size_t)cIdx * (size_t)numBounceRays;
 
@@ -333,28 +333,49 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
                                 ((hit.packedAlbedo >> 16) & 0xFF) / 255.0f
                             };
 
-                            Float hitRad[3];
-                            GetHitSurfaceRadiance(hit.faceIndex, hitPos, hitRad);
+                            const auto& hitBspFace = g_BSP.GetFace(hit.faceIndex);
+                            for (Int32 hs = 0; hs < MBSPV1_MAX_LIGHTMAPS; hs++)
+                            {
+                                if (hitBspFace.lmstyles[hs] == 255)
+                                    continue;
 
-                            Float rVal = (hitRad[0] * albedo[0] + m_faceInfos[hit.faceIndex].emissive[0]);
-                            Float gVal = (hitRad[1] * albedo[1] + m_faceInfos[hit.faceIndex].emissive[1]);
-                            Float bVal = (hitRad[2] * albedo[2] + m_faceInfos[hit.faceIndex].emissive[2]);
+                                Int32 st = hitBspFace.lmstyles[hs];
+                                if (st < 0 || st >= 64)
+                                    continue;
 
-                            bounceAccum[0] += rVal;
-                            bounceAccum[1] += gVal;
-                            bounceAccum[2] += bVal;
+                                Float hitRad[3];
+                                GetHitSurfaceRadiance(hit.faceIndex, hitPos, hitRad, hs);
 
-                            Float maxC = std::max({ rVal, gVal, bVal });
-                            bounceDirAccum[0] += gray.dir[0] * maxC;
-                            bounceDirAccum[1] += gray.dir[1] * maxC;
-                            bounceDirAccum[2] += gray.dir[2] * maxC;
+                                Float emitR = (hs == 0) ? m_faceInfos[hit.faceIndex].emissive[0] : 0.0f;
+                                Float emitG = (hs == 0) ? m_faceInfos[hit.faceIndex].emissive[1] : 0.0f;
+                                Float emitB = (hs == 0) ? m_faceInfos[hit.faceIndex].emissive[2] : 0.0f;
+
+                                Float rVal = hitRad[0] * albedo[0] + emitR;
+                                Float gVal = hitRad[1] * albedo[1] + emitG;
+                                Float bVal = hitRad[2] * albedo[2] + emitB;
+
+                                bounceAccum[st][0] += rVal;
+                                bounceAccum[st][1] += gVal;
+                                bounceAccum[st][2] += bVal;
+
+                                if (st == 0)
+                                {
+                                    Float maxC = std::max({ rVal, gVal, bVal });
+                                    bounceDirAccum[0] += gray.dir[0] * maxC;
+                                    bounceDirAccum[1] += gray.dir[1] * maxC;
+                                    bounceDirAccum[2] += gray.dir[2] * maxC;
+                                }
+                            }
                         }
                     }
 
                     auto& vs = vertSamples[v];
-                    vs.ambient[0] = (bounceAccum[0] / (Float)numBounceRays) * M_PI;
-                    vs.ambient[1] = (bounceAccum[1] / (Float)numBounceRays) * M_PI;
-                    vs.ambient[2] = (bounceAccum[2] / (Float)numBounceRays) * M_PI;
+                    for (Int32 st = 0; st < 64; st++)
+                    {
+                        vs.ambient[st][0] = (bounceAccum[st][0] / (Float)numBounceRays) * M_PI;
+                        vs.ambient[st][1] = (bounceAccum[st][1] / (Float)numBounceRays) * M_PI;
+                        vs.ambient[st][2] = (bounceAccum[st][2] / (Float)numBounceRays) * M_PI;
+                    }
 
                     Float dDirLen = sqrtf(vs.dominantDir[0][0] * vs.dominantDir[0][0] + vs.dominantDir[0][1] * vs.dominantDir[0][1] + vs.dominantDir[0][2] * vs.dominantDir[0][2]);
                     if (dDirLen <= 0.001f)
@@ -371,7 +392,7 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
         {
             for (Int32 v = 0; v < vertexCount; v++)
             {
-                Float maxC = std::max({ vertSamples[v].direct[s][0], vertSamples[v].direct[s][1], vertSamples[v].direct[s][2] });
+                Float maxC = std::max({ vertSamples[v].direct[s][0], vertSamples[v].direct[s][1], vertSamples[v].direct[s][2], vertSamples[v].ambient[s][0], vertSamples[v].ambient[s][1], vertSamples[v].ambient[s][2] });
                 if (maxC > maxLightPerStyle[s])
                 {
                     maxLightPerStyle[s] = maxC;
@@ -432,12 +453,9 @@ void CRadPipeline::BakeVertexLights(map_data_t& mapData, const Char* baseDir, In
             for (Int32 v = 0; v < vertexCount; v++)
             {
                 const auto& vs = vertSamples[v];
-                if (slot == 0)
-                {
-                    pSlotAmb[v * 3 + 0] = ColorToHDR(vs.ambient[0]);
-                    pSlotAmb[v * 3 + 1] = ColorToHDR(vs.ambient[1]);
-                    pSlotAmb[v * 3 + 2] = ColorToHDR(vs.ambient[2]);
-                }
+                pSlotAmb[v * 3 + 0] = ColorToHDR(vs.ambient[style][0]);
+                pSlotAmb[v * 3 + 1] = ColorToHDR(vs.ambient[style][1]);
+                pSlotAmb[v * 3 + 2] = ColorToHDR(vs.ambient[style][2]);
 
                 pSlotDiff[v * 3 + 0] = ColorToHDR(vs.direct[style][0]);
                 pSlotDiff[v * 3 + 1] = ColorToHDR(vs.direct[style][1]);

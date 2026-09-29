@@ -87,10 +87,10 @@ private:
         const dds_image_t* diffuseImage;
     };
 
-    void GetHitSurfaceRadiance(Int32 hitFace, const Float hitPos[3], Float outRad[3]) const;
+    void GetHitSurfaceRadiance(Int32 hitFace, const Float hitPos[3], Float outRad[3], Int32 styleSlot = 0) const;
     struct baked_luxel_t
     {
-        Float r, g, b;
+        Float rad[MBSPV1_MAX_LIGHTMAPS][3];
     };
     std::vector<std::vector<baked_luxel_t>> m_bakedLuxels;
     std::vector<lightmap_face_t> m_bakedFaceLightmaps;
