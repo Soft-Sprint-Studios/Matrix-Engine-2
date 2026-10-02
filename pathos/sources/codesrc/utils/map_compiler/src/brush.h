@@ -42,6 +42,7 @@ struct poly_face_t
     Int32 planeIndex;
     Int32 texinfoIndex;
     Int32 face_id;
+    Float lightmapscale;
     Float normal[3];
     Float dist;
     std::vector<poly_vert_t> verts;

@@ -211,8 +211,9 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
 
     Float lenU = sqrtf(tx.vecs[0][0] * tx.vecs[0][0] + tx.vecs[0][1] * tx.vecs[0][1] + tx.vecs[0][2] * tx.vecs[0][2]);
     Float lenV = sqrtf(tx.vecs[1][0] * tx.vecs[1][0] + tx.vecs[1][1] * tx.vecs[1][1] + tx.vecs[1][2] * tx.vecs[1][2]);
+    Float lmScale = (inFace.lightmapscale > 0.0f) ? inFace.lightmapscale : 16.0f;
     Float avgLen = (lenU + lenV) * 0.5f;
-    Float rawDivider = (avgLen > 0.0f) ? (16.0f * avgLen) : 16.0f;
+    Float rawDivider = (avgLen > 0.0f) ? (lmScale * avgLen) : lmScale;
     Float lightmapDivider = std::max(1.0f, roundf(rawDivider));
 
     Float baseSampleSize = (Float)MBSPV1_LM_SAMPLE_SIZE;
@@ -397,6 +398,7 @@ bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly, const
         face.normal[2] = planes[i].normal[2];
         face.dist = planes[i].dist;
         face.face_id = inBrush.sides[i].face_id;
+        face.lightmapscale = (inBrush.sides[i].lightmapscale > 0.0f) ? inBrush.sides[i].lightmapscale : 16.0f;
 
         Int32 axisType = 3;
         if (face.normal[0] > 0.999f) 

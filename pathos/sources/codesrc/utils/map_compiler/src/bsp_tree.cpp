@@ -37,6 +37,7 @@ struct bsp_build_face_t
     Int32 planeIndex;
     Int32 texinfoIndex;
     Int32 face_id;
+    Float lightmapscale;
     Float normal[3];
     Float dist;
     std::vector<poly_vert_t> verts;
@@ -161,8 +162,9 @@ static Int32 EmitFaceToBSP(const bsp_build_face_t& face, Int32 nodePlaneIndex)
     const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(face.texinfoIndex);
     Float lenU = sqrtf(tx.vecs[0][0] * tx.vecs[0][0] + tx.vecs[0][1] * tx.vecs[0][1] + tx.vecs[0][2] * tx.vecs[0][2]);
     Float lenV = sqrtf(tx.vecs[1][0] * tx.vecs[1][0] + tx.vecs[1][1] * tx.vecs[1][1] + tx.vecs[1][2] * tx.vecs[1][2]);
+    Float lmScale = (face.lightmapscale > 0.0f) ? face.lightmapscale : 16.0f;
     Float avgLen = (lenU + lenV) * 0.5f;
-    Float rawDivider = (avgLen > 0.0f) ? (16.0f * avgLen) : 16.0f;
+    Float rawDivider = (avgLen > 0.0f) ? (lmScale * avgLen) : lmScale;
     Float intDivider = std::max(1.0f, roundf(rawDivider));
     Float faceScale = 16.0f / intDivider;
 
@@ -423,6 +425,7 @@ bool BuildBSPModelTrees(Int32 modelIndex, const std::vector<poly_face_t>& modelF
         bf.planeIndex = modelFaces[i].planeIndex;
         bf.texinfoIndex = modelFaces[i].texinfoIndex;
         bf.face_id = modelFaces[i].face_id;
+        bf.lightmapscale = modelFaces[i].lightmapscale;
         bf.normal[0] = modelFaces[i].normal[0];
         bf.normal[1] = modelFaces[i].normal[1];
         bf.normal[2] = modelFaces[i].normal[2];

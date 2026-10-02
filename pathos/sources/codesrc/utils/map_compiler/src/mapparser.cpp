@@ -111,6 +111,7 @@ bool ParseMapFile(const Char* filename, map_data_t& outMap)
                     map_brushside_t side;
                     memset(&side, 0, sizeof(side));
                     side.face_id = -1;
+                    side.lightmapscale = 16.0f;
 
                     for (Int32 i = 0; i < 3; i++)
                     {
@@ -163,6 +164,11 @@ bool ParseMapFile(const Char* filename, map_data_t& outMap)
                         {
                             lexer.NextToken(token, sizeof(token), false);
                             side.face_id = atoi(token);
+                        }
+                        else if (strcmp(token, "lightmapscale") == 0)
+                        {
+                            lexer.NextToken(token, sizeof(token), false);
+                            side.lightmapscale = (Float)atof(token);
                         }
                     }
 

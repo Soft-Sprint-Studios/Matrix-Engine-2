@@ -43,6 +43,7 @@ struct map_brushside_t
     Float rotation;
     Float scale[2];
     Int32 face_id;
+    Float lightmapscale;
 };
 
 struct map_brush_t
