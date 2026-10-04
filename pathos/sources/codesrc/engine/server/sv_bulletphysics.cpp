@@ -280,8 +280,14 @@ void CBulletPhysics::SetupStaticWorld( void )
 
 		Float mat[3][4];
 		Math::AngleMatrix(angles, mat);
+
+		Float scale = (pedict->state.scale != 0.0f) ? pedict->state.scale : 1.0f;
 		for (Uint32 j = 0; j < 3; j++)
+		{
+			for (Uint32 k = 0; k < 3; k++)
+				mat[j][k] *= scale;
 			mat[j][3] = pedict->state.origin[j];
+		}
 
 		const mcdvertex_t* pVerts = pMesh->getVertexes(pMCD);
 		const mcdtrimeshtriangle_t* pTris = pMesh->getTriangles(pMCD);
@@ -572,11 +578,14 @@ btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLoca
 		if (!pMesh || pMesh->numvertexes == 0)
 			return nullptr;
 
+		Float scale = (pedict->state.scale != 0.0f) ? pedict->state.scale : 1.0f;
+		outLocalCenter.setValue(0.0f, 0.0f, 0.0f);
+
 		const mcdvertex_t* pVerts = pMesh->getVertexes(pMCD);
 		btConvexHullShape* convexShape = new btConvexHullShape();
 		for (Uint32 i = 0; i < pMesh->numvertexes; i++)
 		{
-			Vector localVert = pVerts[i].origin - center;
+			Vector localVert = pVerts[i].origin * scale;
 			convexShape->addPoint(btVector3(localVert.x, localVert.y, localVert.z), false);
 		}
 
