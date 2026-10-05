@@ -1167,7 +1167,7 @@ void Sys_PollEvents( void )
 //=============================================
 Int64 Sys_GetBuildNumber( void )
 {
-	// Date of earliest Pathos build (January 27, 2016)
+	// Date of earliest Pathos build
 	SDL_DateTime firstBuildTime = {};
 	firstBuildTime.year = 2016;
 	firstBuildTime.month = 1;
