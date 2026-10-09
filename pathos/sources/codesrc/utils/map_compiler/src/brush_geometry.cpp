@@ -200,12 +200,11 @@ static bool ClipPolygonByPlane(std::vector<poly_vert_t>& inOutVerts, const Float
 // @brief
 //
 //=============================================
-static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_face_t>& outFaces, const map_disp_data_t* dispData = nullptr)
+static void CheckFaceExtents(const poly_face_t& inFace, const map_disp_data_t* dispData = nullptr)
 {
     const dmbspv1texinfo_t& tx = g_BSP.GetTexinfo(inFace.texinfoIndex);
     if ((tx.flags & 1) || inFace.verts.size() < 3)
     {
-        outFaces.push_back(inFace);
         return;
     }
 
@@ -233,9 +232,7 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
         }
     }
 
-    Int32 splitAxis = -1;
-    Float maxExcess = 0.0f;
-
+    bool exceedsLimit = false;
     for (Int32 a = 0; a < 2; a++)
     {
         Int32 bmin_lm = (Int32)floorf(minCoord[a] / lightmapDivider + 0.001f);
@@ -246,98 +243,44 @@ static void SubdivideFaceIfNeeded(const poly_face_t& inFace, std::vector<poly_fa
         Int32 bmax_base = (Int32)ceilf(maxCoord[a] / baseSampleSize);
         Int32 ext_base = bmax_base - bmin_base;
 
-        Float excess_lm = (Float)(ext_lm - (Int32)MBSPV1_MAX_SURFACE_EXTENTS);
-        Float excess_base = (Float)(ext_base - (Int32)MBSPV1_MAX_SURFACE_EXTENTS);
-        Float excess = std::max(excess_lm, excess_base);
-
-        if (excess > 0.0f && excess > maxExcess)
+        if (ext_lm > (Int32)MBSPV1_MAX_SURFACE_EXTENTS || ext_base > (Int32)MBSPV1_MAX_SURFACE_EXTENTS)
         {
-            maxExcess = excess;
-            splitAxis = a;
+            exceedsLimit = true;
+            break;
         }
     }
 
-    if (splitAxis == -1)
+    if (exceedsLimit)
     {
-        outFaces.push_back(inFace);
-        return;
-    }
-
-    if (dispData && inFace.face_id >= 0)
-    {
-        for (const auto& disp : dispData->displacements)
+        Float center[3] = { 0.0f, 0.0f, 0.0f };
+        for (const auto& v : inFace.verts)
         {
-            if (disp.face_id == inFace.face_id)
+            center[0] += v.pos[0];
+            center[1] += v.pos[1];
+            center[2] += v.pos[2];
+        }
+        if (!inFace.verts.empty())
+        {
+            center[0] /= (Float)inFace.verts.size();
+            center[1] /= (Float)inFace.verts.size();
+            center[2] /= (Float)inFace.verts.size();
+        }
+
+        bool isDisp = false;
+        if (dispData && inFace.face_id >= 0)
+        {
+            for (const auto& disp : dispData->displacements)
             {
-                static std::unordered_set<Int32> warnedFaces;
-                if (warnedFaces.insert(inFace.face_id).second)
+                if (disp.face_id == inFace.face_id)
                 {
-                    Float center[3] = { 0.0f, 0.0f, 0.0f };
-                    for (const auto& v : inFace.verts)
-                    {
-                        center[0] += v.pos[0];
-                        center[1] += v.pos[1];
-                        center[2] += v.pos[2];
-                    }
-                    if (!inFace.verts.empty())
-                    {
-                        center[0] /= (Float)inFace.verts.size();
-                        center[1] /= (Float)inFace.verts.size();
-                        center[2] /= (Float)inFace.verts.size();
-                    }
-                    std::cerr << "WARNING: Displacement at (" << center[0] << ", " << center[1] << ", " << center[2]
-                        << ") cannot be subdivided to avoid lightmap extent limit. Please subdivide it manually\n";
+                    isDisp = true;
+                    break;
                 }
-                outFaces.push_back(inFace);
-                return;
             }
         }
+
+        std::cerr << "WARNING: " << (isDisp ? "Displacement" : "Surface") << " at (" << center[0] << ", " << center[1] << ", " << center[2] << ") exceeds maximum lightmap extents (" << MBSPV1_MAX_SURFACE_EXTENTS << "). Increase lightmap scale or reduce face size.\n";
     }
-
-    Float splitCoord = (minCoord[splitAxis] + maxCoord[splitAxis]) * 0.5f;
-    Float splitNormal[3] = { tx.vecs[splitAxis][0], tx.vecs[splitAxis][1], tx.vecs[splitAxis][2] };
-
-    Float snappedCoord = floorf((splitCoord / lightmapDivider) + 0.5f) * lightmapDivider;
-    if (snappedCoord > minCoord[splitAxis] + 0.1f && snappedCoord < maxCoord[splitAxis] - 0.1f)
-    {
-        splitCoord = snappedCoord;
-    }
-
-    Float normLen = sqrtf(splitNormal[0] * splitNormal[0] + splitNormal[1] * splitNormal[1] + splitNormal[2] * splitNormal[2]);
-    if (normLen < 1e-6f)
-    {
-        outFaces.push_back(inFace);
-        return;
-    }
-
-    splitNormal[0] /= normLen;
-    splitNormal[1] /= normLen;
-    splitNormal[2] /= normLen;
-    Float splitDist = (splitCoord - tx.vecs[splitAxis][3]) / normLen;
-
-    std::vector<poly_vert_t> frontVerts = inFace.verts;
-    std::vector<poly_vert_t> backVerts = inFace.verts;
-
-    Float backNormal[3] = { -splitNormal[0], -splitNormal[1], -splitNormal[2] };
-    Float backDist = -splitDist;
-
-    bool hasFront = ClipPolygonByPlane(frontVerts, splitNormal, splitDist);
-    bool hasBack = ClipPolygonByPlane(backVerts, backNormal, backDist);
-
-    if (!hasFront || !hasBack || frontVerts.size() < 3 || backVerts.size() < 3)
-    {
-        outFaces.push_back(inFace);
-        return;
-    }
-
-    poly_face_t frontFace = inFace;
-    frontFace.verts = frontVerts;
-
-    poly_face_t backFace = inFace;
-    backFace.verts = backVerts;
-
-    SubdivideFaceIfNeeded(frontFace, outFaces, dispData);
-    SubdivideFaceIfNeeded(backFace, outFaces, dispData);
 }
 
 //=============================================
@@ -457,7 +400,8 @@ bool BuildBrushPolygons(const map_brush_t& inBrush, poly_brush_t& outPoly, const
             }
         }
 
-        SubdivideFaceIfNeeded(face, outPoly.faces, dispData);
+        CheckFaceExtents(face, dispData);
+        outPoly.faces.push_back(face);
     }
 
     return !outPoly.faces.empty();
