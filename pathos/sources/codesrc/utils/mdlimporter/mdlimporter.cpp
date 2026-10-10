@@ -359,7 +359,7 @@ bool WriteBMP8Indexed(const std::string& filename, int w, int h, const uint8_t* 
 // @brief
 //
 //=============================================
-bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filename, bool is8bppIndexed, int targetW = 0, int targetH = 0)
+bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filename, bool is8bppIndexed, int targetW = 0, int targetH = 0, int bpp = 24)
 {
     DecodedImage img = LoadGLTFImageRGBA(image);
     if (img.pixels.empty())
@@ -386,7 +386,7 @@ bool SaveGLTFImageAsBMP(const cgltf_image* image, const std::string& out_filenam
     }
     else
     {
-        return WriteBMP(out_filename, finalW, finalH, finalPixels.data(), 24);
+        return WriteBMP(out_filename, finalW, finalH, finalPixels.data(), bpp);
     }
 }
 
@@ -525,7 +525,25 @@ void RunCompiler(const std::string& modelName)
 // @brief
 //
 //=============================================
-void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::string& texture_name)
+std::string GetMaterialName(const cgltf_data* data, const cgltf_material* mat, const std::string& fallback)
+{
+    std::string name = fallback;
+    if (mat)
+    {
+        if (mat->name && strlen(mat->name) > 0)
+            name = mat->name;
+        else if (data && data->materials)
+            name = fallback + "_mat" + std::to_string(mat - data->materials);
+    }
+    std::replace(name.begin(), name.end(), ' ', '_');
+    return name;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::string& default_mat_name)
 {
     std::ofstream out(smd_filename);
     if (!out.is_open())
@@ -574,9 +592,10 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
                 continue;
             }
 
+            std::string texName = GetMaterialName(data, prim.material, default_mat_name) + ".bmp";
             for (cgltf_size t = 0; t < prim.indices->count; t += 3)
             {
-                out << texture_name << "\n";
+                out << texName << "\n";
                 for (int i = 0; i < 3; ++i)
                 {
                     cgltf_uint idx = cgltf_accessor_read_index(prim.indices, t + i);
@@ -642,7 +661,7 @@ void WriteQC(const std::string& qc_filename, const std::string& model_name)
 // @brief
 //
 //=============================================
-void WritePMF(const std::string& pmf_filename, const std::string& asset_name, ExportMode mode)
+void WritePMF(const std::string& pmf_filename, const std::string& asset_name, const std::string& mat_name, ExportMode mode, bool isAlphaTest = false)
 {
     std::ofstream out(pmf_filename);
     if (!out.is_open())
@@ -653,9 +672,13 @@ void WritePMF(const std::string& pmf_filename, const std::string& asset_name, Ex
     std::string prefix = (mode == ExportMode::Model) ? ("models/" + asset_name + "/") : "world/";
 
     out << "$texture\n{\n";
-    out << "    $texture diffuse " << prefix << asset_name << "_diff.dds\n";
-    out << "    $texture normal " << prefix << asset_name << "_normal.dds\n";
-    out << "    $texture mrao " << prefix << asset_name << "_mrao.dds\n";
+    if (isAlphaTest)
+    {
+        out << "    $alphatest\n";
+    }
+    out << "    $texture diffuse " << prefix << mat_name << "_diff.dds\n";
+    out << "    $texture normal " << prefix << mat_name << "_normal.dds\n";
+    out << "    $texture mrao " << prefix << mat_name << "_mrao.dds\n";
     out << "    $cubemaps\n}\n";
 }
 
@@ -677,34 +700,52 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
     }
     cgltf_load_buffers(&options, data, glbPath.string().c_str());
 
-    std::string bmpPath = workDir + "/" + assetName + ".bmp";
-
     if (data->materials_count > 0)
     {
-        const cgltf_material& mat = data->materials[0];
-        if (mat.pbr_metallic_roughness.base_color_texture.texture)
+        for (cgltf_size mi = 0; mi < data->materials_count; ++mi)
         {
-            if (SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, false, 0, 0))
-            {
-                ConvertBMPToDDS(bmpPath, workDir + "/" + assetName + "_diff.dds");
-                SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, true, 512, 512);
-            }
-        }
-        if (mat.normal_texture.texture)
-        {
-            if (SaveGLTFImageAsBMP(mat.normal_texture.texture->image, workDir + "/temp_n.bmp", false))
-            {
-                ConvertBMPToDDS(workDir + "/temp_n.bmp", workDir + "/" + assetName + "_normal.dds");
-            }
-        }
+            const cgltf_material& mat = data->materials[mi];
+            std::string matName = GetMaterialName(data, &mat, assetName);
+            std::string bmpPath = workDir + "/" + matName + ".bmp";
 
-        if (SaveMRAOTexture(mat, workDir + "/temp_s.bmp"))
-        {
-            ConvertBMPToDDS(workDir + "/temp_s.bmp", workDir + "/" + assetName + "_mrao.dds", "-bc3");
+            bool isAlphaTest = (mat.alpha_mode == cgltf_alpha_mode_mask);
+            if (mat.pbr_metallic_roughness.base_color_texture.texture)
+            {
+                if (SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, false, 0, 0, isAlphaTest ? 32 : 24))
+                {
+                    ConvertBMPToDDS(bmpPath, workDir + "/" + matName + "_diff.dds", isAlphaTest ? "-bc3" : "-bc1");
+                    SaveGLTFImageAsBMP(mat.pbr_metallic_roughness.base_color_texture.texture->image, bmpPath, true, 512, 512);
+                }
+            }
+            else
+            {
+                std::vector<uint8_t> dummy(16 * 16 * 4, 255);
+                WriteBMP8Indexed(bmpPath, 16, 16, dummy.data());
+            }
+
+            if (mat.normal_texture.texture)
+            {
+                if (SaveGLTFImageAsBMP(mat.normal_texture.texture->image, workDir + "/temp_n.bmp", false))
+                {
+                    ConvertBMPToDDS(workDir + "/temp_n.bmp", workDir + "/" + matName + "_normal.dds");
+                }
+            }
+
+            if (SaveMRAOTexture(mat, workDir + "/temp_s.bmp"))
+            {
+                ConvertBMPToDDS(workDir + "/temp_s.bmp", workDir + "/" + matName + "_mrao.dds", "-bc3");
+            }
+
+            WritePMF(workDir + "/" + matName + ".pmf", assetName, matName, mode, isAlphaTest);
         }
     }
-
-    WritePMF(workDir + "/" + assetName + ".pmf", assetName, mode);
+    else
+    {
+        std::string bmpPath = workDir + "/" + assetName + ".bmp";
+        std::vector<uint8_t> dummy(16 * 16 * 4, 255);
+        WriteBMP8Indexed(bmpPath, 16, 16, dummy.data());
+        WritePMF(workDir + "/" + assetName + ".pmf", assetName, assetName, mode);
+    }
 
     fs::path targetPath = fs::path(g_Config.target) / assetName;
     fs::create_directories(targetPath);
@@ -716,7 +757,7 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
 
     if (mode == ExportMode::Model)
     {
-        WriteSMD(workDir + "/" + assetName + ".smd", data, assetName + ".bmp");
+        WriteSMD(workDir + "/" + assetName + ".smd", data, assetName);
         WriteQC(workDir + "/" + assetName + ".qc", assetName);
 
         fs::copy_file(workDir + "/" + assetName + ".smd", targetPath / (assetName + ".smd"), fs::copy_options::overwrite_existing);
@@ -740,11 +781,9 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
         if (fs::exists(targetPath / (assetName + ".vbm")))
             fs::copy_file(targetPath / (assetName + ".vbm"), gameModelsRoot / (assetName + ".vbm"), fs::copy_options::overwrite_existing);
 
-        fs::copy_file(targetPath / (assetName + ".pmf"), gameTexturesRoot / (assetName + ".pmf"), fs::copy_options::overwrite_existing);
-
         for (const auto& entry : fs::directory_iterator(targetPath))
         {
-            if (entry.path().extension() == ".dds")
+            if (entry.path().extension() == ".dds" || entry.path().extension() == ".pmf")
             {
                 fs::copy_file(entry.path(), gameTexturesRoot / entry.path().filename(), fs::copy_options::overwrite_existing);
             }
@@ -757,11 +796,9 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
         fs::path gameWorldTexturesRoot = fs::path(g_Config.game) / "textures" / "world";
         fs::create_directories(gameWorldTexturesRoot);
 
-        fs::copy_file(targetPath / (assetName + ".pmf"), gameWorldTexturesRoot / (assetName + ".pmf"), fs::copy_options::overwrite_existing);
-
         for (const auto& entry : fs::directory_iterator(targetPath))
         {
-            if (entry.path().extension() == ".dds")
+            if (entry.path().extension() == ".dds" || entry.path().extension() == ".pmf")
             {
                 fs::copy_file(entry.path(), gameWorldTexturesRoot / entry.path().filename(), fs::copy_options::overwrite_existing);
             }
@@ -777,11 +814,11 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
 //=============================================
 void PrintUsage()
 {
-    std::cout << "Usage:\n"
-              << "  mdlimporter -model <file.glb>\n"
-              << "  mdlimporter -texture <file.glb>\n"
-              << "  mdlimporter -batch <folder> -model\n"
-              << "  mdlimporter -batch <folder> -texture\n";
+    std::cout << "Usage:\n" 
+            << "  mdlimporter -model <file.glb>\n" 
+            << "  mdlimporter -texture <file.glb>\n" 
+            << "  mdlimporter -batch <folder> -model\n"
+            << "  mdlimporter -batch <folder> -texture\n";
 }
 
 //=============================================
