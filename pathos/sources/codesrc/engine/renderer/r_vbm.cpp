@@ -3079,7 +3079,7 @@ bool CVBMRenderer::CheckBBox( void )
 	if ((m_pCurrentEntity->curstate.renderfx == RenderFx_ScaledModel
 		|| m_pCurrentEntity->curstate.renderfx == RenderFx_SkyEntScaled
 		|| m_pCurrentEntity->curstate.renderfx == RenderFx_InPortalScaledModel)
-		&& (m_pExtraInfo->paniminfo->scale != m_pCurrentEntity->curstate.scale))
+		&& m_pCurrentEntity->curstate.scale != 0)
 	{
 		Math::VectorScale(vMins, m_pCurrentEntity->curstate.scale, vMins);
 		Math::VectorScale(vMaxs, m_pCurrentEntity->curstate.scale, vMaxs);
