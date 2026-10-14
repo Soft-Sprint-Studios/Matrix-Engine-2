@@ -268,7 +268,8 @@ bool CBSPBuilder::ExportALD(const Char* filename, aldlumptype_t lumpType)
         std::vector<byte> compressedData;
     };
 
-    auto CompressRaw = [](const std::vector<byte>& src, LayerPayload& out) {
+    auto CompressRaw = [](const std::vector<byte>& src, LayerPayload& out) 
+        {
         if (src.empty()) 
             return;
 

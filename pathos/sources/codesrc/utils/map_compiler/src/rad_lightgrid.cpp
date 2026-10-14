@@ -565,7 +565,7 @@ void CRadPipeline::BuildLightGrid(Int32 gridDistance, Int32 raysPerLuxel)
         rawVectors[vi] = 255;
     }
 
-   #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < (int)totalSamples; i++)
     {
         const auto& s = samples[i];
