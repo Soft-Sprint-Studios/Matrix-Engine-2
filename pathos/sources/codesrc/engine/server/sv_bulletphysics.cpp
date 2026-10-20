@@ -301,7 +301,7 @@ void CBulletPhysics::SetupStaticWorld( void )
 			Math::VectorTransform(pVerts[t.trivertexes[1]].origin, mat, pt1);
 			Math::VectorTransform(pVerts[t.trivertexes[2]].origin, mat, pt2);
 
-			m_pWorldMesh->addTriangle(btVector3(pt0.x, pt0.y, pt0.z), btVector3(pt1.x, pt1.y, pt1.z), btVector3(pt2.x, pt2.y, pt2.z), true);
+			m_pWorldMesh->addTriangle(btVector3(pt0.x, pt0.y, pt0.z), btVector3(pt1.x, pt1.y, pt1.z), btVector3(pt2.x, pt2.y, pt2.z), false);
 		}
 	}
 
