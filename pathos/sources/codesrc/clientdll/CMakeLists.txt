@@ -87,6 +87,8 @@ target_sources(client
         clientusermsgs.h
         clshared.cpp
         clshared.h
+		credits.cpp
+        credits.h
         discordrpc.cpp
         discordrpc.h
         draw.cpp
@@ -198,10 +200,10 @@ target_compile_options(client
 source_group("Source Files/common" FILES ../common/cbitset.cpp ../common/cbuffer.cpp ../common/common.cpp ../common/crc32.cpp ../common/cstring.cpp ../common/cstringpool.cpp ../common/matrix.cpp ../common/md5.cpp ../common/r_common.cpp)
 source_group("Source Files/libs/glad/src" FILES ../libs/glad/src/glad.c)
 source_group("Source Files/shared" FILES ../shared/decallist.cpp ../shared/playermove.cpp ../shared/r_glsl.cpp ../shared/r_vbo.cpp ../shared/stepsound.cpp ../shared/uischema.cpp ../shared/vbm_shared.cpp ../shared/weapons_shared.cpp)
-source_group("Source Files" FILES animevents.cpp clientdll.cpp clshared.cpp discordrpc.cpp draw.cpp gameuidocumentswindow.cpp gameuikeypadwindow.cpp gameuiloginwindow.cpp gameuiobjectiveswindow.cpp gameuisubwaywindow.cpp gameuitextwindow.cpp gameuielements.cpp gameuimanager.cpp hud.cpp huddraw.cpp input.cpp cliententities.cpp ladder.cpp messages.cpp motorbike.cpp nodedebug.cpp saytext.cpp screentext.cpp shake.cpp entitymanager.cpp clientusermsgs.cpp view.cpp viewcontroller.cpp viewmodel.cpp)
+source_group("Source Files" FILES animevents.cpp clientdll.cpp clshared.cpp credits.cpp discordrpc.cpp draw.cpp gameuidocumentswindow.cpp gameuikeypadwindow.cpp gameuiloginwindow.cpp gameuiobjectiveswindow.cpp gameuisubwaywindow.cpp gameuitextwindow.cpp gameuielements.cpp gameuimanager.cpp hud.cpp huddraw.cpp input.cpp cliententities.cpp ladder.cpp messages.cpp motorbike.cpp nodedebug.cpp saytext.cpp screentext.cpp shake.cpp entitymanager.cpp clientusermsgs.cpp view.cpp viewcontroller.cpp viewmodel.cpp)
 source_group("Header Files/common" FILES ../common/buttonbits.h ../common/cache_model.h ../common/carray.h ../common/carray_inline.hpp ../common/cbitset.h ../common/cbitset_inline.hpp ../common/cbuffer.h ../common/cbuffer_inline.hpp ../common/clinkedlist.h ../common/clinkedlist_inline.hpp ../common/common.h ../common/common_inline.hpp ../common/com_math.h ../common/com_math_inline.hpp ../common/constants.h ../common/crc32.h ../common/cstring.h ../common/cstringpool.h ../common/cstringpool_inline.hpp ../common/cstring_inline.hpp ../common/entitydata.h ../common/hashlist.h ../common/hashlist_inline.hpp ../common/matrix.h ../common/md5.h ../common/msgreader.h ../common/msgreader_inline.hpp ../common/r_common.h ../common/vector.h ../common/vector_inline.hpp)
 source_group("Header Files/shared" FILES ../shared/bike_shared.h ../shared/blackhole_shared.h ../shared/brushmodel_shared.h ../shared/cldll_interface.h ../shared/decallist.h ../shared/entity_extrainfo.h ../shared/flexmanager.h ../shared/flex_shared.h ../shared/ladder_shared.h ../shared/mlight.h ../shared/playermove.h ../shared/efxapi.h ../shared/r_glsl.h ../shared/r_glsl_inline.hpp ../shared/r_interface.h ../shared/r_vbo.h ../shared/stepsound.h ../shared/gameui_shared.h ../shared/uischema.h ../shared/vbm_shared.h ../shared/vcontroller_shared.h ../shared/weapons_shared.h)
-source_group("Header Files" FILES animevents.h clientdll.h clshared.h discordrpc.h gameuidocumentswindow.h gameuielements.h draw.h gameuikeypadwindow.h gameuiloginwindow.h gameuiobjectiveswindow.h gameuisubwaywindow.h gameuitextwindow.h gameuimanager.h gameuiwindows_shared.h hud.h huddraw.h input.h cliententities.h ladder.h messages.h motorbike.h nodedebug.h saytext.h screentext.h shake.h entitymanager.h clientusermsgs.h view.h viewcontroller.h viewmodel.h)
+source_group("Header Files" FILES animevents.h clientdll.h clshared.h credits.h discordrpc.h gameuidocumentswindow.h gameuielements.h draw.h gameuikeypadwindow.h gameuiloginwindow.h gameuiobjectiveswindow.h gameuisubwaywindow.h gameuitextwindow.h gameuimanager.h gameuiwindows_shared.h hud.h huddraw.h input.h cliententities.h ladder.h messages.h motorbike.h nodedebug.h saytext.h screentext.h shake.h entitymanager.h clientusermsgs.h view.h viewcontroller.h viewmodel.h)
 
 add_custom_command(TARGET client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/../../dlls"
