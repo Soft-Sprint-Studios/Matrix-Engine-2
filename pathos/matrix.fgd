@@ -2255,6 +2255,15 @@
 ]
 
 @PointClass base(Targetname) size(-8 -8 -8, 8 8 8) color(230 230 255) = game_title : "Title" []
+@PointClass base(Targetname) size(-8 -8 -8, 8 8 8) color(230 230 255) = game_clientcommand : "Execute client command" 
+[
+  message(string) : "Command to execute" 
+]
+
+@PointClass base(Targetname) size(-8 -8 -8, 8 8 8) color(230 230 255) = game_servercommand : "Execute server command" 
+[
+  message(string) : "Command to execute" 
+]
 
 @PointClass base(gibshooterbase) = gibshooter : "Gib Shooter" []
 
