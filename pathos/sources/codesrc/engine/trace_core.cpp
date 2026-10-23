@@ -265,6 +265,14 @@ const Char* TR_TraceTexture( const entity_state_t& entity, const Vector& start, 
 			Math::RotateToEntitySpace(entity.angles, end_l);
 		}
 
+		Float scale = (entity.scale != 0.0f) ? entity.scale : 1.0f;
+		if (scale != 1.0f)
+		{
+			Float invScale = 1.0f / scale;
+			start_l = start_l * invScale;
+			end_l = end_l * invScale;
+		}
+
 		const vbmcache_t* pvbmcache = pmodel->getVBMCache();
 		assert(pvbmcache != nullptr);
 
@@ -1608,10 +1616,28 @@ void TR_TraceAgainstEntity( const entity_state_t& entity, const cache_model_t* p
 				rotateResultBack = true;
 			}
 
+			Float scale = (entity.scale != 0.0f) ? entity.scale : 1.0f;
+			Vector lmins_s = lmins;
+			Vector lmaxs_s = lmaxs;
+
+			if (scale != 1.0f)
+			{
+				Float invScale = 1.0f / scale;
+				start_l = start_l * invScale;
+				end_l = end_l * invScale;
+				lmins_s = lmins * invScale;
+				lmaxs_s = lmaxs * invScale;
+			}
+
 			// Perform trace
 			const vbmcache_t* pvbmcache = pmodel->getVBMCache();
 			const mcdheader_t* pmcdheader = pvbmcache->pmcdheader;
-			g_mcdTrace.TraceLineAABB(start_l, end_l, lmins, lmaxs, pmcdheader, entity.body, trace);
+			g_mcdTrace.TraceLineAABB(start_l, end_l, lmins_s, lmaxs_s, pmcdheader, entity.body, trace);
+
+			if (scale != 1.0f && trace.fraction < 1.0f)
+			{
+				trace.plane.dist *= scale;
+			}
 		}
 		break;
 	default:

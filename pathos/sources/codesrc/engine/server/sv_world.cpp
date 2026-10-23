@@ -60,14 +60,21 @@ void SV_LinkEdict( edict_t* pentity, bool touchtriggers )
 	// Set the abs box
 	svs.dllfuncs.pfnSetAbsBox(pentity);
 
+	Float scale = (pentity->state.scale != 0.0f) ? pentity->state.scale : 1.0f;
+	if (scale != 1.0f)
+	{
+		pentity->state.absmin = pentity->state.origin + pentity->state.mins * scale;
+		pentity->state.absmax = pentity->state.origin + pentity->state.maxs * scale;
+	}
+
 	// Handle rotated objects to avoid bullet physics bug
 	if (!pentity->state.angles.IsZero())
 	{
 		Float mat[3][4];
 		Math::AngleMatrix(pentity->state.angles, mat);
 
-		Vector localCenter = (pentity->state.mins + pentity->state.maxs) * 0.5f;
-		Vector localExtents = (pentity->state.maxs - pentity->state.mins) * 0.5f;
+		Vector localCenter = (pentity->state.mins + pentity->state.maxs) * (0.5f * scale);
+		Vector localExtents = (pentity->state.maxs - pentity->state.mins) * (0.5f * scale);
 
 		Vector worldCenter;
 		Math::VectorTransform(localCenter, mat, worldCenter);
