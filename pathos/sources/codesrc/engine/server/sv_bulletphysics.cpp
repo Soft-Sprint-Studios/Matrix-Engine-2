@@ -348,6 +348,14 @@ void CBulletPhysics::Frame( double frametime )
 		}
 		else if (pedict->state.movetype == MOVETYPE_PUSH)
 		{
+			cache_model_t* pmodel = gModelCache.GetModelByIndex(pedict->state.modelindex);
+			if (pmodel && pmodel->type == MOD_VBM)
+			{
+				if (m_bodyIds[i])
+					RemoveBody(i);
+				continue;
+			}
+
 			if (!m_bodyIds[i])
 				SyncEntityToPhysics(pedict, i);
 
@@ -757,7 +765,12 @@ void CBulletPhysics::SyncEntityToKinematic( edict_t* pedict, Uint32 entindex )
 	btQuaternion rot((Float)vq[0], (Float)vq[1], (Float)vq[2], (Float)vq[3]);
 	trans.setRotation(rot);
 
-	btVector3 localCenter((pedict->state.mins.x + pedict->state.maxs.x) * 0.5f, (pedict->state.mins.y + pedict->state.maxs.y) * 0.5f, (pedict->state.mins.z + pedict->state.maxs.z) * 0.5f);
+	cache_model_t* pmodel = gModelCache.GetModelByIndex(pedict->state.modelindex);
+	btVector3 localCenter(0.0f, 0.0f, 0.0f);
+	if (pmodel && pmodel->type == MOD_BRUSH)
+	{
+		localCenter.setValue((pedict->state.mins.x + pedict->state.maxs.x) * 0.5f, (pedict->state.mins.y + pedict->state.maxs.y) * 0.5f, (pedict->state.mins.z + pedict->state.maxs.z) * 0.5f);
+	}
 	btVector3 worldOrigin(pedict->state.origin.x, pedict->state.origin.y, pedict->state.origin.z);
 	btVector3 worldCenter = worldOrigin + quatRotate(rot, localCenter);
 
@@ -781,7 +794,12 @@ void CBulletPhysics::SyncPhysicsToEntity(edict_t* pedict, Uint32 entindex)
 	btTransform trans = body->getWorldTransform();
 	btQuaternion rot = trans.getRotation();
 
-	btVector3 localCenter((pedict->state.mins.x + pedict->state.maxs.x) * 0.5f, (pedict->state.mins.y + pedict->state.maxs.y) * 0.5f, (pedict->state.mins.z + pedict->state.maxs.z) * 0.5f);
+	cache_model_t* pmodel = gModelCache.GetModelByIndex(pedict->state.modelindex);
+	btVector3 localCenter(0.0f, 0.0f, 0.0f);
+	if (pmodel && pmodel->type == MOD_BRUSH)
+	{
+		localCenter.setValue((pedict->state.mins.x + pedict->state.maxs.x) * 0.5f, (pedict->state.mins.y + pedict->state.maxs.y) * 0.5f, (pedict->state.mins.z + pedict->state.maxs.z) * 0.5f);
+	}
 
 	btVector3 worldOrigin = trans.getOrigin() - quatRotate(rot, localCenter);
 
