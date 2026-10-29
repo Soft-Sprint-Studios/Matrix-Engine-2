@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <set>
 
 namespace fs = std::filesystem;
 
@@ -60,6 +61,20 @@ struct AppConfig
 };
 
 AppConfig g_Config;
+
+struct BoneTransform
+{
+    float pos[3]{ 0.0f, 0.0f, 0.0f };
+    float rot[3]{ 0.0f, 0.0f, 0.0f };
+};
+
+struct AnimationSequenceInfo
+{
+    std::string name;
+    std::string smdName;
+    float fps = 30.0f;
+    int numFrames = 1;
+};
 
 //=============================================
 // @brief
@@ -402,7 +417,18 @@ bool SaveMRAOTexture(const cgltf_material& mat, const std::string& out_filename)
 
     if (!mr_image && !occ_image && !em_image)
     {
-        return false;
+        uint8_t roughness = static_cast<uint8_t>(std::clamp(mat.pbr_metallic_roughness.roughness_factor * 255.0f, 0.0f, 255.0f));
+        uint8_t metallic = static_cast<uint8_t>(std::clamp(mat.pbr_metallic_roughness.metallic_factor * 255.0f, 0.0f, 255.0f));
+
+        std::vector<uint8_t> solid(16 * 16 * 4);
+        for (size_t i = 0; i < 16 * 16; ++i)
+        {
+            solid[i * 4 + 0] = 255;
+            solid[i * 4 + 1] = roughness;
+            solid[i * 4 + 2] = metallic;
+            solid[i * 4 + 3] = 255;
+        }
+        return WriteBMP(out_filename, 16, 16, solid.data(), 32);
     }
 
     DecodedImage mr_img = LoadGLTFImageRGBA(mr_image);
@@ -536,6 +562,7 @@ std::string GetMaterialName(const cgltf_data* data, const cgltf_material* mat, c
             name = fallback + "_mat" + std::to_string(mat - data->materials);
     }
     std::replace(name.begin(), name.end(), ' ', '_');
+    std::replace(name.begin(), name.end(), '.', '_');
     return name;
 }
 
@@ -543,7 +570,412 @@ std::string GetMaterialName(const cgltf_data* data, const cgltf_material* mat, c
 // @brief
 //
 //=============================================
-void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::string& default_mat_name)
+void QuatToEuler(const float q[4], float euler[3])
+{
+    float x = q[0], y = q[1], z = q[2], w = q[3];
+
+    float sinr_cosp = 2.0f * (w * x + y * z);
+    float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
+    euler[0] = std::atan2(sinr_cosp, cosr_cosp);
+
+    float sinp = 2.0f * (w * y - z * x);
+    if (std::abs(sinp) >= 1.0f)
+        euler[1] = std::copysign(3.14159265358979323846f / 2.0f, sinp);
+    else
+        euler[1] = std::asin(sinp);
+
+    float siny_cosp = 2.0f * (w * z + x * y);
+    float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
+    euler[2] = std::atan2(siny_cosp, cosy_cosp);
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+std::vector<const cgltf_node*> BuildBoneHierarchy(cgltf_data* data, std::map<const cgltf_node*, int>& nodeToBone)
+{
+    nodeToBone.clear();
+    std::vector<const cgltf_node*> bones;
+    if (!data)
+    {
+        return bones;
+    }
+
+    if (data->skins_count > 0 && data->skins[0].joints_count > 0)
+    {
+        const cgltf_skin& skin = data->skins[0];
+        std::set<const cgltf_node*> jointSet;
+        for (cgltf_size i = 0; i < skin.joints_count; ++i)
+        {
+            jointSet.insert(skin.joints[i]);
+        }
+
+        std::vector<const cgltf_node*> sortedJoints;
+        auto addJointRecursive = [&](auto& self, const cgltf_node* node) -> void 
+            {
+            if (!node)
+                return;
+
+            if (jointSet.count(node) && std::find(sortedJoints.begin(), sortedJoints.end(), node) == sortedJoints.end())
+            {
+                sortedJoints.push_back(node);
+            }
+            for (cgltf_size ci = 0; ci < node->children_count; ++ci)
+            {
+                self(self, node->children[ci]);
+            }
+        };
+
+        for (cgltf_size ni = 0; ni < data->nodes_count; ++ni)
+        {
+            if (!data->nodes[ni].parent)
+            {
+                addJointRecursive(addJointRecursive, &data->nodes[ni]);
+            }
+        }
+
+        for (cgltf_size i = 0; i < skin.joints_count; ++i)
+        {
+            if (std::find(sortedJoints.begin(), sortedJoints.end(), skin.joints[i]) == sortedJoints.end())
+            {
+                sortedJoints.push_back(skin.joints[i]);
+            }
+        }
+
+        for (size_t i = 0; i < sortedJoints.size(); ++i)
+        {
+            nodeToBone[sortedJoints[i]] = static_cast<int>(i);
+            bones.push_back(sortedJoints[i]);
+        }
+    }
+    else
+    {
+        auto addNodeRecursive = [&](auto& self, const cgltf_node* node) -> void 
+            {
+            if (!node)
+                return;
+
+            if (nodeToBone.find(node) == nodeToBone.end())
+            {
+                nodeToBone[node] = static_cast<int>(bones.size());
+                bones.push_back(node);
+            }
+
+            for (cgltf_size ci = 0; ci < node->children_count; ++ci)
+            {
+                self(self, node->children[ci]);
+            }
+        };
+
+        for (cgltf_size ni = 0; ni < data->nodes_count; ++ni)
+        {
+            if (!data->nodes[ni].parent)
+            {
+                addNodeRecursive(addNodeRecursive, &data->nodes[ni]);
+            }
+        }
+
+        for (cgltf_size ni = 0; ni < data->nodes_count; ++ni)
+        {
+            if (nodeToBone.find(&data->nodes[ni]) == nodeToBone.end())
+            {
+                addNodeRecursive(addNodeRecursive, &data->nodes[ni]);
+            }
+        }
+    }
+
+    return bones;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void WriteSMDNodes(std::ofstream& out, const std::vector<const cgltf_node*>& bones, const std::map<const cgltf_node*, int>& nodeToBone, const std::string& fallback)
+{
+    out << "version 1\nnodes\n";
+    if (bones.empty())
+    {
+        out << "  0 \"root\" -1\n";
+    }
+    else
+    {
+        std::set<std::string> usedNames;
+        for (size_t i = 0; i < bones.size(); ++i)
+        {
+            const cgltf_node* node = bones[i];
+            std::string name = node->name && strlen(node->name) > 0 ? node->name : (fallback + "_bone" + std::to_string(i));
+            std::replace(name.begin(), name.end(), ' ', '_');
+
+            if (usedNames.count(name))
+            {
+                name += "_" + std::to_string(i);
+            }
+            usedNames.insert(name);
+
+            int parentIdx = -1;
+            const cgltf_node* parentNode = node->parent;
+            while (parentNode)
+            {
+                auto it = nodeToBone.find(parentNode);
+                if (it != nodeToBone.end())
+                {
+                    parentIdx = it->second;
+                    break;
+                }
+                parentNode = parentNode->parent;
+            }
+
+            out << "  " << i << " \"" << name << "\" " << parentIdx << "\n";
+        }
+    }
+    out << "end\n";
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+std::vector<AnimationSequenceInfo> ExportAnimations(const std::string& workDir, const std::string& assetName, cgltf_data* data, const std::vector<const cgltf_node*>& bones, const std::map<const cgltf_node*, int>& nodeToBone)
+{
+    std::vector<AnimationSequenceInfo> seqList;
+    if (!data)
+    {
+        return seqList;
+    }
+
+    std::vector<BoneTransform> baseTransforms(bones.size());
+    for (size_t b = 0; b < bones.size(); ++b)
+    {
+        const cgltf_node* node = bones[b];
+        if (node->has_translation)
+        {
+            baseTransforms[b].pos[0] = node->translation[0];
+            baseTransforms[b].pos[1] = node->translation[1];
+            baseTransforms[b].pos[2] = node->translation[2];
+        }
+        if (node->has_rotation)
+        {
+            QuatToEuler(node->rotation, baseTransforms[b].rot);
+        }
+    }
+
+    if (data->animations_count == 0)
+    {
+        std::string idleSmdName = assetName + "_idle.smd";
+        std::string outPath = workDir + "/" + idleSmdName;
+        std::ofstream out(outPath);
+        if (out.is_open())
+        {
+            out << std::fixed << std::setprecision(6);
+            WriteSMDNodes(out, bones, nodeToBone, assetName);
+            out << "skeleton\ntime 0\n";
+            if (bones.empty())
+            {
+                out << "  0 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\n";
+            }
+            else
+            {
+                for (size_t b = 0; b < bones.size(); ++b)
+                {
+                    out << "  " << b << " "
+                        << baseTransforms[b].pos[0] << " " << baseTransforms[b].pos[1] << " " << baseTransforms[b].pos[2] << " "
+                        << baseTransforms[b].rot[0] << " " << baseTransforms[b].rot[1] << " " << baseTransforms[b].rot[2] << "\n";
+                }
+            }
+            out << "end\n";
+            seqList.push_back({ "idle1", idleSmdName, 1.0f, 1 });
+        }
+        return seqList;
+    }
+
+    for (cgltf_size ai = 0; ai < data->animations_count; ++ai)
+    {
+        const cgltf_animation& anim = data->animations[ai];
+        std::string rawAnimName = anim.name && strlen(anim.name) > 0 ? anim.name : ("anim_" + std::to_string(ai));
+        std::replace(rawAnimName.begin(), rawAnimName.end(), ' ', '_');
+
+        float maxTime = 0.0f;
+        for (cgltf_size ci = 0; ci < anim.channels_count; ++ci)
+        {
+            const cgltf_animation_sampler* sampler = anim.channels[ci].sampler;
+            if (sampler && sampler->input && sampler->input->count > 0)
+            {
+                float lastVal = 0.0f;
+                cgltf_accessor_read_float(sampler->input, sampler->input->count - 1, &lastVal, 1);
+                if (lastVal > maxTime)
+                {
+                    maxTime = lastVal;
+                }
+            }
+        }
+
+        float fps = 30.0f;
+        int frameCount = static_cast<int>(std::ceil(maxTime * fps)) + 1;
+        if (frameCount < 1)
+        {
+            frameCount = 1;
+        }
+
+        std::string animSmdName = assetName + "_" + rawAnimName + ".smd";
+        std::string outPath = workDir + "/" + animSmdName;
+        std::ofstream out(outPath);
+        if (!out.is_open())
+        {
+            continue;
+        }
+
+        out << std::fixed << std::setprecision(6);
+        WriteSMDNodes(out, bones, nodeToBone, assetName);
+        out << "skeleton\n";
+
+        for (int f = 0; f < frameCount; ++f)
+        {
+            float t = (frameCount > 1) ? (static_cast<float>(f) / fps) : 0.0f;
+            out << "time " << f << "\n";
+
+            std::vector<BoneTransform> frameTransforms = baseTransforms;
+
+            for (cgltf_size ci = 0; ci < anim.channels_count; ++ci)
+            {
+                const cgltf_animation_channel& channel = anim.channels[ci];
+                const cgltf_node* targetNode = channel.target_node;
+                auto it = nodeToBone.find(targetNode);
+                if (it == nodeToBone.end())
+                {
+                    continue;
+                }
+
+                int boneIdx = it->second;
+                const cgltf_animation_sampler* sampler = channel.sampler;
+                if (!sampler || !sampler->input || !sampler->output || sampler->input->count == 0)
+                {
+                    continue;
+                }
+
+                cgltf_size keyCount = sampler->input->count;
+                cgltf_size prevKey = 0;
+                cgltf_size nextKey = 0;
+                float prevT = 0.0f;
+                float nextT = 0.0f;
+
+                cgltf_accessor_read_float(sampler->input, 0, &prevT, 1);
+                if (t <= prevT)
+                {
+                    prevKey = nextKey = 0;
+                    nextT = prevT;
+                }
+                else
+                {
+                    cgltf_accessor_read_float(sampler->input, keyCount - 1, &nextT, 1);
+                    if (t >= nextT)
+                    {
+                        prevKey = nextKey = keyCount - 1;
+                        prevT = nextT;
+                    }
+                    else
+                    {
+                        for (cgltf_size k = 0; k < keyCount - 1; ++k)
+                        {
+                            float kt0 = 0.0f, kt1 = 0.0f;
+                            cgltf_accessor_read_float(sampler->input, k, &kt0, 1);
+                            cgltf_accessor_read_float(sampler->input, k + 1, &kt1, 1);
+                            if (t >= kt0 && t <= kt1)
+                            {
+                                prevKey = k;
+                                nextKey = k + 1;
+                                prevT = kt0;
+                                nextT = kt1;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                float factor = (nextT > prevT) ? ((t - prevT) / (nextT - prevT)) : 0.0f;
+                if (sampler->interpolation == cgltf_interpolation_type_step)
+                {
+                    factor = 0.0f;
+                }
+
+                if (channel.target_path == cgltf_animation_path_type_translation)
+                {
+                    float p0[3]{ 0 }, p1[3]{ 0 };
+                    cgltf_accessor_read_float(sampler->output, prevKey, p0, 3);
+                    cgltf_accessor_read_float(sampler->output, nextKey, p1, 3);
+                    frameTransforms[boneIdx].pos[0] = p0[0] + (p1[0] - p0[0]) * factor;
+                    frameTransforms[boneIdx].pos[1] = p0[1] + (p1[1] - p0[1]) * factor;
+                    frameTransforms[boneIdx].pos[2] = p0[2] + (p1[2] - p0[2]) * factor;
+                }
+                else if (channel.target_path == cgltf_animation_path_type_rotation)
+                {
+                    float q0[4]{ 0, 0, 0, 1 }, q1[4]{ 0, 0, 0, 1 };
+                    cgltf_accessor_read_float(sampler->output, prevKey, q0, 4);
+                    cgltf_accessor_read_float(sampler->output, nextKey, q1, 4);
+
+                    float dot = q0[0] * q1[0] + q0[1] * q1[1] + q0[2] * q1[2] + q0[3] * q1[3];
+                    if (dot < 0.0f)
+                    {
+                        q1[0] = -q1[0]; q1[1] = -q1[1]; q1[2] = -q1[2]; q1[3] = -q1[3];
+                        dot = -dot;
+                    }
+
+                    float qOut[4];
+                    if (dot > 0.9995f)
+                    {
+                        for (int c = 0; c < 4; ++c)
+                            qOut[c] = q0[c] + factor * (q1[c] - q0[c]);
+                    }
+                    else
+                    {
+                        float theta0 = std::acos(std::clamp(dot, -1.0f, 1.0f));
+                        float theta = theta0 * factor;
+                        float sinTheta = std::sin(theta);
+                        float sinTheta0 = std::sin(theta0);
+                        float s0 = std::cos(theta) - dot * sinTheta / sinTheta0;
+                        float s1 = sinTheta / sinTheta0;
+                        for (int c = 0; c < 4; ++c)
+                            qOut[c] = (s0 * q0[c]) + (s1 * q1[c]);
+                    }
+
+                    float qlen = std::sqrt(qOut[0] * qOut[0] + qOut[1] * qOut[1] + qOut[2] * qOut[2] + qOut[3] * qOut[3]);
+                    if (qlen > 0.00001f)
+                    {
+                        qOut[0] /= qlen; qOut[1] /= qlen; qOut[2] /= qlen; qOut[3] /= qlen;
+                    }
+
+                    QuatToEuler(qOut, frameTransforms[boneIdx].rot);
+                }
+            }
+
+            if (bones.empty())
+            {
+                out << "  0 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\n";
+            }
+            else
+            {
+                for (size_t b = 0; b < bones.size(); ++b)
+                {
+                    out << "  " << b << " "
+                        << frameTransforms[b].pos[0] << " " << frameTransforms[b].pos[1] << " " << frameTransforms[b].pos[2] << " "
+                        << frameTransforms[b].rot[0] << " " << frameTransforms[b].rot[1] << " " << frameTransforms[b].rot[2] << "\n";
+                }
+            }
+        }
+
+        out << "end\n";
+        seqList.push_back({ rawAnimName, animSmdName, fps, frameCount });
+    }
+
+    return seqList;
+}
+
+//=============================================
+// @brief
+//
+//=============================================
+void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::string& default_mat_name, const std::vector<const cgltf_node*>& bones, const std::map<const cgltf_node*, int>& nodeToBone)
 {
     std::ofstream out(smd_filename);
     if (!out.is_open())
@@ -552,7 +984,34 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
     }
 
     out << std::fixed << std::setprecision(6);
-    out << "version 1\nnodes\n  0 \"root\" -1\nend\nskeleton\ntime 0\n  0 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\nend\ntriangles\n";
+    WriteSMDNodes(out, bones, nodeToBone, default_mat_name);
+
+    out << "skeleton\ntime 0\n";
+    if (bones.empty())
+    {
+        out << "  0 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\n";
+    }
+    else
+    {
+        for (size_t b = 0; b < bones.size(); ++b)
+        {
+            const cgltf_node* node = bones[b];
+            float p[3]{ 0.0f, 0.0f, 0.0f };
+            float r[3]{ 0.0f, 0.0f, 0.0f };
+            if (node->has_translation)
+            {
+                p[0] = node->translation[0];
+                p[1] = node->translation[1];
+                p[2] = node->translation[2];
+            }
+            if (node->has_rotation)
+            {
+                QuatToEuler(node->rotation, r);
+            }
+            out << "  " << b << " " << p[0] << " " << p[1] << " " << p[2] << " " << r[0] << " " << r[1] << " " << r[2] << "\n";
+        }
+    }
+    out << "end\ntriangles\n";
 
     for (cgltf_size ni = 0; ni < data->nodes_count; ++ni)
     {
@@ -562,13 +1021,23 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
             continue;
         }
 
+        bool isSkinned = (node.skin && node.skin->joints_count > 0);
         float matrix[16];
         cgltf_node_transform_world(&node, matrix);
+
+        int fallbackBoneIdx = 0;
+        auto itNode = nodeToBone.find(&node);
+        if (itNode != nodeToBone.end())
+        {
+            fallbackBoneIdx = itNode->second;
+        }
+
         const cgltf_mesh& mesh = *node.mesh;
         for (cgltf_size pi = 0; pi < mesh.primitives_count; ++pi)
         {
             const cgltf_primitive& prim = mesh.primitives[pi];
             const cgltf_accessor* pos = nullptr, * norm = nullptr, * uv = nullptr;
+            const cgltf_accessor* jointsAcc = nullptr, * weightsAcc = nullptr;
 
             for (cgltf_size ai = 0; ai < prim.attributes_count; ++ai)
             {
@@ -584,6 +1053,14 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
                 else if (strcmp(attr.name, "TEXCOORD_0") == 0)
                 {
                     uv = attr.data;
+                }
+                else if (strcmp(attr.name, "JOINTS_0") == 0)
+                {
+                    jointsAcc = attr.data;
+                }
+                else if (strcmp(attr.name, "WEIGHTS_0") == 0)
+                {
+                    weightsAcc = attr.data;
                 }
             }
 
@@ -609,24 +1086,81 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
                     {
                         cgltf_accessor_read_float(uv, idx, u, 2);
                     }
-                    float tp[3] = {
-                            matrix[0] * p[0] + matrix[4] * p[1] + matrix[8] * p[2] + matrix[12],
-                            matrix[1] * p[0] + matrix[5] * p[1] + matrix[9] * p[2] + matrix[13],
-                            matrix[2] * p[0] + matrix[6] * p[1] + matrix[10] * p[2] + matrix[14]
-                    };
 
-                    float tn[3] = {
-                        matrix[0] * n[0] + matrix[4] * n[1] + matrix[8] * n[2],
-                        matrix[1] * n[0] + matrix[5] * n[1] + matrix[9] * n[2],
-                        matrix[2] * n[0] + matrix[6] * n[1] + matrix[10] * n[2]
-                    };
+                    float tp[3], tn[3];
+                    if (!isSkinned)
+                    {
+                        tp[0] = matrix[0] * p[0] + matrix[4] * p[1] + matrix[8] * p[2] + matrix[12];
+                        tp[1] = matrix[1] * p[0] + matrix[5] * p[1] + matrix[9] * p[2] + matrix[13];
+                        tp[2] = matrix[2] * p[0] + matrix[6] * p[1] + matrix[10] * p[2] + matrix[14];
+
+                        tn[0] = matrix[0] * n[0] + matrix[4] * n[1] + matrix[8] * n[2];
+                        tn[1] = matrix[1] * n[0] + matrix[5] * n[1] + matrix[9] * n[2];
+                        tn[2] = matrix[2] * n[0] + matrix[6] * n[1] + matrix[10] * n[2];
+                    }
+                    else
+                    {
+                        tp[0] = p[0]; tp[1] = p[1]; tp[2] = p[2];
+                        tn[0] = n[0]; tn[1] = n[1]; tn[2] = n[2];
+                    }
+
                     float len = std::sqrt(tn[0] * tn[0] + tn[1] * tn[1] + tn[2] * tn[2]);
                     if (len > 0.00001f)
                     {
                         tn[0] /= len; tn[1] /= len; tn[2] /= len;
                     }
 
-                    out << "  0 " << tp[0] << " " << tp[1] << " " << tp[2] << " " << tn[0] << " " << tn[1] << " " << tn[2] << " " << u[0] << " " << 1.0f - u[1] << " 1 0 1.000\n";
+                    std::vector<std::pair<int, float>> boneWeights;
+                    if (isSkinned && jointsAcc && weightsAcc)
+                    {
+                        cgltf_uint jIndices[4] = { 0 };
+                        float wValues[4] = { 0.0f };
+                        cgltf_accessor_read_uint(jointsAcc, idx, jIndices, 4);
+                        cgltf_accessor_read_float(weightsAcc, idx, wValues, 4);
+
+                        float totalWeight = 0.0f;
+                        for (int k = 0; k < 4; ++k)
+                        {
+                            if (wValues[k] > 0.0001f)
+                            {
+                                if (jIndices[k] < node.skin->joints_count)
+                                {
+                                    const cgltf_node* jointNode = node.skin->joints[jIndices[k]];
+                                    auto itJoint = nodeToBone.find(jointNode);
+                                    if (itJoint != nodeToBone.end())
+                                    {
+                                        boneWeights.push_back({ itJoint->second, wValues[k] });
+                                        totalWeight += wValues[k];
+                                    }
+                                }
+                            }
+                        }
+
+                        if (totalWeight > 0.0001f)
+                        {
+                            for (auto& bw : boneWeights)
+                            {
+                                bw.second /= totalWeight;
+                            }
+                        }
+                    }
+
+                    if (boneWeights.empty())
+                    {
+                        boneWeights.push_back({ fallbackBoneIdx, 1.0f });
+                    }
+
+                    out << "  " << boneWeights[0].first << " "
+                        << tp[0] << " " << tp[1] << " " << tp[2] << " "
+                        << tn[0] << " " << tn[1] << " " << tn[2] << " "
+                        << u[0] << " " << 1.0f - u[1] << " "
+                        << boneWeights.size();
+
+                    for (const auto& bw : boneWeights)
+                    {
+                        out << " " << bw.first << " " << bw.second;
+                    }
+                    out << "\n";
                 }
             }
         }
@@ -638,7 +1172,7 @@ void WriteSMD(const std::string& smd_filename, cgltf_data* data, const std::stri
 // @brief
 //
 //=============================================
-void WriteQC(const std::string& qc_filename, const std::string& model_name)
+void WriteQC(const std::string& qc_filename, const std::string& model_name, const std::vector<AnimationSequenceInfo>& sequences)
 {
     std::ofstream out(qc_filename);
     if (!out.is_open())
@@ -653,8 +1187,14 @@ void WriteQC(const std::string& qc_filename, const std::string& model_name)
         << "$bodygroup \"studio\"\n"
         << "{\n"
         << "    studio \"" << model_name << "\" collision \"" << model_name << "\"\n"
-        << "}\n"
-        << "$sequence \"idle1\" \"" << model_name << "\" fps 1\n";
+        << "}\n";
+
+    out << "$sequence \"idle1\" \"" << model_name << ".smd\" fps 1\n";
+
+    for (size_t i = 0; i < sequences.size(); ++i)
+    {
+        out << "$sequence \"" << sequences[i].name << "\" \"" << sequences[i].smdName << "\" fps " << sequences[i].fps << "\n";
+    }
 }
 
 //=============================================
@@ -719,8 +1259,23 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
             }
             else
             {
-                std::vector<uint8_t> dummy(16 * 16 * 4, 255);
-                WriteBMP8Indexed(bmpPath, 16, 16, dummy.data());
+                uint8_t r = static_cast<uint8_t>(std::clamp(mat.pbr_metallic_roughness.base_color_factor[0] * 255.0f, 0.0f, 255.0f));
+                uint8_t g = static_cast<uint8_t>(std::clamp(mat.pbr_metallic_roughness.base_color_factor[1] * 255.0f, 0.0f, 255.0f));
+                uint8_t b = static_cast<uint8_t>(std::clamp(mat.pbr_metallic_roughness.base_color_factor[2] * 255.0f, 0.0f, 255.0f));
+                uint8_t a = static_cast<uint8_t>(std::clamp(mat.pbr_metallic_roughness.base_color_factor[3] * 255.0f, 0.0f, 255.0f));
+
+                std::vector<uint8_t> solid(16 * 16 * 4);
+                for (size_t i = 0; i < 16 * 16; ++i)
+                {
+                    solid[i * 4 + 0] = r;
+                    solid[i * 4 + 1] = g;
+                    solid[i * 4 + 2] = b;
+                    solid[i * 4 + 3] = a;
+                }
+
+                WriteBMP(bmpPath, 16, 16, solid.data(), isAlphaTest ? 32 : 24);
+                ConvertBMPToDDS(bmpPath, workDir + "/" + matName + "_diff.dds", isAlphaTest ? "-bc3" : "-bc1");
+                WriteBMP8Indexed(bmpPath, 16, 16, solid.data());
             }
 
             if (mat.normal_texture.texture)
@@ -757,11 +1312,23 @@ void ProcessFile(const fs::path& glbPath, ExportMode mode)
 
     if (mode == ExportMode::Model)
     {
-        WriteSMD(workDir + "/" + assetName + ".smd", data, assetName);
-        WriteQC(workDir + "/" + assetName + ".qc", assetName);
+        std::map<const cgltf_node*, int> nodeToBone;
+        std::vector<const cgltf_node*> bones = BuildBoneHierarchy(data, nodeToBone);
+
+        WriteSMD(workDir + "/" + assetName + ".smd", data, assetName, bones, nodeToBone);
+        std::vector<AnimationSequenceInfo> sequences = ExportAnimations(workDir, assetName, data, bones, nodeToBone);
+        WriteQC(workDir + "/" + assetName + ".qc", assetName, sequences);
 
         fs::copy_file(workDir + "/" + assetName + ".smd", targetPath / (assetName + ".smd"), fs::copy_options::overwrite_existing);
         fs::copy_file(workDir + "/" + assetName + ".qc", targetPath / (assetName + ".qc"), fs::copy_options::overwrite_existing);
+
+        for (const auto& seq : sequences)
+        {
+            if (fs::exists(workDir + "/" + seq.smdName))
+            {
+                fs::copy_file(workDir + "/" + seq.smdName, targetPath / seq.smdName, fs::copy_options::overwrite_existing);
+            }
+        }
 
         cgltf_free(data);
         RunCompiler(assetName);
