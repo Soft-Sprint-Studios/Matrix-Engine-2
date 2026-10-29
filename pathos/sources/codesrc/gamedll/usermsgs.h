@@ -78,7 +78,8 @@ struct usermsglist_t
 		setskytexture(0),
 		screenoverlay(0),
 		customitempickup(0),
-		setupvertexlighting(0)
+		setupvertexlighting(0),
+		showcredits(0)
 		{
 		}
 

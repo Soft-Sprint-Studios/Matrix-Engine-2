@@ -19,6 +19,12 @@ const Char CCredits::CREDITS_FILE_PATH[] = "scripts/credits.txt";
 const Char CCredits::CREDITS_TEXTSCHEMA_NAME[] = "credits";
 // Default color for text
 const color32_t CCredits::CREDITS_TEXT_COLOR = color32_t(255, 255, 255, 255);
+// Credits fade distance
+const Float CCredits::TEXT_FADE_DISTANCE = 64;
+
+// TODO list:
+// - Custom text schema per line
+// - Clear when all credit lines have disappeared
 
 // Global instance
 CCredits gCredits;
@@ -249,7 +255,6 @@ bool CCredits::Draw( void )
 	for (Uint32 i = 0; i < m_creditsLines.size(); i++)
 	{
 		const creditline_t& line = m_creditsLines[i];
-
 		if (currentLineY + static_cast<Double>(line.height) >= 0 && currentLineY <= static_cast<Double>(m_screenHeight))
 		{
 			if (!line.text.empty())
@@ -257,7 +262,25 @@ bool CCredits::Draw( void )
 				Int32 xPosition = (static_cast<Int32>(m_screenWidth) - static_cast<Int32>(line.width)) / 2;
 				Int32 yPosition = static_cast<Int32>(currentLineY);
 
-				if (!cl_renderfuncs.pfnDrawStringBox(0, 0, 0, 0, 0, 0, false, CREDITS_TEXT_COLOR, xPosition, yPosition, line.text.c_str(), m_pFontSet, 0, m_pFontSet->fontsize, 0))
+				color32_t color = CREDITS_TEXT_COLOR;
+
+				Float alphafraction;
+				if((currentLineY - line.height) < TEXT_FADE_DISTANCE)
+				{
+					alphafraction = (currentLineY - line.height) / TEXT_FADE_DISTANCE;
+					alphafraction = clamp(alphafraction, 0, 1);
+				}
+				else if(currentLineY > (m_screenHeight - TEXT_FADE_DISTANCE))
+				{
+					alphafraction = ((currentLineY - (m_screenHeight - TEXT_FADE_DISTANCE)) / TEXT_FADE_DISTANCE);
+					alphafraction = 1.0 - clamp(alphafraction, 0, 1);
+				}
+				else
+					alphafraction = 1.0;
+
+				color.a *= alphafraction;
+
+				if (!cl_renderfuncs.pfnDrawSimpleString(color, xPosition, yPosition, line.text.c_str(), m_pFontSet))
 				{
 					cl_renderfuncs.pfnFinishTextRendering();
 					return false;

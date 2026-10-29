@@ -1017,7 +1017,8 @@ void FireBullets( Uint32 nbshots,
 
 							// Add ricochet and tracer effect
 							Util::Ricochet(tr.endpos, tr.plane.normal, false);
-							
+							Util::CreateFlickerParticles(tr.endpos, tr.plane.normal);
+
 							shootResult = ShootTrace(startPosition, endPos, shootDirection, pAttacker,
 								pAttacker, pWeapon, damage, dmgMultiplier, shotDmgFlags, bulletType,
 								hitgroup, tr, impactPositions, numImpactPositions, numPenetrations > 0 ? true : false, true, nullptr);

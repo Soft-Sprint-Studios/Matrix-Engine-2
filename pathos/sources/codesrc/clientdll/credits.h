@@ -28,6 +28,8 @@ public:
 	static const Char CREDITS_TEXTSCHEMA_NAME[];
 	// Default color for text
 	static const color32_t CREDITS_TEXT_COLOR;
+	// Credits fade distance
+	static const Float TEXT_FADE_DISTANCE;
 
 public:
 	struct creditline_t

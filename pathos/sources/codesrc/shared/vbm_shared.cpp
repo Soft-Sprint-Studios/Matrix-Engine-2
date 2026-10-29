@@ -460,6 +460,9 @@ bool VBM_MeshBonesCompatible( vbmmesh_t *pgrp1, vbmmesh_t *pgrp2, vbmheader_t* p
 
 		if((pmaterial1->ptextures[MT_TX_MRAO] ? true : false) != (pmaterial2->ptextures[MT_TX_MRAO] ? true : false))
 			return false;
+
+		if((pmaterial1->ptextures[MT_TX_NORMALMAP] ? true : false) != (pmaterial2->ptextures[MT_TX_NORMALMAP] ? true : false))
+			return false;
 	}
 
 	return true;

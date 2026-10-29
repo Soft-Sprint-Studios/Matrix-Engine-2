@@ -550,8 +550,6 @@ void CVBMRenderer::ClearGL( void )
 				m_pVertexLightingVBOArray[i]->pvbo = nullptr;
 			}
 		}
-
-		m_pVertexLightingVBOArray.clear();
 	}
 
 	if(m_pDecalVBO)

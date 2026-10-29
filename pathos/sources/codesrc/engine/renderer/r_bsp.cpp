@@ -1166,18 +1166,12 @@ void CBSPRenderer::InitVBO( void )
 
 			for(Uint32 k = 0; k < psurface->numedges; k++)
 			{
-				Vector vertexOrigin;
-				Int32 edgeIndex = ens.pworld->psurfedges[psurface->firstedge+k];
-				if(edgeIndex > 0)
-					vertexOrigin = ens.pworld->pvertexes[ens.pworld->pedges[edgeIndex].vertexes[0]].origin;
-				else
-					vertexOrigin = ens.pworld->pvertexes[ens.pworld->pedges[-edgeIndex].vertexes[1]].origin;
-
 				// allocate the new vertex
 				bsp_vertex_t& vertex = pvertexes[curVertexIndex];
 				curVertexIndex++;
 
 				// Set origin
+				const Vector& vertexOrigin = Mod_GetSurfaceVertex(ens.pworld, psurface, k);
 				for(Uint32 l = 0; l < 3; l++)
 					vertex.origin[l] = vertexOrigin[l];
 

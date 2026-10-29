@@ -257,7 +257,7 @@ bool CTracerRenderer::DrawTracers( void )
 
 		// See if we've filled the cache
 		nbVertexes += 4;
-		if((nbVertexes+4) >= CBasicDraw::BASICDRAW_VERTEX_CACHE_SIZE)
+		if((nbVertexes+4) >= pDraw->GetCacheSize())
 		{
 			pDraw->End();
 			pDraw->Begin(CBasicDraw::DRAW_QUADS);
@@ -401,13 +401,21 @@ void CTracerRenderer::CreateImplosionEffect( const Vector& destination, Float ra
 //====================================
 //
 //====================================
-void CTracerRenderer::CreateSparkStreak( const Vector& origin, Uint32 count, const Vector& color, Float alpha, Float width, Float length, Float minLifetime, Float maxLifetime, Float minVelocity, Float maxVelocity )
+void CTracerRenderer::CreateSparkStreak( const Vector& origin, const Vector& direction, Uint32 count, const Vector& color, Float alpha, Float width, Float length, Float minLifetime, Float maxLifetime, Float minVelocity, Float maxVelocity )
 {
+	Vector up, right;
+	Math::GetUpRight(direction, up, right);
+
 	for(Uint32 i = 0; i < count; i++)
 	{
+		Float fwspeed = Common::RandomFloat(minVelocity, maxVelocity);
+		Float rightspeed = Common::RandomFloat(minVelocity, maxVelocity);
+		Float upspeed = Common::RandomFloat(minVelocity, maxVelocity);
+
 		Vector velocity;
-		for(Uint32 j = 0; j < 3; j++)
-			velocity[j] = Common::RandomFloat(minVelocity, maxVelocity);
+		Math::VectorScale(direction, Common::RandomFloat(fwspeed, fwspeed), velocity);
+		Math::VectorMA(velocity, Common::RandomFloat(-rightspeed, rightspeed), right, velocity);
+		Math::VectorMA(velocity, Common::RandomFloat(-upspeed, upspeed), up, velocity);
 
 		Float life = maxLifetime > minLifetime ? Common::RandomFloat(minLifetime, maxLifetime) : minLifetime;
 		tracer_t* pnew = CreateTracer(origin, velocity, color, alpha, width, length, life, TRACER_SLOW_GRAVITY);
@@ -420,12 +428,17 @@ void CTracerRenderer::CreateSparkStreak( const Vector& origin, Uint32 count, con
 //====================================
 void CTracerRenderer::CreateStreakSplash( const Vector& origin, const Vector& direction, const Vector& color, Float alpha, Float width, Float length, Uint32 count, Float speed, Float minLifetime, Float maxLifetime, Float minVelocity, Float maxVelocity )
 {
+	Vector up, right;
+	Math::GetUpRight(direction, up, right);
+
 	Vector initialVelocity = direction * speed;
 	for(Uint32 i = 0; i < count; i++)
 	{
+		Float streakvelocity = Common::RandomFloat(minVelocity, maxVelocity);
+
 		Vector velocity;
-		for(Uint32 j = 0; j < 3; j++)
-			velocity[j] = initialVelocity[j] + Common::RandomFloat(minVelocity, maxVelocity);
+		Math::VectorMA(initialVelocity, Common::RandomFloat(-streakvelocity, streakvelocity), right, velocity);
+		Math::VectorMA(velocity, Common::RandomFloat(-streakvelocity, streakvelocity), up, velocity);
 
 		Float life = maxLifetime > minLifetime ? Common::RandomFloat(minLifetime, maxLifetime) : minLifetime;
 		tracer_t* pnew = CreateTracer(origin, velocity, color, alpha, width, length, life, TRACER_GRAVITY);
