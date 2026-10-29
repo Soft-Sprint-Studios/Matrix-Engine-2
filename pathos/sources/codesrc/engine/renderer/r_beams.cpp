@@ -1341,7 +1341,7 @@ void CBeamRenderer::BindSprite( cache_model_t* pmodel, beam_t* pbeam )
 	m_pCurrentSpriteFrame = Sprite_GetFrame(pspritemodel, pbeam->frame, rns.time);
 
 	// Bind to GL
-	R_Bind2DTexture(GL_TEXTURE0, pframe->ptexture->palloc->gl_index);
+	R_Bind2DTexture(GL_TEXTURE0, m_pCurrentSpriteFrame->ptexture->palloc->gl_index);
 }
 
 //====================================
@@ -2129,7 +2129,7 @@ bool CBeamRenderer::BeamSetup( beam_t* pbeam, const Vector& src, const Vector& e
 	pbeam->width = width;
 	pbeam->amplitude = amplitude;
 	pbeam->speed = speed;
-	pbeam->brightness = clamp(brightness, 0, 1);
+	pbeam->brightness = CLAMP(brightness, 0, 1);
 	pbeam->color1 = Vector(1, 1, 1);
 	pbeam->noisespeed = noisespeed;
 	if(!pbeam->noisespeed)
@@ -2372,9 +2372,9 @@ void CBeamRenderer::SetBeamAttributes( beam_t* pbeam, Float r, Float g, Float b,
 {
 	pbeam->framerate = framerate;
 	pbeam->frame = static_cast<Float>(startframe);
-	pbeam->color1.x = clamp(r, 0, 1);
-	pbeam->color1.y = clamp(g, 0, 1);
-	pbeam->color1.z = clamp(b, 0, 1);
+	pbeam->color1.x = CLAMP(r, 0, 1);
+	pbeam->color1.y = CLAMP(g, 0, 1);
+	pbeam->color1.z = CLAMP(b, 0, 1);
 }
 
 //====================================

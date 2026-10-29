@@ -174,17 +174,6 @@ void CBulletPhysics::ClearWorld( void )
 //=============================================
 //
 //=============================================
-static mvertex_t* GetBSPVertex(brushmodel_t* pmodel, Int32 edgeIndex)
-{
-	if (edgeIndex >= 0)
-		return &pmodel->pvertexes[pmodel->pedges[edgeIndex].vertexes[0]];
-	else
-		return &pmodel->pvertexes[pmodel->pedges[-edgeIndex].vertexes[1]];
-}
-
-//=============================================
-//
-//=============================================
 void CBulletPhysics::SetupStaticWorld( void )
 {
 	if (!ens.pworld) 
@@ -204,16 +193,16 @@ void CBulletPhysics::SetupStaticWorld( void )
 		if (psurf->flags & SURF_DRAWTURB)
 			continue;
 
-		mvertex_t* v0 = GetBSPVertex(ens.pworld, ens.pworld->psurfedges[psurf->firstedge]);
+		const Vector& v0 = Mod_GetSurfaceVertex(ens.pworld, psurf, 0);
 
 		for (Int32 j = 1; j < psurf->numedges - 1; j++)
 		{
-			mvertex_t* v1 = GetBSPVertex(ens.pworld, ens.pworld->psurfedges[psurf->firstedge + j]);
-			mvertex_t* v2 = GetBSPVertex(ens.pworld, ens.pworld->psurfedges[psurf->firstedge + j + 1]);
+			const Vector& v1 = Mod_GetSurfaceVertex(ens.pworld, psurf, j);
+			const Vector& v2 = Mod_GetSurfaceVertex(ens.pworld, psurf, j + 1);
 
-			btVector3 pt0(v0->origin.x, v0->origin.y, v0->origin.z);
-			btVector3 pt1(v1->origin.x, v1->origin.y, v1->origin.z);
-			btVector3 pt2(v2->origin.x, v2->origin.y, v2->origin.z);
+			btVector3 pt0(v0.x, v0.y, v0.z);
+			btVector3 pt1(v1.x, v1.y, v1.z);
+			btVector3 pt2(v2.x, v2.y, v2.z);
 
 			m_pWorldMesh->addTriangle(pt0, pt1, pt2, true);
 		}
@@ -545,10 +534,9 @@ btCollisionShape* CreateEntityCollisionShape(edict_t* pedict, btVector3& outLoca
 			msurface_t* psurf = &pbrushmodel->psurfaces[pbrushmodel->firstmodelsurface + i];
 			for (Int32 j = 0; j < psurf->numedges; j++)
 			{
-				Int32 edgeIndex = pbrushmodel->psurfedges[psurf->firstedge + j];
-				mvertex_t* pvert = GetBSPVertex(pbrushmodel, edgeIndex);
+				const Vector& vert = Mod_GetSurfaceVertex(pbrushmodel, psurf, j);
 
-				Vector localVert = pvert->origin - center;
+				Vector localVert = vert - center;
 				convexShape->addPoint(btVector3(localVert.x, localVert.y, localVert.z), false);
 			}
 		}

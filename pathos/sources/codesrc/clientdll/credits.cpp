@@ -268,12 +268,12 @@ bool CCredits::Draw( void )
 				if((currentLineY - line.height) < TEXT_FADE_DISTANCE)
 				{
 					alphafraction = (currentLineY - line.height) / TEXT_FADE_DISTANCE;
-					alphafraction = clamp(alphafraction, 0, 1);
+					alphafraction = CLAMP(alphafraction, 0, 1);
 				}
 				else if(currentLineY > (m_screenHeight - TEXT_FADE_DISTANCE))
 				{
 					alphafraction = ((currentLineY - (m_screenHeight - TEXT_FADE_DISTANCE)) / TEXT_FADE_DISTANCE);
-					alphafraction = 1.0 - clamp(alphafraction, 0, 1);
+					alphafraction = 1.0 - CLAMP(alphafraction, 0, 1);
 				}
 				else
 					alphafraction = 1.0;
